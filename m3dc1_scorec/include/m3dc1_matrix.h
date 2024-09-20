@@ -125,7 +125,8 @@ private:
   int fsBgmgSet; //only for mymatrix_id=5 or 17, the hard ones
   IS field0, field1, field2;
   int setFSType();
-  int setFSBgmgType(KSP *, int); 
+  int setFSBgmgType(); 
+  int setFSBgmgType2(KSP *, int); 
 
   //Line solver: Line 20240313
   int LineSet;

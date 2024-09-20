@@ -771,7 +771,9 @@ matrix_solve::~matrix_solve()
 	  //  PCDestroy(pc); 
 	  //  delete pc;
 	  if (!PCU_Comm_Self()) std::cout<<"[M3DC1 INFO] "<<__func__<<": BgmgSet="<<BgmgSet<<"\n";
-	  for (int level=0;level<mg_nlevels-1;level++) {
+	  int nlevels=mg_nlevels-1;
+	  if(BgmgfsSet) nlevels=mg_nlevels;
+	  for (int level=0;level<nlevels-1;level++) {
 		  MatDestroy(&(mg_interp_mat[level])); 
 		  //      KSPDestroy(&(mg_level_ksp[level])); 
 		  //      PCDestroy(&(mg_level_pc[level]));
@@ -782,7 +784,7 @@ matrix_solve::~matrix_solve()
 	  BgmgSet=0;
 	  if(BgmgfsSet) {
 		  if (!PCU_Comm_Self()) std::cout<<"[M3DC1 INFO] "<<__func__<<": BgmgfsSet="<<BgmgfsSet<<"\n";
-		  for (int level=0;level<mg_nlevels-1;level++) {
+		  for (int level=0;level<mg_nlevels;level++) {
 			  ISDestroy(&mg_field0[level]);
 			  ISDestroy(&mg_field1[level]);
 			  ISDestroy(&mg_field1[level]);
@@ -1163,30 +1165,48 @@ int matrix_solve::solve(FieldID field_id)
   int ierr = VecDuplicate(b, &x); CHKERRQ(ierr);
 
   int ScaleAb=0;
-         ierr= PetscOptionsGetInt(NULL,NULL,"-ScaleAb",&ScaleAb,NULL);
-	 if(ScaleAb==1 && mymatrix_id==5) {
-          Vec Adiag, b2;
-          ierr=VecDuplicate(b, &Adiag); CHKERRQ(ierr);
-          ierr=VecDuplicate(b, &b2); CHKERRQ(ierr);
-          ierr=MatGetDiagonal(*A, Adiag); CHKERRQ(ierr);
-          ierr=VecReciprocal(Adiag); CHKERRQ(ierr);
-          ierr=MatDiagonalScale(*A, Adiag, NULL); CHKERRQ(ierr);
-          ierr=VecPointwiseMult(b2, b, Adiag); CHKERRQ(ierr);
-          ierr=VecCopy(b2, b); CHKERRQ(ierr);
-         if (!PCU_Comm_Self())
-           std::cout <<"\t-- Scale A b" << std::endl;
-	  ierr = VecDestroy(&b2); CHKERRQ(ierr);
-	  ierr = VecDestroy(&Adiag); CHKERRQ(ierr);
+  ierr= PetscOptionsGetInt(NULL,NULL,"-ScaleAb",&ScaleAb,NULL);
+  if(ScaleAb==1 && mymatrix_id==5) {
+         if (!PCU_Comm_Self()) std::cout <<"\t-- Scale A b" << std::endl;
+
+	// create vectors
+	Vec adiag, lscale, rscale;
+	PetscCall(VecDuplicate(b, &adiag));
+	PetscCall(VecDuplicate(b, &lscale));
+	PetscCall(VecDuplicate(b, &rscale));
+
+	// put diagonal into adiag, lscale and rscale
+	PetscCall(MatGetDiagonal(*A, adiag));
+	PetscCall(VecCopy(adiag, lscale));
+	PetscCall(VecCopy(adiag, rscale));
+
+	// put 1/sqrt(abs(adiag)) into lscale
+	PetscCall(VecSqrtAbs(lscale));
+	PetscCall(VecReciprocal(lscale));
+
+	 // put sign(adiag)/sqrt(abs(adiag)) into rscale
+	PetscCall(VecPointwiseMult(rscale,adiag,lscale));
+	PetscCall(VecReciprocal(rscale));
+
+	// Scale matrix
+	PetscCall(MatDiagonalScale(*A,lscale,rscale));
+
+	ierr = VecDestroy(&adiag); CHKERRQ(ierr);
+	ierr = VecDestroy(&lscale); CHKERRQ(ierr);
+	ierr = VecDestroy(&rscale); CHKERRQ(ierr);
   }
 
     /* static variable
     static int count = 0;
-          if(count==30) {
+          if(count==30) { */
+  int PrintAb=0;
+         ierr= PetscOptionsGetInt(NULL,NULL,"-PrintAb",&PrintAb,NULL);
+	 if(PrintAb==1 && mymatrix_id==5) {
       ierr=MatViewFromOptions(*A, NULL, "-A_view");
       ierr = VecViewFromOptions(b, NULL, "-b_view"); CHKERRQ(ierr);
       ierr = VecViewFromOptions(x, NULL, "-x_view"); CHKERRQ(ierr);
 	  }
-	  if(mymatrix_id==5) count++;
+	  /*if(mymatrix_id==5) count++;
 	  */
 
   if(!kspSet) setKspType();
@@ -1283,6 +1303,13 @@ int matrix_solve:: setKspType()
   ierr = KSPCreate(MPI_COMM_WORLD, ksp);
   CHKERRQ(ierr);
 
+  //bjacobi for matrix 5
+  PetscInt bjsolve=-1;
+  ierr = PetscOptionsGetInt(NULL,NULL,"-bjsolve",&bjsolve,NULL); CHKERRQ(ierr);
+  if(mymatrix_id==bjsolve) {
+      ierr= KSPAppendOptionsPrefix(*ksp,"hard_");
+  }
+
   //mgsolve is turned on only if the solve is 5 or 17
   PetscInt ss=2, mgsolve[2];
   mgsolve[0]=-1;mgsolve[1]=-1;
@@ -1292,7 +1319,7 @@ int matrix_solve:: setKspType()
           if(!BgmgSet) setBgmgType();
   }
 
-  //mgfss is turned on only if the solve is 5 or 17
+  //mgfs is turned on only if the solve is 5 or 17
   PetscInt mgfs=-1;
   ierr = PetscOptionsGetInt(NULL,NULL,"-mgfs",&mgfs,NULL); CHKERRQ(ierr);
   if(mymatrix_id==mgfs) {
@@ -1357,6 +1384,13 @@ int matrix_solve:: setKspType()
 	          if(!fsSet) setFSType();
 	  }
 
+	  PetscInt fsmg=-1;
+	  ierr = PetscOptionsGetInt(NULL,NULL,"-fsmg",&fsmg,NULL); CHKERRQ(ierr);
+	  if(mymatrix_id==fsmg) {
+	          if (!PCU_Comm_Self()) std::cout<<"[M3DC1 INFO] "<<__func__<<": matrix "<<mymatrix_id<<" is going to use FieldSplitBgmg preconditioner"<<"\n";
+	          if(!fsBgmgSet) setFSBgmgType();
+	  }
+
 	  PetscInt lsolve=-1;
 	  ierr = PetscOptionsGetInt(NULL,NULL,"-lsolve",&lsolve,NULL); CHKERRQ(ierr);
 	  if(mymatrix_id==lsolve) {
@@ -1366,6 +1400,7 @@ int matrix_solve:: setKspType()
   }
 
   ierr = KSPSetFromOptions(*ksp); CHKERRQ(ierr);
+  PetscCall(KSPSetUp(*ksp));
   kspSet=1;
   return M3DC1_SUCCESS;
 }
@@ -1427,14 +1462,26 @@ int matrix_solve:: setBgmgType()
 //          Create KSP and set multigrid options in PC
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 
-    PC pc;
+    PC pcksp;
 //    ierr= KSPCreate(PETSC_COMM_WORLD,&ksp);
       ierr= KSPAppendOptionsPrefix(*ksp,"hard_");
-      ierr= KSPGetPC(*ksp,&pc);
-      ierr= PCSetType(pc,PCMG);
-      ierr= PCMGSetLevels(pc,mg_nlevels,NULL);
-      ierr= PCMGSetType(pc,PC_MG_MULTIPLICATIVE);
-      ierr= PCMGSetGalerkin(pc,PC_MG_GALERKIN_PMAT);
+      ierr= KSPGetPC(*ksp,&pcksp);
+      ierr= PCSetType(pcksp,PCKSP);
+//      ierr= PCSetType(pc,PCMG);
+    KSP ksprich;
+    PetscCall(PCKSPGetKSP(pcksp, &ksprich));
+    PetscCall(KSPSetType(ksprich, KSPRICHARDSON));
+    PetscCall(KSPSetTolerances(ksprich, PETSC_DEFAULT, PETSC_DEFAULT, PETSC_DEFAULT, 1));
+    PetscCall(KSPSetNormType(ksprich, KSP_NORM_NONE));
+    PetscCall(KSPSetConvergenceTest(ksprich, KSPConvergedSkip, NULL, NULL));
+
+    PC pcmg;
+    PetscCall(KSPGetPC(ksprich, &pcmg));
+    PetscCall(PCSetType(pcmg, PCMG));
+
+      ierr= PCMGSetLevels(pcmg,mg_nlevels,NULL);
+      ierr= PCMGSetType(pcmg,PC_MG_MULTIPLICATIVE);
+      ierr= PCMGSetGalerkin(pcmg,PC_MG_GALERKIN_PMAT);
 
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 //          Create Interpolation Operators from level-1 to level
@@ -1472,7 +1519,7 @@ int matrix_solve:: setBgmgType()
    //this is the first place to check
   char mg_pcbj[64], mg_pcbjblocknumber[8];
   {int level=mg_nlevels-1;
-          sprintf(mg_pcbj, "%s%d%s", "-hard_mg_levels_",level,"_pc_bjacobi_blocks");
+          sprintf(mg_pcbj, "%s%d%s", "-hard_ksp_mg_levels_",level,"_pc_bjacobi_blocks");
           sprintf(mg_pcbjblocknumber, "%d", mg_nplanes[level]);
           PetscOptionsSetValue(NULL,mg_pcbj,mg_pcbjblocknumber);
   }
@@ -1564,14 +1611,14 @@ int matrix_solve:: setBgmgType()
 	// Set Interpolation Operators
 
 	int ilevel=level+1;
-        ierr= PCMGSetInterpolation(pc,ilevel,mg_interp_mat[level]);
+        ierr= PCMGSetInterpolation(pcmg,ilevel,mg_interp_mat[level]);
 
         // Set Smoothers on each level
 
-        ierr= PCMGGetSmoother(pc,level,&(mg_level_ksp[level]));
+        ierr= PCMGGetSmoother(pcmg,level,&(mg_level_ksp[level]));
         ierr= KSPGetPC(mg_level_ksp[level],&(mg_level_pc[level]));
-        ierr= KSPSetType(mg_level_ksp[level],KSPGMRES);
-	ierr= KSPSetTolerances(mg_level_ksp[level], PETSC_DEFAULT, PETSC_DEFAULT, PETSC_DEFAULT, 3);
+        ierr= KSPSetType(mg_level_ksp[level],KSPFGMRES);
+//	ierr= KSPSetTolerances(mg_level_ksp[level], PETSC_DEFAULT, PETSC_DEFAULT, PETSC_DEFAULT, 3);
         ierr= PCSetType(mg_level_pc[level],PCBJACOBI);
 
  	int *blks;
@@ -1659,14 +1706,27 @@ int matrix_solve:: setBgmgFSType()
 //          Create KSP and set multigrid options in PC
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 
-    PC pc;
+    PC pcksp;
 //    ierr= KSPCreate(PETSC_COMM_WORLD,&ksp);
       ierr= KSPAppendOptionsPrefix(*ksp,"hard_");
-      ierr= KSPGetPC(*ksp,&pc);
-      ierr= PCSetType(pc,PCMG);
-      ierr= PCMGSetLevels(pc,mg_nlevels,NULL);
-      ierr= PCMGSetType(pc,PC_MG_MULTIPLICATIVE);
-      ierr= PCMGSetGalerkin(pc,PC_MG_GALERKIN_PMAT);
+      ierr= KSPGetPC(*ksp,&pcksp);
+      ierr= PCSetType(pcksp,PCKSP);
+//      ierr= PCSetType(pc,PCMG);
+
+    KSP ksprich;
+    PetscCall(PCKSPGetKSP(pcksp, &ksprich));
+    PetscCall(KSPSetType(ksprich, KSPRICHARDSON));
+    PetscCall(KSPSetTolerances(ksprich, PETSC_DEFAULT, PETSC_DEFAULT, PETSC_DEFAULT, 1));
+    PetscCall(KSPSetNormType(ksprich, KSP_NORM_NONE));
+    PetscCall(KSPSetConvergenceTest(ksprich, KSPConvergedSkip, NULL, NULL));
+
+    PC pcmg;
+    PetscCall(KSPGetPC(ksprich, &pcmg));
+    PetscCall(PCSetType(pcmg, PCMG));
+
+      ierr= PCMGSetLevels(pcmg,mg_nlevels,NULL);
+      ierr= PCMGSetType(pcmg,PC_MG_MULTIPLICATIVE);
+      ierr= PCMGSetGalerkin(pcmg,PC_MG_GALERKIN_PMAT);
 
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 //          Create Interpolation Operators from level-1 to level
@@ -1700,20 +1760,97 @@ int matrix_solve:: setBgmgFSType()
    m3dc1_plane_getid(&planeid);
    partitionid=myrank%npart;
 
+      mg_interp_mat = new Mat[mg_nlevels];
+      mg_level_ksp = new KSP[mg_nlevels];
+      mg_level_pc = new PC[mg_nlevels];
+
+      mg_field0 = new IS[mg_nlevels];
+      mg_field1 = new IS[mg_nlevels];
+      mg_field2 = new IS[mg_nlevels];
+
    //reset runtime solver options on the finest level
    //this is the first place to check
   char mg_pcbj[64], mg_pcbjblocknumber[8];
   {int level=mg_nlevels-1;
-          sprintf(mg_pcbj, "%s%d%s", "-hard_mg_levels_",level,"_pc_bjacobi_blocks");
+          sprintf(mg_pcbj, "%s%d%s", "-hard_ksp_mg_levels_",level,"_pc_bjacobi_blocks");
           sprintf(mg_pcbjblocknumber, "%d", mg_nplanes[level]);
           PetscOptionsSetValue(NULL,mg_pcbj,mg_pcbjblocknumber);
+
+        ierr= PCMGGetSmoother(pcmg,level,&(mg_level_ksp[level]));
+        ierr= KSPGetPC(mg_level_ksp[level],&(mg_level_pc[level]));
+        ierr= KSPSetType(mg_level_ksp[level],KSPGMRES);
+//	ierr= KSPSetTolerances(mg_level_ksp[level], PETSC_DEFAULT, PETSC_DEFAULT, PETSC_DEFAULT, 3);
+        ierr= PCSetType(mg_level_pc[level],PCFIELDSPLIT);
+
+  	// the global parameters
+  	PetscInt k, stride=dofPerEnt/3; //U 0->11, Omega 12->23, Chi 24->35
+
+  	// the 3 fields for PCFIELDSPLIT: field0, field1, field2;
+  	PetscInt *idx0, *idx1, *idx2;
+  	ierr=PetscMalloc1(num_own_ent, &idx0);
+  	ierr=PetscMalloc1(num_own_ent, &idx1);
+  	ierr=PetscMalloc1(num_own_ent, &idx2);
+
+	//std::cout<<"[M3DC1 INFO] "<<__func__<<": rank "<<myrank<<" startDof "<<startDof<<" endDofPlusOne="<<endDofPlusOne<<"\n";
+
+  	for (k=0; k<num_own_ent; k++) idx0[k]=k*dofPerEnt/stride + startDof/stride;
+  	ierr=ISCreateBlock(PETSC_COMM_WORLD, stride, num_own_ent, idx0, PETSC_COPY_VALUES, &mg_field0[level]);
+
+  	for (k=0; k<num_own_ent; k++) idx1[k]=1+k*dofPerEnt/stride + startDof/stride;
+  	ierr=ISCreateBlock(PETSC_COMM_WORLD, stride, num_own_ent, idx1, PETSC_COPY_VALUES, &mg_field1[level]);
+
+  	for (k=0; k<num_own_ent; k++) idx2[k]=2+k*dofPerEnt/stride + startDof/stride;
+  	ierr=ISCreateBlock(PETSC_COMM_WORLD, stride, num_own_ent, idx2, PETSC_COPY_VALUES, &mg_field2[level]);
+
+  	ierr=PCFieldSplitSetIS(mg_level_pc[level], NULL, mg_field0[level]);
+  	ierr=PCFieldSplitSetIS(mg_level_pc[level], NULL, mg_field1[level]);
+  	ierr=PCFieldSplitSetIS(mg_level_pc[level], NULL, mg_field2[level]);
+
+  	ierr=PetscFree(idx0);
+  	ierr=PetscFree(idx1);
+  	ierr=PetscFree(idx2);
+
+  	KSP               *subksp,ksp_u,ksp_o,ksp_c;    /* linear solver context */
+  	PC                pc_u,pc_o,pc_c;
+  	PetscInt          nsplit=3;
+  	PetscBool is_pcfs;
+ 	int *blks;
+ 	ierr=PetscMalloc1(mg_nplanes[level], &blks);
+ 	for (int i = 0; i < mg_nplanes[level]; i++) blks[i] = plane_dim;
+
+    is_pcfs = PETSC_FALSE;
+    PetscCall(PetscObjectTypeCompare((PetscObject)mg_level_pc[level], PCFIELDSPLIT, &is_pcfs));
+    if (is_pcfs) {
+	    PetscCall(PCFieldSplitGetSubKSP(mg_level_pc[level], &nsplit, &subksp));
+	    ksp_u = subksp[0];
+	    ksp_o = subksp[1];
+	    ksp_c = subksp[2];
+	    PetscCall(PetscFree(subksp));
+
+	    PetscCall(KSPGetPC(ksp_u, &pc_u));
+            ierr= KSPSetType(ksp_u,KSPFGMRES);
+//	    ierr= KSPSetTolerances(ksp_u, PETSC_DEFAULT, PETSC_DEFAULT, PETSC_DEFAULT, 3);
+            ierr= PCSetType(pc_u,PCBJACOBI);
+ 	    ierr=PCBJacobiSetTotalBlocks(pc_u, mg_nplanes[level], blks);
+
+	    PetscCall(KSPGetPC(ksp_o, &pc_o));
+            ierr= KSPSetType(ksp_o,KSPFGMRES);
+//	    ierr= KSPSetTolerances(ksp_o, PETSC_DEFAULT, PETSC_DEFAULT, PETSC_DEFAULT, 3);
+            ierr= PCSetType(pc_o,PCBJACOBI);
+ 	    ierr=PCBJacobiSetTotalBlocks(pc_o, mg_nplanes[level], blks);
+
+	    PetscCall(KSPGetPC(ksp_c, &pc_c));
+            ierr= KSPSetType(ksp_c,KSPFGMRES);
+//	    ierr= KSPSetTolerances(ksp_c, PETSC_DEFAULT, PETSC_DEFAULT, PETSC_DEFAULT, 3);
+            ierr= PCSetType(pc_c,PCBJACOBI);
+ 	    ierr=PCBJacobiSetTotalBlocks(pc_c, mg_nplanes[level], blks);
+    }
+
+ 	ierr=PetscFree(blks);
+
   }
 
       int irow, icol, icol2, irow_end, icol_end, icol2_end;
-
-      mg_interp_mat = new Mat[mg_nlevels-1];
-      mg_level_ksp = new KSP[mg_nlevels-1];
-      mg_level_pc = new PC[mg_nlevels-1];
 
       int *mg_planeid, factor;
       ierr= PetscMalloc1(mg_nlevels-1,&mg_planeid);
@@ -1737,10 +1874,6 @@ int matrix_solve:: setBgmgFSType()
       for (int level=mg_nlevels-2; level>=0; --level) {
 	      mapping(maxrank, myrank, mg_nlevels-1-level, mg_num_own_ent[level+1], mg_nplanes[level], planeid, npart, partitionid, &mg_num_own_ent[level], &mg_start_ent[level], &mg_start_entx[level]);
       }
-
-      mg_field0 = new IS[mg_nlevels-1];
-      mg_field1 = new IS[mg_nlevels-1];
-      mg_field2 = new IS[mg_nlevels-1];
 
       for(int level=0; level<mg_nlevels-1;level++) {
 	ierr= MatCreate(PETSC_COMM_WORLD,&mg_interp_mat[level]);
@@ -1801,14 +1934,14 @@ int matrix_solve:: setBgmgFSType()
 	// Set Interpolation Operators
 
 	int ilevel=level+1;
-        ierr= PCMGSetInterpolation(pc,ilevel,mg_interp_mat[level]);
+        ierr= PCMGSetInterpolation(pcmg,ilevel,mg_interp_mat[level]);
 
         // Set Smoothers on each level
 
-        ierr= PCMGGetSmoother(pc,level,&(mg_level_ksp[level]));
+        ierr= PCMGGetSmoother(pcmg,level,&(mg_level_ksp[level]));
         ierr= KSPGetPC(mg_level_ksp[level],&(mg_level_pc[level]));
-        ierr= KSPSetType(mg_level_ksp[level],KSPGMRES);
-	ierr= KSPSetTolerances(mg_level_ksp[level], PETSC_DEFAULT, PETSC_DEFAULT, PETSC_DEFAULT, 3);
+        ierr= KSPSetType(mg_level_ksp[level],KSPFGMRES);
+//	ierr= KSPSetTolerances(mg_level_ksp[level], PETSC_DEFAULT, PETSC_DEFAULT, PETSC_DEFAULT, 3);
         //ierr= PCSetType(mg_level_pc[level],PCBJACOBI);
 
 //  ierr = KSPSetOperators(*ksp, *A, *A /*, SAME_PRECONDITIONER DIFFERENT_NONZERO_PATTERN*/); 
@@ -1881,8 +2014,8 @@ int matrix_solve:: setBgmgFSType()
             //setFSBgmgType(&ksp_u, nsplit);
 	    PetscCall(KSPGetPC(ksp_u, &pc_u));
 	    //PetscCall(PCSetFromOptions(pc_u));
-            ierr= KSPSetType(ksp_u,KSPGMRES);
-	    ierr= KSPSetTolerances(ksp_u, PETSC_DEFAULT, PETSC_DEFAULT, PETSC_DEFAULT, 3);
+            ierr= KSPSetType(ksp_u,KSPFGMRES);
+//	    ierr= KSPSetTolerances(ksp_u, PETSC_DEFAULT, PETSC_DEFAULT, PETSC_DEFAULT, 3);
             ierr= PCSetType(pc_u,PCBJACOBI);
 	    //PetscCall(PCSetUp(pc_u));
  	    ierr=PCBJacobiSetTotalBlocks(pc_u, mg_nplanes[level], blks);
@@ -1890,8 +2023,8 @@ int matrix_solve:: setBgmgFSType()
             //setFSBgmgType(&ksp_o, nsplit);
 	    PetscCall(KSPGetPC(ksp_o, &pc_o));
 	    //PetscCall(PCSetFromOptions(pc_o));
-            ierr= KSPSetType(ksp_o,KSPGMRES);
-	    ierr= KSPSetTolerances(ksp_o, PETSC_DEFAULT, PETSC_DEFAULT, PETSC_DEFAULT, 3);
+            ierr= KSPSetType(ksp_o,KSPFGMRES);
+//	    ierr= KSPSetTolerances(ksp_o, PETSC_DEFAULT, PETSC_DEFAULT, PETSC_DEFAULT, 3);
             ierr= PCSetType(pc_o,PCBJACOBI);
 	    //PetscCall(PCSetUp(pc_o));
  	    ierr=PCBJacobiSetTotalBlocks(pc_o, mg_nplanes[level], blks);
@@ -1899,8 +2032,8 @@ int matrix_solve:: setBgmgFSType()
             //setFSBgmgType(&ksp_c, nsplit);
 	    PetscCall(KSPGetPC(ksp_c, &pc_c));
 	    //PetscCall(PCSetFromOptions(pc_c));
-            ierr= KSPSetType(ksp_c,KSPGMRES);
-	    ierr= KSPSetTolerances(ksp_c, PETSC_DEFAULT, PETSC_DEFAULT, PETSC_DEFAULT, 3);
+            ierr= KSPSetType(ksp_c,KSPFGMRES);
+//	    ierr= KSPSetTolerances(ksp_c, PETSC_DEFAULT, PETSC_DEFAULT, PETSC_DEFAULT, 3);
             ierr= PCSetType(pc_c,PCBJACOBI);
 	    //PetscCall(PCSetUp(pc_c));
  	    ierr=PCBJacobiSetTotalBlocks(pc_c, mg_nplanes[level], blks);
@@ -1920,6 +2053,7 @@ int matrix_solve:: setBgmgFSType()
 	    ierr=PCFactorSetMatSolverType(subpc, MATSOLVERMUMPS);
 	    ierr=KSPSetType(subksp[i], KSPPREONLY);
         }*/
+  if (!PCU_Comm_Self()) std::cout<<"[M3DC1 INFO] "<<__func__<<": at level ="<<level<<"\n";
       }
 
       ierr= PetscFree(mg_start_ent);
@@ -1934,7 +2068,219 @@ int matrix_solve:: setBgmgFSType()
   return M3DC1_SUCCESS;
 }
 
-int matrix_solve:: setFSBgmgType(KSP *ksp, int nsplit)
+int matrix_solve:: mapping(int maxrank, int myrank, int factor, int num_own_ent, int nplane, int planeid, int npartition, int partitionid, int *num_own_ent_level, int *start_ent, int *start_ent_level)
+{
+  int i, *num_all_ent, *num_all_ent_level;
+
+  num_all_ent= (int*) malloc(maxrank*sizeof(int));
+
+  MPI_Allgather( &num_own_ent, 1, MPI_INT, num_all_ent, 1, MPI_INT, PETSC_COMM_WORLD);
+        
+  int iloc, imod=pow(2,factor);
+
+  for(int i=0;i<imod/2;i++) {
+	  if((planeid%imod)==(0+2*i)) {//from the even planeid, keep the first part on this plane
+		  if(!(myrank%2)) {
+			  iloc=myrank-i*npartition-partitionid/2;
+			  *num_own_ent_level=num_all_ent[iloc]/2;
+		  }
+		  if( (myrank%2)) {
+			  iloc=(myrank-1)-i*npartition-partitionid/2;
+			  *num_own_ent_level=num_all_ent[iloc] - num_all_ent[iloc]/2;
+		  }
+	  } else if((planeid%imod)==(1+2*i)) { //from the old planeid, sent the second part on this plane
+		  if(!(myrank%2)) {
+			  iloc=myrank-i*npartition-npartition/2-partitionid/2;
+			  *num_own_ent_level=num_all_ent[iloc]/2;
+		  }
+		  if( (myrank%2)) {
+			  iloc=(myrank-1)-i*npartition-npartition/2-partitionid/2;
+			  *num_own_ent_level=num_all_ent[iloc] - num_all_ent[iloc]/2;
+		  }
+	  }
+  }
+  int all_ent=0;
+	for(i=0;i<maxrank;i++)
+		all_ent = all_ent + num_all_ent[i];
+
+  num_all_ent_level= (int*) malloc(maxrank*sizeof(int));
+  MPI_Allgather( num_own_ent_level, 1, MPI_INT, num_all_ent_level, 1, MPI_INT, PETSC_COMM_WORLD);
+
+  *start_ent=0;
+	for(i=0;i<myrank;i++)
+		*start_ent = *start_ent + num_all_ent[i];
+
+  *start_ent_level=0;
+	for(i=0;i<myrank;i++)
+		*start_ent_level = *start_ent_level + num_all_ent_level[i];
+
+  free(num_all_ent_level);
+  free(num_all_ent);
+  return 0;
+}
+
+int matrix_solve:: setFSType()
+{
+  // the global parameters
+  PetscInt ierr, dofPerEnt,stride,k;
+  int startDof, endDofPlusOne;
+  int num_own_ent=m3dc1_mesh::instance()->num_own_ent[0], num_own_dof;
+  m3dc1_field_getnumowndof(&fieldOrdering, &num_own_dof);
+  if (num_own_ent) dofPerEnt = num_own_dof/num_own_ent;
+  stride=dofPerEnt/3; //U 0->11, Omega 12->23, Chi 24->35
+  m3dc1_field_getowndofid (&fieldOrdering, &startDof, &endDofPlusOne);
+  startDof=startDof/stride;
+
+  // the 3 fields for PCFIELDSPLIT
+  //IS field0, field1, field2;
+  PetscInt *idx0, *idx1, *idx2;
+  ierr=PetscMalloc1(num_own_ent, &idx0);
+  ierr=PetscMalloc1(num_own_ent, &idx1);
+  ierr=PetscMalloc1(num_own_ent, &idx2);
+
+  // ISCreateBlock(MPI_Comm comm, PetscInt bs, PetscInt n, const PetscInt idx[], PetscCopyMode mode, IS *is)
+  // Creates a data structure for an index set containing a list of integers. Each integer represents a fixed block size set of indices.
+  // bs   - number of elements in each block
+  // n    - the length of the index set (the number of blocks)
+  // idx  - the list of integers, one for each block, the integers contain the index of the first entry of each block divided by the block size
+  // mode - see PetscCopyMode, only PETSC_COPY_VALUES and PETSC_OWN_POINTER are supported in this routine
+  for (k=0; k<num_own_ent; k++) idx0[k]=k*dofPerEnt/stride + startDof;
+  ierr=ISCreateBlock(PETSC_COMM_WORLD, stride, num_own_ent, idx0, PETSC_COPY_VALUES, &field0);
+
+  for (k=0; k<num_own_ent; k++) idx1[k]=1+k*dofPerEnt/stride + startDof;
+  ierr=ISCreateBlock(PETSC_COMM_WORLD, stride, num_own_ent, idx1, PETSC_COPY_VALUES, &field1);
+
+  for (k=0; k<num_own_ent; k++) idx2[k]=2+k*dofPerEnt/stride + startDof;
+  ierr=ISCreateBlock(PETSC_COMM_WORLD, stride, num_own_ent, idx2, PETSC_COPY_VALUES, &field2);
+
+  PC pcksp;
+  //PetscCall(KSPCreate(PETSC_COMM_WORLD, &ksp));
+  //PetscCall(KSPSetOperators(ksp, A, A));
+  ierr= KSPAppendOptionsPrefix(*ksp,"fs_");
+  ierr=KSPGetPC(*ksp, &pcksp);
+  ierr=PCSetType(pcksp, PCKSP);
+//  ierr=PCSetType(pc, PCFIELDSPLIT);
+  //note that one provides the indices for the fields on the original full system, not on the reduced system PCREDISTRIBUTE solves
+    KSP ksprich;
+    PetscCall(PCKSPGetKSP(pcksp, &ksprich));
+    PetscCall(KSPSetType(ksprich, KSPRICHARDSON));
+    PetscCall(KSPSetTolerances(ksprich, PETSC_DEFAULT, PETSC_DEFAULT, PETSC_DEFAULT, 1));
+    PetscCall(KSPSetNormType(ksprich, KSP_NORM_NONE));
+    PetscCall(KSPSetConvergenceTest(ksprich, KSPConvergedSkip, NULL, NULL));
+
+    PC pcfs;
+    PetscCall(KSPGetPC(ksprich, &pcfs));
+    PetscCall(PCSetType(pcfs, PCFIELDSPLIT));
+
+  ierr=PCFieldSplitSetIS(pcfs, NULL, field0);
+  ierr=PCFieldSplitSetIS(pcfs, NULL, field1);
+  ierr=PCFieldSplitSetIS(pcfs, NULL, field2);
+  //PetscCall(KSPSetFromOptions(ksp));
+  //PetscCall(KSPSolve(ksp, b, x));
+
+  ierr=PetscFree(idx0);
+  ierr=PetscFree(idx1);
+  ierr=PetscFree(idx2);
+  fsSet=1;
+  return 0;
+}
+
+int matrix_solve:: setFSBgmgType()
+{
+  // the global parameters
+  PetscInt ierr, dofPerEnt,stride,k;
+  int startDof, endDofPlusOne;
+  int num_own_ent=m3dc1_mesh::instance()->num_own_ent[0], num_own_dof;
+  m3dc1_field_getnumowndof(&fieldOrdering, &num_own_dof);
+  if (num_own_ent) dofPerEnt = num_own_dof/num_own_ent;
+  stride=dofPerEnt/3; //U 0->11, Omega 12->23, Chi 24->35
+  m3dc1_field_getowndofid (&fieldOrdering, &startDof, &endDofPlusOne);
+  startDof=startDof/stride;
+
+  // the 3 fields for PCFIELDSPLIT
+  //IS field0, field1, field2;
+  PetscInt *idx0, *idx1, *idx2;
+  ierr=PetscMalloc1(num_own_ent, &idx0);
+  ierr=PetscMalloc1(num_own_ent, &idx1);
+  ierr=PetscMalloc1(num_own_ent, &idx2);
+
+  // ISCreateBlock(MPI_Comm comm, PetscInt bs, PetscInt n, const PetscInt idx[], PetscCopyMode mode, IS *is)
+  // Creates a data structure for an index set containing a list of integers. Each integer represents a fixed block size set of indices.
+  // bs   - number of elements in each block
+  // n    - the length of the index set (the number of blocks)
+  // idx  - the list of integers, one for each block, the integers contain the index of the first entry of each block divided by the block size
+  // mode - see PetscCopyMode, only PETSC_COPY_VALUES and PETSC_OWN_POINTER are supported in this routine
+  for (k=0; k<num_own_ent; k++) idx0[k]=k*dofPerEnt/stride + startDof;
+  ierr=ISCreateBlock(PETSC_COMM_WORLD, stride, num_own_ent, idx0, PETSC_COPY_VALUES, &field0);
+
+  for (k=0; k<num_own_ent; k++) idx1[k]=1+k*dofPerEnt/stride + startDof;
+  ierr=ISCreateBlock(PETSC_COMM_WORLD, stride, num_own_ent, idx1, PETSC_COPY_VALUES, &field1);
+
+  for (k=0; k<num_own_ent; k++) idx2[k]=2+k*dofPerEnt/stride + startDof;
+  ierr=ISCreateBlock(PETSC_COMM_WORLD, stride, num_own_ent, idx2, PETSC_COPY_VALUES, &field2);
+
+  PC pcksp;
+  //PetscCall(KSPCreate(PETSC_COMM_WORLD, &ksp));
+  //PetscCall(KSPSetOperators(ksp, A, A));
+  ierr= KSPAppendOptionsPrefix(*ksp,"fs_");
+  ierr=KSPGetPC(*ksp, &pcksp);
+  ierr=PCSetType(pcksp, PCKSP);
+//  ierr=PCSetType(pc, PCFIELDSPLIT);
+  //note that one provides the indices for the fields on the original full system, not on the reduced system PCREDISTRIBUTE solves
+    KSP ksprich;
+    PetscCall(PCKSPGetKSP(pcksp, &ksprich));
+    PetscCall(KSPSetType(ksprich, KSPRICHARDSON));
+    PetscCall(KSPSetTolerances(ksprich, PETSC_DEFAULT, PETSC_DEFAULT, PETSC_DEFAULT, 1));
+    PetscCall(KSPSetNormType(ksprich, KSP_NORM_NONE));
+    PetscCall(KSPSetConvergenceTest(ksprich, KSPConvergedSkip, NULL, NULL));
+
+    PC pcfs;
+    PetscCall(KSPGetPC(ksprich, &pcfs));
+    PetscCall(PCSetType(pcfs, PCFIELDSPLIT));
+
+  ierr=PCFieldSplitSetIS(pcfs, NULL, field0);
+  ierr=PCFieldSplitSetIS(pcfs, NULL, field1);
+  ierr=PCFieldSplitSetIS(pcfs, NULL, field2);
+  //PetscCall(KSPSetFromOptions(ksp));
+  //PetscCall(KSPSolve(ksp, b, x));
+
+  KSP               *subksp,ksp_u,ksp_o,ksp_c;    /* linear solver context */
+  PC                pc_u,pc_o,pc_c;
+  PetscInt          nsplit;
+  PetscBool is_pcfs;
+
+    is_pcfs = PETSC_FALSE;
+    PetscCall(PetscObjectTypeCompare((PetscObject)pcfs, PCFIELDSPLIT, &is_pcfs));
+    if (is_pcfs) {
+	    //PetscCall(PCSetUp(pcfs)); caused error : Matrix must be set first
+	    PetscCall(PCFieldSplitGetSubKSP(pcfs, &nsplit, &subksp));
+	    ksp_u = subksp[0];
+	    ksp_o = subksp[1];
+	    ksp_c = subksp[2];
+	    PetscCall(PetscFree(subksp));
+
+            //setFSBgmgType(&ksp_u, nsplit);
+	    //PetscCall(KSPGetPC(ksp_u, &pc_u));
+	    //PetscCall(PCSetFromOptions(pc_u));
+
+            setFSBgmgType2(&ksp_o, nsplit);
+	    //PetscCall(KSPGetPC(ksp_o, &pc_o));
+	    //PetscCall(PCSetFromOptions(pc_o));
+
+            //setFSBgmgType(&ksp_c, nsplit);
+	    //PetscCall(KSPGetPC(ksp_c, &pc_c));
+	    //PetscCall(PCSetFromOptions(pc_c));
+	    if (!PCU_Comm_Self()) std::cout<<"[M3DC1 INFO] "<<__func__<<": PCFIELDSPLIT 5 has "<<nsplit<<" splits"<<"\n";
+    }
+
+  ierr=PetscFree(idx0);
+  ierr=PetscFree(idx1);
+  ierr=PetscFree(idx2);
+  fsSet=1;
+  return 0;
+}
+
+int matrix_solve:: setFSBgmgType2(KSP *ksp, int nsplit)
 {
 //if (mesh->getDimension()!=3 || mymatrix_id!=5) return 0;
   if (mesh->getDimension()!=3 ) return 0;
@@ -2038,13 +2384,13 @@ int matrix_solve:: setFSBgmgType(KSP *ksp, int nsplit)
    //this is the first place to check
   char mg_pcbj[64], mg_pcbjblocknumber[8];
   {int level=mg_nlevels-1;
-          sprintf(mg_pcbj, "%s%d%s", "-fs_fieldsplit_0_hard_mg_levels_",level,"_pc_bjacobi_blocks");
+          sprintf(mg_pcbj, "%s%d%s", "-fs_ksp_fieldsplit_0_hard_mg_levels_",level,"_pc_bjacobi_blocks");
           sprintf(mg_pcbjblocknumber, "%d", mg_nplanes[level]);
           PetscOptionsSetValue(NULL,mg_pcbj,mg_pcbjblocknumber);
-          sprintf(mg_pcbj, "%s%d%s", "-fs_fieldsplit_1_hard_mg_levels_",level,"_pc_bjacobi_blocks");
+          sprintf(mg_pcbj, "%s%d%s", "-fs_ksp_fieldsplit_1_hard_mg_levels_",level,"_pc_bjacobi_blocks");
           sprintf(mg_pcbjblocknumber, "%d", mg_nplanes[level]);
           PetscOptionsSetValue(NULL,mg_pcbj,mg_pcbjblocknumber);
-          sprintf(mg_pcbj, "%s%d%s", "-fs_fieldsplit_2_hard_mg_levels_",level,"_pc_bjacobi_blocks");
+          sprintf(mg_pcbj, "%s%d%s", "-fs_ksp_fieldsplit_2_hard_mg_levels_",level,"_pc_bjacobi_blocks");
           sprintf(mg_pcbjblocknumber, "%d", mg_nplanes[level]);
           PetscOptionsSetValue(NULL,mg_pcbj,mg_pcbjblocknumber);
   }
@@ -2088,7 +2434,7 @@ int matrix_solve:: setFSBgmgType(KSP *ksp, int nsplit)
         ierr= MatSetUp(mg_interp_mat[level]);
         ierr= MatZeroEntries(mg_interp_mat[level]);
 	ierr= MatGetOwnershipRangeColumn(mg_interp_mat[level],&Istartc,&Iendc);
-std::cout<<"[M3DC1 INFO] "<<__func__<<": plane_id="<<planeid<<" partitionid="<<partitionid<<" dofPerEnt="<<dofPerEnt<<" plane_dim="<<plane_dim<<" Istartc="<<Istartc<<" Iendc="<<Iendc<<"\n";
+//std::cout<<"[M3DC1 INFO] "<<__func__<<": plane_id="<<planeid<<" partitionid="<<partitionid<<" dofPerEnt="<<dofPerEnt<<" plane_dim="<<plane_dim<<" Istartc="<<Istartc<<" Iendc="<<Iendc<<"\n";
 
 	//hermite cubic extra term 1/8 delta (the span of elements on the coarse mesh)
 	PetscReal hc=M_PI/nplane/2.;
@@ -2143,8 +2489,8 @@ std::cout<<"[M3DC1 INFO] "<<__func__<<": plane_id="<<planeid<<" partitionid="<<p
 
         ierr= PCMGGetSmoother(pc,level,&(mg_level_ksp[level]));
         ierr= KSPGetPC(mg_level_ksp[level],&(mg_level_pc[level]));
-        ierr= KSPSetType(mg_level_ksp[level],KSPGMRES);
-	ierr= KSPSetTolerances(mg_level_ksp[level], PETSC_DEFAULT, PETSC_DEFAULT, PETSC_DEFAULT, 3);
+        ierr= KSPSetType(mg_level_ksp[level],KSPFGMRES);
+//	ierr= KSPSetTolerances(mg_level_ksp[level], PETSC_DEFAULT, PETSC_DEFAULT, PETSC_DEFAULT, 3);
         ierr= PCSetType(mg_level_pc[level],PCBJACOBI);
 
  	int *blks;
@@ -2173,202 +2519,6 @@ std::cout<<"[M3DC1 INFO] "<<__func__<<": plane_id="<<planeid<<" partitionid="<<p
       ierr= PetscFree(mg_nplanes);
   fsBgmgSet=1;
   return M3DC1_SUCCESS;
-}
-
-int matrix_solve:: mapping(int maxrank, int myrank, int factor, int num_own_ent, int nplane, int planeid, int npartition, int partitionid, int *num_own_ent_level, int *start_ent, int *start_ent_level)
-{
-  int i, *num_all_ent, *num_all_ent_level;
-
-  num_all_ent= (int*) malloc(maxrank*sizeof(int));
-
-  MPI_Allgather( &num_own_ent, 1, MPI_INT, num_all_ent, 1, MPI_INT, PETSC_COMM_WORLD);
-        
-  int iloc, imod=pow(2,factor);
-
-  for(int i=0;i<imod/2;i++) {
-	  if((planeid%imod)==(0+2*i)) {//from the even planeid, keep the first part on this plane
-		  if(!(myrank%2)) {
-			  iloc=myrank-i*npartition-partitionid/2;
-			  *num_own_ent_level=num_all_ent[iloc]/2;
-		  }
-		  if( (myrank%2)) {
-			  iloc=(myrank-1)-i*npartition-partitionid/2;
-			  *num_own_ent_level=num_all_ent[iloc] - num_all_ent[iloc]/2;
-		  }
-	  } else if((planeid%imod)==(1+2*i)) { //from the old planeid, sent the second part on this plane
-		  if(!(myrank%2)) {
-			  iloc=myrank-i*npartition-npartition/2-partitionid/2;
-			  *num_own_ent_level=num_all_ent[iloc]/2;
-		  }
-		  if( (myrank%2)) {
-			  iloc=(myrank-1)-i*npartition-npartition/2-partitionid/2;
-			  *num_own_ent_level=num_all_ent[iloc] - num_all_ent[iloc]/2;
-		  }
-	  }
-  }
-  int all_ent=0;
-	for(i=0;i<maxrank;i++)
-		all_ent = all_ent + num_all_ent[i];
-
-  num_all_ent_level= (int*) malloc(maxrank*sizeof(int));
-  MPI_Allgather( num_own_ent_level, 1, MPI_INT, num_all_ent_level, 1, MPI_INT, PETSC_COMM_WORLD);
-
-  *start_ent=0;
-	for(i=0;i<myrank;i++)
-		*start_ent = *start_ent + num_all_ent[i];
-
-  *start_ent_level=0;
-	for(i=0;i<myrank;i++)
-		*start_ent_level = *start_ent_level + num_all_ent_level[i];
-
-  free(num_all_ent_level);
-  free(num_all_ent);
-  return 0;
-}
-
-#ifdef TODO
-int matrix_solve:: setFSType()
-{
-  // the global parameters
-  PetscInt ierr, dofPerEnt,stride,k;
-  int startDof, endDofPlusOne;
-  int num_own_ent=m3dc1_mesh::instance()->num_own_ent[0], num_own_dof;
-  m3dc1_field_getnumowndof(&fieldOrdering, &num_own_dof);
-  if (num_own_ent) dofPerEnt = num_own_dof/num_own_ent;
-  stride=dofPerEnt/3; //U 0->11, Omega 12->23, Chi 24->35
-  m3dc1_field_getowndofid (&fieldOrdering, &startDof, &endDofPlusOne);
-  startDof=startDof/stride;
-
-  // the 3 fields for PCFIELDSPLIT
-  //IS field0, field1, field2;
-  PetscInt *idx0, *idx1, *idx2;
-  ierr=PetscMalloc1(num_own_ent, &idx0);
-  ierr=PetscMalloc1(num_own_ent, &idx1);
-  ierr=PetscMalloc1(num_own_ent, &idx2);
-
-  // ISCreateBlock(MPI_Comm comm, PetscInt bs, PetscInt n, const PetscInt idx[], PetscCopyMode mode, IS *is)
-  // Creates a data structure for an index set containing a list of integers. Each integer represents a fixed block size set of indices.
-  // bs   - number of elements in each block
-  // n    - the length of the index set (the number of blocks)
-  // idx  - the list of integers, one for each block, the integers contain the index of the first entry of each block divided by the block size
-  // mode - see PetscCopyMode, only PETSC_COPY_VALUES and PETSC_OWN_POINTER are supported in this routine
-  for (k=0; k<num_own_ent; k++) idx0[k]=k*dofPerEnt/stride + startDof;
-  ierr=ISCreateBlock(PETSC_COMM_WORLD, stride, num_own_ent, idx0, PETSC_COPY_VALUES, &field0);
-
-  for (k=0; k<num_own_ent; k++) idx1[k]=1+k*dofPerEnt/stride + startDof;
-  ierr=ISCreateBlock(PETSC_COMM_WORLD, stride, num_own_ent, idx1, PETSC_COPY_VALUES, &field1);
-
-  for (k=0; k<num_own_ent; k++) idx2[k]=2+k*dofPerEnt/stride + startDof;
-  ierr=ISCreateBlock(PETSC_COMM_WORLD, stride, num_own_ent, idx2, PETSC_COPY_VALUES, &field2);
-
-  PC pc;
-  //PetscCall(KSPCreate(PETSC_COMM_WORLD, &ksp));
-  //PetscCall(KSPSetOperators(ksp, A, A));
-  ierr= KSPAppendOptionsPrefix(*ksp,"fs_");
-  ierr=KSPGetPC(*ksp, &pc);
-  ierr=PCSetType(pc, PCFIELDSPLIT);
-  //note that one provides the indices for the fields on the original full system, not on the reduced system PCREDISTRIBUTE solves
-  ierr=PCFieldSplitSetIS(pc, NULL, field0);
-  ierr=PCFieldSplitSetIS(pc, NULL, field1);
-  ierr=PCFieldSplitSetIS(pc, NULL, field2);
-  //PetscCall(KSPSetFromOptions(ksp));
-  //PetscCall(KSPSolve(ksp, b, x));
-
-  ierr=PetscFree(idx0);
-  ierr=PetscFree(idx1);
-  ierr=PetscFree(idx2);
-  fsSet=1;
-  return 0;
-}
-#endif
-
-int matrix_solve:: setFSType()
-{
-  // the global parameters
-  PetscInt ierr, dofPerEnt,stride,k;
-  int startDof, endDofPlusOne;
-  int num_own_ent=m3dc1_mesh::instance()->num_own_ent[0], num_own_dof;
-  m3dc1_field_getnumowndof(&fieldOrdering, &num_own_dof);
-  if (num_own_ent) dofPerEnt = num_own_dof/num_own_ent;
-  stride=dofPerEnt/3; //U 0->11, Omega 12->23, Chi 24->35
-  m3dc1_field_getowndofid (&fieldOrdering, &startDof, &endDofPlusOne);
-  startDof=startDof/stride;
-
-  // the 3 fields for PCFIELDSPLIT
-  //IS field0, field1, field2;
-  PetscInt *idx0, *idx1, *idx2;
-  ierr=PetscMalloc1(num_own_ent, &idx0);
-  ierr=PetscMalloc1(num_own_ent, &idx1);
-  ierr=PetscMalloc1(num_own_ent, &idx2);
-
-  // ISCreateBlock(MPI_Comm comm, PetscInt bs, PetscInt n, const PetscInt idx[], PetscCopyMode mode, IS *is)
-  // Creates a data structure for an index set containing a list of integers. Each integer represents a fixed block size set of indices.
-  // bs   - number of elements in each block
-  // n    - the length of the index set (the number of blocks)
-  // idx  - the list of integers, one for each block, the integers contain the index of the first entry of each block divided by the block size
-  // mode - see PetscCopyMode, only PETSC_COPY_VALUES and PETSC_OWN_POINTER are supported in this routine
-  for (k=0; k<num_own_ent; k++) idx0[k]=k*dofPerEnt/stride + startDof;
-  ierr=ISCreateBlock(PETSC_COMM_WORLD, stride, num_own_ent, idx0, PETSC_COPY_VALUES, &field0);
-
-  for (k=0; k<num_own_ent; k++) idx1[k]=1+k*dofPerEnt/stride + startDof;
-  ierr=ISCreateBlock(PETSC_COMM_WORLD, stride, num_own_ent, idx1, PETSC_COPY_VALUES, &field1);
-
-  for (k=0; k<num_own_ent; k++) idx2[k]=2+k*dofPerEnt/stride + startDof;
-  ierr=ISCreateBlock(PETSC_COMM_WORLD, stride, num_own_ent, idx2, PETSC_COPY_VALUES, &field2);
-
-  PC pc;
-  //PetscCall(KSPCreate(PETSC_COMM_WORLD, &ksp));
-  //PetscCall(KSPSetOperators(ksp, A, A));
-  ierr= KSPAppendOptionsPrefix(*ksp,"fs_");
-  ierr=KSPGetPC(*ksp, &pc);
-  ierr=PCSetType(pc, PCFIELDSPLIT);
-  //note that one provides the indices for the fields on the original full system, not on the reduced system PCREDISTRIBUTE solves
-  ierr=PCFieldSplitSetIS(pc, NULL, field0);
-  ierr=PCFieldSplitSetIS(pc, NULL, field1);
-  ierr=PCFieldSplitSetIS(pc, NULL, field2);
-  //PetscCall(KSPSetFromOptions(ksp));
-  //PetscCall(KSPSolve(ksp, b, x));
-
-	  PetscInt fsmg=-1;
-	  ierr = PetscOptionsGetInt(NULL,NULL,"-fsmg",&fsmg,NULL); CHKERRQ(ierr);
-	  if(mymatrix_id==fsmg) {
-	          if (!PCU_Comm_Self()) std::cout<<"[M3DC1 INFO] "<<__func__<<": matrix "<<mymatrix_id<<" is going to use FieldSplitBgmg preconditioner"<<"\n";
-  KSP               *subksp,ksp_u,ksp_o,ksp_c;    /* linear solver context */
-  PC                pc_u,pc_o,pc_c;
-  PetscInt          nsplit;
-  PetscBool is_pcfs;
-
-    is_pcfs = PETSC_FALSE;
-    PetscCall(PetscObjectTypeCompare((PetscObject)pc, PCFIELDSPLIT, &is_pcfs));
-    if (is_pcfs) {
-	    PetscCall(PCSetUp(pc));
-	    PetscCall(PCFieldSplitGetSubKSP(pc, &nsplit, &subksp));
-	    ksp_u = subksp[0];
-	    ksp_o = subksp[1];
-	    ksp_c = subksp[2];
-	    PetscCall(PetscFree(subksp));
-
-            //setFSBgmgType(&ksp_u, nsplit);
-	    //PetscCall(KSPGetPC(ksp_u, &pc_u));
-	    //PetscCall(PCSetFromOptions(pc_u));
-
-            setFSBgmgType(&ksp_o, nsplit);
-	    //PetscCall(KSPGetPC(ksp_o, &pc_o));
-	    //PetscCall(PCSetFromOptions(pc_o));
-
-            //setFSBgmgType(&ksp_c, nsplit);
-	    //PetscCall(KSPGetPC(ksp_c, &pc_c));
-	    //PetscCall(PCSetFromOptions(pc_c));
-
-	    ierr=PetscPrintf(PETSC_COMM_WORLD, "PCFIELDSPLIT 5 has %" PetscInt_FMT " splits\n", nsplit);
-    }
-	  }
-
-  ierr=PetscFree(idx0);
-  ierr=PetscFree(idx1);
-  ierr=PetscFree(idx2);
-  fsSet=1;
-  return 0;
 }
 
 int matrix_solve:: setLSType()
