@@ -60,9 +60,7 @@ INCLUDE = -I$(PETSC_DIR)/include \
 	-I$(SCOREC_DIR)/include \
 
 ifeq ($(ST), 1)
-	NETCDF_F_HOME=/opt/pppl/spack-pkgs/linux-rocky9-zen3/intel-2023.2.0/netcdf-fortran-4.6.0-hz3b2mq6ld2u2u6ktdodbx72k37opcdf
-	NETCDF_C_HOME=/opt/pppl/spack-pkgs/linux-rocky9-zen3/intel-2023.2.0/netcdf-c-4.9.2-3wxlqzxkv3tfm4rpo5utrn2lc3yejtnu
-	LIBS += -L$(NETCDF_C_HOME)/lib -lnetcdf -L$(NETCDF_F_HOME)/lib -lnetcdff
+	LIBS += -L$(NETCDF_C_HOME)/lib64 -lnetcdf -L$(NETCDF_F_HOME)/lib -lnetcdff
 	INCLUDE += -I$(NETCDF_C_HOME)/include -I$(NETCDF_F_HOME)/include 
 endif
 
