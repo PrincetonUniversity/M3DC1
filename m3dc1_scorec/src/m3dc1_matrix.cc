@@ -580,6 +580,7 @@ int m3dc1_matrix::setupParaMat()
   CHKERRQ(ierr);
   // set matrix size
   ierr = MatSetSizes(*A, mat_dim, mat_dim, PETSC_DECIDE, PETSC_DECIDE); CHKERRQ(ierr);
+  ierr= MatSetBlockSize(*A, dofPerEnt);
 
   ierr = MatSetType(*A, MATMPIAIJ); CHKERRQ(ierr);
   ierr = MatSetFromOptions(*A); CHKERRQ(ierr);
@@ -604,6 +605,7 @@ int m3dc1_matrix::setupSeqMat()
   CHKERRQ(ierr);
   // set matrix size
   ierr = MatSetSizes(*A, mat_dim, mat_dim, PETSC_DECIDE, PETSC_DECIDE); CHKERRQ(ierr);
+  ierr= MatSetBlockSize(*A, dofPerEnt);
   ierr = MatSetFromOptions(*A); CHKERRQ(ierr);
 //cj  if (!PCU_Comm_Self()) std::cout<<"[M3DC1 INFO] "<<__func__<<": MatCreate A num_local_dof="<<num_dof<<" num_local_ent="<<num_ent<<" dofPerEnt="<<dofPerEnt<<" mat_dim="<<mat_dim<<"\n";
   return M3DC1_SUCCESS;
@@ -1961,9 +1963,14 @@ int matrix_solve:: setBgmgFSType()
   ierr=PetscMalloc1(mg_num_own_ent[level], &idx2);
 
   	    //if (!PCU_Comm_Self()) 
-	//	    std::cout<<"[M3DC1 INFO] "<<__func__<<": rank "<<myrank
-	//		    <<" is going to use FS nplanes="<<mg_nplanes[level]<<" stride="<<stride
-	//		    <<" mg_num_own_ent="<<mg_num_own_ent[level]<<" mg_start_ent[level]="<<mg_start_entx[level]<<"\n";
+	//	    std::cout<<"[M3DC1 INFO] "<<__func__
+	//		    <<": rank "<<myrank
+	//		    <<": level "<<level
+	//		    <<" is going to use FS nplanes="<<mg_nplanes[level]
+	//		    <<" num_own_ent="<<num_own_ent
+	//		    <<" mg_num_own_ent="<<mg_num_own_ent[level]
+	//		    <<" startDof/stride="<<startDof/stride
+	//		    <<" mg_start_entx*dofPerEnt/stride="<<mg_start_entx[level]*dofPerEnt/stride<<"\n";
   // ISCreateBlock(MPI_Comm comm, PetscInt bs, PetscInt n, const PetscInt idx[], PetscCopyMode mode, IS *is)
   // Creates a data structure for an index set containing a list of integers. Each integer represents a fixed block size set of indices.
   // bs   - number of elements in each block
