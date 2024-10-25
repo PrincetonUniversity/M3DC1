@@ -371,6 +371,7 @@ module adapt
     if(ibootstrap.gt.0) Jbs_L34_field = 0.
     if(ibootstrap.gt.0) Jbs_alpha_field = 0.
     if(ibootstrap.gt.0) Jbs_fluxavg_iBsq_field = 0.
+    if(ibootstrap.eq.2) Jbs_dtedpsit_field = 0.
     psi_coil_field = 0.
     !call destroy_auxiliary_fields
     !call create_auxiliary_fields
@@ -563,6 +564,7 @@ iadapt_max_node, adapt_control);
        if(ibootstrap.gt.0) Jbs_L34_field = 0.
        if(ibootstrap.gt.0) Jbs_alpha_field = 0.
        if(ibootstrap.gt.0) Jbs_fluxavg_iBsq_field = 0.
+       if(ibootstrap.eq.2) Jbs_dtedpsit_field = 0.
        psi_coil_field = 0.
        !call destroy_auxiliary_fields
        !call create_auxiliary_fields

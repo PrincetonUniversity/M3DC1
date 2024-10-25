@@ -3,7 +3,7 @@
 module bootstrap
   
   implicit none
-
+  integer, private, parameter :: dp = selected_real_kind(15,307)
   integer :: ibootstrap_model
   integer :: ibootstrap_map_te  ! Switch for bootstrap current coefficients mapping either as a function of (0) Psi_normal or (1) Te 
   ! 1 : add -eta*J_BS term to Ohm's law
@@ -886,28 +886,33 @@ function bs_b1psifbb(e,f,g,h,i)
 !-------------------------------------------------------------------------------------------  
 
    !calculating bootstrap current
-  subroutine calculate_CommonTerm_Lambda(temp1,temp2)
-     !ibootstrap_model=3: Sauter & Angioni (1999) ! equivalent to 1 but a simplified version
-    !A = d lnp  /d psi    = (1/R psi_z + f'_r) p_z    + (1/R psi_r - f'_z) p_r
-    !B = d lnTe /d psi    = (1/R psi_z + f'_r) Te_z/Te + (1/R psi_r - f'_z) Te_r/Te
-    !C = d lnTi /d psi    = (1/R psi_z + f'_r) Ti_z/Te + (1/R psi_r - f'_z) Ti_r/Te
-    !tempD =  L31 (A) + L32 Pe (B) + L34  alpha (P-Pe) (C)
+  subroutine calculate_CommonTerm_Lambda(temp1,temp2,tempAA, tempBB, tempCC)
+    !using da  /d psi    = 1/|Bp|^2 1/R [(1/R psi_z + f'_r) a_z     + (1/R psi_r - f'_z) a_r]
+
+   !Sauter & Angioni (1999): ibootstrap_model=3: ! equivalent to 1 but a simplified version
+    !temp3 = A = -  F L31 p d lnp  /d psi               
+    !temp4 = B = -  F L32 Pe d lnTe /d psi              
+    !temp5 = C = -  F L34  alpha (p-pe)d lnTi /d psit   
+    !p d lnp  /d psi  = 1/|Bp|^2 1/R [(1/R psi_z + f'_r) p_z     + (1/R psi_r - f'_z) p_r]
+    !d lnTe /d psi    = 1/|Bp|^2 1/R [(1/R psi_z + f'_r) Te_z/Te + (1/R psi_r - f'_z) Te_r/Te]
+    !d lnTi /d psi    = 1/|Bp|^2 1/R [(1/R psi_z + f'_r) Ti_z/Te + (1/R psi_r - f'_z) Ti_r/Te]
+
+
+   !Redl et al (2021): ibootstrap_model=4:! equivalent to 2 but a simplified version
+    !temp3 = A = -F L31        p d lnn  /d psi         
+    !temp4 = B = -F (L31+L32) Pe d lnTe /d psi           
+    !temp5 = C = -F (L31+L34alpha) (p-pe)d lnTi /d psi  
+    !d lnp  /d psi    = 1/|Bp|^2 1/R [(1/R psi_z + f'_r) nt_z/nt    + (1/R psi_r - f'_z) nt_r/nt]
+    !d lnTe /d psi    = 1/|Bp|^2 1/R [(1/R psi_z + f'_r) Te_z/Te    + (1/R psi_r - f'_z) Te_r/Te]
+    !d lnTi /d psi    = 1/|Bp|^2 1/R [(1/R psi_z + f'_r) Ti_z/Te    + (1/R psi_r - f'_z) Ti_r/Te]
+
+    !tempD = <J.B> = [(A) +  (B) +  (C)]
    
-     !ibootstrap_model=4: Redl et al (2021) ! equivalent to 2 but a simplified version
-     !tempD =  p L31 (A) + (L31+L32) Pe (B) + (L31+L34alpha)  (P-Pe) (C)
-     !A    = (1/R psi_z + f'_r) nt_z/nt    + (1/R psi_r - f'_z) nt_r/nt
    
-   
-    !jbscommon   = -  F / <B^2>   [ L31 (dlnp/dpsi) + L32 Pe (dlnTe/dpsi) + L34 Pe alpha (dlnTi/dpsi) ]
-    ! but d/dpsi = - del phi . (B x del)/||Bp||^2
-    !     d/dpsi = - 1/||Bp||^2 1/R ( (1/R psi_z + f'_r) d/dz + (1/R psi_r - f'_z) d/dr)
-    ! which gives
-    !jbscommon   =  tempD 1/|Bp|^2  1 / <B^2> 1/R F
-   
-      !temp1 =  jbscommon * bootsrap_alpha = tempD 1/|Bp|^2  1 / <B^2>* 1/R * F * bootsrap_alpha
-      !FOr <J.B> output
-      !temp2 =                             = tempD 1/|Bp|^2           * 1/R * F * bootsrap_alpha
-      !tempD =  L31 (A) + L32 Pe (B) + L34  alpha (P-Pe) (C)
+   !jbscommon   = -  1 / <B^2>   [ (A) +  (B) +  (C) ]
+    !temp1 =  <J.B>/<B^2>  * bootsrap_alpha   =  tempD 1 / <B^2> bootsrap_alpha
+    !temp2 =  <J.B>                           =  tempD           bootsrap_alpha 
+
      use basic
      use m3dc1_nint
    
@@ -917,6 +922,9 @@ function bs_b1psifbb(e,f,g,h,i)
    
      temp1 = 0.
      temp2 = 0.
+
+     iBpsq(:) = 1./((-ri_79*pst79(:,OP_DZ)-bfpt79(:,OP_DR))*(-ri_79*pst79(:,OP_DZ)-bfpt79(:,OP_DR)) &
+              + (ri_79*pst79(:,OP_DR)-bfpt79(:,OP_DZ))*(ri_79*pst79(:,OP_DR)-bfpt79(:,OP_DZ)))
    
      tempBB = (pst79(:,OP_DZ)*ri_79 + bfpt79(:,OP_DR))*tet79(:,OP_DZ)/tet79(:,OP_1) &
              + (pst79(:,OP_DR)*ri_79 - bfpt79(:,OP_DZ))*tet79(:,OP_DR)/tet79(:,OP_1)
@@ -927,39 +935,185 @@ function bs_b1psifbb(e,f,g,h,i)
      if(ibootstrap_model.eq.1 .or. ibootstrap_model.eq.3)then !Sauter & Angioni (1999) 
          tempAA = (pst79(:,OP_DZ)*ri_79 + bfpt79(:,OP_DR))*pt79(:,OP_DZ) &
                  + (pst79(:,OP_DR)*ri_79 - bfpt79(:,OP_DZ))*pt79(:,OP_DR)
-   
-         tempDD = jbsl3179(:,OP_1)*(tempAA) + &
-                  jbsl3279(:,OP_1)*pet79(:,OP_1)*(tempBB) + &
-                  jbsl3479(:,OP_1)*jbsalpha79(:,OP_1)*(pt79(:,OP_1)-pet79(:,OP_1))*(tempCC)
+        
+         !temp3 = A = -  F L31 p d lnp  /d psit  
+         tempAA = iBpsq(:)*ri_79*bzt79(:,OP_1)*jbsl3179(:,OP_1)*tempAA
+
+         !temp4 = B = -F (L31+L32) Pe d lnTe /d psit
+         tempBB = iBpsq(:)*ri_79*bzt79(:,OP_1)*jbsl3279(:,OP_1)*pet79(:,OP_1)*(tempBB)
+
+         !temp5 = C = -  F L34  alpha (p-pe)d lnTi /d psit 
+         tempCC = iBpsq(:)*ri_79*bzt79(:,OP_1)*jbsl3479(:,OP_1)*jbsalpha79(:,OP_1)*(pt79(:,OP_1)-pet79(:,OP_1))*(tempCC)
+       
+         tempDD = (tempAA) + (tempBB) +(tempCC)
+
      else if (ibootstrap_model.eq.2 .or. ibootstrap_model.eq.4)then !Redl et al (2021) 
          tempAA = (pst79(:,OP_DZ)*ri_79 + bfpt79(:,OP_DR))*nt79(:,OP_DZ)/nt79(:,OP_1)*pt79(:,OP_1) &
                   +  (pst79(:,OP_DR)*ri_79 - bfpt79(:,OP_DZ))*nt79(:,OP_DR)/nt79(:,OP_1)*pt79(:,OP_1)
-   
-         tempDD = jbsl3179(:,OP_1)*(tempAA) + &
-                  (jbsl3179(:,OP_1)+jbsl3279(:,OP_1))*pet79(:,OP_1)*(tempBB) + &
-                  (jbsl3179(:,OP_1)+jbsl3479(:,OP_1)*jbsalpha79(:,OP_1))*(pt79(:,OP_1)-pet79(:,OP_1))*(tempCC)
+
+        !temp3 = A = -F L31        p d lnn  /d psi 
+        tempAA = iBpsq(:)*ri_79*bzt79(:,OP_1)*jbsl3179(:,OP_1)*tempAA
+
+        !temp4 = B = -F (L31+L32) Pe d lnTe /d psi
+        tempBB = iBpsq(:)*ri_79*bzt79(:,OP_1)*(jbsl3179(:,OP_1)+jbsl3279(:,OP_1))*pet79(:,OP_1)*(tempBB)
+
+        !temp5 = C = -F (L31+L34alpha) (p-pe)d lnTi /d psi
+        tempCC = iBpsq(:)*ri_79*bzt79(:,OP_1)*(jbsl3179(:,OP_1)+jbsl3479(:,OP_1)*jbsalpha79(:,OP_1))*(pt79(:,OP_1)-pet79(:,OP_1))*(tempCC)
+        
+        tempDD = (tempAA) + (tempBB) +(tempCC)
      end if
     
-     
-     !temp1=tempDD*jbsfluxavg_iBsq_B79(:,OP_1)*jbsfluxavg_iBpsq_B79(:,OP_1)*ri_79*bzt79(:,OP_1)*bootstrap_alpha
-     !temp2=tempDD*jbsfluxavg_iBpsq_B79(:,OP_1)*ri_79*bzt79(:,OP_1)*bootstrap_alpha
-
-     iBpsq(:) = 1./((-ri_79*pst79(:,OP_DZ)-bfpt79(:,OP_DR))*(-ri_79*pst79(:,OP_DZ)-bfpt79(:,OP_DR)) &
-              + (ri_79*pst79(:,OP_DR)-bfpt79(:,OP_DZ))*(ri_79*pst79(:,OP_DR)-bfpt79(:,OP_DZ)))
+         
 
      if(ibootstrap_model.eq.5)then !Constant Lambda =1/ jbscommon   = -  F / <B^2>   [ L31 (dlnp/dpsi) + L32 Pe (dlnTe/dpsi) + L34 Pe alpha (dlnTi/dpsi) ] = 1
       temp1=1.0
       temp2=1.0
      else !if (ibootstrap_model = 1,2,3,4)
-      temp1=tempDD*jbsfluxavg_iBsq_B79(:,OP_1)*iBpsq(:)*ri_79*bzt79(:,OP_1)*bootstrap_alpha
+      temp1=tempDD*jbsfluxavg_iBsq_B79(:,OP_1)*bootstrap_alpha
       temp2=tempDD*iBpsq(:)*ri_79*bzt79(:,OP_1)*bootstrap_alpha
+      
      endif
 
    
     end subroutine calculate_CommonTerm_Lambda
    
    
+  !calculating bootstrap current
+  subroutine calculate_CommonTerm_Lambda_fordtedpsit(temp1,temp2,tempAA, tempBB, tempCC)
+  !ibootstrap=2 using dte/dpsit: da/dpsit=da/dTe dTe/dpsit = (del a.del Te)/(|del Te|^2 + chi^2) dTe/dpsit
+
+
+   !Sauter & Angioni (1999): ibootstrap_model=3: ! equivalent to 1 but a simplified version
+    !temp3 = A = -  2piq F L31 p d lnp  /d psit               =  (del p.del Te)/(|del Te|^2 + chi^2) dTe/dpsit
+    !temp4 = B = -  2piq F L32 Pe d lnTe /d psit              =  pe/Te  dTe/dpsit 
+    !temp5 = C = -  2piq F L34  alpha (p-pe)d lnTi /d psit    =  (p-pe)/Ti (del Ti .del Te)/(|del Te|^2 + chi^2) dTe/dpsit
+    
+
+   !Redl et al (2021): ibootstrap_model=4:! equivalent to 2 but a simplified version
+    !temp3 = A = -2pi Gbar / (iota - helicity_N) L31        p d lnn  /d psit            =  (ne_s Te_s + ni_s Ti_s)/ne (d lnne / d psit)) = (ne_s Te_s + ni_s Ti_s)/ne (del ne.del Te)/(|del Te|^2 + chi^2) dTe/dpsit
+    !temp4 = B = -2pi Gbar / (iota - helicity_N) (L31+L32) Pe d lnTe /d psit            =  pe/Te  dTe/dpsit 
+    !temp5 = C = -2pi Gbar / (iota - helicity_N) (L31+L34alpha) (p-pe)d lnTi /d psit    =  (p-pe)/Ti (del Ti .del Te)/(|del Te|^2 + chi^2) dTe/dpsit
+    
+    !tempD = <J.B> = [(A) +  (B) +  (C)]
    
+   
+   !jbscommon   = -  1 / <B^2>   [ (A) +  (B) +  (C) ]
+    !temp1 =  <J.B>/<B^2>  * bootsrap_alpha   =  tempD 1 / <B^2> bootsrap_alpha
+    !temp2 =  <J.B>                           =  tempD           bootsrap_alpha 
+
+   
+   
+     
+    
+    use basic
+    use m3dc1_nint
+  
+    implicit none
+  
+    vectype, dimension(MAX_PTS) :: tempDD, tempAA, tempBB, tempCC, temp1, temp2, iBpsq, temp_delmagTe, temp_delTe
+    vectype, dimension(MAX_PTS) :: chisq,const1
+    integer :: i
+    real(dp):: tempbeta,tempvar
+
+    temp1 = 0.
+    temp2 = 0.
+
+
+    !(del a.del Te)=dadr dTedr + 1/r^2 dadphi dTedphi + dadz dTedz 
+    !|del Te|^2= dTedr ^2+ 1/r^2 dTedphi^2 +dTedz^2 
+    !(|del Te|^2)
+    temp_delmagTe = tet79(:,OP_DR)*tet79(:,OP_DR)+ tet79(:,OP_DZ)*tet79(:,OP_DZ)
+#if defined(USE3D) || defined(USECOMPLEX)
+        if(itor.eq.1) temp_delmagTe  = temp_delmagTe + tet79(:,OP_DP)*tet79(:,OP_DP)*ri2_79
+#endif
+
+    do i = 1, MAX_PTS
+      tempbeta=temp_delmagTe(i)
+      if(tempbeta .le. 1)then
+        tempvar=dlog10(tempbeta)
+        if(tempvar .le. -7.0)then
+          chisq(i) = 1e-8
+        else
+          chisq(i) = 0.01*tempbeta
+        endif
+      else
+        chisq(i)=0.d0
+      endif
+    enddo
+
+   
+    tempBB = 1./(tet79(:,OP_1))
+         
+    
+    tempCC=tit79(:,OP_DR)*tet79(:,OP_DR)+ tit79(:,OP_DZ)*tet79(:,OP_DZ)
+#if defined(USE3D) || defined(USECOMPLEX)
+    if(itor.eq.1) tempCC = tempCC + tit79(:,OP_DP)*tet79(:,OP_DP)*ri2_79
+#endif
+    tempCC = tempCC/tit79(:,OP_1)/(temp_delmagTe+chisq)
+     
+  
+    if(ibootstrap_model.eq.1 .or. ibootstrap_model.eq.3)then !Sauter & Angioni (1999) 
+
+      !dlnp  / dpsit    =  (del p.del Te)/(|del Te|^2 + chi^2) dTe/dpsit
+      tempAA=pt79(:,OP_DR)*tet79(:,OP_DR)+ pt79(:,OP_DZ)*tet79(:,OP_DZ)
+#if defined(USE3D) || defined(USECOMPLEX)
+      if(itor.eq.1) tempAA = tempAA + pt79(:,OP_DP)*tet79(:,OP_DP)*ri2_79
+#endif
+      tempAA = tempAA/(temp_delmagTe+chisq) 
+
+       !dnds_term = -2piq G  L31 ((p dlnp / dpsit)      
+       tempAA = jbsfluxavg_G79(:,OP_1)*jbsl3179(:,OP_1)*jbs_dtedpsit79(:,OP_1)*(tempAA)
+
+       !dTeds_term = -2piq G L32 (pe dlnTe / dpsit) 
+       tempBB = jbsfluxavg_G79(:,OP_1)*jbsl3279(:,OP_1)*pet79(:,OP_1)*jbs_dtedpsit79(:,OP_1)*(tempBB)
+
+       !dTids_term = -2piq G L34 (pe dlnTi / dpsit) 
+       tempCC = jbsfluxavg_G79(:,OP_1)*jbsl3479(:,OP_1)*jbsalpha79(:,OP_1)*(pt79(:,OP_1)-pet79(:,OP_1))*jbs_dtedpsit79(:,OP_1)*(tempCC)
+       
+       !jdotB = dnds_term + dTeds_term + dTids_term
+       tempDD = (tempAA) + (tempBB) + (tempCC)
+
+
+
+    else if (ibootstrap_model.eq.2 .or. ibootstrap_model.eq.4)then !Redl et al (2021) 
+
+       !A = d lnn  /d psi    = p/n (del n.del Te)/(|del Te|^2 + chi^2) dTe/dpsit
+       !A = pe d lnne  /d psi +  pi d lnni  /d psi    = (tene + tini)/ne (del ne.del Te)/(|del Te|^2 + chi^2) dTe/dpsit
+      tempAA=net79(:,OP_DR)*tet79(:,OP_DR)+ net79(:,OP_DZ)*tet79(:,OP_DZ)
+#if defined(USE3D) || defined(USECOMPLEX)
+      if(itor.eq.1) tempAA = tempAA + net79(:,OP_DP)*tet79(:,OP_DP)*ri2_79
+#endif
+
+      tempAA = (net79(:,OP_1)*tet79(:,OP_1)+(nt79(:,OP_1)-net79(:,OP_1))*tit79(:,OP_1))/net79(:,OP_1) * tempAA/(temp_delmagTe+chisq)
+        
+ !       !dnds_term = -2pi Gbar / (iota - helicity_N)  L31 (ne_s Te_s + ni_s Ti_s)/ne (d lnne / d psit))
+        tempAA = jbsfluxavg_G79(:,OP_1)*jbsl3179(:,OP_1)*jbs_dtedpsit79(:,OP_1)*(tempAA)
+        
+ !       !dTeds_term = -2pi Gbar / (iota - helicity_N) (L31 + L32) pe_s (d lnTe / d psit)
+        tempBB = jbsfluxavg_G79(:,OP_1)*(jbsl3179(:,OP_1)+jbsl3279(:,OP_1))*pet79(:,OP_1)*jbs_dtedpsit79(:,OP_1)*(tempBB)
+        
+ !       !dTids_term = -2pi Gbar / (iota - helicity_N) (L31 + L34 * alpha) pi_s (d lnTi / d psit)
+        tempCC = jbsfluxavg_G79(:,OP_1)*(jbsl3179(:,OP_1)+jbsl3479(:,OP_1)*jbsalpha79(:,OP_1))*(pt79(:,OP_1)-pet79(:,OP_1))*jbs_dtedpsit79(:,OP_1)*(tempCC)
+
+ !       !jdotB = dnds_term + dTeds_term + dTids_term
+        tempDD = (tempAA) + (tempBB) + (tempCC)
+    end if
+   
+    
+
+    if(ibootstrap_model.eq.5)then 
+     temp1=1.0
+     temp2=1.0
+    else !if (ibootstrap_model = 1,2,3,4)
+     temp1=-tempDD*jbsfluxavg_iBsq_B79(:,OP_1)*bootstrap_alpha
+     temp2=-tempDD*bootstrap_alpha
+    endif
+
+    
+    
+    
+    
+   end subroutine calculate_CommonTerm_Lambda_fordtedpsit
    
    
          ! B1psi
@@ -983,9 +1137,11 @@ function bs_b1psifbb(e,f,g,h,i)
             if(surface_int) then
              temp = 0.
             else          
-     
-             call calculate_CommonTerm_Lambda(temp79a,temp79b)
-     
+              if (ibootstrap.eq.1)then
+                call calculate_CommonTerm_Lambda(temp79a,temp79b,temp79c,temp79d,temp79e)
+              else if (ibootstrap.eq.2)then
+                call calculate_CommonTerm_Lambda_fordtedpsit(temp79a,temp79b,temp79c,temp79d,temp79e)
+              endif
              temp = intx5(e(:,:,OP_DRP),ri3_79,h(:,OP_DZ),temp79a,eta79(:,OP_1)) &
                     - intx5(e(:,:,OP_DZP),ri3_79,h(:,OP_DR),temp79a,eta79(:,OP_1))
 #ifdef USECOMPLEX
@@ -1025,7 +1181,11 @@ function bs_b1psifbb(e,f,g,h,i)
            temp = 0.
         else
    
-           call calculate_CommonTerm_Lambda(temp79a,temp79b)
+          if (ibootstrap.eq.1)then
+            call calculate_CommonTerm_Lambda(temp79a,temp79b,temp79c,temp79d,temp79e)
+          else if (ibootstrap.eq.2)then
+            call calculate_CommonTerm_Lambda_fordtedpsit(temp79a,temp79b,temp79c,temp79d,temp79e)
+          endif
            temp = intx4(e(:,:,OP_1),temp79a,h(:,OP_1),eta79(:,OP_1))
    
         end if
@@ -1034,7 +1194,11 @@ function bs_b1psifbb(e,f,g,h,i)
            temp = 0.
         else
    
-           call calculate_CommonTerm_Lambda(temp79a,temp79b)
+          if (ibootstrap.eq.1)then
+            call calculate_CommonTerm_Lambda(temp79a,temp79b,temp79c,temp79d,temp79e)
+          else if (ibootstrap.eq.2)then
+            call calculate_CommonTerm_Lambda_fordtedpsit(temp79a,temp79b,temp79c,temp79d,temp79e)
+          endif
            temp = intx5(e(:,:,OP_GS),ri2_79,temp79a,h(:,OP_1),eta79(:,OP_1))
    
            if(itor.eq.1) then
@@ -1073,7 +1237,11 @@ function bs_b1psifbb(e,f,g,h,i)
            temp = 0.
         else
    
-         call calculate_CommonTerm_Lambda(temp79a,temp79b)
+          if (ibootstrap.eq.1)then
+            call calculate_CommonTerm_Lambda(temp79a,temp79b,temp79c,temp79d,temp79e)
+          else if (ibootstrap.eq.2)then
+            call calculate_CommonTerm_Lambda_fordtedpsit(temp79a,temp79b,temp79c,temp79d,temp79e)
+          endif
    
          temp = intx5(e(:,:,OP_DRP),ri2_79,temp79a,h(:,OP_DR),eta79(:,OP_1)) &
               + intx5(e(:,:,OP_DZP),ri2_79,temp79a,h(:,OP_DZ),eta79(:,OP_1))
@@ -1110,7 +1278,11 @@ function bs_b1psifbb(e,f,g,h,i)
    
      temp = 0.
    
-     call calculate_CommonTerm_Lambda(temp79a,temp79b)
+     if (ibootstrap.eq.1)then
+      call calculate_CommonTerm_Lambda(temp79a,temp79b,temp79c,temp79d,temp79e)
+    else if (ibootstrap.eq.2)then
+      call calculate_CommonTerm_Lambda_fordtedpsit(temp79a,temp79b,temp79c,temp79d,temp79e)
+    endif
    
      temp = intx5(e(:,:,OP_DZ),ri2_79,h(:,OP_DZ),temp79a,eta79(:,OP_1)) &
           + intx5(e(:,:,OP_DR),ri2_79,h(:,OP_DR),temp79a,eta79(:,OP_1))
@@ -1140,7 +1312,11 @@ function bs_b1psifbb(e,f,g,h,i)
      temp = 0.
    
 #if defined(USECOMPLEX) || defined(USE3D)
-     call calculate_CommonTerm_Lambda(temp79a,temp79b)
+  if (ibootstrap.eq.1)then
+    call calculate_CommonTerm_Lambda(temp79a,temp79b,temp79c,temp79d,temp79e)
+  else if (ibootstrap.eq.2)then
+    call calculate_CommonTerm_Lambda_fordtedpsit(temp79a,temp79b,temp79c,temp79d,temp79e)
+  endif
    
      temp = intx5(e(:,:,OP_DZ),ri_79,h(:,OP_DR),temp79a,eta79(:,OP_1)) &
           - intx5(e(:,:,OP_DR),ri_79,h(:,OP_DZ),temp79a,eta79(:,OP_1))

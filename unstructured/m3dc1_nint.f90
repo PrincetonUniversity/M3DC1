@@ -98,8 +98,8 @@ module m3dc1_nint
 !$OMP THREADPRIVATE(r_79,r2_79,r3_79)
 !$OMP THREADPRIVATE(ri_79,ri2_79,ri3_79,ri4_79,ri5_79,ri6_79,ri7_79,ri8_79)
   vectype, dimension(MAX_PTS) :: temp79a, temp79b, temp79c, &
-       temp79d, temp79e, temp79f
-!$OMP THREADPRIVATE(temp79a,temp79b,temp79c,temp79d,temp79e,temp79f)
+       temp79d, temp79e, temp79f, temp79g
+!$OMP THREADPRIVATE(temp79a,temp79b,temp79c,temp79d,temp79e,temp79f,temp79g)
   vectype, dimension(MAX_PTS, OP_NUM) :: tm79, ni79, b2i79, bi79
 !$OMP THREADPRIVATE(tm79,ni79,b2i79,bi79)
   vectype, dimension(MAX_PTS, OP_NUM) :: ps179, bz179, pe179, n179, & 
@@ -148,8 +148,8 @@ module m3dc1_nint
 !$OMP THREADPRIVATE(wall79)
   vectype, dimension(MAX_PTS) :: qd79
 !$OMP THREADPRIVATE(qd79)
-  vectype, dimension(MAX_PTS, OP_NUM) :: jbsl3179,jbsl3279,jbsl3479,jbsalpha79,jbsfluxavg_iBsq_B79
-!$OMP THREADPRIVATE(jbsl3179,jbsl3279,jbsl3479,jbsalpha79,,jbsfluxavg_iBsq_B79)
+  vectype, dimension(MAX_PTS, OP_NUM) :: jbsl3179,jbsl3279,jbsl3479,jbsalpha79,jbsfluxavg_iBsq_B79,jbsfluxavg_G79,jbs_dtedpsit79
+!$OMP THREADPRIVATE(jbsl3179,jbsl3279,jbsl3479,jbsalpha79,,jbsfluxavg_iBsq_B79,jbsfluxavg_G79,jbs_dtedpsit79)
 
   ! precalculated terms
    real, private :: fterm(MAX_PTS, OP_NUM, coeffs_per_element)
@@ -1620,6 +1620,10 @@ contains
      call eval_ops(itri, Jbs_L34_field, jbsl3479)
      call eval_ops(itri, Jbs_alpha_field, jbsalpha79)
      call eval_ops(itri, Jbs_fluxavg_iBsq_field, jbsfluxavg_iBsq_B79)
+     call eval_ops(itri, Jbs_fluxavg_G_field, jbsfluxavg_G79)
+     if(ibootstrap.eq.2) then
+      call eval_ops(itri, Jbs_dtedpsit_field, jbs_dtedpsit79)
+     endif
      
   else
      jbsl3179 = 0.
@@ -1627,6 +1631,10 @@ contains
      jbsl3479 = 0.
      jbsalpha79 = 0.
      jbsfluxavg_iBsq_B79 = 0.
+     jbsfluxavg_G79 = 0.
+     if(ibootstrap.eq.2) then
+      jbs_dtedpsit79 =0.
+     endif
   end if
 
   ! Wall dist field

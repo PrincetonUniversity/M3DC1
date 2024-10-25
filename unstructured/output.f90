@@ -503,7 +503,7 @@ subroutine hdf5_write_scalars(error)
   call output_scalar(scalar_group_id, "kprad_n0", totkprad0, ntime, error)
   call output_scalar(scalar_group_id, "kprad_dt", kprad_dt, ntime, error)
 
-  if(ibootstrap.eq.1) then 
+  if(ibootstrap.ne.0) then 
    call output_scalar(scalar_group_id, "bootstrap_current", jbs, ntime, error)
   endif
   if(xray_detector_enabled.eq.1) then
@@ -1200,6 +1200,10 @@ subroutine output_fields(time_group_id, equilibrium, error)
         call write_field(group_id, "Jbs_L34", Jbs_L34_field, nelms, error,.true.)
         call write_field(group_id, "Jbs_alpha", Jbs_alpha_field, nelms, error,.true.)
         call write_field(group_id, "Jbs_fluxavg_iBsq", Jbs_fluxavg_iBsq_field, nelms, error,.true.)
+        call write_field(group_id, "Jbs_fluxavg_G", Jbs_fluxavg_G_field, nelms, error,.true.)
+        if(ibootstrap.eq.2) then
+          call write_field(group_id, "Jbs_dtedpsit", Jbs_dtedpsit_field, nelms, error,.true.)
+        endif
      endif
   end if !(iwrite_transport_coeffs.eq.1)
 
@@ -1246,12 +1250,15 @@ subroutine output_fields(time_group_id, equilibrium, error)
 
     endif
    
-    if(ibootstrap.eq.1) then
+    if(ibootstrap.ne.0) then
       !Bootstrap Field
        call write_field(group_id, "Jp_BS_r",Jp_BS_r, nelms, error)
        call write_field(group_id, "Jp_BS_z",Jp_BS_z, nelms, error)
        call write_field(group_id, "Jp_BS_phi",Jp_BS_phi, nelms, error)
        call write_field(group_id, "JpdotB",JpdotB, nelms, error)
+       call write_field(group_id, "JpdotB_dndpsi",JpdotB_dndpsi, nelms, error)
+       call write_field(group_id, "JpdotB_dtedpsi",JpdotB_dtedpsi, nelms, error)
+       call write_field(group_id, "JpdotB_dtidpsi",JpdotB_dtidpsi, nelms, error)
     endif
     
     ! sigma
@@ -1485,6 +1492,10 @@ subroutine mark_fields(equilibrium)
         call mark_field_for_solutiontransfer(Jbs_L34_field)
         call mark_field_for_solutiontransfer(Jbs_alpha_field)
         call mark_field_for_solutiontransfer(Jbs_fluxavg_iBsq_field)
+        call mark_field_for_solutiontransfer(Jbs_fluxavg_G_field)
+        if(ibootstrap.eq.2) then
+         call mark_field_for_solutiontransfer(Jbs_dtedpsit_field)
+        endif
      endif
   end if !(iwrite_transport_coeffs.eq.1)
 
@@ -1550,6 +1561,9 @@ subroutine mark_fields(equilibrium)
         call mark_field_for_solutiontransfer(Jp_BS_z)
         call mark_field_for_solutiontransfer(Jp_BS_phi)
         call mark_field_for_solutiontransfer(JpdotB)
+        call mark_field_for_solutiontransfer(JpdotB_dndpsi)
+        call mark_field_for_solutiontransfer(JpdotB_dtedpsi)
+        call mark_field_for_solutiontransfer(JpdotB_dtidpsi)
     endif
 
     ! sigma
