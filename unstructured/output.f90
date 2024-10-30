@@ -1556,7 +1556,7 @@ subroutine mark_fields(equilibrium)
     endif
 
     ! bootstrap components
-    if(ibootstrap .eq.1) then
+    if(ibootstrap .gt.0) then
         call mark_field_for_solutiontransfer(Jp_BS_r)
         call mark_field_for_solutiontransfer(Jp_BS_z)
         call mark_field_for_solutiontransfer(Jp_BS_phi)
