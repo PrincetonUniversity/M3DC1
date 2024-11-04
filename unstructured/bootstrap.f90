@@ -1084,7 +1084,7 @@ function bs_b1psifbb(e,f,g,h,i)
       if(itor.eq.1) tempAA = tempAA + net79(:,OP_DP)*tet79(:,OP_DP)*ri2_79
 #endif
 
-      tempAA = (net79(:,OP_1)*tet79(:,OP_1)+(nt79(:,OP_1)-net79(:,OP_1))*tit79(:,OP_1))/net79(:,OP_1) * tempAA/(temp_delmagTe+chisq)
+      tempAA = (net79(:,OP_1)*tet79(:,OP_1)+nt79(:,OP_1)*tit79(:,OP_1))/net79(:,OP_1) * tempAA/(temp_delmagTe+chisq)
         
  !       !dnds_term = -2pi Gbar / (iota - helicity_N)  L31 (ne_s Te_s + ni_s Ti_s)/ne (d lnne / d psit))
         tempAA = jbsfluxavg_G79(:,OP_1)*jbsl3179(:,OP_1)*jbs_dtedpsit79(:,OP_1)*(tempAA)
