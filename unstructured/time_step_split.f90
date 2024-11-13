@@ -832,6 +832,7 @@ subroutine step_split(calc_matrices)
   type(vector_type) :: xVec_guess
 
   type(field_type) :: phip_1, phip_2, phip_3
+
   call associate_field(phip_1, phip_vec, 1)
   if(numvar.ge.2) call associate_field(phip_2, phip_vec, 2)
   if(numvar.ge.3 .and. ipressplit.eq.0) call associate_field(phip_3, phip_vec, 3)
@@ -954,7 +955,11 @@ call PetscLogStagePop(jer)
   
   ! Advance Density
   ! ===============
+#ifdef USEPARTICLES
+  if((idens.eq.1).and.(kinetic_thermal_ion.eq.0)) then
+#else
   if(idens.eq.1) then
+#endif
      if(myrank.eq.0 .and. iprint.ge.1) print *, " Advancing density"
      
      call create_vector(temp, vecsize_n)
@@ -1606,7 +1611,6 @@ call PetscLogStagePop(jer)
 
   end if
 end subroutine step_split
-
 
 subroutine subtract_axi
 

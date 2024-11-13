@@ -309,7 +309,7 @@ module basic
                          ! 2 = CGL form for the pressure tensor (incompressible)
                          ! 3 = CGL form for pressure tensor (full)
 #ifdef USEPARTICLES
-  integer :: kinetic_thermal
+  integer :: kinetic_fast_ion, kinetic_thermal_ion
   logical :: gyroaverage
 #endif
 
@@ -360,6 +360,7 @@ module basic
   real :: te_floor, ti_floor
   real :: ne_floor, ni_floor
   real :: frequency      ! frequency in time-independent calculation
+  real :: caramana_fac   ! coefficient for the explicit term in Caramana method (imp_mod=1)
 
   ! poloidal force parameters
   integer :: ipforce     ! 1 = include poloidal momentum source

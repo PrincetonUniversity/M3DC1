@@ -188,7 +188,7 @@ subroutine init_perturbations
              x_79(:), z_79(:), imr)
 
 #ifdef USEPARTICLES
-        where((imr.eq.REGION_PLASMA).and.(pt79(:,OP_1)>10*pedge))
+        where((imr.eq.REGION_PLASMA).and.(abs(pt79(:,OP_1))>10*pedge))
 #else
         where(imr.eq.REGION_PLASMA)
 #endif

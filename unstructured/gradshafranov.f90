@@ -616,7 +616,7 @@ subroutine define_profiles
   end if
 
 #ifdef USEPARTICLES
-  if (kinetic.eq.1) then
+  if ((kinetic.eq.1).and.(kinetic_fast_ion.eq.1)) then
      nvals = 0
      call read_ascii_column('profile_tf_rho', xvals, nvals, icol=1)
      call read_ascii_column('profile_tf_rho', yvals, nvals, icol=2)
@@ -652,7 +652,7 @@ subroutine define_profiles
      end if
   endif
 
-  if (kinetic.eq.1) then
+  if ((kinetic.eq.1).and.(kinetic_fast_ion.eq.1)) then
      nvals = 0
      call read_ascii_column('profile_nf_rho', xvals, nvals, icol=1)
      call read_ascii_column('profile_nf_rho', yvals, nvals, icol=2)
@@ -670,41 +670,41 @@ subroutine define_profiles
      end if
   endif
 
-  !if (kinetic.eq.1) then
-  !   nvals = 0
-  !   call read_ascii_column('profile_tfi_rho', xvals, nvals, icol=1)
-  !   call read_ascii_column('profile_tfi_rho', yvals, nvals, icol=2)
-  !   if(nvals.eq.0) call safestop(5)
-  !   xvals = xvals / xvals(nvals) ! normalize rho
-  !   ! yvals=yvals*0.5
-  !   if (allocated(psi_spline%y)) then
-  !      call rho_to_psi(nvals, xvals, xvals)
-  !   else
-  !      xvals=xvals**2
-  !   endif
-  !   if(allocated(yvals)) then
-  !      call create_spline(tfi_spline, nvals, xvals, yvals)
-  !      deallocate(xvals, yvals)
-  !   end if
-  !endif
+  if ((kinetic.eq.1).and.(kinetic_thermal_ion.eq.1)) then
+     nvals = 0
+     call read_ascii_column('profile_tfi_rho', xvals, nvals, icol=1)
+     call read_ascii_column('profile_tfi_rho', yvals, nvals, icol=2)
+     if(nvals.eq.0) call safestop(5)
+     xvals = xvals / xvals(nvals) ! normalize rho
+     ! yvals=yvals*0.5
+     if (allocated(psi_spline%y)) then
+        call rho_to_psi(nvals, xvals, xvals)
+     else
+        xvals=xvals**2
+     endif
+     if(allocated(yvals)) then
+        call create_spline(tfi_spline, nvals, xvals, yvals)
+        deallocate(xvals, yvals)
+     end if
+  endif
   
-  !if (kinetic.eq.1) then
-  !   nvals = 0
-  !   call read_ascii_column('profile_nfi_rho', xvals, nvals, icol=1)
-  !   call read_ascii_column('profile_nfi_rho', yvals, nvals, icol=2)
-  !   if(nvals.eq.0) call safestop(5)
-  !   yvals = yvals / n0_norm !rsae
-  !   xvals = xvals / xvals(nvals) ! normalize rho
-  !   if (allocated(psi_spline%y)) then
-  !      call rho_to_psi(nvals, xvals, xvals)
-  !   else
-  !      xvals=xvals**2
-  !   endif
-  !   if(allocated(yvals)) then
-  !      call create_spline(nfi_spline, nvals, xvals, yvals)
-  !      deallocate(xvals, yvals)
-  !   end if
-  !endif
+  if ((kinetic.eq.1).and.(kinetic_thermal_ion.eq.1)) then
+     nvals = 0
+     call read_ascii_column('profile_nfi_rho', xvals, nvals, icol=1)
+     call read_ascii_column('profile_nfi_rho', yvals, nvals, icol=2)
+     if(nvals.eq.0) call safestop(5)
+     yvals = yvals / n0_norm !rsae
+     xvals = xvals / xvals(nvals) ! normalize rho
+     if (allocated(psi_spline%y)) then
+        call rho_to_psi(nvals, xvals, xvals)
+     else
+        xvals=xvals**2
+     endif
+     if(allocated(yvals)) then
+        call create_spline(nfi_spline, nvals, xvals, yvals)
+        deallocate(xvals, yvals)
+     end if
+  endif
 #endif
 
   ! define density profile
@@ -1456,9 +1456,6 @@ endif
         call calc_toroidal_field(ps079(i,:),tf,x_79(i),z_79(i),izone)
         temp79b(i) = tf
         call calc_pressure(ps079(i,:),tf,x_79(i),z_79(i),izone)
-#ifdef USEPARTICLES
-        tf=tf*0.5
-#endif
         temp79a(i) = tf
         call calc_density(ps079(i,:),tf,x_79(i),z_79(i),izone)
         temp79c(i) = tf
@@ -1590,7 +1587,7 @@ endif
      !call mult(b1vecini_vec,0.25)
      tf_field = b1vecini_vec
   end if
-! Define pf field
+  ! Define pf field
   if(allocated(tf_spline%y)) then
      if(myrank.eq.0 .and. iprint.ge.2) print *, '  calculating pf...'
      b1vecini_vec = 0.
@@ -1620,6 +1617,106 @@ endif
      !call mult(b1vecini_vec,0.5)
      pf_field = b1vecini_vec
   end if 
+  ! Define nfi field
+  if(allocated(nfi_spline%y)) then
+     if(myrank.eq.0 .and. iprint.ge.2) print *, '  calculating nfi...'
+     b1vecini_vec = 0.
+     do itri=1,numelms
+        call define_element_quadrature(itri, int_pts_main, int_tor)
+        call define_fields(itri, 0, 1, 0)
+        
+        call eval_ops(itri, psi_field(0), ps079)
+        if(icsubtract.eq.1) then 
+           call eval_ops(itri, psi_coil_field, psc79)
+           ps079 = ps079 + psc79
+        end if
+        
+        call get_zone(itri, izone)
+        
+        do i=1, npoints 
+           call calc_fidensity(ps079(i,:),tf,x_79(i),z_79(i),izone)
+           temp79a(i) = tf
+        end do
+        
+        temp(:,1) = intx2(mu79(:,:,OP_1),temp79a)
+        call vector_insert_block(b1vecini_vec%vec,itri,1,temp(:,1),VEC_ADD)
+     end do
+     
+     call newvar_solve(b1vecini_vec%vec,mass_mat_lhs)
+     !call mult(b1vecini_vec,0.25)
+     nfi_field = b1vecini_vec
+   end if
+  ! Define tfi field
+  if(allocated(tfi_spline%y)) then
+     if(myrank.eq.0 .and. iprint.ge.2) print *, '  calculating tfi...'
+     b1vecini_vec = 0.
+     do itri=1,numelms
+        call define_element_quadrature(itri, int_pts_main, int_tor)
+        call define_fields(itri, 0, 1, 0)
+        
+        call eval_ops(itri, psi_field(0), ps079)
+        if(icsubtract.eq.1) then 
+           call eval_ops(itri, psi_coil_field, psc79)
+           ps079 = ps079 + psc79
+        end if
+        
+        call get_zone(itri, izone)
+        
+        do i=1, npoints 
+           call calc_fitemp(ps079(i,:),tf,x_79(i),z_79(i),izone)
+           temp79a(i) = tf
+        end do
+        
+        temp(:,1) = intx2(mu79(:,:,OP_1),temp79a)
+        call vector_insert_block(b1vecini_vec%vec,itri,1,temp(:,1),VEC_ADD)
+     end do
+     
+     call newvar_solve(b1vecini_vec%vec,mass_mat_lhs)
+     !call mult(b1vecini_vec,0.25)
+     tfi_field = b1vecini_vec
+  end if
+  ! Define pfi field
+  if(allocated(tfi_spline%y)) then
+     if(myrank.eq.0 .and. iprint.ge.2) print *, '  calculating pfi...'
+     b1vecini_vec = 0.
+     do itri=1,numelms
+        call define_element_quadrature(itri, int_pts_main, int_tor)
+        call define_fields(itri, 0, 1, 0)
+
+        call eval_ops(itri, psi_field(0), ps079)
+        if(icsubtract.eq.1) then
+           call eval_ops(itri, psi_coil_field, psc79)
+           ps079 = ps079 + psc79
+        end if
+
+        call get_zone(itri, izone)
+
+        do i=1, npoints
+           call calc_fidensity(ps079(i,:),tf,x_79(i),z_79(i),izone)
+           call calc_fitemp(ps079(i,:),tf2,x_79(i),z_79(i),izone)
+           temp79a(i) =tf*tf2* 1.6022e-9 / (b0_norm**2/(4.*pi*n0_norm))!rsae
+        end do
+
+        temp(:,1) = intx2(mu79(:,:,OP_1),temp79a)
+        call vector_insert_block(b1vecini_vec%vec,itri,1,temp(:,1),VEC_ADD)
+     end do
+
+     call newvar_solve(b1vecini_vec%vec,mass_mat_lhs)
+     !call mult(b1vecini_vec,0.5)
+     pfi_field = b1vecini_vec
+  end if 
+
+  if (kinetic_fast_ion.eq.1) then
+     call mult(pf_field, -1.)
+     call add(p_field(0), pf_field)
+     call mult(pf_field, -1.)
+  endif
+
+  if (kinetic_thermal_ion.eq.1) then
+     call mult(pf_field, -1.)
+     call add(p_field(0), pf_field)
+     call mult(pf_field, -1.)
+  endif
 #endif
 
   ! Define pe field
@@ -3111,6 +3208,74 @@ subroutine calc_ftemp(ps0, tf, x, z, izone)
      tf = 0.
   end if
 end subroutine calc_ftemp
+subroutine calc_fidensity(ps0, dens, x, z, izone)
+  use basic
+  use diagnostics
+
+  implicit none
+
+  vectype, intent(in), dimension(dofs_per_node)  :: ps0
+  vectype, intent(out) :: dens     ! density
+  real, intent(in) :: x, z
+  integer, intent(in) :: izone
+
+  real :: n0
+  real :: alpha
+  real :: psii     ! normalized flux
+  real :: psinb
+!!$  real :: p, w0
+
+  integer :: mr
+
+  if(izone.gt.2) then
+     dens = nf_spline%y(nf_spline%n)
+     return
+  end if
+
+  call magnetic_region(ps0(1),ps0(2),ps0(3),x,z,mr,psinb)
+
+  psii = (real(ps0(1)) - psimin)/(psibound - psimin)
+
+  ! if we are in private flux region, make sure Psi > 1
+  if(mr.eq.REGION_PF) psii = psin_in_pf_region(psii,psinb)
+
+  call evaluate_spline(nfi_spline, psii, n0)
+
+  dens = n0
+end subroutine calc_fidensity
+
+subroutine calc_fitemp(ps0, tf, x, z, izone)
+  use basic
+  use math
+  use diagnostics
+
+  implicit none
+
+  vectype, intent(in), dimension(dofs_per_node)  :: ps0
+  vectype, intent(out) :: tf
+  real, intent(in) :: x, z
+  integer, intent(in) :: izone
+
+  vectype :: pres0, n0
+  real :: psii          ! normalized flux
+  real :: tf0, psinb
+  integer :: mr
+
+  if(allocated(tfi_spline%y)) then
+!     if(izone.ne.1) then 
+     if(izone.ne.ZONE_PLASMA) then 
+        tf0 = tfi_spline%y(tf_spline%n)
+     else
+        psii = (real(ps0(1)) - psimin)/(psibound - psimin)
+        call magnetic_region(ps0(1),ps0(2),ps0(3),x,z,mr,psinb)
+        if(mr.eq.REGION_PF) psii = psin_in_pf_region(psii,psinb)
+        call evaluate_spline(tfi_spline,psii,tf0)
+     end if
+     tf = tf0
+  else
+     tf = 0.
+  end if
+end subroutine calc_fitemp
 #endif
 !======================================================================
 ! calc_electron_pressure

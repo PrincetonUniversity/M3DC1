@@ -44,7 +44,7 @@ subroutine vorticity_lin(trialx, lin, ssterm, ddterm, r_bf, q_bf, advfield, &
   case(0)
      ththm = (1.-thimp*bdf)*thimp
   case(1)
-     ththm = -bdf*thimp**2
+     ththm = -bdf*thimp**2*caramana_fac
   case(2)
      ththm = -bdf*thimp
   case default
@@ -587,7 +587,7 @@ subroutine vorticity_nolin(trialx, r4term)
 #ifdef USEPARTICLES
   ! kinetic terms
   ! ~~~~~~~~~~~~~
-  if(kinetic .eq. 1) then
+  if(kinetic_fast_ion .eq. 1) then
      r4term = r4term + 1.0*dt*(( &
                  v1pbb(trialx,pfper79,b2i79(:,OP_1)) & !parallel term
                  + v1p(trialx,pfper79) -v1pbb(trialx,pfper79,b2i79(:,OP_1)) &
@@ -600,6 +600,19 @@ subroutine vorticity_nolin(trialx, r4term)
                ) &
             )  
     endif
+   if(kinetic_thermal_ion .eq. 1) then
+     r4term = r4term + 1.0*dt*(( &
+                 v1pbb(trialx,piper79,b2i79(:,OP_1)) & !parallel term
+                 + v1p(trialx,piper79) -v1pbb(trialx,piper79,b2i79(:,OP_1)) &
+                 ) &
+                 +( &
+                 v1pbb(trialx,pipar79-piper79,b2i79(:,OP_1))+0.5*v1pbb(trialx,b2i79,pipar79(:,OP_1)-piper79(:,OP_1))    & !parallel term
+                -0.5*v1p_2(trialx,b2i79,(pipar79(:,OP_1)-piper79(:,OP_1))/b2i79(:,OP_1)) &
+                +0.5*v1pbb(trialx,b2i79,pipar79(:,OP_1)-piper79(:,OP_1)) &
+                + v1jxb(trialx,(pipar79(:,OP_1)-piper79(:,OP_1))*b2i79(:,OP_1)) &
+               ) &
+            )  
+   endif
 #endif
 
   if(linear.eq.1) return
@@ -653,7 +666,7 @@ subroutine axial_vel_lin(trialx, lin, ssterm, ddterm, r_bf, q_bf, advfield, &
   case(0)
      ththm = (1.-thimp*bdf)*thimp
   case(1)
-     ththm = -bdf*thimp**2
+     ththm = -bdf*thimp**2*caramana_fac
   case(2)
      ththm = -bdf*thimp
   case default
@@ -1120,7 +1133,7 @@ subroutine axial_vel_nolin(trialx, r4term)
 #ifdef USEPARTICLES
   ! kinetic terms
   ! ~~~~~~~~~~~~~
-  if(kinetic .eq. 1) then
+  if(kinetic_fast_ion .eq. 1) then
      r4term = r4term + 1.0*dt*(( &
                  v2pbb(trialx,pfper79,b2i79(:,OP_1)) & !parallel term
                  + v2p(trialx,pfper79) -v2pbb(trialx,pfper79,b2i79(:,OP_1)) &
@@ -1130,6 +1143,19 @@ subroutine axial_vel_nolin(trialx, r4term)
                 -0.5*v2p_2(trialx,b2i79,(pfpar79(:,OP_1)-pfper79(:,OP_1))/b2i79(:,OP_1)) &
                 +0.5*v2pbb(trialx,b2i79,pfpar79(:,OP_1)-pfper79(:,OP_1)) &
                 + v2jxb(trialx,(pfpar79(:,OP_1)-pfper79(:,OP_1))*b2i79(:,OP_1)) &
+             ) &
+            )  
+   endif
+   if(kinetic_thermal_ion .eq. 1) then
+     r4term = r4term + 1.0*dt*(( &
+                 v2pbb(trialx,piper79,b2i79(:,OP_1)) & !parallel term
+                 + v2p(trialx,piper79) -v2pbb(trialx,piper79,b2i79(:,OP_1)) &
+                 ) &
+                 +( &
+                 v2pbb(trialx,pipar79-piper79,b2i79(:,OP_1))+0.5*v2pbb(trialx,b2i79,pipar79(:,OP_1)-piper79(:,OP_1))    & !parallel term
+                -0.5*v2p_2(trialx,b2i79,(pipar79(:,OP_1)-piper79(:,OP_1))/b2i79(:,OP_1)) &
+                +0.5*v2pbb(trialx,b2i79,pipar79(:,OP_1)-piper79(:,OP_1)) &
+                + v2jxb(trialx,(pipar79(:,OP_1)-piper79(:,OP_1))*b2i79(:,OP_1)) &
              ) &
             )  
    endif
@@ -1184,7 +1210,7 @@ subroutine compression_lin(trialx, lin, ssterm, ddterm, r_bf, q_bf, advfield, &
   case(0)
      ththm = (1.-thimp*bdf)*thimp
   case(1)
-     ththm = -bdf*thimp**2
+     ththm = -bdf*thimp**2*caramana_fac
   case(2)
      ththm = -bdf*thimp
   case default
@@ -1716,6 +1742,19 @@ subroutine compression_nolin(trialx, r4term)
                 -0.5*v3p_2(trialx,b2i79,(pfpar79(:,OP_1)-pfper79(:,OP_1))/b2i79(:,OP_1)) &
                 +0.5*v3pbb(trialx,b2i79,pfpar79(:,OP_1)-pfper79(:,OP_1)) &
                 + v3jxb(trialx,(pfpar79(:,OP_1)-pfper79(:,OP_1))*b2i79(:,OP_1)) &
+             ) &
+            )  
+   endif
+   if(kinetic_thermal_ion .eq. 1) then
+     r4term = r4term + 1.0*dt*(( &
+                 v3pbb(trialx,piper79,b2i79(:,OP_1)) & !parallel term
+                 + v3p(trialx,piper79) -v3pbb(trialx,piper79,b2i79(:,OP_1)) &
+                 ) &
+                 +( &
+                 v3pbb(trialx,pipar79-piper79,b2i79(:,OP_1))+0.5*v3pbb(trialx,b2i79,pipar79(:,OP_1)-piper79(:,OP_1))    & !parallel term
+                -0.5*v3p_2(trialx,b2i79,(pipar79(:,OP_1)-piper79(:,OP_1))/b2i79(:,OP_1)) &
+                +0.5*v3pbb(trialx,b2i79,pipar79(:,OP_1)-piper79(:,OP_1)) &
+                + v3jxb(trialx,(pipar79(:,OP_1)-piper79(:,OP_1))*b2i79(:,OP_1)) &
              ) &
             )  
    endif
