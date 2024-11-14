@@ -79,7 +79,6 @@ module particles
    integer :: win_elfieldcoefs
    real :: m_ion, n_ion, q_ion, qm_ion, dt_ion
 !$acc declare create(m_ion,q_ion,qm_ion)
-   real, dimension(2) :: nrmfac
    integer :: linear_particle, psubsteps
 !$acc declare create(linear_particle, psubsteps)
    real :: dt_particle, t0_norm_particle, v0_norm_particle, b0_norm_particle
@@ -94,7 +93,7 @@ module particles
    integer, dimension(:, :), allocatable :: neighborlist !Neighbor tracking arrays
 !$acc declare link(neighborlist)
    integer, dimension(:), allocatable :: localmeshid
-   integer :: npar, nparticles, locparts
+   integer :: nparticles, locparts
    integer :: mpi_particle !User-defined MPI datatype for particle communication
    integer :: mpi_elfield
    type(matrix_type) :: diff2_mat, diff3_mat
@@ -115,7 +114,7 @@ module particles
    integer :: nelms, nelms_global, nnodes_global
    real :: psi_axis, nf_axis, nfi_axis, toroidal_period_particle
 !$acc declare create(psi_axis, nf_axis, nfi_axis, toroidal_period_particle)
-   logical :: gyroaverage_particle
+   integer :: gyroaverage_particle
 !$acc declare create(gyroaverage_particle)
    integer :: num_energy, num_pitch, num_r
 !$acc declare create(num_energy,num_pitch,num_r)
@@ -305,10 +304,10 @@ subroutine get_ion_physics_params(speed)
 
    n_ion = 1.0e+17                             !Mean hot ion number density in m^-3
    EmaxeV = 10000.0                            !Peak ion kinetic energy in eV
-   m_ion = ion_mass * m_proton                 !Ion mass in kg
+   m_ion = fast_ion_mass * m_proton                 !Ion mass in kg
    !m_ion = (0.111)*m_proton                   !fishbone
    !q_ion = Z_ion * e_mks                       !Ion charge in C
-   q_ion = 1.*e_mks                       !fishbone
+   q_ion = fast_ion_z*e_mks                       !fishbone
    qm_ion = q_ion/m_ion                      !Ion charge/mass ratio
    speed = sqrt(EmaxeV/ion_mass)*vp1eV     !Peak ion speed in m/s
    speed = (v0_norm/100.0)*4.0
@@ -401,7 +400,6 @@ subroutine init_particles(lrestart, ierr)
    integer :: ielm_min_temp, ielm_max_temp
    integer :: sps
 
-   gyroaverage = .false.
    !Allocate particle pressure tensor components
 
    call get_ion_physics_params(maxspeed)
@@ -512,31 +510,33 @@ subroutine init_particles(lrestart, ierr)
    call get_field_coefs(1)
    !call MPI_Win_fence(0, win_elfieldcoefs)
 
-   npar = nplanes
-   if (npar < 4) npar = 4
-   npar = npar*2e6
+   !npar = nplanes
+   !if (npar < 4) npar = 4
+   !npar = npar*2e6
 
    !Allocate local storage for particle data
    disp_unit = 1
    arraysize = 0
    if (hostrank == 0) then
-      arraysize = npar
+      arraysize = num_par_max
       arraysize = arraysize*sizeof(dpar)
    end if
    CALL MPI_Win_allocate_shared(arraysize, disp_unit, MPI_INFO_NULL, &
                                 hostcomm, baseptr, win_pdata, ierr)
    if (hostrank /= 0) CALL MPI_Win_shared_query(win_pdata, 0, arraysize, disp_unit, baseptr, ierr)
-   CALL C_F_POINTER(baseptr, pdata, [npar])
+   CALL C_F_POINTER(baseptr, pdata, [num_par_max])
 
    !Normalize integrals
-   nrmfac(1) = 3207919.*4.*0.0876/twopi/npar*4.e6*143 !nstx
-#ifdef USEST
-   nrmfac(2) = 3207919.*4.*0.1349267*36.36*0.00025/npar*4.e6
-#else
-   nrmfac(2) = 3207919.*4.*0.1349267*36.36*0.0297/npar*4.e6
-#endif
+   !nrmfac(1) = 3207919.*4.*0.0876/twopi/npar*4.e6*143 !nstx
+!#ifdef USEST
+   !nrmfac(2) = 3207919.*4.*0.1349267*36.36*0.00025/npar*4.e6
+!#else
+   !nrmfac(2) = 3207919.*4.*0.1349267*36.36*0.0297/npar*4.e6
+!#endif
+
+   kinetic_nrmfac = kinetic_nrmfac/num_par_fac
 #ifdef USE3D
-   nrmfac = nrmfac*toroidal_period
+   kinetic_nrmfac = kinetic_nrmfac*toroidal_period
 #endif
 
    !Set up 'neighborlist' table of element neighbors for ensemble tracking
@@ -595,7 +595,7 @@ subroutine init_particles(lrestart, ierr)
       p_i_par%vec = 0.; p_i_perp%vec = 0.
       den_i_0%vec = 0.
       den_f_0%vec = 0.
-      allocate (pdata_local(npar/maxrank*10))
+      allocate (pdata_local(num_par_max/maxrank*10))
       !First pass: assign particles to processors, elements
       locparts = 0
       !allocate(ran(npar*5))
@@ -647,15 +647,15 @@ subroutine init_particles(lrestart, ierr)
          endif
 #ifdef USEST
          if (sps==1) then
-            npar_local=int(npar*(x_max-x_min)*(dot_product(elfieldcoefs(itri)%rst,geomterms%g)/R_axis)/(di/di_axis)*(z_max-z_min)*f_mesh*2/nplanes*0.078)!fullf
+            npar_local=int(num_par_max*(x_max-x_min)*(dot_product(elfieldcoefs(itri)%rst,geomterms%g)/R_axis)/(di/di_axis)*(z_max-z_min)*f_mesh*2/nplanes*num_par_fac(1))!fullf
          else
-            npar_local=int(npar*(x_max-x_min)*(dot_product(elfieldcoefs(itri)%rst,geomterms%g)/R_axis)/(di/di_axis)*(z_max-z_min)*f_mesh*2/nplanes*0.078)!fullf
+            npar_local=int(num_par_max*(x_max-x_min)*(dot_product(elfieldcoefs(itri)%rst,geomterms%g)/R_axis)/(di/di_axis)*(z_max-z_min)*f_mesh*2/nplanes*num_par_fac(2))!fullf
          endif
 #else
          if (sps==1) then
-            npar_local = int(npar*(x_max - x_min)*(x_max + x_min)/2.*(z_max - z_min)*f_mesh*2/nplanes*0.3)!fullf
+            npar_local = int(num_par_max*(x_max - x_min)*(x_max + x_min)/2.*(z_max - z_min)*f_mesh*2/nplanes*num_par_fac(1))!fullf
          else
-            npar_local = int(npar*(x_max - x_min)*(x_max + x_min)/2.*(z_max - z_min)*f_mesh*2/nplanes*6.5)!fullf
+            npar_local = int(num_par_max*(x_max - x_min)*(x_max + x_min)/2.*(z_max - z_min)*f_mesh*2/nplanes*num_par_fac(2))!fullf
          endif
 #endif
          do ipar = 1, npar_local !Loop over z positions
@@ -1150,7 +1150,7 @@ subroutine rk4(part, dt, last_step, ierr)
    x2 = xtemp
    part%dB = 0
    do ipoint = 1, 4
-      if (gyroaverage_particle) then
+      if (gyroaverage_particle.eq.1) then
          select case (ipoint)
          case (1)
             ran_temp = mod(xtemp(1)*1.e6, 10.)/10.*twopi
@@ -1192,7 +1192,7 @@ subroutine rk4(part, dt, last_step, ierr)
          part%kx(:, ipoint) = x2
       end if
    end do
-   if (gyroaverage_particle) then
+   if (gyroaverage_particle.eq.1) then
       part%dB = part%dB/4.
    else
       part%dB = dot_product(deltaB, bhat)*B0inv
@@ -1285,7 +1285,7 @@ subroutine fdot(x, v, w, dxdt, dvdt, dwdt, dEpdt, itri, kel, ierr, sps)
    Binv = 1.0/sqrt(dot_product(B_cyl, B_cyl))  !1/magnitude of B
    bhat = B_cyl*Binv                         !Unit vector in b direction
 
-   if (gyroaverage_particle) then
+   if (gyroaverage_particle.eq.1) then
       x2 = x
       deltaB = 0.
       E_cyl = 0.
@@ -2697,7 +2697,7 @@ subroutine evalf0i(x, fh, gh, f0, T0, gradcoef)
    !Math, physics parameters for Maxwellian distribution
    real, parameter :: twopi = 6.283185307179586476925286766559
    real, parameter :: vthermal = 100.0*vp1eV  !Maxwellian temperature = 10 keV
-   real, parameter :: nrmfac = (vthermal*sqrt(twopi))**(-3)
+   !real, parameter :: nrmfac = (vthermal*sqrt(twopi))**(-3)
    real, parameter :: ecoef = -0.5*(vthermal**(-2))
 
    !Parameters for slowing-down distribution
@@ -2811,7 +2811,7 @@ subroutine evalf0i_advance(x, v, modB, Bphi, fh, gh, sps, f0, gradf, df0de)
    !Math, physics parameters for Maxwellian distribution
    real, parameter :: twopi = 6.283185307179586476925286766559
    real, parameter :: vthermal = 100.0*vp1eV  !Maxwellian temperature = 10 keV
-   real, parameter :: nrmfac = (vthermal*sqrt(twopi))**(-3)
+   !real, parameter :: nrmfac = (vthermal*sqrt(twopi))**(-3)
    real, parameter :: ecoef = -0.5*(vthermal**(-2))
 
    !Parameters for slowing-down distribution
@@ -2846,7 +2846,7 @@ subroutine evalf0i_advance(x, v, modB, Bphi, fh, gh, sps, f0, gradf, df0de)
 
    select case (1)
    case (0) !Spatially uniform Maxwellian
-      f0 = nrmfac*exp(ecoef*spsq)
+      !f0 = nrmfac*exp(ecoef*spsq)
       !gradpsi = 0.0
       !gradcoef = 0.
       df0de = (2.0*ecoef/m_ion)*f0
@@ -2956,7 +2956,7 @@ subroutine evalf0(x, fh, gh, f0, T0, rho, gradcoef)
    !Math, physics parameters for Maxwellian distribution
    real, parameter :: twopi = 6.283185307179586476925286766559
    real, parameter :: vthermal = 100.0*vp1eV  !Maxwellian temperature = 10 keV
-   real, parameter :: nrmfac = (vthermal*sqrt(twopi))**(-3)
+   !real, parameter :: nrmfac = (vthermal*sqrt(twopi))**(-3)
    real, parameter :: ecoef = -0.5*(vthermal**(-2))
 
    !Parameters for slowing-down distribution
@@ -3071,7 +3071,7 @@ subroutine evalf0_advance(x, v, modB, Bphi, fh, gh, sps, f0, gradf, df0de, df0dx
    !Math, physics parameters for Maxwellian distribution
    real, parameter :: twopi = 6.283185307179586476925286766559
    real, parameter :: vthermal = 100.0*vp1eV  !Maxwellian temperature = 10 keV
-   real, parameter :: nrmfac = (vthermal*sqrt(twopi))**(-3)
+   !real, parameter :: nrmfac = (vthermal*sqrt(twopi))**(-3)
    real, parameter :: ecoef = -0.5*(vthermal**(-2))
 
    !Parameters for slowing-down distribution
@@ -3106,7 +3106,7 @@ subroutine evalf0_advance(x, v, modB, Bphi, fh, gh, sps, f0, gradf, df0de, df0dx
 
    select case (1)
    case (0) !Spatially uniform Maxwellian
-      f0 = nrmfac*exp(ecoef*spsq)
+      !f0 = nrmfac*exp(ecoef*spsq)
       !gradpsi = 0.0
       !gradcoef = 0.
       df0de = (2.0*ecoef/m_ion)*f0
@@ -3329,12 +3329,12 @@ subroutine particle_pressure_rhs
    do ipart = ipart_begin_local, ipart_end_local
       !if (pdata(ipart)%deleted) cycle
       do ipoint = 1, 4
-         if (gyroaverage) then
+         if (gyroaverage.eq.1) then
             itri = pdata(ipart)%kel(ipoint)
          else
             itri = pdata(ipart)%jel
          end if
-         if (gyroaverage) then
+         if (gyroaverage.eq.1) then
             call get_geom_terms(pdata(ipart)%kx(:, ipoint), itri, &
                                 geomterms, .false., ierr)
          else
@@ -3394,8 +3394,8 @@ subroutine particle_pressure_rhs
          !wnuhere2 = (pdata(ipart)%wt) * geomterms%g
          ! wnuhere = geomterms%g
          ! wnuhere2 = geomterms%g
-         wnuhere = wnuhere*nrmfac(pdata(ipart)%sps)
-         wnuhere2 = wnuhere2*nrmfac(pdata(ipart)%sps)
+         wnuhere = wnuhere*kinetic_nrmfac(pdata(ipart)%sps)
+         wnuhere2 = wnuhere2*kinetic_nrmfac(pdata(ipart)%sps)
          !if (pdata(ipart)%sps==1) then
          !wnuhere=0.
          !wnuhere2=0.
@@ -3403,7 +3403,7 @@ subroutine particle_pressure_rhs
          !wnuhere = pdata(ipart)%wt * matmul(cl, geomterms%g) * pdata(ipart)%x(1)/10.
          !deltaBhere = pdata(ielm)%ion(ipart)%f0 *dot_product(B_part,deltaB)/B0**2* matmul(cl,geomterms%g)
          if (pdata(ipart)%sps == 1) then
-            coeffsdei0_local(:,itri) = coeffsdei0_local(:,itri) + geomterms%g*nrmfac(pdata(ipart)%sps)/4*(b0_norm/1e4)**2/(4*3.14159*1e-7)/(n0_norm*1e6)
+            coeffsdei0_local(:,itri) = coeffsdei0_local(:,itri) + geomterms%g*kinetic_nrmfac(pdata(ipart)%sps)/4*(b0_norm/1e4)**2/(4*3.14159*1e-7)/(n0_norm*1e6)
 #ifndef USECOMPLEX
             coeffspai_local(:, itri) = coeffspai_local(:, itri) + ppar*wnuhere/4
             coeffspei_local(:, itri) = coeffspei_local(:, itri) + pperp*wnuhere2/4
@@ -3413,7 +3413,7 @@ subroutine particle_pressure_rhs
             !dofspe = intx2(mu79(:,:,OP_1),pper79(:,OP_1))
 #else
             !Extract appropriate Fourier component of particle contribution
-            if (gyroaverage) then
+            if (gyroaverage.eq.1) then
                phfac = exp(-rfac*pdata(ipart)%kx(2, ipoint))
             else
                phfac = exp(-rfac*xtemp(2))
@@ -3428,7 +3428,7 @@ subroutine particle_pressure_rhs
             !dofspen = intx2(mu79(:,:,OP_1),pper79(:,OP_1))
 #endif
          else
-            coeffsdef0_local(:,itri) = coeffsdef0_local(:,itri) + geomterms%g*nrmfac(pdata(ipart)%sps)/4*(b0_norm/1e4)**2/(4*3.14159*1e-7)/(n0_norm*1e6)
+            coeffsdef0_local(:,itri) = coeffsdef0_local(:,itri) + geomterms%g*kinetic_nrmfac(pdata(ipart)%sps)/4*(b0_norm/1e4)**2/(4*3.14159*1e-7)/(n0_norm*1e6)
 #ifndef USECOMPLEX
             !coeffspaf_local(:,itri) = coeffspaf_local(:,itri) + ppar*geomterms%g*nrmfac(pdata(ipart)%sps)/4
             coeffspaf_local(:, itri) = coeffspaf_local(:, itri) + ppar*wnuhere/4
@@ -3440,7 +3440,7 @@ subroutine particle_pressure_rhs
             !dofspe = intx2(mu79(:,:,OP_1),pper79(:,OP_1))
 #else
             !Extract appropriate Fourier component of particle contribution
-            if (gyroaverage) then
+            if (gyroaverage.eq.1) then
                phfac = exp(-rfac*pdata(ipart)%kx(2, ipoint))
             else
                phfac = exp(-rfac*xtemp(2))

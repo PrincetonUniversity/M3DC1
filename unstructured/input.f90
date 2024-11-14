@@ -180,6 +180,7 @@ subroutine set_defaults
   integer :: trilinos_grp
   integer :: prad_grp
   integer :: kprad_grp
+  integer :: particle_grp
 
   ! Dummy variables for reading deprecated options
   ! These must be "saved" so that they will exist when they are written to
@@ -209,6 +210,7 @@ subroutine set_defaults
   call add_group("Trilinos Options", trilinos_grp)
   call add_group("PRAD Options", prad_grp)
   call add_group("KPRAD Options", kprad_grp)
+  call add_group("Particle Simulation Options", particle_grp)
 
 
   ! Normalizations
@@ -458,13 +460,7 @@ subroutine set_defaults
        "alpha parameter in bootstrap current model", model_grp)
   call add_var_int("kinetic", kinetic, 0, &
        "1: Use kinetic PIC; 2: CGL incompressible; 3: CGL", model_grp)
-#ifdef USEPARTICLES
-  call add_var_int("kinetic_fast_ion", kinetic_fast_ion, 1, &
-       "1: Enable fast ion PIC", model_grp)
-  call add_var_int("kinetic_thermal_ion", kinetic_thermal_ion, 0, &
-       "1: Enable thermal ion PIC and density coupling between MHD and PIC", model_grp)
-#endif
-    
+   
   ! Time step options
   call add_var_int("ntimemax", ntimemax, 20, &
        "Total number of timesteps", time_grp)
@@ -1247,6 +1243,27 @@ subroutine set_defaults
        "Relaxation parameter for rILU", trilinos_grp)
   call add_var_int("poly_ord", poly_ord, 1, &
        "Polynomial order for certain preconditioners", trilinos_grp)
+
+#ifdef USEPARTICLES
+  call add_var_int("kinetic_fast_ion", kinetic_fast_ion, 1, &
+       "1: Enable fast ion PIC", particle_grp)
+  call add_var_int("kinetic_thermal_ion", kinetic_thermal_ion, 0, &
+       "1: Enable thermal ion PIC and density coupling between MHD and PIC", particle_grp)
+  call add_var_int("gyroaverage", gyroaverage, 0, &
+       "1: Enable gyro-averaging for PIC simulation", particle_grp)
+  call add_var_double("fast_ion_mass", fast_ion_mass, 1., &
+       "Fast ion mass (in units of m_p)", particle_grp)
+  call add_var_double("fast_ion_z", fast_ion_z, 1., &
+       "Zeff of fast ion", particle_grp)
+  call add_var_int("fast_ion_dist", fast_ion_dist, 0, &
+       "Type of fast ion distribution function. -1: Read 3D distribution from file. 0: Maxwellian", particle_grp)
+  call add_var_int("num_par_max", num_par_max, 4000000, &
+       "Maximum number of particles", particle_grp)
+  call add_var_double_array("num_par_fac", num_par_fac, 2, 0.0001, &
+       "Factor for particle number initialization", particle_grp)
+  call add_var_double_array("kinetic_nrmfac", kinetic_nrmfac, 2, 0., &
+       "Normalization factor for particle phase space integration", particle_grp)
+#endif
 
   ! Deprecated
   call add_var_int("ibform", idum, -1, "", deprec_grp)
