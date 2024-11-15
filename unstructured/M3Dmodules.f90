@@ -310,12 +310,14 @@ module basic
                          ! 3 = CGL form for pressure tensor (full)
 #ifdef USEPARTICLES
   integer :: kinetic_fast_ion, kinetic_thermal_ion
-  integer :: gyroaverage
+  integer :: igyroaverage
   real :: fast_ion_mass, fast_ion_z
   integer :: fast_ion_dist
   integer :: num_par_max
   real, dimension(2) :: num_par_fac
-  real, dimension(2) :: kinetic_nrmfac
+  real, dimension(2) :: kinetic_nrmfac_scale
+  integer :: ikinetic_vpar
+  real :: vpar_reduce
 #endif
 
   integer :: iohmic_heating  ! 1 = include ohmic heating

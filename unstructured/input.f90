@@ -1249,7 +1249,7 @@ subroutine set_defaults
        "1: Enable fast ion PIC", particle_grp)
   call add_var_int("kinetic_thermal_ion", kinetic_thermal_ion, 0, &
        "1: Enable thermal ion PIC and density coupling between MHD and PIC", particle_grp)
-  call add_var_int("gyroaverage", gyroaverage, 0, &
+  call add_var_int("igyroaverage", igyroaverage, 0, &
        "1: Enable gyro-averaging for PIC simulation", particle_grp)
   call add_var_double("fast_ion_mass", fast_ion_mass, 1., &
        "Fast ion mass (in units of m_p)", particle_grp)
@@ -1261,8 +1261,12 @@ subroutine set_defaults
        "Maximum number of particles", particle_grp)
   call add_var_double_array("num_par_fac", num_par_fac, 2, 0.0001, &
        "Factor for particle number initialization", particle_grp)
-  call add_var_double_array("kinetic_nrmfac", kinetic_nrmfac, 2, 0., &
-       "Normalization factor for particle phase space integration", particle_grp)
+  call add_var_double_array("kinetic_nrmfac_scale", kinetic_nrmfac_scale, 2, 1., &
+       "Scaling factor of the normalization term in particle phase space integration", particle_grp)
+  call add_var_int("ikinetic_vpar", ikinetic_vpar, 0, &
+       "1: Synchronize particle parallel flow to MHD", particle_grp)
+  call add_var_int("vpar_reduce", vpar_reduce, 0.5, &
+       "Factor of parallel flow reduction for every timestep", particle_grp)
 #endif
 
   ! Deprecated

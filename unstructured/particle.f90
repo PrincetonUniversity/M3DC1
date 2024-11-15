@@ -79,6 +79,7 @@ module particles
    integer :: win_elfieldcoefs
    real :: m_ion, n_ion, q_ion, qm_ion, dt_ion
 !$acc declare create(m_ion,q_ion,qm_ion)
+   real, dimension(2) :: nrmfac
    integer :: linear_particle, psubsteps
 !$acc declare create(linear_particle, psubsteps)
    real :: dt_particle, t0_norm_particle, v0_norm_particle, b0_norm_particle
@@ -254,12 +255,21 @@ subroutine particle_test
    use basic
    use diagnostics
    use auxiliary_fields
+   use m3dc1_nint
+   use arrays
    implicit none
    include 'mpif.h'
 
    integer, parameter :: trunit = 120
    real :: tstart, tend
    integer :: ierr
+   vectype, dimension(coeffs_per_element) :: denfi0
+   real, dimension(2) :: nrmfac_temp
+   type(particle) :: dpar
+   type(xgeomterms) :: geomterms
+   integer :: itri, ielm, izone
+
+
 
    if (myrank .eq. 0) then
       print *, 'xlim2 = ', xlim2
@@ -287,7 +297,30 @@ subroutine particle_test
    end if
    !call particle_step(dt*t0_norm)
 
-   !call update_particle_pressure
+   nrmfac(:)=1.0
+   call update_particle_pressure
+   dpar%x(1) = xmag
+   dpar%x(3) = zmag
+   dpar%x(2) = 0.
+   itri = 0
+   call get_geom_terms(dpar%x, itri, geomterms, .false., ierr)
+   if (localmeshid(itri)>0) then
+      ielm=localmeshid(itri)
+      call get_zone(ielm, izone)
+      call define_element_quadrature(ielm, int_pts_main, int_pts_tor)
+      call define_fields(ielm, FIELD_KIN, 1, 0)
+
+      if (kinetic_fast_ion.eq.1) then
+         call eval_ops(ielm, den_f_0, nf79)
+         nrmfac_temp(2)=nrmfac(2)/sum(nf79(:,OP_1))*sum(nf079(:,OP_1))
+      endif
+   !nfi_axis = dot_product(elfieldcoefs(itri)%nfi, geomterms%g)
+   else
+      nrmfac_temp(:)=0.
+   endif
+   call mpi_allreduce(nrmfac_temp, nrmfac, 2, MPI_DOUBLE_PRECISION, MPI_SUM, MPI_COMM_WORLD, ierr)
+   nrmfac = nrmfac*kinetic_nrmfac_scale
+   call update_particle_pressure
 
    call MPI_Barrier(MPI_COMM_WORLD, ierr)
 end subroutine particle_test
@@ -534,10 +567,10 @@ subroutine init_particles(lrestart, ierr)
    !nrmfac(2) = 3207919.*4.*0.1349267*36.36*0.0297/npar*4.e6
 !#endif
 
-   kinetic_nrmfac = kinetic_nrmfac/num_par_fac
-#ifdef USE3D
-   kinetic_nrmfac = kinetic_nrmfac*toroidal_period
-#endif
+   !kinetic_nrmfac = kinetic_nrmfac/num_par_fac
+!#ifdef USE3D
+   !kinetic_nrmfac = kinetic_nrmfac*toroidal_period
+!#endif
 
    !Set up 'neighborlist' table of element neighbors for ensemble tracking
    call find_element_neighbors
@@ -549,7 +582,7 @@ subroutine init_particles(lrestart, ierr)
    rfac_particle = rfac
    linear_particle = linear
    toroidal_period_particle = toroidal_period
-   gyroaverage_particle = gyroaverage
+   gyroaverage_particle = igyroaverage
    psubsteps = 40
    linear_particle=0
    dpar%x(1) = xmag
@@ -3329,12 +3362,12 @@ subroutine particle_pressure_rhs
    do ipart = ipart_begin_local, ipart_end_local
       !if (pdata(ipart)%deleted) cycle
       do ipoint = 1, 4
-         if (gyroaverage.eq.1) then
+         if (igyroaverage.eq.1) then
             itri = pdata(ipart)%kel(ipoint)
          else
             itri = pdata(ipart)%jel
          end if
-         if (gyroaverage.eq.1) then
+         if (igyroaverage.eq.1) then
             call get_geom_terms(pdata(ipart)%kx(:, ipoint), itri, &
                                 geomterms, .false., ierr)
          else
@@ -3394,8 +3427,8 @@ subroutine particle_pressure_rhs
          !wnuhere2 = (pdata(ipart)%wt) * geomterms%g
          ! wnuhere = geomterms%g
          ! wnuhere2 = geomterms%g
-         wnuhere = wnuhere*kinetic_nrmfac(pdata(ipart)%sps)
-         wnuhere2 = wnuhere2*kinetic_nrmfac(pdata(ipart)%sps)
+         wnuhere = wnuhere*nrmfac(pdata(ipart)%sps)
+         wnuhere2 = wnuhere2*nrmfac(pdata(ipart)%sps)
          !if (pdata(ipart)%sps==1) then
          !wnuhere=0.
          !wnuhere2=0.
@@ -3403,7 +3436,7 @@ subroutine particle_pressure_rhs
          !wnuhere = pdata(ipart)%wt * matmul(cl, geomterms%g) * pdata(ipart)%x(1)/10.
          !deltaBhere = pdata(ielm)%ion(ipart)%f0 *dot_product(B_part,deltaB)/B0**2* matmul(cl,geomterms%g)
          if (pdata(ipart)%sps == 1) then
-            coeffsdei0_local(:,itri) = coeffsdei0_local(:,itri) + geomterms%g*kinetic_nrmfac(pdata(ipart)%sps)/4*(b0_norm/1e4)**2/(4*3.14159*1e-7)/(n0_norm*1e6)
+            coeffsdei0_local(:,itri) = coeffsdei0_local(:,itri) + geomterms%g*nrmfac(pdata(ipart)%sps)/4*(b0_norm/1e4)**2/(4*3.14159*1e-7)/(n0_norm*1e6)
 #ifndef USECOMPLEX
             coeffspai_local(:, itri) = coeffspai_local(:, itri) + ppar*wnuhere/4
             coeffspei_local(:, itri) = coeffspei_local(:, itri) + pperp*wnuhere2/4
@@ -3413,7 +3446,7 @@ subroutine particle_pressure_rhs
             !dofspe = intx2(mu79(:,:,OP_1),pper79(:,OP_1))
 #else
             !Extract appropriate Fourier component of particle contribution
-            if (gyroaverage.eq.1) then
+            if (igyroaverage.eq.1) then
                phfac = exp(-rfac*pdata(ipart)%kx(2, ipoint))
             else
                phfac = exp(-rfac*xtemp(2))
@@ -3428,7 +3461,7 @@ subroutine particle_pressure_rhs
             !dofspen = intx2(mu79(:,:,OP_1),pper79(:,OP_1))
 #endif
          else
-            coeffsdef0_local(:,itri) = coeffsdef0_local(:,itri) + geomterms%g*kinetic_nrmfac(pdata(ipart)%sps)/4*(b0_norm/1e4)**2/(4*3.14159*1e-7)/(n0_norm*1e6)
+            coeffsdef0_local(:,itri) = coeffsdef0_local(:,itri) + geomterms%g*nrmfac(pdata(ipart)%sps)/4*(b0_norm/1e4)**2/(4*3.14159*1e-7)/(n0_norm*1e6)
 #ifndef USECOMPLEX
             !coeffspaf_local(:,itri) = coeffspaf_local(:,itri) + ppar*geomterms%g*nrmfac(pdata(ipart)%sps)/4
             coeffspaf_local(:, itri) = coeffspaf_local(:, itri) + ppar*wnuhere/4
@@ -3440,7 +3473,7 @@ subroutine particle_pressure_rhs
             !dofspe = intx2(mu79(:,:,OP_1),pper79(:,OP_1))
 #else
             !Extract appropriate Fourier component of particle contribution
-            if (gyroaverage.eq.1) then
+            if (igyroaverage.eq.1) then
                phfac = exp(-rfac*pdata(ipart)%kx(2, ipoint))
             else
                phfac = exp(-rfac*xtemp(2))
@@ -4061,12 +4094,15 @@ subroutine set_parallel_velocity
       !!   !temp79a(:)=-temp79b(:)
       !   temp79c(:)=0.1
       !end where
-        !temp79a= 0.9*temp79c*(1*vipar79(:,OP_1)+1*(1*vfpar79(:,OP_1)-vfpar079(:,OP_1)*nf79(:,OP_1)))/(nfi079(:,OP_1))/sqrt(ri2_79* &
-      !! temp79a= 0.99*vipar79(:,OP_1)/nfi079(:,OP_1)/sqrt(ri2_79* &
-      !! temp79a= vipar79(:,OP_1)*ni79(:,OP_1)/sqrt(ri2_79* &
-      !((ps079(:,OP_DR)-r_79*bfp079(:,OP_DZ))**2 + (ps079(:,OP_DZ)+r_79*bfp079(:,OP_DR))**2 + bz079(:,OP_1)*bz079(:,OP_1))) &
-        ! -0.9*temp79c*temp79a
-       temp79a=-temp79b
+      if (ikinetic_vpar.eq.1) then
+         temp79a= (1-vpar_reduce)*temp79c*(1*vipar79(:,OP_1)+1*(1*vfpar79(:,OP_1)-vfpar079(:,OP_1)*nf79(:,OP_1)))/(nfi079(:,OP_1))/sqrt(ri2_79* &
+      ! temp79a= 0.99*vipar79(:,OP_1)/nfi079(:,OP_1)/sqrt(ri2_79* &
+      ! temp79a= vipar79(:,OP_1)*ni79(:,OP_1)/sqrt(ri2_79* &
+      ((ps079(:,OP_DR)-r_79*bfp079(:,OP_DZ))**2 + (ps079(:,OP_DZ)+r_79*bfp079(:,OP_DR))**2 + bz079(:,OP_1)*bz079(:,OP_1))) &
+         -vpar_reduce*temp79c*temp79a
+       else
+       temp79a=-vpar_reduce*temp79b
+        endif
        !where (real(rhof79(:,OP_1))<0.1)
        !   !temp79a(:)=-temp79b(:)
        !   temp79a(:)=0
