@@ -110,8 +110,8 @@ contains
     call setup_qsolver
 
     nelms = local_elements()
-!$OMP PARALLEL DO &
-!$OMP& PRIVATE(dofsps,dofsbz,dofspr,dofsvz,dofsden,r,rtemp79a,rtemp79b,rtemp79c,rtemp79d,dum1,dum2,dum3,j)
+!!$OMP PARALLEL DO &
+!!$OMP& PRIVATE(dofsps,dofsbz,dofspr,dofsvz,dofsden,r,rtemp79a,rtemp79b,rtemp79c,rtemp79d,dum1,dum2,dum3,j)
     do itri=1,nelms
        
        call define_element_quadrature(itri,int_pts_diag, int_pts_tor)
@@ -144,15 +144,15 @@ contains
       if(linear.eq.0) temp79e = den0*(temp79c/p0_qp)**expn + den_edge
       dofsden = intx2(mu79(:,:,OP_1),temp79e)
 
-!$OMP CRITICAL
+!!$OMP CRITICAL
        call vector_insert_block(psi_vec%vec,itri,1,dofsps,VEC_ADD)
        call vector_insert_block(bz_vec%vec ,itri,1,dofsbz,VEC_ADD)
        call vector_insert_block(p_vec%vec  ,itri,1,dofspr,VEC_ADD)
        call vector_insert_block(vz_vec%vec ,itri,1,dofsvz,VEC_ADD)
        call vector_insert_block(den_vec%vec,itri,1,dofsden,VEC_ADD)
-!$OMP END CRITICAL
+!!$OMP END CRITICAL
     enddo
-!$OMP END PARALLEL DO
+!!$OMP END PARALLEL DO
     
     ! solve for psi
     if(myrank.eq.0 .and. iprint.ge.1) print *, "solving psi"

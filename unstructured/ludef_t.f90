@@ -4808,7 +4808,7 @@ subroutine ludefall(ivel_def, idens_def, ipres_def, ipressplit_def,  ifield_def)
   if(myrank.eq.0 .and. iprint.ge.1) &
        print *, " begin loop over elements"
 
-!$OMP PARALLEL DO
+!!$OMP PARALLEL DO
   do itri=1,numelms
 
      call get_zone(itri, izone)
@@ -4843,7 +4843,7 @@ subroutine ludefall(ivel_def, idens_def, ipres_def, ipressplit_def,  ifield_def)
      endif
 
   end do
-!$OMP END PARALLEL DO
+!!$OMP END PARALLEL DO
 
   if(myrank.eq.0 .and. iprint.ge.1) &
        print *, " finalizing matrices..."
@@ -5100,7 +5100,7 @@ call PetscLogStagePush(stageA,ier)
 
      ! Insert values into matrix
      ! ~~~~~~~~~~~~~~~~~~~~~~~~~
-!$OMP CRITICAL
+!!$OMP CRITICAL
      call insert_block(vv1,itri,ieq(k),  u_i,ss(:,:,  u_g),MAT_ADD)
      call insert_block(vv0,itri,ieq(k),  u_i,dd(:,:,  u_g),MAT_ADD)
      call insert_block(vb0,itri,ieq(k),psi_i,dd(:,:,psi_g),MAT_ADD)
@@ -5139,7 +5139,7 @@ call PetscLogStagePush(stageA,ier)
      endif
 
      call vector_insert_block(vsource,itri,ieq(k),r4,VEC_ADD)
-!$OMP END CRITICAL
+!!$OMP END CRITICAL
   end do
 
 call PetscLogStagePop(ier)
@@ -5361,7 +5361,7 @@ subroutine ludefphi_n(itri)
 
      ! Insert values into matrix
      ! ~~~~~~~~~~~~~~~~~~~~~~~~~
-!$OMP CRITICAL
+!!$OMP CRITICAL
      if(idiff .gt. 0) dd(:,:,psi_g) = dd(:,:,psi_g) - ss(:,:,psi_g)
      call insert_block(bb1,itri,ieq(k),psi_i,ss(:,:,psi_g),MAT_ADD)
      call insert_block(bb0,itri,ieq(k),psi_i,dd(:,:,psi_g),MAT_ADD)
@@ -5411,7 +5411,7 @@ subroutine ludefphi_n(itri)
      endif
 
      call vector_insert_block(bsource,itri,ieq(k),q4,VEC_ADD)
-!$OMP END CRITICAL
+!!$OMP END CRITICAL
   end do
 end subroutine ludefphi_n
 
@@ -5581,7 +5581,7 @@ subroutine ludefpres_n(itri)
      call apply_boundary_mask(itri, 0, q_bf, imask)
      call apply_boundary_mask_vec(itri, 0, q4, imask)
 
-!$OMP CRITICAL
+!!$OMP CRITICAL
      if(ipressplit.eq.0) then
         if(idiff .gt. 0) dd(:,:, p_g) = dd(:,:, p_g) - ss(:,:, p_g)
         call insert_block(pp1,itri,ieq(k),  p_i,ss(:,:,  p_g),MAT_ADD)
@@ -5659,7 +5659,7 @@ subroutine ludefpres_n(itri)
         call insert_block(pf0,itri,ieq(k),bf_i, q_bf(:,:),MAT_ADD)
         call insert_block(pf0,itri,ieq(k),bf_i,-r_bf(:,:),MAT_ADD)
      endif
-!$OMP END CRITICAL
+!!$OMP END CRITICAL
 
   enddo ! on k
 end subroutine ludefpres_n
@@ -5841,7 +5841,7 @@ subroutine ludefden_n(itri)
 
 
   ! Insert data into matrices
-!$OMP CRITICAL
+!!$OMP CRITICAL
   call insert_block(nn1,itri,den_i,den_i,ssterm,MAT_ADD)
   call insert_block(nn0,itri,den_i,den_i,ddterm,MAT_ADD)
   call insert_block(nv1,itri,den_i,u_i,rrterm(:,:,1),MAT_ADD)
@@ -5856,7 +5856,7 @@ subroutine ludefden_n(itri)
   endif
 
   call vector_insert_block(nsource,itri,den_i,oterm,VEC_ADD)
-!$OMP END CRITICAL
+!!$OMP END CRITICAL
 end subroutine ludefden_n
 
 !======================================================================
@@ -6006,7 +6006,7 @@ subroutine ludefnre_n(itri)
 
 
   ! Insert data into matrices
-!$OMP CRITICAL
+!!$OMP CRITICAL
   call insert_block(nrenre1,itri,nre_i,nre_i,ssterm,MAT_ADD)
   call insert_block(nrenre0,itri,nre_i,nre_i,ddterm,MAT_ADD)
   call insert_block(nrepsi0,itri,nre_i,psi_i,qqterm(:,:,1),MAT_ADD)
@@ -6017,6 +6017,6 @@ subroutine ludefnre_n(itri)
   endif
 
   call vector_insert_block(nresource,itri,nre_i,oterm,VEC_ADD)
-!$OMP END CRITICAL
+!!$OMP END CRITICAL
 end subroutine ludefnre_n
 

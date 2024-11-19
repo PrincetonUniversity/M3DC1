@@ -143,7 +143,7 @@ module m3dc1_nint
   vectype, dimension(MAX_PTS, OP_NUM) :: pipar79, piper79, pfi079
 !$OMP THREADPRIVATE(pipar79,piper79,pfi079)
   vectype, dimension(MAX_PTS, OP_NUM) :: vfpar79, vfpar079, vipar79
-!$OMP THREADPRIVATE(vfpar79,pfpar079,vipar79)
+!$OMP THREADPRIVATE(vfpar79,vfpar079,vipar79)
   vectype, dimension(MAX_PTS, OP_NUM) :: nf79, nf079
 !$OMP THREADPRIVATE(nf79, nf079)
   vectype, dimension(MAX_PTS, OP_NUM) :: nfi79, nfi079

@@ -296,33 +296,34 @@ subroutine particle_test
    end if
    !call particle_step(dt*t0_norm)
 
-   nrmfac(:)=1.0
-   call update_particle_pressure
-   dpar%x(1) = xmag
-   dpar%x(3) = zmag
-   dpar%x(2) = 0.
-   itri = 0
-   call get_geom_terms(dpar%x, itri, geomterms, .false., ierr)
-   if (localmeshid(itri)>0) then
-      write(0,*) itri
-      ielm=localmeshid(itri)
-      call get_zone(ielm, izone)
-      call define_element_quadrature(ielm, int_pts_main, int_pts_tor)
-      call define_fields(ielm, FIELD_KIN, 1, 0)
-
-      if (kinetic_fast_ion.eq.1) then
-         call eval_ops(ielm, den_f_0, nf79)
-         nrmfac_temp(2)=nrmfac(2)/sum(nf79(:,OP_1))*sum(nf079(:,OP_1))
-      endif
-      if (kinetic_thermal_ion.eq.1) then
-         call eval_ops(ielm, den_i_0, nfi79)
-         nrmfac_temp(1)=nrmfac(1)/sum(nfi79(:,OP_1))*sum(nfi079(:,OP_1))
-      endif
-   else
+   if (irestart.eq.0) then
+      nrmfac(:)=1.0
+      call update_particle_pressure
       nrmfac_temp(:)=0.
+      dpar%x(1) = xmag
+      dpar%x(3) = zmag
+      dpar%x(2) = 0.
+      itri = 0
+      call get_geom_terms(dpar%x, itri, geomterms, .false., ierr)
+      if (localmeshid(itri)>0) then
+         write(0,*) itri
+         ielm=localmeshid(itri)
+         call get_zone(ielm, izone)
+         call define_element_quadrature(ielm, int_pts_main, int_pts_tor)
+         call define_fields(ielm, FIELD_KIN, 1, 0)
+
+         if (kinetic_fast_ion.eq.1) then
+            call eval_ops(ielm, den_f_0, nf79)
+            nrmfac_temp(2)=nrmfac(2)/sum(nf79(:,OP_1))*sum(nf079(:,OP_1))
+         endif
+         if (kinetic_thermal_ion.eq.1) then
+            call eval_ops(ielm, den_i_0, nfi79)
+            nrmfac_temp(1)=nrmfac(1)/sum(nfi79(:,OP_1))*sum(nfi079(:,OP_1))
+         endif
+      endif
+      call mpi_allreduce(nrmfac_temp, nrmfac, 2, MPI_DOUBLE_PRECISION, MPI_SUM, MPI_COMM_WORLD, ierr)
+      nrmfac = nrmfac*kinetic_nrmfac_scale
    endif
-   call mpi_allreduce(nrmfac_temp, nrmfac, 2, MPI_DOUBLE_PRECISION, MPI_SUM, MPI_COMM_WORLD, ierr)
-   nrmfac = nrmfac*kinetic_nrmfac_scale
    call update_particle_pressure
 
    call MPI_Barrier(MPI_COMM_WORLD, ierr)
@@ -1134,7 +1135,7 @@ subroutine advance_particles(tinc)
       if (hostrank == ncols-1) endy = ipart_end
 #endif
 #ifndef _OPENACC
-!$omp parallel do default(none) shared(pdata,tinc,nparticles,starty,endy,psubsteps_particle,istep) PRIVATE(ierr) num_threads(1)
+!$omp parallel do default(none) shared(pdata,tinc,nparticles,starty,endy,psubsteps_particle,istep) PRIVATE(ierr)
 #endif
 !$acc parallel loop present(pdata(starty:endy))
       do ipart = starty, endy
@@ -1242,7 +1243,7 @@ subroutine rk4(part, dt, last_step, ierr)
    bhat = B_cyl*B0inv                         !Unit vector in b direction
    !write(0,*) part%gid
    !if (part%gid==2117425261) then
-   !if (abs(dot_product(elfieldcoefs(itri)%rho, geomterms%g))>0.95) part%wt=0.
+   if (abs(dot_product(elfieldcoefs(itri)%rho, geomterms%g))>0.95) part%wt=0.
    !write(0,*) part%v(1)**2+2.*qm_ion*part%v(2)/B0inv, 1./B0inv, part%v(1), itri
    !if (part%x(2)<0) write(0,*) 'cc',dot_product(geomterms%g,elfieldcoefs(itri)%rst),dot_product(geomterms%g,elfieldcoefs(itri)%zst)
    !write(0,*) xtemp(1),xtemp(2),xtemp(3),dot_product(geomterms%g,elfieldcoefs(itri)%Bzv0),itri
@@ -1878,9 +1879,9 @@ subroutine particle_step(pdt)
 #else
       if (hostrank < ncols) then
 #endif
-         call second(tstart)
+         call second_new(tstart)
          call advance_particles(pdt/particle_substeps)
-         call second(tend)
+         call second_new(tend)
          write (0, '(A,I7,A,f9.2,A)') 'Particle advance completed', particle_substeps, ' steps in', &
             tend - tstart, ' seconds.'
       end if
@@ -3743,6 +3744,7 @@ subroutine hdf5_write_particles(ierr)
    !Write attributes
    call write_real_attr(part_root_id, "time", time, ierr)
    call write_int_attr(part_root_id, "velocity space dims", vspdims, ierr)
+   call write_vec_attr(part_root_id, "particle nrmfac", nrmfac, 2, ierr)
    !call write_real_attr(part_root_id, "particle delta-t", dt_ion, ierr)
 
    !Create global dataset
@@ -3929,6 +3931,7 @@ subroutine hdf5_read_particles(filename, ierr)
    !endif
    !call read_real_attr(part_root_id, "particle delta-t", dt_ion, ierr)
    !if(myrank.eq.0) print *,'particle dt from file = ',dt_ion
+   call read_vec_attr(part_root_id, "particle nrmfac", nrmfac, 2, ierr)
 
    !Open the particle group for reading
    call h5gopen_f(part_root_id, "particles", group_id, ierr)
@@ -4237,9 +4240,7 @@ subroutine set_parallel_velocity
             end select
          end if
          call apply_boundary_mask_vec(itri, 0, r4, imask)
-!$OMP CRITICAL
          call vector_insert_block(vsource,itri,ieq(k),r4,VEC_ADD)
-!$OMP END CRITICAL
       end do
 
    end do
