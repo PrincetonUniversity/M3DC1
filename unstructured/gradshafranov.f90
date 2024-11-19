@@ -634,13 +634,11 @@ subroutine define_profiles
      end if
   endif
   
-  if (kinetic.eq.1) then
-     nvals = 0
-     call read_ascii_column('profile_rho', xvals, nvals, icol=1)
-     call read_ascii_column('profile_rho', yvals, nvals, icol=2)
-     if(nvals.eq.0) call safestop(5)
-     !yvals = yvals / n0_norm !rsae
-     xvals = xvals / xvals(nvals) ! normalize rho
+     allocate(xvals(101))
+     allocate(yvals(101))
+     xvals = [(i * 0.01, i = 0, 100)]
+     yvals = xvals
+     nvals = 101
      if (allocated(psi_spline%y)) then
         call rho_to_psi(nvals, xvals, xvals)
      else
@@ -650,7 +648,6 @@ subroutine define_profiles
         call create_spline(rho_spline, nvals, xvals, yvals)
         deallocate(xvals, yvals)
      end if
-  endif
 
   if ((kinetic.eq.1).and.(kinetic_fast_ion.eq.1)) then
      nvals = 0
@@ -672,8 +669,8 @@ subroutine define_profiles
 
   if ((kinetic.eq.1).and.(kinetic_thermal_ion.eq.1)) then
      nvals = 0
-     call read_ascii_column('profile_tfi_rho', xvals, nvals, icol=1)
-     call read_ascii_column('profile_tfi_rho', yvals, nvals, icol=2)
+     call read_ascii_column('profile_ti_rho', xvals, nvals, icol=1)
+     call read_ascii_column('profile_ti_rho', yvals, nvals, icol=2)
      if(nvals.eq.0) call safestop(5)
      xvals = xvals / xvals(nvals) ! normalize rho
      ! yvals=yvals*0.5
@@ -690,8 +687,8 @@ subroutine define_profiles
   
   if ((kinetic.eq.1).and.(kinetic_thermal_ion.eq.1)) then
      nvals = 0
-     call read_ascii_column('profile_nfi_rho', xvals, nvals, icol=1)
-     call read_ascii_column('profile_nfi_rho', yvals, nvals, icol=2)
+     call read_ascii_column('profile_ni_rho', xvals, nvals, icol=1)
+     call read_ascii_column('profile_ni_rho', yvals, nvals, icol=2)
      if(nvals.eq.0) call safestop(5)
      yvals = yvals / n0_norm !rsae
      xvals = xvals / xvals(nvals) ! normalize rho
@@ -1480,6 +1477,8 @@ endif
   if(myrank.eq.0 .and. iprint.ge.2) print *, '  solving...'
 
   call newvar_solve(b1vecini_vec%vec,mass_mat_lhs)
+  !call mult(b1vecini_vec, 0.5)
+
   p_field(0) = b1vecini_vec
 
   call newvar_solve(b2vecini_vec%vec,mass_mat_lhs)
@@ -1502,7 +1501,7 @@ endif
 #ifdef USEPARTICLES
   ! Define rho field
   if(allocated(rho_spline%y)) then
-     if(myrank.eq.0 .and. iprint.ge.2) print *, '  calculating nf...'
+     if(myrank.eq.0 .and. iprint.ge.2) print *, '  calculating rho...'
      b1vecini_vec = 0.
      do itri=1,numelms
         call define_element_quadrature(itri, int_pts_main, int_tor)
@@ -1606,7 +1605,7 @@ endif
         do i=1, npoints
            call calc_fdensity(ps079(i,:),tf,x_79(i),z_79(i),izone)
            call calc_ftemp(ps079(i,:),tf2,x_79(i),z_79(i),izone)
-           temp79a(i) =tf*tf2* 1.6022e-9 / (b0_norm**2/(4.*pi*n0_norm))!rsae
+           temp79a(i) =tf*tf2* 1.6022e-12 / (b0_norm**2/(4.*pi*n0_norm))!rsae
         end do
 
         temp(:,1) = intx2(mu79(:,:,OP_1),temp79a)
@@ -1694,7 +1693,7 @@ endif
         do i=1, npoints
            call calc_fidensity(ps079(i,:),tf,x_79(i),z_79(i),izone)
            call calc_fitemp(ps079(i,:),tf2,x_79(i),z_79(i),izone)
-           temp79a(i) =tf*tf2* 1.6022e-9 / (b0_norm**2/(4.*pi*n0_norm))!rsae
+           temp79a(i) =tf*tf2* 1.6022e-12 / (b0_norm**2/(4.*pi*n0_norm))!rsae
         end do
 
         temp(:,1) = intx2(mu79(:,:,OP_1),temp79a)
@@ -1706,16 +1705,16 @@ endif
      pfi_field = b1vecini_vec
   end if 
 
-  if (kinetic_fast_ion.eq.1) then
+  if ((kinetic.eq.1).and.(kinetic_fast_ion.eq.1)) then
      call mult(pf_field, -1.)
      call add(p_field(0), pf_field)
      call mult(pf_field, -1.)
   endif
 
-  if (kinetic_thermal_ion.eq.1) then
-     call mult(pf_field, -1.)
-     call add(p_field(0), pf_field)
-     call mult(pf_field, -1.)
+  if ((kinetic.eq.1).and.(kinetic_thermal_ion.eq.1)) then
+     call mult(pfi_field, -1.)
+     call add(p_field(0), pfi_field)
+     call mult(pfi_field, -1.)
   endif
 #endif
 

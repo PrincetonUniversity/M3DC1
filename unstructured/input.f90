@@ -470,7 +470,7 @@ subroutine set_defaults
   call add_var_int("iteratephi", iteratephi, 0, "", time_grp)
   call add_var_int("imp_mod", imp_mod, 1, &
        "Type of split step.  0: Standard;  1: Caramana", time_grp)
-  call add_var_int("caramana_fac", caramana_fac, 1, &
+  call add_var_double("caramana_fac", caramana_fac, 1., &
        "Coefficient for the explicit term in Caramana method. 1: Caramana; 0: implicit", time_grp)
   call add_var_int("idiff", idiff, 0, "only solve for difference in B,p", time_grp)
   call add_var_int("idifv", idifv, 0, "only solve for difference in v", time_grp)
@@ -1251,22 +1251,30 @@ subroutine set_defaults
        "1: Enable thermal ion PIC and density coupling between MHD and PIC", particle_grp)
   call add_var_int("igyroaverage", igyroaverage, 0, &
        "1: Enable gyro-averaging for PIC simulation", particle_grp)
-  call add_var_double("fast_ion_mass", fast_ion_mass, 1., &
+  call add_var_int("particle_linear", particle_linear, linear, &
+       "1: Solve linear delta-f equation. 0: Include nonlinear terms in delta-f", particle_grp)
+  call add_var_int("particle_substeps", particle_substeps, 40, &
+       "Number of subcycles for particle pushing in one MHD timestep", particle_grp)
+  call add_var_double("fast_ion_mass", fast_ion_mass, ion_mass, &
        "Fast ion mass (in units of m_p)", particle_grp)
-  call add_var_double("fast_ion_z", fast_ion_z, 1., &
+  call add_var_double("fast_ion_z", fast_ion_z, z_ion, &
        "Zeff of fast ion", particle_grp)
-  call add_var_int("fast_ion_dist", fast_ion_dist, 0, &
-       "Type of fast ion distribution function. -1: Read 3D distribution from file. 0: Maxwellian", particle_grp)
+  call add_var_int("fast_ion_dist", fast_ion_dist, 1, &
+       "Type of fast ion distribution function. 0: Read 3D distribution from file. 1: Maxwellian", particle_grp)
   call add_var_int("num_par_max", num_par_max, 4000000, &
        "Maximum number of particles", particle_grp)
-  call add_var_double_array("num_par_fac", num_par_fac, 2, 0.0001, &
-       "Factor for particle number initialization", particle_grp)
+  call add_var_double_array("num_par_scale", num_par_scale, 2, 1., &
+       "Scaling factor for particle number initialization", particle_grp)
   call add_var_double_array("kinetic_nrmfac_scale", kinetic_nrmfac_scale, 2, 1., &
        "Scaling factor of the normalization term in particle phase space integration", particle_grp)
   call add_var_int("ikinetic_vpar", ikinetic_vpar, 0, &
        "1: Synchronize particle parallel flow to MHD", particle_grp)
-  call add_var_int("vpar_reduce", vpar_reduce, 0.5, &
+  call add_var_double("vpar_reduce", vpar_reduce, 0.5, &
        "Factor of parallel flow reduction for every timestep", particle_grp)
+  call add_var_double("smooth_par", smooth_par, 1.e-8, &
+       "Smoothing factor for particle pressure", particle_grp)
+  call add_var_double("smooth_pres", smooth_pres, 1.e-8, &
+       "Smoothing factor for electron pressure used for calculating parallel electric field", particle_grp)
 #endif
 
   ! Deprecated
