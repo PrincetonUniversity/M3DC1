@@ -5,6 +5,7 @@ module bootstrap
   implicit none
   integer, private, parameter :: dp = selected_real_kind(15,307)
   integer :: ibootstrap_model
+  real :: ibootstrap_regular
   integer :: ibootstrap_map_te  ! Switch for bootstrap current coefficients mapping either as a function of (0) Psi_normal or (1) Te 
   ! 1 : add -eta*J_BS term to Ohm's law
   !     where J_BS = jbscommon * B
@@ -1011,7 +1012,7 @@ function bs_b1psifbb(e,f,g,h,i)
     implicit none
   
     vectype, dimension(MAX_PTS) :: tempDD, tempAA, tempBB, tempCC, temp1, temp2, iBpsq, temp_delmagTe, temp_delTe
-    vectype, dimension(MAX_PTS) :: chisq,const1
+    vectype, dimension(MAX_PTS) :: chisq,const1,adaptive_regularization
     integer :: i
     real(dp):: tempbeta,tempvar
 
@@ -1027,20 +1028,28 @@ function bs_b1psifbb(e,f,g,h,i)
         if(itor.eq.1) temp_delmagTe  = temp_delmagTe + tet79(:,OP_DP)*tet79(:,OP_DP)*ri2_79
 #endif
 
-    do i = 1, MAX_PTS
-      tempbeta=temp_delmagTe(i)
-      if(tempbeta .le. 1)then
-        tempvar=dlog10(tempbeta)
-        if(tempvar .le. -7.0)then
-          chisq(i) = 1e-8
-        else
-          chisq(i) = 0.01*tempbeta
-        endif
-      else
-        chisq(i)=0.d0
-      endif
-    enddo
+   ! do i = 1, MAX_PTS
+   !!   tempbeta=temp_delmagTe(i)
+   !   if(tempbeta .le. 1)then
+   !     tempvar=dlog10(tempbeta)
+   !     if(tempvar .le. -7.0)then
+   !       chisq(i) = 1e-8
+   !     else
+   !       chisq(i) = 0.01*tempbeta
+   !     endif
+   !   else
+   !     chisq(i)=0.d0
+   !   endif
+   ! enddo
+   ! Adaptive regularization term: grows larger when gradients are small
+   !adaptive_regularization = epsilon / (1.0 + alpha * grad_Te_magnitude)
+! Compute the regularized expression
+!regularized_expression = (dot(del_p, del_Te)) / (grad_Te_magnitude**2 + adaptive_regularization)
 
+   do i = 1, MAX_PTS
+      tempbeta=temp_delmagTe(i)
+      chisq(i) = ibootstrap_regular / (1.0 + 1e-2 * tempbeta) 
+    enddo
    
     tempBB = 1./(tet79(:,OP_1))
          
