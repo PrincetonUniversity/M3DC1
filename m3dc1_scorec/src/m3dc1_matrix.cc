@@ -1189,7 +1189,7 @@ int matrix_solve::solve_with_guess(FieldID field_id, FieldID xVec_guess)
   ierr = VecDestroy(&b); CHKERRQ(ierr);
   ierr = VecDestroy(&x); CHKERRQ(ierr);
   mat_status = M3DC1_SOLVED;
- return M3DC1_SUCCESS;
+  return M3DC1_SUCCESS;
 }
 
 int matrix_solve:: setKspType()

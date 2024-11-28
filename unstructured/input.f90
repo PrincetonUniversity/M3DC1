@@ -1260,7 +1260,10 @@ subroutine set_defaults
   call add_var_double("fast_ion_z", fast_ion_z, z_ion, &
        "Zeff of fast ion", particle_grp)
   call add_var_int("fast_ion_dist", fast_ion_dist, 1, &
-       "Type of fast ion distribution function. 0: Read 3D distribution from file. 1: Maxwellian", particle_grp)
+       "Type of fast ion distribution function. 0: Read 3D distribution from file. 1: Maxwellian. &
+       2. slowing-down.", particle_grp)
+  call add_var_double("fast_ion_max_energy", fast_ion_max_energy, 1000., &
+       "Maximum energy of fast ion for slowing-down distribution", particle_grp)
   call add_var_int("num_par_max", num_par_max, 4000000, &
        "Maximum number of particles", particle_grp)
   call add_var_double_array("num_par_scale", num_par_scale, 2, 1., &
