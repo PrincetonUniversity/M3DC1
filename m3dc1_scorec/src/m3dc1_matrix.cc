@@ -1189,6 +1189,7 @@ int matrix_solve::solve_with_guess(FieldID field_id, FieldID xVec_guess)
   ierr = VecDestroy(&b); CHKERRQ(ierr);
   ierr = VecDestroy(&x); CHKERRQ(ierr);
   mat_status = M3DC1_SOLVED;
+ return M3DC1_SUCCESS;
 }
 
 int matrix_solve:: setKspType()
@@ -1278,7 +1279,7 @@ int matrix_solve:: setBgmgType()
   //set default bgmg levels to 2
          nlevels=2;
   //or to many levels defined by the size of nplanes
-         nlevels = PetscInt(log(PetscReal(nplane))/log(2.));
+         nlevels = PetscInt(log(PetscReal(nplane))/log(2.)+1.e-5);
          nlevels++;
   //or to levels given as the srun command line option, for example "-mg_nlevels 3"
          ierr= PetscOptionsGetInt(NULL,NULL,"-mg_nlevels",&nlevels,NULL);
