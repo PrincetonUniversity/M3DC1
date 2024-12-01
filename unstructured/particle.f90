@@ -79,7 +79,7 @@ module particles
 !$acc declare create(m_ion,q_ion,qm_ion)
    real, dimension(2) :: nrmfac
    integer :: particle_linear_particle, psubsteps_particle, kinetic_thermal_ion_particle
-!$acc declare create(particle_linear_particle, psubsteps_particle)
+!$acc declare create(particle_linear_particle, psubsteps_particle, kinetic_thermal_ion_particle)
    real :: dt_particle, t0_norm_particle, v0_norm_particle, b0_norm_particle
 !$acc declare create(dt_particle, t0_norm_particle, v0_norm_particle,b0_norm_particle)
    complex :: rfac_particle
@@ -1409,7 +1409,7 @@ subroutine fdot(x, v, w, dxdt, dvdt, dwdt, dEpdt, itri, kel, ierr, sps)
       deltaB = deltaB/4.
       gradB1 = gradB1/4.
       dB1 = dB1/4.
-      if (kinetic_thermal_ion.eq.1) then
+      if (kinetic_thermal_ion_particle.eq.1) then
          gradpe = gradpe/4.
          j0xb = j0xb/4.
       endif
