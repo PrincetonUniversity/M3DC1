@@ -1,0 +1,14 @@
+#!/bin/bash
+#SBATCH -p general
+#SBATCH -n 16
+#SBATCH -J M3DC1_Tutorial
+#SBATCH -t 0:30:00
+
+cp C1input.adapt C1input
+
+part_mesh.sh diiid-0.02-2.5-4.0-4K.smb $SLURM_NTASKS
+
+$M3DC1_MPIRUN -n $SLURM_NTASKS m3dc1_2d
+
+# combine adapted mesh into single mesh
+$M3DC1_MPIRUN -n $SLURM_NTASKS collapse model.dmg ts0-adapted.smb mesh.smb $SLURM_NTASKS

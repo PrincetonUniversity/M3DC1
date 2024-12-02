@@ -1,0 +1,14 @@
+#!/bin/bash
+#SBATCH -p general
+#SBATCH -n 16
+#SBATCH -J M3DC1_Tutorial
+#SBATCH -t 0:10:00
+
+cp C1input.interpolate C1input
+
+part_mesh.sh diiid-0.02-2.5-4.0-4K.smb $SLURM_NTASKS
+
+$M3DC1_MPIRUN -n $SLURM_NTASKS m3dc1_2d
+
+mkdir interpolated
+mv *.h5 interpolated/
