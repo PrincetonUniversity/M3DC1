@@ -787,7 +787,7 @@ subroutine set_defaults
   ! Boundary conditions
   call add_var_int("isurface", isurface, 1, "", bc_grp)
   call add_var_int("icurv", icurv, 2, "", bc_grp)
-  call add_var_int("nonrect", nonrect, 0, "", bc_grp)
+  call add_var_int("nonrect", nonrect, 1, "", bc_grp)
   call add_var_int("ifixedb", ifixedb, 0, &
        "1: Force psi=0 on boundary", bc_grp)
   call add_var_int("com_bc", com_bc, 0, "", bc_grp)
