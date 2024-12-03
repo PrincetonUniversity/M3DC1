@@ -3,6 +3,7 @@
 #SBATCH -n 16
 #SBATCH -J M3DC1_Tutorial
 #SBATCH -t 0:10:00
+#SBATCH --mem=60000
 
 cp C1input.refine C1input
 
