@@ -16,14 +16,14 @@ outFile diiid
 meshSize 0.04 0.04 0.1
 
 ! for parametrized vacuum model only.
-useVacuumParams 0
+useVacuumParams 1
 
 ! 1 to multiply coord and params of nodes on vacuum boundary by vacuumFactor
 ! If vacuumFactor is not specified, the default is 2*PI
 ! If adjustVacuumParams=1, using SimModeler for further meshing is not supported and simmmetrix mesh file is not generated
 adjustVacuumParams 0
 
-vacuumParams 1.8 1.5 0.4 0.0 2.5
+vacuumParams 1.8 1.4 0.4 0.0 2.5
 numVacuumPts 20
 
 ! For 3-region model only.
