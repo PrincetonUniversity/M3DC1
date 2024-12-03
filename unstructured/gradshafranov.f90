@@ -1123,6 +1123,10 @@ subroutine gradshafranov_solve
   vectype :: tf, tf2
   vectype, dimension(dofs_per_element,dofs_per_element) :: temp
 
+  real :: crit_v, max_v
+  real :: norm_1, norm_2, dnorm
+
+
 !!$  integer :: is_edge(3)  ! is inode on boundary
 !!$  real :: n(2,3)
 !!$  integer :: iedge, idim(3)
@@ -1605,7 +1609,18 @@ endif
         do i=1, npoints
            call calc_fdensity(ps079(i,:),tf,x_79(i),z_79(i),izone)
            call calc_ftemp(ps079(i,:),tf2,x_79(i),z_79(i),izone)
-           temp79a(i) =tf*tf2* 1.6022e-12 / (b0_norm**2/(4.*pi*n0_norm))!rsae
+           if (fast_ion_dist==1) then
+              temp79a(i) =tf*tf2* 1.6022e-12 / (b0_norm**2/(4.*pi*n0_norm))!rsae
+           else
+              crit_v=sqrt(2*tf2*1.6e-19/fast_ion_mass/m_p)
+              max_v=sqrt(2*fast_ion_max_energy*1.6e-19/fast_ion_mass/m_p)
+              norm_1=1./6.*(-crit_v**2*log(crit_v**2-crit_v*max_v+max_v**2)+2*crit_v**2*log(crit_v+max_v)-2*sqrt(3.)*&
+                 crit_v**2*atan((2*max_v-crit_v)/(sqrt(3.)*crit_v))+3*max_v**2)
+              norm_2=1./6.*(-crit_v**2*log(crit_v**2)+2*crit_v**2*log(crit_v)-2*sqrt(3.)*crit_v**2*atan(-1./sqrt(3.)))
+              dnorm=1./3.*(log(max_v**3+crit_v**3)-log(crit_v**3))
+              temp79a(i) =tf*(norm_1-norm_2)/dnorm*fast_ion_mass*m_p/3.0&
+                 *1.e7 / (b0_norm**2/(4.*pi*n0_norm))!rsae
+           endif
         end do
 
         temp(:,1) = intx2(mu79(:,:,OP_1),temp79a)

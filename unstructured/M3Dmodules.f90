@@ -315,6 +315,7 @@ module basic
   integer :: particle_substeps
   real :: fast_ion_mass, fast_ion_z
   integer :: fast_ion_dist
+  real :: fast_ion_max_energy
   integer :: num_par_max
   real, dimension(2) :: num_par_scale
   real, dimension(2) :: kinetic_nrmfac_scale
@@ -569,7 +570,7 @@ module arrays
 #endif
 #ifdef USEPARTICLES
   type(field_type) :: rho_field, nf_field, tf_field, pf_field, vfpar0_field
-  type(field_type) :: nfi_field, tfi_field, pfi_field, psmooth_field, bzsmooth_field, psismooth_field, bz1_field, psi1_field, u0_field, chi0_field,vz0_field
+  type(field_type) :: nfi_field, tfi_field, pfi_field, psmooth_field
   type(field_type) :: epar_field, den2_field
 
   type(field_type) :: p_f_par, p_f_perp  !Kinetic pressure tensor components
