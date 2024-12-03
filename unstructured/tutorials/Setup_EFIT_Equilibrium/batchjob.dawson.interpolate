@@ -7,7 +7,8 @@
 
 cp C1input.interpolate C1input
 
-part_mesh.sh diiid-0.02-2.5-4.0-4K.smb $SLURM_NTASKS
+PARTS=$SLURM_NTASKS
+$M3DC1_MPIRUN -n $PARTS split_smb part_mesh.sh diiid-0.02-2.5-4.0-8K.smb part.smb $PARTS
 
 $M3DC1_MPIRUN -n $SLURM_NTASKS m3dc1_2d
 
