@@ -13,6 +13,6 @@ clean :
 	-not -name 'geqdsk' \
 	-not -name 'diiid-0.02-2.5-4.0.txt' \
 	-not -name 'mesh0.smb' \
-	-not -name 'batchjob.dawson' \
+	-not -name 'batchjob.*' \
 	-not -name 'makefile' \
 	-delete
