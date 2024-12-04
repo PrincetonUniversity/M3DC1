@@ -570,6 +570,21 @@ contains
     endif
     if(iread_ne.eq.21) call evaluate_spline(den_spline, r**2, den)
     if(iread_te.eq.21) call evaluate_spline(temper_spline, r**2, temper)
+
+   ! if(iread_ne.eq.21) then
+   !   call evaluate_spline(den_spline, r**2, den)
+   ! else if(iread_te.eq.21) then
+   !   call evaluate_spline(temper_spline, r**2, temper)
+   !   if(iread_p.eq.21) then
+   !     call evaluate_spline(press_ext_spline, r**2, p)
+   !   else
+   !     call evaluate_spline(presf_spline, r**2, p)
+   !   end if
+   !   den = temper/p
+   ! else
+   !   den=den0
+   ! endif
+
 !    call evaluate_spline(phiv_spline, r**2, phiv)
 !    call evaluate_spline(chiv_spline, r**2, chiv)
 !    call zernike_evaluate(r,mn_mode,mb,lmnsz,ls)
