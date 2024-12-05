@@ -87,14 +87,14 @@ def get_field(field, coord='scalar', row=1, sim=None, filename='C1.h5', time=Non
         if phys:
             # rst = eval_field('rst', R, phi, Z, sim=sim, filename=filename, time=time)
             # zst = eval_field('zst', R, phi, Z, sim=sim, filename=filename, time=time)
-            R_mesh = eval_field('rst', mesh_pts[:,4], phi0*np.ones_like(mesh_pts[:,4]), mesh_pts[:,5], sim=sim, filename=filename, time=-1, quiet=quiet)
+            R_mesh = eval_field('rst', mesh_pts[:,4], phi0*np.ones_like(mesh_pts[:,4]), mesh_pts[:,5], sim=sim[0], filename=filename, time=-1, quiet=quiet)
 
         R_range      = [np.nanmin(R_mesh),np.nanmax(R_mesh)]
         if not quiet:
             print("R_range=",R_range)
     if (R_range is None) or (Z_range is None):
         if phys:
-            Z_mesh = eval_field('zst', mesh_pts[:,4], phi0*np.ones_like(mesh_pts[:,4]), mesh_pts[:,5], sim=sim, filename=filename, time=-1, quiet=quiet)
+            Z_mesh = eval_field('zst', mesh_pts[:,4], phi0*np.ones_like(mesh_pts[:,4]), mesh_pts[:,5], sim=sim[0], filename=filename, time=-1, quiet=quiet)
         Z_range      = [np.nanmin(Z_mesh),np.nanmax(Z_mesh)]
         if not quiet:
             print("Z_range=",Z_range)
