@@ -523,8 +523,8 @@ void get_multi_rgn()
     create_vtx(&gv1_id,&(interpolate_points.at(0)));
     create_edge(&ge1_id, &gv1_id, &gv1_id);
     
-    attach_natural_cubic_curve(&ge1_id,&num_pts,&(interpolate_points.at(0)));
-    //attach_piecewise_linear_curve(&ge1_id,&num_pts,&(interpolate_points.at(0)));
+    //attach_natural_cubic_curve(&ge1_id,&num_pts,&(interpolate_points.at(0)));
+    attach_piecewise_linear_curve(&ge1_id,&num_pts,&(interpolate_points.at(0)));
 
     // now set the loop closed
     int innerWallEdges[]={ge1_id};
@@ -576,10 +576,10 @@ void inner_outer_wall_pts()
       create_vtx(&gv1_id,&(out_pts.at(0)));
       create_edge(&ge1_id, &gv1_id, &gv1_id);
        
-      //if (num_out_pts <= 10)
-      	attach_natural_cubic_curve(&ge1_id,&num_out_pts,&(out_pts.at(0)));
-      //else
-//	attach_piecewise_linear_curve(&ge1_id,&num_out_pts,&(out_pts.at(0)));
+      if (num_out_pts <= 10)
+        attach_natural_cubic_curve(&ge1_id,&num_out_pts,&(out_pts.at(0)));
+      else
+        attach_piecewise_linear_curve(&ge1_id,&num_out_pts,&(out_pts.at(0)));
 
       int outerWallEdges[]={ge1_id};
       num_ge = 1;
@@ -682,12 +682,12 @@ int make_sim_model (pGModel& sim_model, vector< vector<int> >& face_bdry)
             if (clockwise)
 		edgeDir = 0;
 #ifndef SIM12
-	    //if (numPts < 10 || loopNumber == vacuumLoopId)
+	    if (numPts < 10 || loopNumber == vacuumLoopId)
 #endif
             	curve = SCurve_createBSpline(order,numPts,&ctrlPts3D[0],&knots[0],NULL);
 #ifndef SIM12
-	    //else
-	//	curve = SCurve_createPiecewiseLinear(numPts,&ctrlPts3D[0]);
+	    else
+	       curve = SCurve_createPiecewiseLinear(numPts,&ctrlPts3D[0]);
 #endif
            if (numE == 1)
 #ifdef SIM12
