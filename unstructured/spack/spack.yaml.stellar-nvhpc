@@ -1,0 +1,112 @@
+# This is a Spack Environment file.
+#
+# It describes a set of packages to be installed, along with
+# configuration settings.
+spack:
+  # add package specs to the `specs` list
+  specs:
+  - m3dc1%nvhpc~3d~complex ^openmpi ^nvhpc%gcc ^zstd%gcc
+  - m3dc1%nvhpc+3d~complex+particle ^openmpi ^nvhpc%gcc ^zstd%gcc
+  - m3dc1%nvhpc~3d+complex+particle ^openmpi ^nvhpc%gcc ^zstd%gcc
+  view:
+    default:
+      root: .spack-env/view
+      projections:
+        petsc~complex: petsc-real
+        petsc+complex: petsc-complex
+        m3dc1~3d~complex: m3dc1_2d
+        m3dc1+3d: m3dc1_3d
+        m3dc1+complex: m3dc1_2d_complex
+  concretizer:
+    unify: when_possible
+  modules:
+    default:
+      enable: [tcl]
+  packages:
+    all:
+      compiler: [nvhpc@24.5, gcc@8.5.0]
+      providers:
+        lapack: [nvhpc]
+        blas: [nvhpc]
+        mpi: [openmpi]
+        pkgconfig: [pkgconf]
+        zlib-api: [zlib]
+    nvhpc:
+      externals:
+      - spec: nvhpc@24.5%gcc
+        prefix: /opt/nvidia/hpc_sdk
+        modules:
+        - nvhpc/24.5
+    openmpi:
+      externals:
+      - spec: openmpi@4.1.3
+        prefix: /usr/local/openmpi/4.1.6/nvhpc245
+        modules:
+        - openmpi/nvhpc-24.5/4.1.6
+    cuda:
+      externals:
+      - spec: cuda@12.4%nvhpc
+        prefix: /opt/nvidia/hpc_sdk/Linux_x86_64/24.5/cuda/12.4
+    cmake:
+      externals:
+      - spec: cmake@3.26.5
+        prefix: /usr
+    gmake:
+      externals:
+      - spec: gmake@4.2.1
+        prefix: /usr
+    pkgconf:
+      externals:
+      - spec: pkgconf@1.4.2
+        prefix: /usr
+    autoconf:
+      externals:
+      - spec: autoconf@2.69
+        prefix: /usr
+    python:
+      externals:
+      - spec: python@3.6.8
+        prefix: /usr
+    diffutils:
+      externals:
+      - spec: diffutils@3.10
+        prefix: /usr
+    automake:
+      externals:
+      - spec: automake@1.16.1
+        prefix: /usr
+    m4:
+      externals:
+      - spec: m4@1.4.18
+        prefix: /usr
+    libffi:
+      externals:
+      - spec: libffi@6.0.2
+        prefix: /usr
+  compilers:
+  - compiler:
+      spec: nvhpc@=24.5
+      paths:
+        cc: /opt/nvidia/hpc_sdk/Linux_x86_64/24.5/compilers/bin/nvc
+        cxx: /opt/nvidia/hpc_sdk/Linux_x86_64/24.5/compilers/bin/nvc++
+        f77: /opt/nvidia/hpc_sdk/Linux_x86_64/24.5/compilers/bin/nvfortran
+        fc: /opt/nvidia/hpc_sdk/Linux_x86_64/24.5/compilers/bin/nvfortran
+      flags: {}
+      operating_system: rhel8
+      target: x86_64
+      modules: []
+      environment: {}
+      extra_rpaths: []
+  - compiler:
+      spec: gcc@=8.5.0
+      paths:
+        cc: /usr/bin/gcc
+        cxx: /usr/bin/g++
+        f77: /usr/bin/gfortran
+        fc: /usr/bin/gfortran
+      flags: {}
+      operating_system: rhel8
+      target: x86_64
+      modules: []
+      environment: {}
+      extra_rpaths: []

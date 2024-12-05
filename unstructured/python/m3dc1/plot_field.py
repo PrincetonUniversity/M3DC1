@@ -194,7 +194,7 @@ def plot_field(field, coord='scalar', row=1, sim=None, filename='C1.h5', time=No
     if mesh or bound:
         if mesh and bound:#Make sure that whole mesh is plotted. If both are true, plot_mesh only plots boundary.
             bound = False
-        meshplt = plot_mesh(mesh_ob,boundary=bound,ax=axs,meshcol='C1',pub=pub,phys=phys)
+        meshplt = plot_mesh(mesh_ob,boundary=bound,ax=axs,meshcol='C1',pub=pub,phys=phys,quiet=quiet)
     
     for i,ax in enumerate(axs):
         if cmap_midpt is not None:
