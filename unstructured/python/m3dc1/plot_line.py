@@ -17,7 +17,7 @@ rc('text', usetex=True)
 
 
 
-def plot_line(field, coord='scalar', angle=0, dist_from_magax=False, filename='C1.h5',
+def plot_line(field, coord='scalar', angle=0, Zoff=0, dist_from_magax=False, filename='C1.h5',
               sim=None, time=None, phi=0, linear=False, diff=False, tor_av=1, units='mks',
               c=None,ls='-',shortlbl=False, show_legend=False, leglbl=None, quiet=False, fignum=None, pub=False):
     """
@@ -39,6 +39,11 @@ def plot_line(field, coord='scalar', angle=0, dist_from_magax=False, filename='C
     **angle**
     Angle in degrees between the midplane and the line on which the field
     is evaluated. Positive angles are anti-clockwise.
+
+    **Zoff**
+    Offset in Z coordinate. By default the field will be plotted along a
+    line with angle=angle through the magnetic axis. If Zoff is different
+    from zero, this line will be shifted by Zoff.
 
     **dist_from_magax**
     Determines radial variable for plot. Default: False
@@ -102,8 +107,8 @@ def plot_line(field, coord='scalar', angle=0, dist_from_magax=False, filename='C
     Z_range      = [np.amin(mesh_pts[:,5]), np.amax(mesh_pts[:,5])]
     R_pts        = np.linspace(R_range[0], R_range[1], 10000, endpoint=True)
     R_straight   = R_pts-R_mag
-    R_linspace   = (R_pts-R_mag)*np.cos(angle) + R_mag   
-    Z_linspace   = (np.linspace(Z_range[0], Z_range[1], 10000, endpoint=True)-Z_mag)*np.sin(angle) + Z_mag
+    R_linspace   = (R_pts-R_mag)*np.cos(angle) + R_mag
+    Z_linspace   = Zoff + (np.linspace(Z_range[0], Z_range[1], 10000, endpoint=True)-Z_mag)*np.sin(angle) + Z_mag
     phi_linspace = np.linspace(phi,      (360+phi), tor_av, endpoint=False)
     R, phi       = np.meshgrid(R_linspace, phi_linspace)
     Z, phi       = np.meshgrid(Z_linspace, phi_linspace)

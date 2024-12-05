@@ -1195,24 +1195,21 @@ void save_multi_rgn_model(const char* filename, vector< vector<int> >& face_bdry
   fprintf(fp,"%d %d %d %d %d\n", numL, separatrixLoop, innerWallLoop, outerWallLoop, vacuumLoop);
 
   int idx=0, numLoops, numE /* #edges */;
-  vector<pGEdge> faceEdges;
+  vector<pGEdge> loopEdges;
   pGEdge ge;
 
   for (std::map<int, vector<int> >:: iterator it=loopContainer.begin(); it!=loopContainer.end(); it++)
   {
-    faceEdges.clear();
-    for (int i=0; i<face_bdry[idx].size(); ++i)
-    {
-      for (int nEdge = 0; nEdge <edgesOnLoop.at(face_bdry[idx][i]).size(); ++nEdge)
-      { 
-        ge = edgesOnLoop.at(face_bdry[idx][i])[nEdge];
-       	faceEdges.push_back(ge);
-      }
+    loopEdges.clear();
+    for (int nEdge = 0; nEdge <edgesOnLoop.at(it->first).size(); ++nEdge)
+    { 
+      ge = edgesOnLoop.at(it->first)[nEdge];
+      loopEdges.push_back(ge);
     }
-    numE = faceEdges.size();
+    numE = it->second.size();
     fprintf(fp,"%d %d\n", it->first /*loop ID*/, numE);
     // first write all vtx on the loop
-    for (vector<pGEdge>::iterator eit=faceEdges.begin(); eit!=faceEdges.end(); ++eit)
+    for (vector<pGEdge>::iterator eit=loopEdges.begin(); eit!=loopEdges.end(); ++eit)
     {
       int edge_id=ge_edgeid[*eit];
       std::pair<int, int> vtx=edgeContainer[edge_id];
@@ -1220,7 +1217,7 @@ void save_multi_rgn_model(const char* filename, vector< vector<int> >& face_bdry
       fprintf(fp,"%d %lf %lf %lf\n", vtx.first, xyz[0], xyz[1], xyz[2]);
     }
 
-    for (vector<pGEdge>::iterator eit=faceEdges.begin(); eit!=faceEdges.end(); ++eit)
+    for (vector<pGEdge>::iterator eit=loopEdges.begin(); eit!=loopEdges.end(); ++eit)
     {
       int edge_id=ge_edgeid[*eit];
       gmi_ent* ae = gmi_find(model, 1, edge_id);

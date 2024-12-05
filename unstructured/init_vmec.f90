@@ -32,7 +32,7 @@ contains
     type(matrix_type) :: br_mat
     type(vector_type) :: fppsi_vec
     type(field_type) :: psi_f, bf_f, bfp_f, bz_f, den_f, te_f, pexternal_f
-    type(field_type) :: p_f, per_f 
+    type(field_type) :: p_f 
     integer :: itri, numelms, ifpbound, ier, ipsibound, ipsifpbound, i, k, k1
     integer :: inode(nodes_per_element)
     vectype, dimension(dofs_per_element) :: dofs
@@ -41,6 +41,11 @@ contains
     real :: fzero
     real, allocatable :: xvals(:), yvals(:)
     integer :: nvals
+
+    ! normalize pressure
+    presf = presf*pi*40/b0_norm**2
+    ! 1D spline for pressure
+    call create_spline(presf_spline, ns, s_vmec, presf)
 
     if(itor.eq.0) then 
       fzero = bzero
@@ -254,7 +259,6 @@ contains
   end subroutine vmec_init
 
   subroutine boundary_vmec(rhs, mat, vec)
-    use basic
     use vector_mod
     use matrix_mod
     use boundary_conditions

@@ -297,9 +297,11 @@ subroutine electric_field_phi(ilin,o, izone)
         end if
 #if defined(USE3D) || defined(USECOMPLEX) 
         o = o + r_79* &
-             (ph079(:,OP_DZ)*bfp179(:,OP_DZ)+ph079(:,OP_DR)*bfp179(:,OP_DR)) &
+             (ph079(:,OP_DZ)*bfp179(:,OP_DZ)+ph079(:,OP_DR)*bfp179(:,OP_DR)+ &
+              ph179(:,OP_DZ)*bfp079(:,OP_DZ)+ph179(:,OP_DR)*bfp079(:,OP_DR)) &
              + ri2_79* &
-             (ch079(:,OP_DZ)*bfp179(:,OP_DR)-ch079(:,OP_DR)*bfp179(:,OP_DZ))
+             (ch079(:,OP_DZ)*bfp179(:,OP_DR)-ch079(:,OP_DR)*bfp179(:,OP_DZ)+ &
+              ch179(:,OP_DZ)*bfp079(:,OP_DR)-ch179(:,OP_DR)*bfp079(:,OP_DZ))
         if(use_external_fields) then
            o = o + r_79* &
                 (ph079(:,OP_DZ)*bfpx79(:,OP_DZ) &

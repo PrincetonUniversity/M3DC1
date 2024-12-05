@@ -484,8 +484,8 @@ subroutine calculate_external_fields(ilin)
 
   if(myrank.eq.0 .and. iprint.ge.2) print *, 'calculating field values...'
   nelms = local_elements()
-!$OMP PARALLEL DO &
-!$OMP& PRIVATE(temp,temp2,temp3,temp4)
+!!$OMP PARALLEL DO &
+!!$OMP& PRIVATE(temp,temp2,temp3,temp4)
   do itri=1,nelms
         
      call define_element_quadrature(itri,int_pts_main,5)
@@ -573,7 +573,7 @@ subroutine calculate_external_fields(ilin)
      call apply_boundary_mask(itri, ibound, temp5, &
           tags=BOUND_DOMAIN)
 
-!$OMP CRITICAL
+!!$OMP CRITICAL
      call insert_block(br_mat, itri, 1, 1, temp(:,:,1,1), MAT_ADD)
      call insert_block(br_mat, itri, 1, 2, temp(:,:,1,2), MAT_ADD)
      call insert_block(br_mat, itri, 2, 1, temp(:,:,2,1), MAT_ADD)
@@ -588,7 +588,7 @@ subroutine calculate_external_fields(ilin)
      call vector_insert_block(bf_vec, itri, 1, temp3, MAT_ADD)
 
      if(read_p) call vector_insert_block(p_vec, itri, 1, temp4, MAT_ADD)
-!$OMP END CRITICAL
+!!$OMP END CRITICAL
   end do
 !OMP END PARALLEL DO
 

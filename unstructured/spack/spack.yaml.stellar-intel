@@ -1,0 +1,113 @@
+# This is a Spack Environment file.
+#
+# It describes a set of packages to be installed, along with
+# configuration settings.
+spack:
+  # add package specs to the `specs` list
+  specs:
+  - m3dc1%oneapi~3d~complex ^intel-oneapi-mpi ^intel-oneapi-mkl
+  - m3dc1%oneapi+3d~complex+particle ^intel-oneapi-mpi ^intel-oneapi-mkl
+  - m3dc1%oneapi~3d+complex+particle ^intel-oneapi-mpi ^intel-oneapi-mkl
+  view:
+    default:
+      root: .spack-env/view
+      projections:
+        petsc~complex: petsc-real
+        petsc+complex: petsc-complex
+        m3dc1~3d~complex: m3dc1_2d
+        m3dc1+3d: m3dc1_3d
+        m3dc1+complex: m3dc1_2d_complex
+  concretizer:
+    unify: when_possible
+  modules:
+    default:
+      enable: [tcl]
+  packages:
+    all:
+      compiler: [gcc@8.5.0, oneapi@2024.2.0]
+      providers:
+        scalapack: [intel-oneapi-mkl]
+        lapack: [intel-oneapi-mkl]
+        blas: [intel-oneapi-mkl]
+        mpi: [intel-oneapi-mpi]
+        pkgconfig: [pkgconf]
+    intel-oneapi-runtime:
+      externals:
+      - spec: intel-oneapi-runtime@2024.2.0
+        prefix: /opt/intel/oneapi/compiler/2024.2/linux
+    intel-oneapi-mpi:
+      buildable: false
+      externals:
+      - spec: intel-oneapi-mpi@2021.13
+        modules: [intel-mpi/intel/2021.13]
+        prefix: /opt/intel/oneapi
+    intel-oneapi-mkl:
+      variants: +cluster mpi_family=mpich
+      buildable: false
+      externals:
+      - spec: intel-oneapi-mkl@2024.2
+        modules: [intel-mpi/2024.2]
+        prefix: /opt/intel/oneapi
+    cmake:
+      externals:
+      - spec: cmake@3.26.5
+        prefix: /usr
+    gmake:
+      externals:
+      - spec: gmake@4.2.1
+        prefix: /usr
+    pkgconf:
+      externals:
+      - spec: pkgconf@1.4.2
+        prefix: /usr
+    autoconf:
+      externals:
+      - spec: autoconf@2.69
+        prefix: /usr
+    python:
+      externals:
+      - spec: python@3.6.8
+        prefix: /usr
+    diffutils:
+      externals:
+      - spec: diffutils@3.10
+        prefix: /usr
+    automake:
+      externals:
+      - spec: automake@1.16.1
+        prefix: /usr
+    m4:
+      externals:
+      - spec: m4@1.4.18
+        prefix: /usr
+    libffi:
+      externals:
+      - spec: libffi@6.0.2
+        prefix: /usr
+  compilers:
+  - compiler:
+      spec: oneapi@=2024.2.0
+      paths:
+        cc: /opt/intel/oneapi/compiler/2024.2/bin/icx
+        cxx: /opt/intel/oneapi/compiler/2024.2/bin/icpx
+        f77: /opt/intel/oneapi/compiler/2024.2/bin/ifx
+        fc: /opt/intel/oneapi/compiler/2024.2/bin/ifx
+      flags: {}
+      operating_system: rhel8
+      target: x86_64
+      modules: []
+      environment: {}
+      extra_rpaths: []
+  - compiler:
+      spec: gcc@=8.5.0
+      paths:
+        cc: /usr/bin/gcc
+        cxx: /usr/bin/g++
+        f77: /usr/bin/gfortran
+        fc: /usr/bin/gfortran
+      flags: {}
+      operating_system: rhel8
+      target: x86_64
+      modules: []
+      environment: {}
+      extra_rpaths: []

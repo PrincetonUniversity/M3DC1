@@ -44,7 +44,7 @@ subroutine vorticity_lin(trialx, lin, ssterm, ddterm, r_bf, q_bf, advfield, &
   case(0)
      ththm = (1.-thimp*bdf)*thimp
   case(1)
-     ththm = -bdf*thimp**2
+     ththm = -bdf*thimp**2*caramana_fac
   case(2)
      ththm = -bdf*thimp
   case default
@@ -587,7 +587,7 @@ subroutine vorticity_nolin(trialx, r4term)
 #ifdef USEPARTICLES
   ! kinetic terms
   ! ~~~~~~~~~~~~~
-  if(kinetic .eq. 1) then
+  if(kinetic_fast_ion .eq. 1) then
      r4term = r4term + 1.0*dt*(( &
                  v1pbb(trialx,pfper79,b2i79(:,OP_1)) & !parallel term
                  + v1p(trialx,pfper79) -v1pbb(trialx,pfper79,b2i79(:,OP_1)) &
@@ -600,6 +600,19 @@ subroutine vorticity_nolin(trialx, r4term)
                ) &
             )  
     endif
+   if(kinetic_thermal_ion .eq. 1) then
+     r4term = r4term + 1.0*dt*(( &
+                 v1pbb(trialx,piper79,b2i79(:,OP_1)) & !parallel term
+                 + v1p(trialx,piper79) -v1pbb(trialx,piper79,b2i79(:,OP_1)) &
+                 ) &
+                 +( &
+                 v1pbb(trialx,pipar79-piper79,b2i79(:,OP_1))+0.5*v1pbb(trialx,b2i79,pipar79(:,OP_1)-piper79(:,OP_1))    & !parallel term
+                -0.5*v1p_2(trialx,b2i79,(pipar79(:,OP_1)-piper79(:,OP_1))/b2i79(:,OP_1)) &
+                +0.5*v1pbb(trialx,b2i79,pipar79(:,OP_1)-piper79(:,OP_1)) &
+                + v1jxb(trialx,(pipar79(:,OP_1)-piper79(:,OP_1))*b2i79(:,OP_1)) &
+               ) &
+            )  
+   endif
 #endif
 
   if(linear.eq.1) return
@@ -653,7 +666,7 @@ subroutine axial_vel_lin(trialx, lin, ssterm, ddterm, r_bf, q_bf, advfield, &
   case(0)
      ththm = (1.-thimp*bdf)*thimp
   case(1)
-     ththm = -bdf*thimp**2
+     ththm = -bdf*thimp**2*caramana_fac
   case(2)
      ththm = -bdf*thimp
   case default
@@ -1120,7 +1133,7 @@ subroutine axial_vel_nolin(trialx, r4term)
 #ifdef USEPARTICLES
   ! kinetic terms
   ! ~~~~~~~~~~~~~
-  if(kinetic .eq. 1) then
+  if(kinetic_fast_ion .eq. 1) then
      r4term = r4term + 1.0*dt*(( &
                  v2pbb(trialx,pfper79,b2i79(:,OP_1)) & !parallel term
                  + v2p(trialx,pfper79) -v2pbb(trialx,pfper79,b2i79(:,OP_1)) &
@@ -1130,6 +1143,19 @@ subroutine axial_vel_nolin(trialx, r4term)
                 -0.5*v2p_2(trialx,b2i79,(pfpar79(:,OP_1)-pfper79(:,OP_1))/b2i79(:,OP_1)) &
                 +0.5*v2pbb(trialx,b2i79,pfpar79(:,OP_1)-pfper79(:,OP_1)) &
                 + v2jxb(trialx,(pfpar79(:,OP_1)-pfper79(:,OP_1))*b2i79(:,OP_1)) &
+             ) &
+            )  
+   endif
+   if(kinetic_thermal_ion .eq. 1) then
+     r4term = r4term + 1.0*dt*(( &
+                 v2pbb(trialx,piper79,b2i79(:,OP_1)) & !parallel term
+                 + v2p(trialx,piper79) -v2pbb(trialx,piper79,b2i79(:,OP_1)) &
+                 ) &
+                 +( &
+                 v2pbb(trialx,pipar79-piper79,b2i79(:,OP_1))+0.5*v2pbb(trialx,b2i79,pipar79(:,OP_1)-piper79(:,OP_1))    & !parallel term
+                -0.5*v2p_2(trialx,b2i79,(pipar79(:,OP_1)-piper79(:,OP_1))/b2i79(:,OP_1)) &
+                +0.5*v2pbb(trialx,b2i79,pipar79(:,OP_1)-piper79(:,OP_1)) &
+                + v2jxb(trialx,(pipar79(:,OP_1)-piper79(:,OP_1))*b2i79(:,OP_1)) &
              ) &
             )  
    endif
@@ -1184,7 +1210,7 @@ subroutine compression_lin(trialx, lin, ssterm, ddterm, r_bf, q_bf, advfield, &
   case(0)
      ththm = (1.-thimp*bdf)*thimp
   case(1)
-     ththm = -bdf*thimp**2
+     ththm = -bdf*thimp**2*caramana_fac
   case(2)
      ththm = -bdf*thimp
   case default
@@ -1716,6 +1742,19 @@ subroutine compression_nolin(trialx, r4term)
                 -0.5*v3p_2(trialx,b2i79,(pfpar79(:,OP_1)-pfper79(:,OP_1))/b2i79(:,OP_1)) &
                 +0.5*v3pbb(trialx,b2i79,pfpar79(:,OP_1)-pfper79(:,OP_1)) &
                 + v3jxb(trialx,(pfpar79(:,OP_1)-pfper79(:,OP_1))*b2i79(:,OP_1)) &
+             ) &
+            )  
+   endif
+   if(kinetic_thermal_ion .eq. 1) then
+     r4term = r4term + 1.0*dt*(( &
+                 v3pbb(trialx,piper79,b2i79(:,OP_1)) & !parallel term
+                 + v3p(trialx,piper79) -v3pbb(trialx,piper79,b2i79(:,OP_1)) &
+                 ) &
+                 +( &
+                 v3pbb(trialx,pipar79-piper79,b2i79(:,OP_1))+0.5*v3pbb(trialx,b2i79,pipar79(:,OP_1)-piper79(:,OP_1))    & !parallel term
+                -0.5*v3p_2(trialx,b2i79,(pipar79(:,OP_1)-piper79(:,OP_1))/b2i79(:,OP_1)) &
+                +0.5*v3pbb(trialx,b2i79,pipar79(:,OP_1)-piper79(:,OP_1)) &
+                + v3jxb(trialx,(pipar79(:,OP_1)-piper79(:,OP_1))*b2i79(:,OP_1)) &
              ) &
             )  
    endif
@@ -4781,7 +4820,7 @@ subroutine ludefall(ivel_def, idens_def, ipres_def, ipressplit_def,  ifield_def)
   if(myrank.eq.0 .and. iprint.ge.1) &
        print *, " begin loop over elements"
 
-!$OMP PARALLEL DO
+!!$OMP PARALLEL DO
   do itri=1,numelms
 
      call get_zone(itri, izone)
@@ -4816,7 +4855,7 @@ subroutine ludefall(ivel_def, idens_def, ipres_def, ipressplit_def,  ifield_def)
      endif
 
   end do
-!$OMP END PARALLEL DO
+!!$OMP END PARALLEL DO
 
   if(myrank.eq.0 .and. iprint.ge.1) &
        print *, " finalizing matrices..."
@@ -5073,7 +5112,7 @@ call PetscLogStagePush(stageA,ier)
 
      ! Insert values into matrix
      ! ~~~~~~~~~~~~~~~~~~~~~~~~~
-!$OMP CRITICAL
+!!$OMP CRITICAL
      call insert_block(vv1,itri,ieq(k),  u_i,ss(:,:,  u_g),MAT_ADD)
      call insert_block(vv0,itri,ieq(k),  u_i,dd(:,:,  u_g),MAT_ADD)
      call insert_block(vb0,itri,ieq(k),psi_i,dd(:,:,psi_g),MAT_ADD)
@@ -5112,7 +5151,7 @@ call PetscLogStagePush(stageA,ier)
      endif
 
      call vector_insert_block(vsource,itri,ieq(k),r4,VEC_ADD)
-!$OMP END CRITICAL
+!!$OMP END CRITICAL
   end do
 
 call PetscLogStagePop(ier)
@@ -5334,7 +5373,7 @@ subroutine ludefphi_n(itri)
 
      ! Insert values into matrix
      ! ~~~~~~~~~~~~~~~~~~~~~~~~~
-!$OMP CRITICAL
+!!$OMP CRITICAL
      if(idiff .gt. 0) dd(:,:,psi_g) = dd(:,:,psi_g) - ss(:,:,psi_g)
      call insert_block(bb1,itri,ieq(k),psi_i,ss(:,:,psi_g),MAT_ADD)
      call insert_block(bb0,itri,ieq(k),psi_i,dd(:,:,psi_g),MAT_ADD)
@@ -5384,7 +5423,7 @@ subroutine ludefphi_n(itri)
      endif
 
      call vector_insert_block(bsource,itri,ieq(k),q4,VEC_ADD)
-!$OMP END CRITICAL
+!!$OMP END CRITICAL
   end do
 end subroutine ludefphi_n
 
@@ -5554,7 +5593,7 @@ subroutine ludefpres_n(itri)
      call apply_boundary_mask(itri, 0, q_bf, imask)
      call apply_boundary_mask_vec(itri, 0, q4, imask)
 
-!$OMP CRITICAL
+!!$OMP CRITICAL
      if(ipressplit.eq.0) then
         if(idiff .gt. 0) dd(:,:, p_g) = dd(:,:, p_g) - ss(:,:, p_g)
         call insert_block(pp1,itri,ieq(k),  p_i,ss(:,:,  p_g),MAT_ADD)
@@ -5632,7 +5671,7 @@ subroutine ludefpres_n(itri)
         call insert_block(pf0,itri,ieq(k),bf_i, q_bf(:,:),MAT_ADD)
         call insert_block(pf0,itri,ieq(k),bf_i,-r_bf(:,:),MAT_ADD)
      endif
-!$OMP END CRITICAL
+!!$OMP END CRITICAL
 
   enddo ! on k
 end subroutine ludefpres_n
@@ -5814,7 +5853,7 @@ subroutine ludefden_n(itri)
 
 
   ! Insert data into matrices
-!$OMP CRITICAL
+!!$OMP CRITICAL
   call insert_block(nn1,itri,den_i,den_i,ssterm,MAT_ADD)
   call insert_block(nn0,itri,den_i,den_i,ddterm,MAT_ADD)
   call insert_block(nv1,itri,den_i,u_i,rrterm(:,:,1),MAT_ADD)
@@ -5829,7 +5868,7 @@ subroutine ludefden_n(itri)
   endif
 
   call vector_insert_block(nsource,itri,den_i,oterm,VEC_ADD)
-!$OMP END CRITICAL
+!!$OMP END CRITICAL
 end subroutine ludefden_n
 
 !======================================================================
@@ -5979,7 +6018,7 @@ subroutine ludefnre_n(itri)
 
 
   ! Insert data into matrices
-!$OMP CRITICAL
+!!$OMP CRITICAL
   call insert_block(nrenre1,itri,nre_i,nre_i,ssterm,MAT_ADD)
   call insert_block(nrenre0,itri,nre_i,nre_i,ddterm,MAT_ADD)
   call insert_block(nrepsi0,itri,nre_i,psi_i,qqterm(:,:,1),MAT_ADD)
@@ -5990,6 +6029,6 @@ subroutine ludefnre_n(itri)
   endif
 
   call vector_insert_block(nresource,itri,nre_i,oterm,VEC_ADD)
-!$OMP END CRITICAL
+!!$OMP END CRITICAL
 end subroutine ludefnre_n
 

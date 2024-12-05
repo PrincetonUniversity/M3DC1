@@ -386,7 +386,7 @@ contains
        temp(79) = emagpv
        temp(80) = emagtv
        temp(81) = jbs
-       temp(81) = volpd
+       temp(82) = volpd
 
        !checked that this should be MPI_DOUBLE_PRECISION
        call mpi_allreduce(temp, temp2, num_scalars, MPI_DOUBLE_PRECISION,  &
@@ -663,6 +663,14 @@ end subroutine evaluate
     return
   end subroutine second
 
+  subroutine second_new(time)
+    implicit none
+    real, intent(out) :: time
+    integer :: count, rate
+    call system_clock(count,count_rate=rate)
+    time=real(count)/rate
+    return
+  end subroutine second_new
 
 !   Added 1/1/2016 to get consistency between 2D,3D,Cyl,Tor
 subroutine tpi_factors(tpifac,tpirzero)
@@ -1108,7 +1116,7 @@ subroutine calculate_scalars()
         xray_signal = xray_signal + int2(temp79a, temp79b)
      end do
   end do
-!$OMP END PARALLEL DO
+!!$OMP END PARALLEL DO
 
   call distribute_scalars
 
@@ -2404,7 +2412,7 @@ subroutine calculate_ke()
      def_fields = FIELD_N
      numelms = local_elements()
      
-!$OMP PARALLEL DO REDUCTION(+:ke_N)
+!!$OMP PARALLEL DO REDUCTION(+:ke_N)
      do itri=1,numelms
         call m3dc1_ent_getgeomclass(2, itri-1,izonedim,izone_ind)
         izone = zone_type(izone_ind)
@@ -2461,7 +2469,7 @@ subroutine calculate_ke()
 #endif
 
      end do
-!$OMP END PARALLEL DO
+!!$OMP END PARALLEL DO
 
      call mpi_allreduce(ke_N, ketotal, 1, MPI_DOUBLE_PRECISION, &
           MPI_SUM, mpi_comm_world, ier)
@@ -2772,7 +2780,7 @@ subroutine calculate_bh()
      def_fields = 0
      numelms = local_elements()
      
-!$OMP PARALLEL DO REDUCTION(+:bh_N)
+!!$OMP PARALLEL DO REDUCTION(+:bh_N)
      do itri=1,numelms
         call m3dc1_ent_getgeomclass(2, itri-1,izonedim,izone_ind)
         izone = zone_type(izone_ind)
@@ -2825,7 +2833,7 @@ subroutine calculate_bh()
 #endif
 
      end do
-!$OMP END PARALLEL DO
+!!$OMP END PARALLEL DO
 
      call mpi_allreduce(bh_N, bhtotal, 1, MPI_DOUBLE_PRECISION, &
                         MPI_SUM, mpi_comm_world, ier)

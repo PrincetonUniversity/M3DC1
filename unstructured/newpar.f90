@@ -344,7 +344,6 @@ Program Reducedquintic
   if (ispradapt .eq. 1) call marker
   
 #ifdef USEPARTICLES
-  linear=1
   if (kinetic.eq.1) then
      call particle_test
      !call safestop(0)
@@ -1096,11 +1095,6 @@ end subroutine rotation
              call newrot_matrix(&
                   newrot(k:(k+dofs_per_node-1),k:(k+dofs_per_node-1)),&
                   norm,curv,2)
-!             call newrot_matrix(rot1,norm,curv,1)
-!             call newrot_matrix(rot2,norm,curv,-1)
-!             rot3 = matmul(rot1,rot2)
-!             if(myrank.eq.0 .and. inode(i).le.1) print *, rot3
-!             if(myrank.eq.0 .and. inode(i).le.1) print *, 'newrot 3' 
           else
              do j=1, dofs_per_node
 #else
@@ -1124,36 +1118,6 @@ end subroutine rotation
              newrot(k+5,k+3) =  norm(2)**2
              newrot(k+5,k+4) = -norm(1)*norm(2)
              newrot(k+5,k+5) =  norm(1)**2
-!#if defined(USEST) && defined (USE3D)
-!             newrot(k+6:k+11,k+6:k+11) = newrot(k:k+5,k:k+5)
-!             if(igeometry.eq.1.and.ilog.eq.2) then
-!                newrot(k+1,k+7) = -norm(2)*curv(2)
-!                newrot(k+2,k+7) = -norm(1)*curv(2)
-!                newrot(k+1,k+8) =  norm(1)*curv(2)
-!                newrot(k+2,k+8) = -norm(2)*curv(2)
-!                newrot(k+1,k+9) =  2.*norm(1)*norm(2)*curv(2)*curv(1)+norm(2)**2*curv(3)
-!                newrot(k+2,k+9) =  2.*(norm(1)**2-norm(2)**2)*curv(2)*curv(1) &
-!                                  +2.*norm(1)*norm(2)*curv(3)
-!                newrot(k+3,k+9) = -2.*norm(1)*norm(2)*curv(2)
-!                newrot(k+4,k+9) = -2.*(norm(1)**2-norm(2)**2)*curv(2)
-!                newrot(k+5,k+9) =  2.*norm(1)*norm(2)*curv(2)
-!                newrot(k+1,k+10) = -(norm(1)**2-norm(2)**2)*curv(2)*curv(1) &
-!                                   -norm(1)*norm(2)*curv(3)
-!                newrot(k+2,k+10) =  4.*norm(1)*norm(2)*curv(2)*curv(1) &
-!                                   -(norm(1)**2-norm(2)**2)*curv(3)
-!                newrot(k+3,k+10) =  (norm(1)**2-norm(2)**2)*curv(2)
-!                newrot(k+4,k+10) = -4.*norm(1)*norm(2)*curv(2)
-!                newrot(k+5,k+10) = -(norm(1)**2-norm(2)**2)*curv(2)
-!                newrot(k+1,k+11) = -2.*norm(1)*norm(2)*curv(2)*curv(1)+norm(1)**2*curv(3)
-!                newrot(k+2,k+11) = -2.*(norm(1)**2-norm(2)**2)*curv(2)*curv(1) &
-!                                   -2.*norm(1)*norm(2)*curv(3)
-!                newrot(k+3,k+11) =  2.*norm(1)*norm(2)*curv(2)
-!                newrot(k+4,k+11) =  2.*(norm(1)**2-norm(2)**2)*curv(2)
-!                newrot(k+5,k+11) = -2.*norm(1)*norm(2)*curv(2)
-!             end if
-!          else
-!             do j=1, dofs_per_node
-!#else
           else
              do j=1, 6
 #endif
@@ -1169,33 +1133,6 @@ end subroutine rotation
        
        gtri(:,:,itri) = matmul(ti(:,1:dofs_per_tri),rot)
 
-!       ! form the matrix g using indexing similar to local_coeff_vec 
-!       do k=1, coeffs_per_tri
-!          do j=1, dofs_per_element
-!             sum = 0.
-!             do ii = 1, dofs_per_tri
-!!                do jj=1, dofs_per_tri
-!!                   sum = sum + newrot(j,jj)*ti(k,ii)*rot(ii,jj)
-!                idof = 0
-!                do jj=1,tor_nodes_per_element
-!                   do l=1,pol_nodes_per_element
-!                      do m=1,tor_dofs_per_node
-!                         do n=1,pol_dofs_per_node
-!                            idof = idof + 1
-!                            ip = n + (l-1)*pol_dofs_per_node
-!                            sum = sum + newrot(j,idof) &
-!                                  *ti(k,ii)*rot(ii,ip)
-!
-!!                do l=1, nodes_per_element 
-!!                   do jj=1, dofs_per_node
-!!                      lr = mod(l-1, pol_nodes_per_element)+1 
-!!                      jr = mod(jj-1, pol_dofs_per_node)+1
-!!                      sum = sum + newrot(j,jj+(l-1)*dofs_per_node) &
-!!                           *ti(k,ii)*rot(ii,jr+(lr-1)*pol_dofs_per_node)
-!
-!                         end do
-!                      end do
-!                   end do
 #else
        ! form the matrix g by multiplying ti and rot
        do k=1, coeffs_per_tri
@@ -1500,6 +1437,7 @@ endif
      call create_field(p_i_perp)
      call create_field(den_i_0)
      call create_field(den_i_1)
+     call create_field(v_i_par)
      call create_field(rho_field)
      call create_field(nf_field)
      call create_field(tf_field)
@@ -1507,6 +1445,7 @@ endif
      call create_field(nfi_field)
      call create_field(tfi_field)
      call create_field(pfi_field)
+     call create_field(psmooth_field)
 #endif
 
      call create_auxiliary_fields
@@ -1521,11 +1460,7 @@ endif
   endif
   
   if(myrank.eq.0 .and. iprint.ge.1) print *, ' Allocating tri...'
-#ifdef USEST
   allocate(gtri(coeffs_per_tri,dofs_per_tri,numelms))
-#else
-  allocate(gtri(coeffs_per_tri,dofs_per_tri,numelms))
-#endif
   allocate(htri(coeffs_per_dphi,dofs_per_dphi,numelms))
   if(iprecompute_metric.eq.1) &
        allocate(ctri(dofs_per_element,coeffs_per_element,numelms))
