@@ -14,6 +14,7 @@ from mpl_toolkits.axes_grid1.inset_locator import zoomed_inset_axes
 from mpl_toolkits.axes_grid1.inset_locator import mark_inset
 import fpy
 import m3dc1.fpylib as fpyl
+from m3dc1.eval_field import eval_field
 from m3dc1.plot_coils import plot_coils
 from m3dc1.plot_mag_probes import plot_mag_probes
 
@@ -72,8 +73,8 @@ def plot_mesh(elms=None,time=None,filename='C1.h5',sim=None,boundary=False,coils
     boundary = boundary and (version >= 3)
     
     if phys:
-        rst = eval_field('rst', mesh[:,4], phi*np.ones_like(mesh[:,4]), mesh[:,5], sim=simplot, file_name=file_name, time=time)
-        zst = eval_field('zst', mesh[:,4], phi*np.ones_like(mesh[:,4]), mesh[:,5], sim=simplot, file_name=file_name, time=time)
+        rst = eval_field('rst', mesh[:,4], phi*np.ones_like(mesh[:,4]), mesh[:,5], sim=sim, filename=filename, time=-1, quiet=quiet)
+        zst = eval_field('zst', mesh[:,4], phi*np.ones_like(mesh[:,4]), mesh[:,5], sim=sim, filename=filename, time=-1, quiet=quiet)
         minr = np.amin(rst)
         maxr = np.amax(rst)
         minz = np.amin(zst)
@@ -164,12 +165,12 @@ def plot_mesh(elms=None,time=None,filename='C1.h5',sim=None,boundary=False,coils
         p3 = p1 + np.asarray([b * math.cos(t) - c * math.sin(t), b * math.sin(t) + c * math.cos(t)])
         delta = 0.0
         if phys: # calculate physical coordinates
-            p1 = np.asarray([eval_field('rst', p1[0], phi*np.ones_like(p1[0]), p1[1], sim=simplot, file_name=file_name, time=time),\
-                             eval_field('zst', p1[0], phi*np.ones_like(p1[0]), p1[1], sim=simplot, file_name=file_name, time=time)])
-            p2 = np.asarray([eval_field('rst', p2[0], phi*np.ones_like(p2[0]), p2[1], sim=simplot, file_name=file_name, time=time),\
-                             eval_field('zst', p2[0], phi*np.ones_like(p2[0]), p2[1], sim=simplot, file_name=file_name, time=time)])
-            p3 = np.asarray([eval_field('rst', p3[0], phi*np.ones_like(p3[0]), p3[1], sim=simplot, file_name=file_name, time=time),\
-                             eval_field('zst', p3[0], phi*np.ones_like(p3[0]), p3[1], sim=simplot, file_name=file_name, time=time)])
+            p1 = np.asarray([eval_field('rst', p1[0], phi*np.ones_like(p1[0]), p1[1], sim=sim, filename=filename, time=-1, quiet=quiet),\
+                             eval_field('zst', p1[0], phi*np.ones_like(p1[0]), p1[1], sim=sim, filename=filename, time=-1, quiet=quiet)])
+            p2 = np.asarray([eval_field('rst', p2[0], phi*np.ones_like(p2[0]), p2[1], sim=sim, filename=filename, time=-1, quiet=quiet),\
+                             eval_field('zst', p2[0], phi*np.ones_like(p2[0]), p2[1], sim=sim, filename=filename, time=-1, quiet=quiet)])
+            p3 = np.asarray([eval_field('rst', p3[0], phi*np.ones_like(p3[0]), p3[1], sim=sim, filename=filename, time=-1, quiet=quiet),\
+                             eval_field('zst', p3[0], phi*np.ones_like(p3[0]), p3[1], sim=sim, filename=filename, time=-1, quiet=quiet)])
         q1 = (1.-2.*delta)*p1 + delta*p2 + delta*p3
         q2 = delta*p1 + (1.-2.*delta)*p2 + delta*p3
         q3 = delta*p1 + delta*p2 + (1.-2.*delta)*p3
