@@ -3538,6 +3538,48 @@ int m3dc1_matrix_add (int* matrix_id, int* row, int* col,
 }
 
 //*******************************************************
+int m3dc1_matrix_zerobc(int* matrix_id, int* row)
+//*******************************************************
+{  
+  m3dc1_matrix* mat = m3dc1_solver::instance()->get_matrix(*matrix_id);
+#ifdef DEBUG
+  if (!mat) 
+  {  
+    if (!PCU_Comm_Self())
+      std::cout <<"[M3D-C1 ERROR] "<<__func__<<" failed: matrix with id "<<*matrix_id<<" does not exist\n";
+    return M3DC1_FAILURE;
+  }
+#endif
+
+  if (mat->get_type()!=M3DC1_SOLVE)
+  { 
+    if (!PCU_Comm_Self())
+      std::cout <<"[M3D-C1 ERROR] "<<__func__<<" not supported with matrix for multiplication (id"<<*matrix_id<<")\n";
+    return M3DC1_FAILURE;
+  }
+  int field = mat->get_fieldOrdering();
+  int num_values, value_type, total_num_dof;
+  char field_name[256];
+  m3dc1_field_getinfo(&field, field_name, &num_values, &value_type, &total_num_dof);
+  int inode = *row/total_num_dof;
+  int ent_dim=0, start_global_dof_id, end_global_dof_id_plus_one;
+  m3dc1_ent_getglobaldofid (&ent_dim, &inode, &field, &start_global_dof_id, &end_global_dof_id_plus_one);
+
+#ifdef DEBUG
+  apf::MeshEntity* e =getMdsEntity(m3dc1_mesh::instance()->mesh, 0, inode);
+  assert(e);
+  assert(!m3dc1_mesh::instance()->mesh->isGhost(e));
+
+  int start_dof_id, end_dof_id_plus_one;
+  m3dc1_ent_getlocaldofid (&ent_dim, &inode, &field, &start_dof_id, &end_dof_id_plus_one);
+  assert(*row>=start_dof_id&&*row<end_dof_id_plus_one);
+#endif
+  int row_g = start_global_dof_id+*row%total_num_dof;
+  (dynamic_cast<matrix_solve*>(mat))->zero_bc(row_g);
+  return M3DC1_SUCCESS;
+}
+
+//*******************************************************
 int m3dc1_matrix_setbc(int* matrix_id, int* row)
 //*******************************************************
 {  

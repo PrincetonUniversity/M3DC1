@@ -663,6 +663,13 @@ contains
 #endif
   end subroutine scorec_matrix_insert_block
 
+  subroutine zero_row(mat, irow)
+    implicit none
+    type(scorec_matrix) :: mat
+    integer, intent(in) :: irow
+    call m3dc1_matrix_zerobc (mat%imatrix, irow-1)
+  end subroutine zero_row
+
   subroutine identity_row(mat, irow)
     implicit none
     type(scorec_matrix) :: mat

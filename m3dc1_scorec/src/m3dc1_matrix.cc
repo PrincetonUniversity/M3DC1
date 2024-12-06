@@ -839,7 +839,7 @@ int matrix_solve::initialize()
   ierr = MatSetOption(*A,MAT_NEW_NONZERO_ALLOCATION_ERR,PETSC_FALSE); CHKERRQ(ierr);
   //commented per Jin's request on Nov 9, 2017
   //ierr = MatSetOption(*A,MAT_NEW_NONZERO_ALLOCATION_ERR,PETSC_TRUE); CHKERRQ(ierr);
-  ierr = MatSetOption(*A,MAT_IGNORE_ZERO_ENTRIES,PETSC_TRUE); CHKERRQ(ierr); 
+  //ierr = MatSetOption(*A,MAT_IGNORE_ZERO_ENTRIES,PETSC_TRUE); CHKERRQ(ierr); 
   CHKERRQ(ierr);
   return M3DC1_SUCCESS;
 }
@@ -1134,6 +1134,30 @@ int matrix_solve::assemble()
   return M3DC1_SUCCESS;
 }
 
+int matrix_solve::zero_bc(int row)
+{
+#ifdef DEBUG
+  PetscInt firstRow, lastRowPlusOne;
+  int ierr = MatGetOwnershipRange(*A, &firstRow, &lastRowPlusOne);
+  assert (row>=firstRow && row<lastRowPlusOne);
+#endif
+
+   //num_own_ent is the number of vertices owned by each process
+  int num_own_ent=m3dc1_mesh::instance()->num_own_ent[0], num_own_dof;
+      m3dc1_field_getnumowndof(&fieldOrdering, &num_own_dof);
+   //dof pet ent of num_own_ent
+  int dofPerEnt=0; //=12,24,36
+  if (num_own_ent) dofPerEnt = num_own_dof/num_own_ent;
+
+  for (int i=0; i<dofPerEnt; ++i)
+	  for (int j=0; j<dofPerEnt; ++j)
+		  MatSetValue(*A, row+i, row+j, 0.0, ADD_VALUES);
+
+  if (!PCU_Comm_Self())
+	  std::cout <<"[M3D-C1 ZERO] "<<__func__<<row<<" "<<dofPerEnt<<")\n";
+  return M3DC1_SUCCESS;
+}
+
 int matrix_solve::set_bc(int row)
 {
 #ifdef DEBUG
@@ -1204,6 +1228,7 @@ int matrix_solve::solve(FieldID field_id)
   int PrintAb=0;
          ierr= PetscOptionsGetInt(NULL,NULL,"-PrintAb",&PrintAb,NULL);
 	 if(PrintAb==1 && mymatrix_id==5) {
+      if (!PCU_Comm_Self()) std::cout <<"\t-- Print A b x" << std::endl;
       ierr=MatViewFromOptions(*A, NULL, "-A_view");
       ierr = VecViewFromOptions(b, NULL, "-b_view"); CHKERRQ(ierr);
       ierr = VecViewFromOptions(x, NULL, "-x_view"); CHKERRQ(ierr);
@@ -1236,14 +1261,35 @@ int matrix_solve::solve(FieldID field_id)
       ierr = KSPGetOperators(coarse_ksp,NULL, &coarse_mat); CHKERRQ(ierr);
       ierr = MatViewFromOptions(coarse_mat, NULL, "-S_view"); CHKERRQ(ierr);
 
-      Vec btmp;
-      ierr = KSPGetSolution(coarse_ksp, &btmp); CHKERRQ(ierr);
-      ierr = VecViewFromOptions(btmp, NULL, "-b_view"); CHKERRQ(ierr);
-
       Vec xtmp;
-      ierr = KSPGetRhs(coarse_ksp, &xtmp); CHKERRQ(ierr);
+      ierr = KSPGetSolution(coarse_ksp, &xtmp); CHKERRQ(ierr);
       ierr = VecViewFromOptions(xtmp, NULL, "-x_view"); CHKERRQ(ierr);
+
+      Vec btmp;
+      ierr = KSPGetRhs(coarse_ksp, &btmp); CHKERRQ(ierr);
+      ierr = VecViewFromOptions(btmp, NULL, "-b_view"); CHKERRQ(ierr);
 	  }
+
+      //for (PetscInt level = 0; level < mg_nlevels; ++level) {
+      int PrintAbLevel=0;
+      ierr= PetscOptionsGetInt(NULL,NULL,"-PrintAbLevel",&PrintAbLevel,NULL);
+      if(PrintAbLevel>0 && mymatrix_id==5) {
+        if (!PCU_Comm_Self()) std::cout <<"\t-- Print Level A b x " << PrintAbLevel<<std::endl;
+        PC pc;
+        ierr = KSPGetPC(*ksp,&pc); CHKERRQ(ierr);
+        KSP ksp_level;
+        Mat mat_level;
+        Vec b_level;
+        Vec x_level;
+        /* Smoothers */
+        PetscCall(PCMGGetSmoother(pc, PrintAbLevel-1, &ksp_level));
+        PetscCall(KSPGetOperators(ksp_level, NULL, &mat_level));
+        ierr = MatViewFromOptions(mat_level, NULL, "-A_view"); CHKERRQ(ierr);
+        ierr = KSPGetSolution(ksp_level, &x_level); CHKERRQ(ierr);
+        ierr = VecViewFromOptions(x_level, NULL, "-x_view"); CHKERRQ(ierr);
+        ierr = KSPGetRhs(ksp_level, &b_level); CHKERRQ(ierr);
+        ierr = VecViewFromOptions(b_level, NULL, "-b_view"); CHKERRQ(ierr);
+      }
 
   if (PCU_Comm_Self() == 0)
     std::cout <<"\t-- # solver iterations " << its << std::endl;
@@ -1464,12 +1510,13 @@ int matrix_solve:: setBgmgType()
 //          Create KSP and set multigrid options in PC
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 
-    PC pcksp;
 //    ierr= KSPCreate(PETSC_COMM_WORLD,&ksp);
       ierr= KSPAppendOptionsPrefix(*ksp,"hard_");
+    PC pcmg;
+#ifdef RICHARDSON
+    PC pcksp;
       ierr= KSPGetPC(*ksp,&pcksp);
       ierr= PCSetType(pcksp,PCKSP);
-//      ierr= PCSetType(pc,PCMG);
     KSP ksprich;
     PetscCall(PCKSPGetKSP(pcksp, &ksprich));
     PetscCall(KSPSetType(ksprich, KSPRICHARDSON));
@@ -1477,8 +1524,10 @@ int matrix_solve:: setBgmgType()
     PetscCall(KSPSetNormType(ksprich, KSP_NORM_NONE));
     PetscCall(KSPSetConvergenceTest(ksprich, KSPConvergedSkip, NULL, NULL));
 
-    PC pcmg;
     PetscCall(KSPGetPC(ksprich, &pcmg));
+#else
+    PetscCall(KSPGetPC(*ksp, &pcmg));
+#endif
     PetscCall(PCSetType(pcmg, PCMG));
 
       ierr= PCMGSetLevels(pcmg,mg_nlevels,NULL);
@@ -1521,7 +1570,11 @@ int matrix_solve:: setBgmgType()
    //this is the first place to check
   char mg_pcbj[64], mg_pcbjblocknumber[8];
   {int level=mg_nlevels-1;
+#ifdef RICHARDSON
           sprintf(mg_pcbj, "%s%d%s", "-hard_ksp_mg_levels_",level,"_pc_bjacobi_blocks");
+#else
+          sprintf(mg_pcbj, "%s%d%s", "-hard_mg_levels_",level,"_pc_bjacobi_blocks");
+#endif
           sprintf(mg_pcbjblocknumber, "%d", mg_nplanes[level]);
           PetscOptionsSetValue(NULL,mg_pcbj,mg_pcbjblocknumber);
   }
@@ -1708,12 +1761,13 @@ int matrix_solve:: setBgmgFSType()
 //          Create KSP and set multigrid options in PC
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 
-    PC pcksp;
+    PC pcmg;
 //    ierr= KSPCreate(PETSC_COMM_WORLD,&ksp);
       ierr= KSPAppendOptionsPrefix(*ksp,"hard_");
+#ifdef RICHARDSON
+    PC pcksp;
       ierr= KSPGetPC(*ksp,&pcksp);
       ierr= PCSetType(pcksp,PCKSP);
-//      ierr= PCSetType(pc,PCMG);
 
     KSP ksprich;
     PetscCall(PCKSPGetKSP(pcksp, &ksprich));
@@ -1722,8 +1776,10 @@ int matrix_solve:: setBgmgFSType()
     PetscCall(KSPSetNormType(ksprich, KSP_NORM_NONE));
     PetscCall(KSPSetConvergenceTest(ksprich, KSPConvergedSkip, NULL, NULL));
 
-    PC pcmg;
     PetscCall(KSPGetPC(ksprich, &pcmg));
+#else
+    ierr= KSPGetPC(*ksp,&pcmg);
+#endif
     PetscCall(PCSetType(pcmg, PCMG));
 
       ierr= PCMGSetLevels(pcmg,mg_nlevels,NULL);
@@ -1774,7 +1830,11 @@ int matrix_solve:: setBgmgFSType()
    //this is the first place to check
   char mg_pcbj[64], mg_pcbjblocknumber[8];
   {int level=mg_nlevels-1;
+#ifdef RICHARDSON
           sprintf(mg_pcbj, "%s%d%s", "-hard_ksp_mg_levels_",level,"_pc_bjacobi_blocks");
+#else
+          sprintf(mg_pcbj, "%s%d%s", "-hard_mg_levels_",level,"_pc_bjacobi_blocks");
+#endif
           sprintf(mg_pcbjblocknumber, "%d", mg_nplanes[level]);
           PetscOptionsSetValue(NULL,mg_pcbj,mg_pcbjblocknumber);
 
@@ -2160,14 +2220,14 @@ int matrix_solve:: setFSType()
   for (k=0; k<num_own_ent; k++) idx2[k]=2+k*dofPerEnt/stride + startDof;
   ierr=ISCreateBlock(PETSC_COMM_WORLD, stride, num_own_ent, idx2, PETSC_COPY_VALUES, &field2);
 
-  PC pcksp;
   //PetscCall(KSPCreate(PETSC_COMM_WORLD, &ksp));
   //PetscCall(KSPSetOperators(ksp, A, A));
   ierr= KSPAppendOptionsPrefix(*ksp,"fs_");
+  PC pcfs;
+#ifdef RICHARDSON
+  PC pcksp;
   ierr=KSPGetPC(*ksp, &pcksp);
   ierr=PCSetType(pcksp, PCKSP);
-//  ierr=PCSetType(pc, PCFIELDSPLIT);
-  //note that one provides the indices for the fields on the original full system, not on the reduced system PCREDISTRIBUTE solves
     KSP ksprich;
     PetscCall(PCKSPGetKSP(pcksp, &ksprich));
     PetscCall(KSPSetType(ksprich, KSPRICHARDSON));
@@ -2175,10 +2235,13 @@ int matrix_solve:: setFSType()
     PetscCall(KSPSetNormType(ksprich, KSP_NORM_NONE));
     PetscCall(KSPSetConvergenceTest(ksprich, KSPConvergedSkip, NULL, NULL));
 
-    PC pcfs;
     PetscCall(KSPGetPC(ksprich, &pcfs));
+#else
+    ierr=KSPGetPC(*ksp, &pcfs);
+#endif
     PetscCall(PCSetType(pcfs, PCFIELDSPLIT));
 
+  //note that one provides the indices for the fields on the original full system, not on the reduced system PCREDISTRIBUTE solves
   ierr=PCFieldSplitSetIS(pcfs, NULL, field0);
   ierr=PCFieldSplitSetIS(pcfs, NULL, field1);
   ierr=PCFieldSplitSetIS(pcfs, NULL, field2);
@@ -2226,14 +2289,14 @@ int matrix_solve:: setFSBgmgType()
   for (k=0; k<num_own_ent; k++) idx2[k]=2+k*dofPerEnt/stride + startDof;
   ierr=ISCreateBlock(PETSC_COMM_WORLD, stride, num_own_ent, idx2, PETSC_COPY_VALUES, &field2);
 
-  PC pcksp;
   //PetscCall(KSPCreate(PETSC_COMM_WORLD, &ksp));
   //PetscCall(KSPSetOperators(ksp, A, A));
   ierr= KSPAppendOptionsPrefix(*ksp,"fs_");
+  PC pcfs;
+#ifdef RICHARDSON
+  PC pcksp;
   ierr=KSPGetPC(*ksp, &pcksp);
   ierr=PCSetType(pcksp, PCKSP);
-//  ierr=PCSetType(pc, PCFIELDSPLIT);
-  //note that one provides the indices for the fields on the original full system, not on the reduced system PCREDISTRIBUTE solves
     KSP ksprich;
     PetscCall(PCKSPGetKSP(pcksp, &ksprich));
     PetscCall(KSPSetType(ksprich, KSPRICHARDSON));
@@ -2241,10 +2304,13 @@ int matrix_solve:: setFSBgmgType()
     PetscCall(KSPSetNormType(ksprich, KSP_NORM_NONE));
     PetscCall(KSPSetConvergenceTest(ksprich, KSPConvergedSkip, NULL, NULL));
 
-    PC pcfs;
     PetscCall(KSPGetPC(ksprich, &pcfs));
+#else
+    ierr=KSPGetPC(*ksp, &pcfs);
+#endif
     PetscCall(PCSetType(pcfs, PCFIELDSPLIT));
 
+  //note that one provides the indices for the fields on the original full system, not on the reduced system PCREDISTRIBUTE solves
   ierr=PCFieldSplitSetIS(pcfs, NULL, field0);
   ierr=PCFieldSplitSetIS(pcfs, NULL, field1);
   ierr=PCFieldSplitSetIS(pcfs, NULL, field2);
@@ -2391,6 +2457,7 @@ int matrix_solve:: setFSBgmgType2(KSP *ksp, int nsplit)
    //this is the first place to check
   char mg_pcbj[64], mg_pcbjblocknumber[8];
   {int level=mg_nlevels-1;
+#ifdef RICHARDSON
           sprintf(mg_pcbj, "%s%d%s", "-fs_ksp_fieldsplit_0_hard_mg_levels_",level,"_pc_bjacobi_blocks");
           sprintf(mg_pcbjblocknumber, "%d", mg_nplanes[level]);
           PetscOptionsSetValue(NULL,mg_pcbj,mg_pcbjblocknumber);
@@ -2400,6 +2467,17 @@ int matrix_solve:: setFSBgmgType2(KSP *ksp, int nsplit)
           sprintf(mg_pcbj, "%s%d%s", "-fs_ksp_fieldsplit_2_hard_mg_levels_",level,"_pc_bjacobi_blocks");
           sprintf(mg_pcbjblocknumber, "%d", mg_nplanes[level]);
           PetscOptionsSetValue(NULL,mg_pcbj,mg_pcbjblocknumber);
+#else
+          sprintf(mg_pcbj, "%s%d%s", "-fs_fieldsplit_0_hard_mg_levels_",level,"_pc_bjacobi_blocks");
+          sprintf(mg_pcbjblocknumber, "%d", mg_nplanes[level]);
+          PetscOptionsSetValue(NULL,mg_pcbj,mg_pcbjblocknumber);
+          sprintf(mg_pcbj, "%s%d%s", "-fs_fieldsplit_1_hard_mg_levels_",level,"_pc_bjacobi_blocks");
+          sprintf(mg_pcbjblocknumber, "%d", mg_nplanes[level]);
+          PetscOptionsSetValue(NULL,mg_pcbj,mg_pcbjblocknumber);
+          sprintf(mg_pcbj, "%s%d%s", "-fs_fieldsplit_2_hard_mg_levels_",level,"_pc_bjacobi_blocks");
+          sprintf(mg_pcbjblocknumber, "%d", mg_nplanes[level]);
+          PetscOptionsSetValue(NULL,mg_pcbj,mg_pcbjblocknumber);
+#endif
   }
 
       int irow, icol, icol2, irow_end, icol_end, icol2_end;

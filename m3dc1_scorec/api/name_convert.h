@@ -102,6 +102,7 @@
 #define m3dc1_matrix_insert m3dc1_matrix_insert_
 #define m3dc1_matrix_add m3dc1_matrix_add_
 #define m3dc1_matrix_setbc m3dc1_matrix_setbc_
+#define m3dc1_matrix_zerobc m3dc1_matrix_zerobc_
 #define m3dc1_matrix_solve m3dc1_matrix_solve_
 #define m3dc1_matrix_solve_with_guess m3dc1_matrix_solve_with_guess_
 #define m3dc1_matrix_multiply m3dc1_matrix_multiply_

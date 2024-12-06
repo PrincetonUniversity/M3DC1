@@ -209,6 +209,7 @@ int m3dc1_matrix_add(int* matrix_id, int* row, int* column, int* scalar_type, do
 
 int m3dc1_matrix_insertblock(int* matrix_id, int * ielm, int* rowVarIdx, int * columnVarIdx, double * values);
 int m3dc1_matrix_setbc(int* matrix_id, int* row);
+int m3dc1_matrix_zerobc(int* matrix_id, int* row);
 int m3dc1_matrix_setlaplacebc (int * matrix_id, int *row, int * numVals, int *columns, double * values);
 
 int m3dc1_matrix_solve(int* matrix_id, FieldID* rhs_sol); //solveSysEqu_
