@@ -417,7 +417,7 @@ add_executable(${BIN_NAME} ${SOURCES})
 # set_target_properties(${BIN_NAME} PROPERTIES Fortran_MODULE_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}/${BIN_NAME}_mods)
 set_property(TARGET ${BIN_NAME} PROPERTY LINKER_LANGUAGE Fortran)
 target_include_directories(${BIN_NAME} PRIVATE ${SCOREC_INCLUDE_DIRS})
-target_link_libraries(${BIN_NAME} PkgConfig::NETCDF-Fortran PkgConfig::NETCDF
+target_link_libraries(${BIN_NAME} PRIVATE PkgConfig::NETCDF-Fortran PkgConfig::NETCDF
   ${HDF5_HL_LIBRARIES} ${HDF5_LIBRARIES}
  # netCDF::netcdff
   ${M3DC1_SCOREC_LIB_NAME} ${SCOREC_LIBRARIES} ${ZOLTAN_LIBRARIES}
@@ -447,7 +447,21 @@ message(STATUS ${CMAKE_CXX_IMPLICIT_LINK_LIBRARIES})
 # set(CMAKE_C_IMPLICIT_LINK_LIBRARIES "")
 # set(CMAKE_CXX_IMPLICIT_LINK_LIBRARIES "")
 
+if(ENABLE_OPENMP)
+    find_package(OpenMP REQUIRED)
+    # Add OpenMP flags for C and Fortran
+    # if(OpenMP_C_FOUND)
+    #   target_link_libraries(${BIN_NAME} PRIVATE OpenMP::OpenMP_C)
+    # endif()
 
+    if(OpenMP_Fortran_FOUND)
+      target_link_libraries(${BIN_NAME} PRIVATE OpenMP::OpenMP_Fortran)
+    endif()
+
+    message(STATUS "OpenMP enabled for C and Fortran")
+else()
+    message(STATUS "OpenMP not enabled")
+endif()
 
 #find_package(PSPLINE)
 #add_executable(readgato polar.f90 readgato.f90)
