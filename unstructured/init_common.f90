@@ -152,7 +152,7 @@ subroutine init_perturbations
   psi_vec = 0.
   phi_vec = 0.
 
-  ifield = FIELD_PSI + FIELD_P
+  ifield = FIELD_PSI + FIELD_PHI
 
   numelms = local_elements()
 
