@@ -971,7 +971,7 @@ function bs_b1psifbb(e,f,g,h,i)
       temp2=1.0
      else !if (ibootstrap_model = 1,2,3,4)
       temp1=tempDD*jbsfluxavg_iBsq_B79(:,OP_1)*bootstrap_alpha
-      temp2=tempDD*iBpsq(:)*ri_79*bzt79(:,OP_1)*bootstrap_alpha
+      temp2=tempDD*bootstrap_alpha
       
      endif
 

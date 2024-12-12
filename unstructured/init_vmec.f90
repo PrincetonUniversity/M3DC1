@@ -13,7 +13,7 @@ module init_vmec
   type(spline1d), private :: den_spline        ! density 
   type(spline1d), private :: temper_spline        ! temperature
   type(spline1d), private :: press_ext_spline        ! pressure
-
+  type(spline1d), private :: presf_spline      ! total pressure
 #ifdef USEST
  
 contains
