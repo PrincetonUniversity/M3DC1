@@ -183,7 +183,7 @@ subroutine init_perturbations
      ph179(:,OP_1) = ph179(:,OP_1) + r_79*verzero
 
      ! apply mask
-     if(p0 .gt. 0.) then
+     if(p0 .gt. pedge) then
         call magnetic_region(pst79(:,OP_1),pst79(:,OP_DR),pst79(:,OP_DZ), &
              x_79(:), z_79(:), imr)
 
