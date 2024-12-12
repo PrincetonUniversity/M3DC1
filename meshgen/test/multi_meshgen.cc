@@ -674,28 +674,22 @@ int make_sim_model (pGModel& sim_model, vector< vector<int> >& face_bdry)
               ctrlPts3D.at(3*k+1)=ctrlPtsY.at(k);
               ctrlPts3D[3*k+2]=0.0;
             }
-
 	    // To make it consistent, we will define every edge in counter-clockwise direction.
 	    // If curve is clockwise, set edge dir to 0, otherwise 1 to follow the above convention.
 	    int edgeDir = 1;
 	    bool clockwise = curveOrientation(ctrlPts3D);
             if (clockwise)
 		edgeDir = 0;
-#ifndef SIM12
-	    if (numPts < 10 || loopNumber == vacuumLoopId)
-#endif
-            	curve = SCurve_createBSpline(order,numPts,&ctrlPts3D[0],&knots[0],NULL);
-#ifndef SIM12
-	    else
-	       curve = SCurve_createPiecewiseLinear(numPts,&ctrlPts3D[0]);
-#endif
-           if (numE == 1)
+
+            // Define the curve
+            curve = SCurve_createBSpline(order,numPts,&ctrlPts3D[0],&knots[0],NULL);
+            if (numE == 1)
 #ifdef SIM12
                 pe = GIP_insertEdgeInRegion(part, startVert, startVert, curve, edgeDir, outerRegion);
 #else
            	pe = GR_createEdge(GIP_outerRegion(part), startVert, startVert, curve, edgeDir);
 #endif
-	   else if (numE == 2)
+	    else if (numE == 2)
 #ifdef SIM12
                 pe = GIP_insertEdgeInRegion(part, startVert, endVert, curve, edgeDir, outerRegion);
 #else

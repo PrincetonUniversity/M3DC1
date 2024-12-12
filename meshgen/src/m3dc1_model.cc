@@ -514,9 +514,22 @@ void attach_piecewise_linear_curve ( int* edge, int * numPts, double * points)
     knots.at(knotsize-i-1)=1.0;
   }
   double increment=1.0/(*numPts-1);
+  double totalLength = 0.0;
+  std::vector <double> lengthVector;
+  for( int i=1; i<*numPts; i++)
+  {
+    double pt1[2] = {points[2*i-2],points[2*i-1]};
+    double pt2[2] = {points[2*i],points[2*i+1]};
+    double length = getDist2D(pt1,pt2);
+    totalLength = length+totalLength;
+    lengthVector.push_back(totalLength);
+  }
   for (int i=0; i<*numPts-2; i++)
-    knots.at(order_p+i)=knots.at(order_p+i-1)+increment;
-
+  {
+    double par = lengthVector[i]/totalLength;
+    knots.at(order_p+i)=par;
+    // knots.at(order_p+i)=knots.at(order_p+i-1)+increment;
+  }
   for( int i=0; i<*numPts; i++)
   {
     ctrlPointsX.at(i)=points[2*i];
