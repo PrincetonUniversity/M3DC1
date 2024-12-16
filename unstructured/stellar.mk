@@ -48,9 +48,10 @@ PETSC_WITH_EXTERNAL_LIB = -L${PETSC_DIR}/${PETSC_ARCH}/lib \
 	-lifport -lifcoremt_pic -limf -lsvml -lm -lipgo -lirc -lgcc_s -lirc_s -lquadmath \
 	-lstdc++ -ldl
 
-SCOREC_BASE_DIR=/projects/M3DC1/scorec/stellar/$(MPIVER)/$(PETSC_VER)
+SCOREC_BASE_DIR=/projects/M3DC1/scorec/stellar/$(MPIVER)/$(PETSCVER)
 SCOREC_UTIL_DIR=$(SCOREC_BASE_DIR)/bin
-PUMI_UTIL_DIR=/projects/M3DC1/scorec/stellar/intel2021.1.2-intelmpi2021.3.1/2023.1-240113/bin
+SIMMETRIX_VER=2024.0-231117dev
+MESHGEN_DIR=/projects/M3DC1/scorec/stellar/$(MPIVER)/$(SIMMETRIX_VER)/bin
 
 ifdef SCORECVER
   SCOREC_DIR=$(SCOREC_BASE_DIR)/$(SCORECVER)
