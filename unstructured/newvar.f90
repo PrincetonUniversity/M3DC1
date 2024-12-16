@@ -223,8 +223,8 @@ end subroutine apply_bc
        mat%mat%m, mat%mat%n
   numelms = local_elements()
 
-!$OMP PARALLEL DO &
-!$OMP& PRIVATE(temp)
+!!$OMP PARALLEL DO &
+!!$OMP& PRIVATE(temp)
   do itri=1,numelms
 
      call define_element_quadrature(itri, int_pts_main, 5)
@@ -300,15 +300,15 @@ end subroutine apply_bc
 
      end select
 
-!$OMP CRITICAL
+!!$OMP CRITICAL
      do m=1,isize
         do n=1,isize
            call insert_block(mat%mat,itri,m,n,temp(:,:,m,n),MAT_ADD)
         end do
      end do
-!$OMP END CRITICAL
+!!$OMP END CRITICAL
   end do
-!$OMP END PARALLEL DO
+!!$OMP END PARALLEL DO
 
   deallocate(temp)
 

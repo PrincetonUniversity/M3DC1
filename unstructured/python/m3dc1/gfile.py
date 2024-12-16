@@ -132,7 +132,7 @@ def read_gfile(fname,quiet=False):
                 gfile_data.nw = int(temp[-2])
                 gfile_data.nh = int(temp[-1])
             except:
-                elib.printerr('Error reading g-file in line 1!')
+                fpylib.printerr('Error reading g-file in line 1!')
                 return
     
     #temp = data[1].split()

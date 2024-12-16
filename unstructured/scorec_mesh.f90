@@ -216,8 +216,6 @@ contains
 #endif
     call update_nodes_owned
 
-    call get_global_dims
-
     initialized = .true.
   end subroutine load_mesh
 
@@ -237,6 +235,8 @@ contains
        end if
     end do
     if(inode2-1 .ne. owned_nodes()) call abort()
+
+    call get_global_dims
   end subroutine update_nodes_owned
   subroutine unload_mesh
     if(.not. initialized) return
@@ -934,6 +934,7 @@ contains
     integer, intent(out) :: idim(3)
     
     integer :: inode(nodes_per_element), izone, i, j, jj
+    integer :: inode2(nodes_per_element)
     integer :: in(2)
     real :: x, phi, z, c(3)
     logical :: is_bound(3), found_edge
@@ -954,6 +955,7 @@ contains
     !call zonfac(itri,ifaczone,ifaczonedim)
     call m3dc1_ent_getadj (2, itri-1, 0, inode, 3, num_adj_ent)
     inode = inode+1
+    inode2 = inode
     call m3dc1_ent_getadj (2, itri-1, 1, iedge, 3, num_adj_ent)
     iedge = iedge+1
     call m3dc1_ent_getgeomclass(2, itri-1, ifaczonedim, ifaczone)
@@ -981,10 +983,10 @@ contains
        found_edge = .false.
        do j=1, 3
           jj = mod(j,3)+1
-          if(in(1).eq.inode(j) .and. in(2).eq.inode(jj)) then
+          if(in(1).eq.inode2(j) .and. in(2).eq.inode2(jj)) then
              found_edge = .true.
              exit
-          else if(in(2).eq.inode(j) .and. in(1).eq.inode(jj)) then
+          else if(in(2).eq.inode2(j) .and. in(1).eq.inode2(jj)) then
 !             print *, 'Error: clockwise edge!'
              found_edge = .true.
              exit

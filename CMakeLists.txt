@@ -11,6 +11,12 @@ project(m3dc1 LANGUAGES Fortran C CXX)
 #   endif()
 # endmacro(checkSetParam varName)
 
+option(ENABLE_OPENMP "Enable OpenMP support" OFF)
+option(ENABLE_COMPLEX "Build complex version" OFF)
+option(ENABLE_3D "Build 3D version" OFF)
+option(ENABLE_ST "Build stellarator version " OFF)
+option(ENABLE_PARTICLE "Enable kinetic particle module" OFF)
+
 cmake_host_system_information(RESULT HOST QUERY HOSTNAME)
 message(STATUS "Configuring to build on: ${HOST}")
 

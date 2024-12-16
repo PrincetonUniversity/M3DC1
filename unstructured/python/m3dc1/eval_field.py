@@ -88,7 +88,8 @@ def eval_field(field_name, R, phi, Z, coord='scalar', sim=None, filename='C1.h5'
         B2 = B[0]**2+B[1]**2+B[2]**2
         field_array = 1.0/B2
     else:
-        fpyl.printerr('ERROR: Field not supported!')
+        field_array = eval_m3dc1_field(field_name, R=R, phi=phi, Z=Z, coord='scalar', sim=sim, filename=filename, time=time)
+        # fpyl.printerr('ERROR: Field not supported!')
     if not quiet:
         print('[DONE]')
     return field_array
@@ -132,6 +133,7 @@ def eval_m3dc1_field(field_name, R, phi, Z, coord='scalar', sim=None, filename='
     length = len(field.evaluate(check_coord))
     if length == 1 and coord != 'scalar':
         #raise Exception('You\'re trying to evaluate a component of a scalar field! Please set coord to \'scalar\' if you want to evaluate a scalar field')
+        print(coord)
         coord = 'scalar'
         print(field_name + " is a scalar field. Setting coord='scalar'...")
     if length == 3 and coord == 'scalar':

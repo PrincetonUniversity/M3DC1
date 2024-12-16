@@ -33,7 +33,7 @@ module diagnostics
   real :: wall_force_n1_x, wall_force_n1_y, wall_force_n1_z
 
   ! scalars integrated within lcfs
-  real :: pflux, parea, pcur, pcur_co, pcur_sn, pden, pmom, pvol, m_iz, m_iz_co, m_iz_sn
+  real :: pflux, parea, pcur, pcur_co, pcur_sn, pden, pmom, pvol, m_iz, m_iz_co, m_iz_sn, volpd
 
   real :: chierror, psi0
 
@@ -242,6 +242,7 @@ contains
     pinj = 0.
     totkprad = 0.
     totkprad0 = 0.
+    volpd = 0.
 
     tau_em = 0.
     tau_sol = 0.
@@ -296,7 +297,7 @@ contains
 
     include 'mpif.h'
 
-    integer, parameter :: num_scalars = 80
+    integer, parameter :: num_scalars = 81
     integer :: ier
     double precision, dimension(num_scalars) :: temp, temp2
     double precision, allocatable  :: ptemp(:)
@@ -383,6 +384,7 @@ contains
        temp(78) = emagtc
        temp(79) = emagpv
        temp(80) = emagtv
+       temp(81) = volpd
 
        !checked that this should be MPI_DOUBLE_PRECISION
        call mpi_allreduce(temp, temp2, num_scalars, MPI_DOUBLE_PRECISION,  &
@@ -468,6 +470,7 @@ contains
        emagtc          = temp2(78)
        emagpv          = temp2(79)
        emagtv          = temp2(80)
+       volpd           = temp2(81)
 
        if(ipellet_abl.gt.0) then
           allocate(ptemp(npellets))
@@ -657,6 +660,14 @@ end subroutine evaluate
     return
   end subroutine second
 
+  subroutine second_new(time)
+    implicit none
+    real, intent(out) :: time
+    integer :: count, rate
+    call system_clock(count,count_rate=rate)
+    time=real(count)/rate
+    return
+  end subroutine second_new
 
 !   Added 1/1/2016 to get consistency between 2D,3D,Cyl,Tor
 subroutine tpi_factors(tpifac,tpirzero)
@@ -681,6 +692,7 @@ subroutine tpi_factors(tpifac,tpirzero)
         tpirzero = twopi*rzero
      endif
      if(ifull_torus.eq.0) then
+        tpifac = twopi/nperiods
         tpirzero = tpirzero/nperiods
      endif
   endif
@@ -795,8 +807,8 @@ subroutine calculate_scalars()
 
   ! BCL Warning: nsource_pel and temp_pel are now vectors
   !              this compiles, but may break at runtime for OpenMP (OMP=1)
-!$OMP PARALLEL DO PRIVATE(mr,dum1,ier,is_edge,n,iedge,idim,izone,izonedim,izone_ind,i) &
-!$OMP& REDUCTION(+:ekinp,ekinpd,ekinph,ekint,ekintd,ekinth,ekin3,ekin3d,ekin3h,wallcur,emagp,emagpd,emagph,emagt,emagtd,emagth,emag3,area,parea,totcur,pcur,m_iz,tflux,pflux,tvor,volume,pvol,totden,pden,totrad,linerad,bremrad,ionrad,reckrad,recprad,totre,nsource,epotg,tmom,pmom,bwb2,efluxp,efluxt,efluxs,efluxk,tau_em,tau_sol,tau_com,tau_visc,tau_gyro,tau_parvisc,nfluxd,nfluxv,xray_signal,Lor_vol,nsource_pel,temp_pel,wall_force_n0_x,wall_force_n0_y,wall_force_n0_z,wall_force_n1_x,wall_force_n1_y,wall_force_n1_z,totne,w_pe,pcur_co,pcur_sn,m_iz_co,m_iz_sn,w_m,w_p,wall_force_n0_x_halo,wall_force_n0_z_halo,helicity,pinj,totkprad,totkprad0,emagpc,emagtc,emagpv,emagtv)
+!!$OMP PARALLEL DO PRIVATE(mr,dum1,ier,is_edge,n,iedge,idim,izone,izonedim,izone_ind,i) &
+!!$OMP& REDUCTION(+:ekinp,ekinpd,ekinph,ekint,ekintd,ekinth,ekin3,ekin3d,ekin3h,wallcur,emagp,emagpd,emagph,emagt,emagtd,emagth,emag3,area,parea,totcur,pcur,m_iz,tflux,pflux,tvor,volume,pvol,volpd,totden,pden,totrad,linerad,bremrad,ionrad,reckrad,recprad,totre,nsource,epotg,tmom,pmom,bwb2,efluxp,efluxt,efluxs,efluxk,tau_em,tau_sol,tau_com,tau_visc,tau_gyro,tau_parvisc,nfluxd,nfluxv,xray_signal,Lor_vol,nsource_pel,temp_pel,wall_force_n0_x,wall_force_n0_y,wall_force_n0_z,wall_force_n1_x,wall_force_n1_y,wall_force_n1_z,totne,w_pe,pcur_co,pcur_sn,m_iz_co,m_iz_sn,w_m,w_p,wall_force_n0_x_halo,wall_force_n0_z_halo,helicity,pinj,totkprad,totkprad0,emagpc,emagtc,emagpv,emagtv)
   do itri=1,numelms
 
      !call zonfac(itri, izone, izonedim)
@@ -940,6 +952,7 @@ subroutine calculate_scalars()
      ! volume
      volume = volume + twopi*int0()/tpifac
      pvol = pvol + twopi*int1(mr)/tpifac
+     volpd = volpd + twopi*volume_pd(mr)/tpifac
 
      ! particle number
      totden = totden + twopi*int1(nt79(:,OP_1))/tpifac
@@ -1086,7 +1099,7 @@ subroutine calculate_scalars()
         xray_signal = xray_signal + int2(temp79a, temp79b)
      end do
   end do
-!$OMP END PARALLEL DO
+!!$OMP END PARALLEL DO
 
   call distribute_scalars
 
@@ -2382,7 +2395,7 @@ subroutine calculate_ke()
      def_fields = FIELD_N
      numelms = local_elements()
      
-!$OMP PARALLEL DO REDUCTION(+:ke_N)
+!!$OMP PARALLEL DO REDUCTION(+:ke_N)
      do itri=1,numelms
         call m3dc1_ent_getgeomclass(2, itri-1,izonedim,izone_ind)
         izone = zone_type(izone_ind)
@@ -2439,7 +2452,7 @@ subroutine calculate_ke()
 #endif
 
      end do
-!$OMP END PARALLEL DO
+!!$OMP END PARALLEL DO
 
      call mpi_allreduce(ke_N, ketotal, 1, MPI_DOUBLE_PRECISION, &
           MPI_SUM, mpi_comm_world, ier)
@@ -2750,7 +2763,7 @@ subroutine calculate_bh()
      def_fields = 0
      numelms = local_elements()
      
-!$OMP PARALLEL DO REDUCTION(+:bh_N)
+!!$OMP PARALLEL DO REDUCTION(+:bh_N)
      do itri=1,numelms
         call m3dc1_ent_getgeomclass(2, itri-1,izonedim,izone_ind)
         izone = zone_type(izone_ind)
@@ -2803,7 +2816,7 @@ subroutine calculate_bh()
 #endif
 
      end do
-!$OMP END PARALLEL DO
+!!$OMP END PARALLEL DO
 
      call mpi_allreduce(bh_N, bhtotal, 1, MPI_DOUBLE_PRECISION, &
                         MPI_SUM, mpi_comm_world, ier)

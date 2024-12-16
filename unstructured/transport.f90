@@ -1414,8 +1414,8 @@ subroutine define_transport_coefficients()
   
   ! Calculate RHS
   numelms = local_elements()
-!$OMP PARALLEL DO &
-!$OMP& PRIVATE(dofs)
+!!$OMP PARALLEL DO &
+!!$OMP& PRIVATE(dofs)
   do itri=1,numelms
 
      call define_element_quadrature(itri, int_pts_aux, 5)
@@ -1427,124 +1427,124 @@ subroutine define_transport_coefficients()
      dofs = resistivity_func(izone_index)
      if(.not.solve_resistivity) solve_resistivity = any(dofs.ne.0.)
 
-!$OMP CRITICAL
+!!$OMP CRITICAL
      if(solve_resistivity) &
           call vector_insert_block(resistivity_field%vec,itri,1,dofs,VEC_ADD)
-!$OMP END CRITICAL
+!!$OMP END CRITICAL
 
      dofs = kappa_func()
      if(.not.solve_kappa) solve_kappa = any(dofs.ne.0.)
-!$OMP CRITICAL
+!!$OMP CRITICAL
      if(solve_kappa) &
           call vector_insert_block(kappa_field%vec,itri,1,dofs,VEC_ADD)
-!$OMP END CRITICAL
+!!$OMP END CRITICAL
 
      dofs = kappar_func()
      if(.not.solve_kappar) solve_kappar = any(dofs.ne.0.)
-!$OMP CRITICAL
+!!$OMP CRITICAL
      if(solve_kappar) &
           call vector_insert_block(kappar_field%vec,itri,1,dofs,VEC_ADD)
-!$OMP END CRITICAL
+!!$OMP END CRITICAL
 
      dofs = denm_func()
      if(.not.solve_denm) solve_denm = any(dofs.ne.0.)
-!$OMP CRITICAL
+!!$OMP CRITICAL
      if(solve_denm) &
           call vector_insert_block(denm_field%vec,itri,1,dofs,VEC_ADD)
-!$OMP END CRITICAL
+!!$OMP END CRITICAL
 
 
      if(density_source) then
         dofs = sigma_func(izone)
         if(.not.solve_sigma) solve_sigma = any(dofs.ne.0.)
-!$OMP CRITICAL
+!!$OMP CRITICAL
         if(solve_sigma) &
              call vector_insert_block(sigma_field%vec,itri,1,dofs,VEC_ADD)
-!$OMP END CRITICAL
+!!$OMP END CRITICAL
      end if
 
      dofs = viscosity_func()
      if(.not.solve_visc) solve_visc = any(dofs.ne.0.)
-!$OMP CRITICAL
+!!$OMP CRITICAL
      if(solve_visc) &
           call vector_insert_block(visc_field%vec,itri,1,dofs,VEC_ADD)
-!$OMP END CRITICAL
+!!$OMP END CRITICAL
 
      if(momentum_source) then 
         dofs = force_func(izone)
         if(.not.solve_f) solve_f = any(dofs.ne.0.)
-!$OMP CRITICAL
+!!$OMP CRITICAL
         if(solve_f) &
              call vector_insert_block(Fphi_field%vec,itri,1,dofs,VEC_ADD)
-!$OMP END CRITICAL
+!!$OMP END CRITICAL
      end if
      
      if(ipforce.gt.0) then
         dofs = pforce_func()
         if(.not.solve_fp) solve_fp = any(dofs.ne.0.)
-!$OMP CRITICAL
+!!$OMP CRITICAL
         if(solve_fp) &
              call vector_insert_block(pforce_field%vec,itri,1,dofs,VEC_ADD)
-!$OMP END CRITICAL
+!!$OMP END CRITICAL
 
         dofs = pmach_func()
-!$OMP CRITICAL
+!!$OMP CRITICAL
         if(solve_fp) &
              call vector_insert_block(pmach_field%vec,itri,1,dofs,VEC_ADD)
-!$OMP END CRITICAL
+!!$OMP END CRITICAL
      end if
 
      if(heat_source) then
         dofs = q_func(izone)
         if(.not.solve_q) solve_q = any(dofs.ne.0.)
-!$OMP CRITICAL
+!!$OMP CRITICAL
         if(solve_q) &
              call vector_insert_block(Q_field%vec,itri,1,dofs,VEC_ADD)
-!$OMP END CRITICAL
+!!$OMP END CRITICAL
      end if
 
      if(rad_source) then
         dofs = totrad_func(itri)
         if(.not.solve_totrad) solve_totrad = any(dofs.ne.0.)
-!$OMP CRITICAL
+!!$OMP CRITICAL
         if(solve_totrad) &
              call vector_insert_block(Totrad_field%vec,itri,1,dofs,VEC_ADD)
-!$OMP END CRITICAL
+!!$OMP END CRITICAL
         
         dofs = linerad_func(itri)
         if(.not.solve_linerad) solve_linerad = any(dofs.ne.0.)
-!$OMP CRITICAL
+!!$OMP CRITICAL
         if(solve_linerad) &
              call vector_insert_block(Linerad_field%vec,itri,1,dofs,VEC_ADD)
-!$OMP END CRITICAL
+!!$OMP END CRITICAL
         
         dofs = bremrad_func(itri)
         if(.not.solve_bremrad) solve_bremrad = any(dofs.ne.0.)
-!$OMP CRITICAL
+!!$OMP CRITICAL
         if(solve_bremrad) &
              call vector_insert_block(Bremrad_field%vec,itri,1,dofs,VEC_ADD)
-!$OMP END CRITICAL
+!!$OMP END CRITICAL
         
         dofs = ionrad_func(itri)
         if(.not.solve_ionrad) solve_ionrad = any(dofs.ne.0.)
-!$OMP CRITICAL
+!!$OMP CRITICAL
         if(solve_ionrad) &
              call vector_insert_block(Ionrad_field%vec,itri,1,dofs,VEC_ADD)
-!$OMP END CRITICAL
+!!$OMP END CRITICAL
         
         dofs = reckrad_func(itri)
         if(.not.solve_reckrad) solve_reckrad = any(dofs.ne.0.)
-!$OMP CRITICAL
+!!$OMP CRITICAL
         if(solve_reckrad) &
              call vector_insert_block(Reckrad_field%vec,itri,1,dofs,VEC_ADD)
-!$OMP END CRITICAL
+!!$OMP END CRITICAL
         
         dofs = recprad_func(itri)
         if(.not.solve_recprad) solve_recprad = any(dofs.ne.0.)
-!$OMP CRITICAL
+!!$OMP CRITICAL
         if(solve_recprad) &
              call vector_insert_block(Recprad_field%vec,itri,1,dofs,VEC_ADD)
-!$OMP END CRITICAL
+!!$OMP END CRITICAL
      end if
 
      if(icd_source .gt. 0) then
@@ -1557,13 +1557,13 @@ subroutine define_transport_coefficients()
      if(ibootstrap.ne.0) then
         dofs = electron_viscosity_func()
         if(.not.solve_visc_e) solve_visc_e = any(dofs.ne.0.)
-!$OMP CRITICAL
+!!$OMP CRITICAL
         if(solve_visc_e) &
              call vector_insert_block(visc_e_field%vec,itri,1,dofs,VEC_ADD)
-!$OMP END CRITICAL
+!!$OMP END CRITICAL
      end if
   end do
-!$OMP END PARALLEL DO
+!!$OMP END PARALLEL DO
 
 
   ! Solve all the variables that have been defined

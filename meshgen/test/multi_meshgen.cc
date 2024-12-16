@@ -361,7 +361,7 @@ int main(int argc, char *argv[])
   SurfaceMesher_delete(surfMesh);
 
   std::cout<<"\n[INFO] # model entities: V "<<GM_numVertices(sim_model)
-                          <<", E "<<GM_numEdges(sim_model)
+	                  <<", E "<<GM_numEdges(sim_model)<<" (vacuum "<<get_vacuum_geid(sim_model)<<")"
                           <<", F "<<GM_numFaces(sim_model)<<"\n";
   std::cout<<"[INFO] # mesh  entities: V "<<M_numVertices(sim_mesh)
                           <<", E "<<M_numEdges(sim_mesh)
@@ -457,7 +457,6 @@ int main(int argc, char *argv[])
   apf::destroyMesh(simApfMesh);
 
   cout<<"\n<< Continue with \"simmodeler\" for more meshing control! >>\n\n";
-
   mesh->destroyNative();
   apf::destroyMesh(mesh);
   gmi_sim_stop();
@@ -578,9 +577,9 @@ void inner_outer_wall_pts()
       create_edge(&ge1_id, &gv1_id, &gv1_id);
        
       if (num_out_pts <= 10)
-      	attach_natural_cubic_curve(&ge1_id,&num_out_pts,&(out_pts.at(0)));
+        attach_natural_cubic_curve(&ge1_id,&num_out_pts,&(out_pts.at(0)));
       else
-	attach_piecewise_linear_curve(&ge1_id,&num_out_pts,&(out_pts.at(0)));
+        attach_piecewise_linear_curve(&ge1_id,&num_out_pts,&(out_pts.at(0)));
 
       int outerWallEdges[]={ge1_id};
       num_ge = 1;
@@ -675,24 +674,22 @@ int make_sim_model (pGModel& sim_model, vector< vector<int> >& face_bdry)
               ctrlPts3D.at(3*k+1)=ctrlPtsY.at(k);
               ctrlPts3D[3*k+2]=0.0;
             }
-
 	    // To make it consistent, we will define every edge in counter-clockwise direction.
 	    // If curve is clockwise, set edge dir to 0, otherwise 1 to follow the above convention.
 	    int edgeDir = 1;
 	    bool clockwise = curveOrientation(ctrlPts3D);
             if (clockwise)
 		edgeDir = 0;
-	    if (numPts < 10 || loopNumber == vacuumLoopId)
-            	curve = SCurve_createBSpline(order,numPts,&ctrlPts3D[0],&knots[0],NULL);
-	    else
-		curve = SCurve_createPiecewiseLinear(numPts,&ctrlPts3D[0]);
-           if (numE == 1)
+
+            // Define the curve
+            curve = SCurve_createBSpline(order,numPts,&ctrlPts3D[0],&knots[0],NULL);
+            if (numE == 1)
 #ifdef SIM12
                 pe = GIP_insertEdgeInRegion(part, startVert, startVert, curve, edgeDir, outerRegion);
 #else
            	pe = GR_createEdge(GIP_outerRegion(part), startVert, startVert, curve, edgeDir);
 #endif
-	   else if (numE == 2)
+	    else if (numE == 2)
 #ifdef SIM12
                 pe = GIP_insertEdgeInRegion(part, startVert, endVert, curve, edgeDir, outerRegion);
 #else

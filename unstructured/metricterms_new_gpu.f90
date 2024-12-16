@@ -22336,9 +22336,55 @@ vectype function torque_denm()
 
 end function torque_denm
 
+! Volume of parallel diffusion (Paul, Hudson & Helander, JPP 2022) 
+! ---------
+real function volume_pd(mask)
 
+  use basic
+  use m3dc1_nint
 
+  implicit none
 
+  vectype, intent(in), optional, dimension(MAX_PTS) :: mask
+
+  vectype :: temp
+
+  temp = 0.
+#ifdef USE3D
+  if(kappar.ne.0.) then
+    if(present(mask)) then
+      temp79a = mask
+    else
+      temp79a = 1.
+    end if
+    temp79b = kar79(:, OP_1) * b2i79 (:, OP_1) * &
+              (ri_79 * (tet79(:, OP_DZ) * pst79(:, OP_DR) &
+                       -tet79(:, OP_DR) * pst79(:, OP_DZ))&
+              + ri2_79 * bzt79(:, OP_1) * tet79(:, OP_DP) & 
+               - (tet79(:, OP_DZ) * bfpt79(:, OP_DZ)      &
+                 +tet79(:, OP_DR) * bfpt79(:, OP_DR)))**2 &
+    ! Assuming that B0.grad(T0) = 0
+    !          (ri_79 * (te179(:, OP_DZ) * pst79(:, OP_DR) &
+    !                   -te179(:, OP_DR) * pst79(:, OP_DZ) &
+    !                   +te079(:, OP_DZ) * ps179(:, OP_DR) &
+    !                   -te079(:, OP_DR) * ps179(:, OP_DZ))&
+    !          + ri2_79 *(bzt79(:, OP_1) * te179(:, OP_DP) & 
+    !                   + bz179(:, OP_1) * te079(:, OP_DP))& 
+    !           - (te179(:, OP_DZ) * bfpt79(:, OP_DZ)      &
+    !             +te179(:, OP_DR) * bfpt79(:, OP_DR)      &
+    !             +te079(:, OP_DZ) * bfp179(:, OP_DZ)      &
+    !             +te079(:, OP_DR) * bfp179(:, OP_DR)))**2 &
+             -kap79(:, OP_1) * & 
+               (tet79(:, OP_DR)**2 + tet79(:, OP_DZ)**2   &
+               +tet79(:, OP_DP)**2 * ri2_79) 
+    ! Heaviside function
+    temp79c = sign(1., temp79b) * 0.5 + 0.5
+    temp = int1(temp79c*temp79a)
+  end if  
+#endif
+  volume_pd = real(temp)
+  return
+end function volume_pd 
 
 function tepsipsikappar(e,f,g,h,j,k)
   use basic

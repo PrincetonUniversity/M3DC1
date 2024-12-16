@@ -140,6 +140,16 @@ module m3dc1_nint
 #ifdef USEPARTICLES
   vectype, dimension(MAX_PTS, OP_NUM) :: pfpar79, pfper79, pf079
 !$OMP THREADPRIVATE(pfpar79,pfper79,pf079)
+  vectype, dimension(MAX_PTS, OP_NUM) :: pipar79, piper79, pfi079
+!$OMP THREADPRIVATE(pipar79,piper79,pfi079)
+  vectype, dimension(MAX_PTS, OP_NUM) :: vfpar79, vfpar079, vipar79
+!$OMP THREADPRIVATE(vfpar79,vfpar079,vipar79)
+  vectype, dimension(MAX_PTS, OP_NUM) :: nf79, nf079
+!$OMP THREADPRIVATE(nf79, nf079)
+  vectype, dimension(MAX_PTS, OP_NUM) :: nfi79, nfi079
+!$OMP THREADPRIVATE(nfi79, nfi079)
+  vectype, dimension(MAX_PTS, OP_NUM) :: rhof79
+!$OMP THREADPRIVATE(rhof79)
 #endif
   vectype, dimension(MAX_PTS, OP_NUM) :: nre079, nre179
 !$OMP THREADPRIVATE(nre079,nre179)
@@ -988,6 +998,28 @@ contains
           net79 = ne179
        endif
 
+     if(iset_ne_floor.eq.1) then
+        if(ilin.eq.0) then
+           where(real(net79(:,OP_1)).lt.ne_floor)
+              ne179(:,OP_1) = ne_floor - ne079(:,OP_1)
+           end where
+        end if
+        where(real(net79(:,OP_1)).lt.ne_floor)
+           net79(:,OP_1) = ne_floor
+        end where
+     end if
+     
+     if(iset_ni_floor.eq.1) then
+        if(ilin.eq.0) then
+           where(real(nt79(:,OP_1)).lt.ni_floor)
+              n179(:,OP_1) = ni_floor - n079(:,OP_1)
+           end where
+        end if
+        where(real(nt79(:,OP_1)).lt.ni_floor)
+           nt79(:,OP_1) = ni_floor
+        end where
+     end if
+
     endif
 
   ! NI
@@ -1659,6 +1691,52 @@ contains
         call eval_ops(itri, p_f_par, pfpar79, rfac)
         call eval_ops(itri, p_f_perp, pfper79, rfac)
         call eval_ops(itri, pf_field, pf079, rfac)
+
+        if (kinetic_fast_ion.eq.1) then
+           call eval_ops(itri, p_f_par, pfpar79, rfac)
+           call eval_ops(itri, p_f_perp, pfper79, rfac)
+           call eval_ops(itri, pf_field, pf079, rfac)
+
+           call eval_ops(itri, den_f_1, nf79, rfac)
+           call eval_ops(itri, nf_field, nf079, rfac)
+
+           call eval_ops(itri, v_f_par, vfpar79, rfac)
+           !call eval_ops(itri, v_f_par_0, vfpar079, rfac)
+        else
+           pfpar79 = 0.
+           pfper79 = 0.
+           pf079 = 0.
+           nf79 = 0.
+           nf079 = 0.
+           vfpar79 = 0.
+        endif
+
+        if (kinetic_thermal_ion.eq.1) then
+           call eval_ops(itri, p_i_par, pipar79, rfac)
+           call eval_ops(itri, p_i_perp, piper79, rfac)
+           !call eval_ops(itri, pfi_field, pfi079, rfac)
+
+           call eval_ops(itri, den_i_1, nfi79, rfac)
+           call eval_ops(itri, nfi_field, nfi079, rfac)
+
+           call eval_ops(itri, v_i_par, vipar79, rfac)
+        else
+           pipar79 = 0.
+           piper79 = 0.
+           nfi79 = 0.
+           nfi079 = 0.
+           vipar79 = 0.
+        endif
+        call eval_ops(itri, rho_field, rhof79, rfac)
+
+        !do ipoint=1,MAX_PTS
+        !      if (real(rhof79(ipoint,OP_1))<0.15) then
+        !   pipar79(ipoint,:)=0.
+        !   piper79(ipoint,:)=0.
+        !   !nfi79(ipoint,:)=0.
+        !   endif
+        !enddo
+
     endif
 #endif
 

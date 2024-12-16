@@ -24,9 +24,9 @@ from m3dc1.plot_coils import plot_coils
 
 
 def plot_field(field, coord='scalar', row=1, sim=None, filename='C1.h5', time=None, phi=0, linear=False,
-               diff=False, tor_av=1, mesh=False, bound=False, lcfs=False, coils=False, units='mks',res=250,
+               diff=False, tor_av=1, mesh=False, bound=False, lcfs=False, coils=False, units='mks',points=250,
                prange=None, cmap='viridis', cmap_midpt=None, clvl=100, quiet=False,
-               save=False, savedir=None, pub=False, titlestr=None, showtitle=True, shortlbl=False, ntor=None, phys=False):
+               save=False, savedir=None, pub=False, titlestr=None, showtitle=True, shortlbl=False, ntor=None, phys=False, R_range=None, Z_range=None):
     """
     Plots a field in the R,Z plane.
     
@@ -92,7 +92,7 @@ def plot_field(field, coord='scalar', row=1, sim=None, filename='C1.h5', time=No
     True/False
     Overlay coils from coil.dat file on top of the plot.
 
-    **res**
+    **points**
     Resolution in R and Z direction.
 
     **cmap**
@@ -137,7 +137,7 @@ def plot_field(field, coord='scalar', row=1, sim=None, filename='C1.h5', time=No
     """
     
     sim, time, mesh_ob, R, phi_list, Z, R_mesh, Z_mesh, R_ave, Z_ave, field1_ave = get_field(field=field, coord=coord, row=row, sim=sim, filename=filename, time=time, phi=phi, linear=linear,
-               diff=diff, tor_av=tor_av, units=units, res=res, quiet=quiet, phys=phys)
+               diff=diff, tor_av=tor_av, units=units, res=points, quiet=quiet, phys=phys, R_range=R_range, Z_range=Z_range)
     
 
     fieldlabel,unitlabel = fpyl.get_fieldlabel(units,field,shortlbl=shortlbl)
@@ -182,7 +182,7 @@ def plot_field(field, coord='scalar', row=1, sim=None, filename='C1.h5', time=No
             species = sim[0].available_fields[field][2]
         except:
             species = None
-            fpyl.printwarn('WARNING: Field not found in available_fields!')
+            # fpyl.printwarn('WARNING: Field not found in available_fields!')
         if species is not None:
             titlestr = titlestr+' - Species: '+str(species)
     # ToDo: Main title does not show up in vector plot
@@ -194,7 +194,7 @@ def plot_field(field, coord='scalar', row=1, sim=None, filename='C1.h5', time=No
     if mesh or bound:
         if mesh and bound:#Make sure that whole mesh is plotted. If both are true, plot_mesh only plots boundary.
             bound = False
-        meshplt = plot_mesh(mesh_ob,boundary=bound,ax=axs,meshcol='C1',pub=pub,phys=phys)
+        meshplt = plot_mesh(mesh_ob,boundary=bound,ax=axs,meshcol='C1',pub=pub,phys=phys,quiet=quiet)
     
     for i,ax in enumerate(axs):
         if cmap_midpt is not None:
@@ -214,7 +214,8 @@ def plot_field(field, coord='scalar', row=1, sim=None, filename='C1.h5', time=No
             else:
                 cont = ax.contourf(R_ave, Z_ave, field1_ave[i],clvl, cmap=cmap)
         # Set and format axes limits and labels
-        if phys:
+        # if phys:
+        if False:
             ax.set_xlim([fpyl.get_axlim(np.amin(R_mesh),'min',0.1),fpyl.get_axlim(np.amax(R_mesh),'max',0.1)])
             ax.set_ylim([fpyl.get_axlim(np.amin(Z_mesh),'min',0.1),fpyl.get_axlim(np.amax(Z_mesh),'max',0.1)])
         else:

@@ -1,0 +1,181 @@
+&inputnl
+
+! I/O Options
+! ===========
+	ntimemax = 1	! number of time steps
+	ntimepr = 1	! number of time steps per output
+	iprint = 2	! 1 = print detailed debug info
+	itimer = 0	! 1 = print timing info
+
+	irestart = 0	! 1 = read restart
+
+	iread_eqdsk = 3
+	iwrite_restart = 0
+	iwrite_aux_vars = 1
+	iwrite_transport_coeffs = 1
+
+	irmp = 1
+	extsubtract = 1
+
+
+! Numerical Method Options
+! ========================
+	dt = 1.		! time step
+
+	integrator = 0	! 0 = Crank-Nicholson, 1 = BDF2
+	thimp = 0.6	! implicitness parameter for CN
+	imp_mod = 0
+	isplitstep = 0
+
+	deex = 1.
+	hyper  = 0.0	! hyper-resistivity (applied to psi)
+	hyperi = 0.0	! hyper-resistivity (applied to Bz )
+	hyperv = 0.0	! hyper-viscosity   (applied to vz )
+	hyperc = 0.0	! hyper-viscosity   (applied to chi)
+	hyperp = 0.0    ! hyper-pressure-diffusion
+	ihypdx = 0
+	ihypeta = 0
+
+	int_pts_main = 25
+	int_pts_aux = 25
+	int_pts_diag = 25
+
+	ivform = 1
+	jadv = 1
+	isurface = 0
+
+	max_ke = 0.
+
+	itime_independent = 1
+	imp_bf = 1
+
+	regular = 1e-8
+
+	iset_pe_floor = 1
+	pe_floor = 1e-10
+	
+
+! Model Options
+! =============
+	itor = 1	! 1 = toroidal geometry, 0 = slab geometry
+
+	linear = 1	! 0 = nonlinear; 1 = linear
+	eqsubtract = 1	! 1 = subtract equilibrium in nonlinear simulations
+      	numvar = 3	! 1 = 2-field; 2 = 4-field; 3 = 6-field
+      	idens = 1	! 1 = advance density
+	ipres = 0       ! 1 = include electron pressure equation
+	gyro = 0
+
+	inertia = 1
+
+	ion_mass = 2.
+	zeff = 1.
+
+
+! Equilibrium Options
+! ===================
+      	itaylor = 1	! determines initial conditions
+			! 0: Tilting Cylinder
+			! 1: Taylor reconnection
+			! 2: Force-free Taylor state
+			! 3: GEM-reconnection
+			! 4: Wave propagation
+	idevice = -1	! when itor=1 and itaylor=1
+			! 0: vertical field
+			! 1: CDX-U
+			! 2: NSTX
+			! 3: ITER
+			! 4: DIII-D
+
+	p0 = 1.		! total pressure
+	pi0 = 0.5	! ion pressure
+
+	eps = 0.
+
+	irot = -1
+	iread_omega_ExB = 1
+
+	iread_ne = 1
+	iread_te = 1
+
+
+! Transport Parameters
+! ====================
+	eta_wall = 100.
+	iresfunc = 4
+	eta0 = 1e-4
+	etar = 1e-8	! resistivity = etar + eta0/T^(3/2)
+      	amu = 1e-6	! kinematic viscosity 
+	amuc = 0.
+	amupar = 0.
+	denm = 1e-6	! density diffusion
+	kappat = 1e-6	! isotropic thermal conductivity
+	kappa0 = 0.	!  kappa = kappat + kappa0*p/T^(3/2)
+	kappar = 1.	! field-aligned thermal conductivity
+	ikapscale = 0
+
+	gam = 1.66666666666667	! adiabatic constant
+
+	db_fac = 1.
+
+
+! Boundary Conditions
+! ===================
+	iper = 0	! 1 = periodic in r
+        jper = 0	! 1 = periodic in z
+
+	nonrect = 1
+
+	mesh_filename = 'part.smb'
+	mesh_model = 'diiid-0.02-2.5-4.0.txt'
+
+	icsubtract = 1
+	imulti_region = 1
+
+
+! Grad-Shafranov Options
+! ======================
+	xlim = 0.	! limiting value of x
+	zlim = 0.	! limiting value of z
+	xlim2 = 0.	! limiting value of x
+	zlim2 = 0.	! limiting value of z
+	th_gs = 0.7
+	igs = 100	! number of grad-shafranov iterations
+	pedge = 2e-4
+	expn = 0.
+	divertors = 0
+	xnull = 1.4
+	znull = -0.7
+	xnull2 = 1.4
+	znull2 = 0.7
+	sigma0 = 0.4
+
+	igs_extend_p = 1
+
+	gs_vertical_feedback(9)  = -500.
+	gs_vertical_feedback(10) =  500.
+	gs_vertical_feedback(11) = -500.
+	gs_vertical_feedback(12) =  500.
+	gs_vertical_feedback(13) = -500.
+	gs_vertical_feedback(14) =  500.
+	gs_vertical_feedback_i(9)  = -50.
+	gs_vertical_feedback_i(10) =  50.
+	gs_vertical_feedback_i(11) = -50.
+	gs_vertical_feedback_i(12) =  50.
+	gs_vertical_feedback_i(13) = -50.
+	gs_vertical_feedback_i(14) =  50.
+	gs_radial_feedback(15) = -500.
+	gs_radial_feedback(16) = -500.
+	gs_radial_feedback(17) = -500.
+	gs_radial_feedback(18) = -500.
+	gs_radial_feedback_i(15) = -50.
+	gs_radial_feedback_i(16) = -50.
+	gs_radial_feedback_i(17) = -50.
+	gs_radial_feedback_i(18) = -50.
+
+	ntor = 2
+
+	b0_norm = 1.e4
+	n0_norm = 1e14
+	l0_norm = 100.
+ /

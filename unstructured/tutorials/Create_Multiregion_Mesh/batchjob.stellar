@@ -1,0 +1,7 @@
+#!/bin/bash
+#SBATCH -A pppl
+#SBATCH -n 1
+#SBATCH -J m3dc1_tutorial
+#SBATCH -t 0:10:00
+
+srun -n 1 m3dc1_meshgen input
