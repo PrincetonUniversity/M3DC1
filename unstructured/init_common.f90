@@ -253,7 +253,7 @@ subroutine den_eq
   if(myrank.eq.0 .and. iprint.ge.1) print *, ' Defining density equilibrium'
   call create_field(den_vec)
   
-  def_fields = FIELD_PSI + FIELD_N + FIELD_P
+  def_fields = FIELD_PSI + FIELD_N + FIELD_P + FIELD_TE
 
   numelms = local_elements()
   do itri=1,numelms
@@ -332,7 +332,8 @@ subroutine den_eq
 #ifdef USEST
            if(igeometry.eq.1) then
               temp79b = (xl_79-xcenter)**2 + (zl_79-zcenter)**2
-              n079(:,OP_1) = exp(-(temp79b/0.4**2))
+              !n079(:,OP_1) = exp(-(temp79b/0.4**2))
+              n079(:,OP_1) = 2.0
            else
               if(myrank.eq.0) print *, 'idenfunc = 21 requires igeometry = 1'
            end if
@@ -343,6 +344,7 @@ subroutine den_eq
 
   call newvar_solve(den_vec%vec,mass_mat_lhs)
   nf_field = den_vec
+  nfi_field = nf_field
 
   den_vec=0.
   do itri=1,numelms
@@ -352,7 +354,7 @@ subroutine den_eq
 #ifdef USEST
            if(igeometry.eq.1) then
               temp79b = sqrt((xl_79-xcenter)**2 + (zl_79-zcenter)**2+1e-8)
-              n079(:,OP_1) = 1-temp79b
+              n079(:,OP_1) = temp79b
            else
               if(myrank.eq.0) print *, 'idenfunc = 21 requires igeometry = 1'
            end if
@@ -363,8 +365,31 @@ subroutine den_eq
 
   call newvar_solve(den_vec%vec,mass_mat_lhs)
   rho_field = den_vec
-   
-  tf_field=0.
+
+  den_vec=0.
+  do itri=1,numelms
+     call define_element_quadrature(itri,int_pts_main,int_pts_tor)
+     call define_fields(itri,def_fields,1,0)
+     call get_zone(itri, izone)
+#ifdef USEST
+           if(igeometry.eq.1) then
+              temp79b = sqrt((xl_79-xcenter)**2 + (zl_79-zcenter)**2+1e-8)
+              n079(:,OP_1) = p079(:,OP_1)/n079(:,OP_1)*0.5/(1.6022e-12 / (b0_norm**2/(4.*pi*n0_norm)))
+           else
+              if(myrank.eq.0) print *, 'idenfunc = 21 requires igeometry = 1'
+           end if
+#endif     
+     dofs = intx2(mu79(:,:,OP_1),n079(:,OP_1))
+     call vector_insert_block(den_vec%vec,itri,1,dofs,VEC_ADD)
+  end do
+
+  call newvar_solve(den_vec%vec,mass_mat_lhs)
+  tf_field = den_vec
+  tfi_field = tf_field
+  call mult(ti_field(0), 0.5)
+  call mult(te_field(0), 0.5)
+  call mult(p_field(0), 0.5)
+  call mult(pe_field(0), 0.5)
 #endif
 
   call destroy_field(den_vec)

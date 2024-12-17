@@ -631,6 +631,7 @@ contains
     integer, dimension(MAX_PTS) :: izarr
     type(element_data) :: d
     real :: kr_tmin, kr_tmax
+    integer::ipoint
 
     fields = fieldi
 
@@ -1730,7 +1731,7 @@ contains
         call eval_ops(itri, rho_field, rhof79, rfac)
 
         !do ipoint=1,MAX_PTS
-        !      if (real(rhof79(ipoint,OP_1))<0.15) then
+        !      if (real(rhof79(ipoint,OP_1))>0.85) then
         !   pipar79(ipoint,:)=0.
         !   piper79(ipoint,:)=0.
         !   !nfi79(ipoint,:)=0.
