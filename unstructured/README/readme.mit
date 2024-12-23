@@ -2,7 +2,7 @@
 
    ssh -P eofe4.mit.edu -l [username]
    ssh -P eofe10.mit.edu -l [username]
-   salloc -p sched_mit_psfc_r8 --nodes 1 --ntasks-per-node=2 --x11 -t 02:00:00
+   salloc -p sched_mit_psfc_r8 --nodes 1 --ntasks-per-node=1 01:00:00 --x11
 
 2. code
    git clone git@github.com:PrincetonUniversity/M3DC1.git 
