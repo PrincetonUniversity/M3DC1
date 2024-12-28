@@ -1453,6 +1453,7 @@ subroutine fdot(x, v, w, dxdt, dvdt, dwdt, dEpdt, itri, kel, gradcoef0, df0de0, 
    else
       E_cyl=E_cyl-dot_product(E_cyl,B_cyl)*Binv
    endif
+   ! E_cyl=0.
 
    ! Gradient of B0 = grad(B.B)/(2 B0) = (B . grad B)/B0
    gradB0(1) = dot_product(bhat0, dB0dR)
@@ -1562,9 +1563,9 @@ subroutine fdot(x, v, w, dxdt, dvdt, dwdt, dEpdt, itri, kel, gradcoef0, df0de0, 
 
    !Weights evolve in delta-f method only.
    ! V1 = (ExB)/(B**2) + U deltaB/B
-   ! weqv1(1) = ((E_cyl(2)*B_cyl(3) - E_cyl(3)*B_cyl(2))*B0inv + v(1)*deltaB(1))*B0inv
-   ! weqv1(2) = ((E_cyl(3)*B_cyl(1) - E_cyl(1)*B_cyl(3))*B0inv + v(1)*deltaB(2))*B0inv
-   ! weqv1(3) = ((E_cyl(1)*B_cyl(2) - E_cyl(2)*B_cyl(1))*B0inv + v(1)*deltaB(3))*B0inv
+   ! weqv1(1) = ((E_cyl(2)*B_cyl(3) - E_cyl(3)*B_cyl(2))*B0inv + 0*v(1)*deltaB(1))*B0inv
+   ! weqv1(2) = ((E_cyl(3)*B_cyl(1) - E_cyl(1)*B_cyl(3))*B0inv + 0*v(1)*deltaB(2))*B0inv
+   ! weqv1(3) = ((E_cyl(1)*B_cyl(2) - E_cyl(2)*B_cyl(1))*B0inv + 0*v(1)*deltaB(3))*B0inv
    spd = sqrt(v(1)*v(1) + 2.0*qm_ion(sps)*v(2)/B0inv)
    weqv1 = dxdt - dxdt0
    weqa1 = dvdt - dvdt0
@@ -2913,11 +2914,11 @@ subroutine evalf0(x, vpar, vperp, fh, gh, sps, f0, gradcoef, df0de, df0dxi)
          f0=f0/nf_axis*T0**(-1.5)*exp(-m_ion(sps)*spd**2/(2*T0*1e3*1.6e-19))
          df0de = -1./(T0*1.6e-19)
          df0dxi = 0.
-         ! if (read(dot_product(fh%rho, gh%g))>0.7) then
-         !    gradf=0.
-         !    df0de=0.
-         !    df0dxi=0.
-         ! endif
+         if (real(dot_product(fh%rho, gh%g))>0.8) then
+            gradf=0.
+            df0de=0.
+            df0dxi=0.
+         endif
       elseif (fast_ion_dist_particle.eq.2) then
          !slowingdown
          gradf=gradf-3./(spd**3 + (2*T0*1.6e-19/m_ion(sps))**(1.5))*(2*T0*1.6e-19/m_ion(sps))**(0.5)/m_ion(2)*1.6e-19*gradT
@@ -3152,8 +3153,8 @@ subroutine particle_pressure_rhs
             !   wnuhere2=0
             !endif
          end if
-         ! wnuhere = (pdata(ipart)%wt) * geomterms%g
-         ! wnuhere2 = (pdata(ipart)%wt) * geomterms%g
+         wnuhere = (pdata(ipart)%wt) * geomterms%g
+         wnuhere2 = (pdata(ipart)%wt) * geomterms%g
          ! wnuhere = geomterms%g
          ! wnuhere2 = geomterms%g
          wnuhere = wnuhere*nrmfac(pdata(ipart)%sps)
@@ -3350,7 +3351,7 @@ subroutine solve_pi_tensor
    call sum_shared(den_i_0%vec)
    call newsolve(diff2_mat, den_i_0%vec, ierr)
    call sum_shared(v_i_par%vec)
-   call newsolve(diff3_mat, v_i_par%vec, ierr)
+   call newsolve(diff2_mat, v_i_par%vec, ierr)
 end subroutine solve_pi_tensor
 !---------------------------------------------------------------------------
 ! Dump particle data for current timeslice using parallel HDF5.
@@ -3701,7 +3702,7 @@ subroutine hdf5_read_particles(filename, ierr)
                      dpar%x(3) = valbuf(4, ipart)
                      dpar%wt = valbuf(5, ipart)
                      ! dpar%wt = 0.
-                     ! dpar%wt = dpar%wt*5.5
+                     ! dpar%wt = dpar%wt*2.666
                      ! dpar%wt = dpar%wt*17.
                      dpar%sps = valbuf(6, ipart)
                      !if (dpar%sps == 1) kinetic_thermal = 1
@@ -4033,9 +4034,15 @@ subroutine set_parallel_velocity
      temp79a= ((ri_79*ps079(:,OP_DR)-bfp079(:,OP_DZ))*(r_79*ph179(:,OP_DR)+ri2_79*ch179(:,OP_DZ)) &
              +(-ri_79*ps079(:,OP_DZ)-bfp079(:,OP_DR))*(-r_79*ph179(:,OP_DZ)+ri2_79*ch179(:,OP_DR)) &
               + bz079(:,OP_1)*vz179(:,OP_1)) &
-            /(ri2_79* &
+            /sqrt(ri2_79* &
             ((ps079(:,OP_DR)-r_79*bfp079(:,OP_DZ))**2 + (ps079(:,OP_DZ)+r_79*bfp079(:,OP_DR))**2 + bz079(:,OP_1)*bz079(:,OP_1)))
-     dofs = intx2(mu79(:,:,OP_1),temp79a)
+     ! temp79b=(r_79*ph179(:,OP_DR)+ri2_79*ch179(:,OP_DZ))**2+ &
+     !         +(-r_79*ph179(:,OP_DZ)+ri2_79*ch179(:,OP_DR))**2+ (r_79*vz179(:,OP_1))**2
+     ! temp79a = sqrt(temp79b-temp79a**2)
+             
+     ! temp79a= ps179(:,OP_GS)
+     ! temp79a= ri2_79*ps179(:,OP_DRP)-ri_79*bz179(:,OP_DZ)-ri_79*bfp179(:,OP_DZP)
+      dofs = intx2(mu79(:,:,OP_1),temp79a)
      call vector_insert_block(p_v%vec,itri,1,dofs,VEC_ADD)
   end do
   !call newvar_solve(p_v%vec,diff_mat)
