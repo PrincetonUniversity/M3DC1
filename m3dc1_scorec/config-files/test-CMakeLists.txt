@@ -17,6 +17,7 @@ endfunction(test_exe_func)
 util_exe_func(check_smb check_smb.cc)
 util_exe_func(collapse collapse.cc)
 util_exe_func(split_smb split_smb.cc)
+util_exe_func(write_topo write_topo.cc)
 
 # send all the newly added utility executable targets
 # back up to the parent (root) scope to be included

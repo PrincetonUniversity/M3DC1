@@ -48,10 +48,8 @@
 #ifdef LICENSE
 #include <SimLicense.h>
 #ifdef STELLAR
+#include <SimLicense.h>
 char simLic[128]="/home/PPPL/simmetrix/license/simmetrix.lic";
-#endif
-#ifdef MIT
-char simLic[128]="/orcd/nese/psfc/001/software/simmetrix/RLMServer-14/server.lic";
 #endif
 #ifdef PPPL
 char simLic[128]="/usr/pppl/Simmetrix/simmodsuite.lic";
@@ -60,7 +58,11 @@ char simLic[128]="/usr/pppl/Simmetrix/simmodsuite.lic";
 char simLic[128]="/scratch/ntm/software/Simmetrix/license/simmodsuite.lic";
 #endif
 #else // scorec
+#ifdef MIT
+char simLic[128]="/orcd/nese/psfc/001/software/simmetrix/RLMServer-14/server.lic";
+#else // SCOREC
 char simLic[128]="/net/common/meshSim/license/license.txt";
+#endif
 #endif
 
 char meshSizeFnName[]="meshSizeFn";
@@ -595,7 +597,7 @@ int main(int argc, char *argv[])
 #ifdef LICENSE
   SimLicense_start("geomsim_core,geomsim_adv,meshsim_surface,meshsim_adv",simLic);
 #else
-  // for SCOREC
+  // for MIT or SCOREC
   Sim_readLicenseFile(simLic);
 #endif
 
@@ -657,7 +659,7 @@ int main(int argc, char *argv[])
   SurfaceMesher_delete(surfMesh);
 
   std::cout<<"\n[INFO] # model entities: V "<<GM_numVertices(sim_model)
-                          <<", E "<<GM_numEdges(sim_model)
+                          <<", E "<<GM_numEdges(sim_model)<<" (vacuum "<<get_vacuum_geid(sim_model)<<")"
                           <<", F "<<GM_numFaces(sim_model)<<"\n";
   std::cout<<"[INFO] # mesh  entities: V "<<M_numVertices(sim_mesh)
                           <<", E "<<M_numEdges(sim_mesh)

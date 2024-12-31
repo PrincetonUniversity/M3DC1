@@ -180,6 +180,7 @@ subroutine set_defaults
   integer :: trilinos_grp
   integer :: prad_grp
   integer :: kprad_grp
+  integer :: particle_grp
 
   ! Dummy variables for reading deprecated options
   ! These must be "saved" so that they will exist when they are written to
@@ -209,6 +210,7 @@ subroutine set_defaults
   call add_group("Trilinos Options", trilinos_grp)
   call add_group("PRAD Options", prad_grp)
   call add_group("KPRAD Options", kprad_grp)
+  call add_group("Particle Simulation Options", particle_grp)
 
 
   ! Normalizations
@@ -458,7 +460,7 @@ subroutine set_defaults
        "alpha parameter in bootstrap current model", model_grp)
   call add_var_int("kinetic", kinetic, 0, &
        "1: Use kinetic PIC; 2: CGL incompressible; 3: CGL", model_grp)
-    
+   
   ! Time step options
   call add_var_int("ntimemax", ntimemax, 20, &
        "Total number of timesteps", time_grp)
@@ -468,6 +470,8 @@ subroutine set_defaults
   call add_var_int("iteratephi", iteratephi, 0, "", time_grp)
   call add_var_int("imp_mod", imp_mod, 1, &
        "Type of split step.  0: Standard;  1: Caramana", time_grp)
+  call add_var_double("caramana_fac", caramana_fac, 1., &
+       "Coefficient for the explicit term in Caramana method. 1: Caramana; 0: implicit", time_grp)
   call add_var_int("idiff", idiff, 0, "only solve for difference in B,p", time_grp)
   call add_var_int("idifv", idifv, 0, "only solve for difference in v", time_grp)
   call add_var_int("irecalc_eta", irecalc_eta, 0, "", time_grp)
@@ -523,6 +527,14 @@ subroutine set_defaults
        "1: Do not let pi drop below pi_floor", num_grp)
   call add_var_double("pi_floor", pi_floor, 0., &
        "Minimum allowed value for pi when iset_pi_floor=1", num_grp)
+  call add_var_int("iset_ne_floor", iset_ne_floor, 0, &
+       "1: Do not let ne drop below ne_floor", num_grp)
+  call add_var_double("ne_floor", ne_floor, 0., &
+       "Minimum allowed value for ne when iset_ne_floor=1", num_grp)
+  call add_var_int("iset_ni_floor", iset_ni_floor, 0, &
+       "1: Do not let ni drop below ni_floor", num_grp)
+  call add_var_double("ni_floor", ni_floor, 0., &
+       "Minimum allowed value for ni when iset_ni_floor=1", num_grp)
   call add_var_int("iset_te_floor", iset_te_floor, 0, &
        "1: Do not let Te drop below te_floor", num_grp)
   call add_var_double("te_floor", te_floor, 0., &
@@ -775,7 +787,7 @@ subroutine set_defaults
   ! Boundary conditions
   call add_var_int("isurface", isurface, 1, "", bc_grp)
   call add_var_int("icurv", icurv, 2, "", bc_grp)
-  call add_var_int("nonrect", nonrect, 0, "", bc_grp)
+  call add_var_int("nonrect", nonrect, 1, "", bc_grp)
   call add_var_int("ifixedb", ifixedb, 0, &
        "1: Force psi=0 on boundary", bc_grp)
   call add_var_int("com_bc", com_bc, 0, "", bc_grp)
@@ -1231,6 +1243,44 @@ subroutine set_defaults
        "Relaxation parameter for rILU", trilinos_grp)
   call add_var_int("poly_ord", poly_ord, 1, &
        "Polynomial order for certain preconditioners", trilinos_grp)
+
+#ifdef USEPARTICLES
+  call add_var_int("kinetic_fast_ion", kinetic_fast_ion, 1, &
+       "1: Enable fast ion PIC", particle_grp)
+  call add_var_int("kinetic_thermal_ion", kinetic_thermal_ion, 0, &
+       "1: Enable thermal ion PIC and density coupling between MHD and PIC", particle_grp)
+  call add_var_int("igyroaverage", igyroaverage, 0, &
+       "1: Enable gyro-averaging for PIC simulation", particle_grp)
+  call add_var_int("particle_linear", particle_linear, linear, &
+       "1: Solve linear delta-f equation. 0: Include nonlinear terms in delta-f", particle_grp)
+  call add_var_int("istatic_gradf", istatic_gradf, 0, &
+       "1: Evaluate Grad.f0 at the begining of the simulation and associate it with particles", particle_grp)
+  call add_var_int("particle_substeps", particle_substeps, 40, &
+       "Number of subcycles for particle pushing in one MHD timestep", particle_grp)
+  call add_var_double("fast_ion_mass", fast_ion_mass, ion_mass, &
+       "Fast ion mass (in units of m_p)", particle_grp)
+  call add_var_double("fast_ion_z", fast_ion_z, z_ion, &
+       "Zeff of fast ion", particle_grp)
+  call add_var_int("fast_ion_dist", fast_ion_dist, 1, &
+       "Type of fast ion distribution function. 0: Read 3D distribution from file. 1: Maxwellian. &
+       2. slowing-down.", particle_grp)
+  call add_var_double("fast_ion_max_energy", fast_ion_max_energy, 1000., &
+       "Maximum energy of fast ion for slowing-down distribution", particle_grp)
+  call add_var_int("num_par_max", num_par_max, 4000000, &
+       "Maximum number of particles", particle_grp)
+  call add_var_double_array("num_par_scale", num_par_scale, 2, 1., &
+       "Scaling factor for particle number initialization", particle_grp)
+  call add_var_double_array("kinetic_nrmfac_scale", kinetic_nrmfac_scale, 2, 1., &
+       "Scaling factor of the normalization term in particle phase space integration", particle_grp)
+  call add_var_int("ikinetic_vpar", ikinetic_vpar, 0, &
+       "1: Synchronize particle parallel flow to MHD", particle_grp)
+  call add_var_double("vpar_reduce", vpar_reduce, 0.5, &
+       "Factor of parallel flow reduction for every timestep", particle_grp)
+  call add_var_double("smooth_par", smooth_par, 1.e-8, &
+       "Smoothing factor for particle pressure", particle_grp)
+  call add_var_double("smooth_pres", smooth_pres, 1.e-8, &
+       "Smoothing factor for electron pressure used for calculating parallel electric field", particle_grp)
+#endif
 
   ! Deprecated
   call add_var_int("ibform", idum, -1, "", deprec_grp)

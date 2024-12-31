@@ -203,9 +203,11 @@ subroutine onestep
   !   call smooth_runaway
   !endif
 
-  ! Calculate all quantities derived from basic fields
-  call find_lcfs()
-  call derived_quantities(1)
+#ifdef USEPARTICLES
+  if(kinetic.eq.0) then
+     call set_parallel_velocity
+  endif
+#endif
 
 #ifdef USEPARTICLES
   if(myrank.eq.0 .and. itimer.eq.1) call second(tstart)
@@ -215,6 +217,10 @@ subroutine onestep
      t_particle = t_particle + tend - tstart
   endif
 #endif
+
+  ! Calculate all quantities derived from basic fields
+  call find_lcfs()
+  call derived_quantities(1)
 
   if(ipellet_abl.gt.0) call pellet_shrink
 
@@ -285,6 +291,7 @@ subroutine scaleback
   use basic
   use arrays
   use diagnostics
+  use particles
 
   implicit none
 
@@ -296,7 +303,25 @@ subroutine scaleback
   call mult(field_vec, scalefac)
   if(i3d.eq.1) call mult(bf_field(1), scalefac)
   if(i3d.eq.1) call mult(bfp_field(1), scalefac)
-  
+
+#ifdef USEPARTICLES
+  if(kinetic.eq.1) then
+     call particle_scaleback(scalefac)
+     ! epar=epar*scalefac**2
+     ! if (hostrank==0) then
+     !    do ipart=ipart_begin,ipart_end
+     !       pdata(ipart)%wt=pdata(ipart)%wt*scalefac
+     !       pdata(ipart)%wt2=pdata(ipart)%wt2*scalefac**2
+     !    end do
+     !    do ielm=ielm_min,ielm_max
+     !       elfieldcoefs(ielm)%psiv1=elfieldcoefs(ielm)%psiv1*scalefac
+     !       elfieldcoefs(ielm)%Bzv1=elfieldcoefs(ielm)%Bzv1*scalefac
+     !       elfieldcoefs(ielm)%Bfv=elfieldcoefs(ielm)%Bfv*scalefac
+     !    end do
+     ! endif
+     ! call update_particle_pressure
+  end if
+#endif
 end subroutine scaleback
 
 

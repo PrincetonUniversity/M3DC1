@@ -148,8 +148,8 @@ contains
 
     ! Define Jphi
     numelms = local_elements()
-!$OMP PARALLEL DO &
-!$OMP& PRIVATE(temp,dofs,dofs_p,imask)
+!!$OMP PARALLEL DO &
+!!$OMP& PRIVATE(temp,dofs,dofs_p,imask)
     do itri=1,numelms
 
        call define_element_quadrature(itri,int_pts_main,int_pts_tor)
@@ -172,16 +172,16 @@ contains
        call apply_boundary_mask(itri, ibound, temp, imask)
        call apply_boundary_mask_vec(itri, ibound, dofs, imask)
        
-!$OMP CRITICAL
+!!$OMP CRITICAL
        call insert_block(lp_matrix, itri, 1, 1, temp, MAT_ADD)
        call vector_insert_block(jphi_vec%vec, itri, 1, dofs, VEC_ADD)
 
        if(ibasicj_solvep.eq.0) then
           call vector_insert_block(p_vec%vec, itri, 1, dofs_p, VEC_ADD)
        end if
-!$OMP END CRITICAL
+!!$OMP END CRITICAL
     enddo
-!$OMP END PARALLEL DO
+!!$OMP END PARALLEL DO
     
     call sum_shared(jphi_vec%vec)
     call boundary_dc(jphi_vec%vec, jphi_vec%vec, lp_matrix)
@@ -207,8 +207,8 @@ contains
        
     jphi_vec = 0.
     if(basicj_j0 .eq. 0.) ibound = BOUNDARY_NONE
-!$OMP PARALLEL DO &
-!$OMP& PRIVATE(temp,dofs,imask)
+!!$OMP PARALLEL DO &
+!!$OMP& PRIVATE(temp,dofs,imask)
     do itri=1,numelms
        
        call define_element_quadrature(itri,int_pts_main,int_pts_tor)
@@ -253,12 +253,12 @@ contains
        call apply_boundary_mask(itri, ibound, temp, imask)
        call apply_boundary_mask_vec(itri, ibound, dofs, imask)
           
-!$OMP CRITICAL       
+!!$OMP CRITICAL       
        call insert_block(dr_matrix, itri, 1, 1, temp, MAT_ADD)
        call vector_insert_block(jphi_vec%vec, itri, 1, dofs, MAT_ADD)
-!$OMP END CRITICAL
+!!$OMP END CRITICAL
     enddo
-!$OMP END PARALLEL DO
+!!$OMP END PARALLEL DO
     
     call sum_shared(jphi_vec%vec)
     if(basicj_j0.ne.0.) call boundary_dc(jphi_vec%vec, jphi_vec%vec, dr_matrix)
@@ -284,8 +284,8 @@ contains
     call create_field(vz_vec)
     vz_vec = 0.
 
-!$OMP PARALLEL DO &
-!$OMP& PRIVATE(dofs,dofs_vz)
+!!$OMP PARALLEL DO &
+!!$OMP& PRIVATE(dofs,dofs_vz)
     do itri=1,numelms
 
        call define_element_quadrature(itri,int_pts_main,int_pts_tor)
@@ -305,14 +305,14 @@ contains
           dofs = intx2(mu79(:,:,OP_1),temp79a)
        end if
 
-!$OMP CRITICAL
+!!$OMP CRITICAL
        call vector_insert_block(vz_vec%vec, itri, 1, dofs_vz, MAT_ADD)
        if(ibasicj_solvep.eq.0) then
           call vector_insert_block(f_vec%vec, itri, 1, dofs, MAT_ADD)
        end if
-!$OMP END CRITICAL
+!!$OMP END CRITICAL
     enddo
-!$OMP END PARALLEL DO
+!!$OMP END PARALLEL DO
     
 !    call sum_shared(f_vec%vec)
 

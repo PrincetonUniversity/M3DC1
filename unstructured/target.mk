@@ -70,6 +70,13 @@ install_doc :
 	cp doc/* $(INSTALL_DIR)/doc
 	-chmod 644 $(INSTALL_DIR)/doc/*
 
+.PHONY: install_tutorials
+install_tutorials :
+	mkdir -m 755 -p $(INSTALL_DIR)/tutorials
+	cp -r tutorials/* $(INSTALL_DIR)/tutorials
+	find $(INSTALL_DIR)/tutorials -type d -exec chmod 755 {} \;
+	find $(INSTALL_DIR)/tutorials -type f -exec chmod 644 {} \;
+
 .PHONY: install_templates
 install_templates : templates
 	cp -r templates $(INSTALL_DIR)/
@@ -105,7 +112,7 @@ install_device_data : # device_data
 #	-chmod 755 $(INSTALL_DIR)/bin/convert_sim_sms
 
 .PHONY: install
-install : install_idl install_doc install_device_data #install_scorec
+install : install_idl install_doc install_device_data install_tutorials #install_scorec
 	echo $(ARCH)
 	mkdir -m 755 -p $(INSTALL_DIR)
 	mkdir -m 755 -p $(INSTALL_DIR)/batch

@@ -15,7 +15,7 @@ import m3dc1.fpylib as fpyl
 
 
 
-def extend_profile(filename,psimax=1.05,psimatch=-1,fitrange=None,minval=None,match=True,smooth=0,weighted=True,suffix='.extended',back_to_maindir=False):
+def extend_profile(filename,psimax=1.05,psimatch=-1,fitrange=None,minval=None,match=True,smooth=0,weighted=True,scale_profile=1.0,suffix='.extended',back_to_maindir=False):
     """
     Extends profile beyond the last closed flux surface (psi_n=1) based on a tanh fit. If desired,
     the fit parameters are adjusted such that the profile and its first derivative are continuous
@@ -46,10 +46,20 @@ def extend_profile(filename,psimax=1.05,psimatch=-1,fitrange=None,minval=None,ma
     **weighted**
     If True, weight fit by 1/y
 
+    **scale_profile**
+    Factor to scale the profile by.
+
     **suffix**
     File extension for output file
+
+    **back_to_maindir**
+    Default: False. If True, the current working directory will be deleted and
+    cd to '../../'. Should be set to True when used during an automated workflow.
     """
     x,y = fpyl.ReadTwoColFile(filename)
+    
+    if scale_profile != 1.0:
+        y = y*scale_profile
     
     if isinstance(fitrange, float) or isinstance(fitrange, int):
             fitrange = [fitrange,max(x)]
@@ -208,8 +218,8 @@ def extend_profile(filename,psimax=1.05,psimatch=-1,fitrange=None,minval=None,ma
         pltbd = x_match+1
     else:
         pltbd = None
-    print(x_in)
-    print(yp[:pltbd])
+    #print(x_in)
+    #print(yp[:pltbd])
     f2_ax2.plot(x_in,yp[:pltbd],c='C0')
     f2_ax2.plot(xnew,ynewp,c='C1',ls='--')
     
@@ -249,13 +259,13 @@ def extend_profile(filename,psimax=1.05,psimatch=-1,fitrange=None,minval=None,ma
     #plt.plot(xx,yyp)
     
     
-    
     # Write new profile to file
     outfile = filename+suffix
     with open(outfile, 'w') as f:
         for i in range(len(xnew)):
             f.write('{:12.6f}{:12.6f}'.format(xnew[i],ynew[i]) +'\n')
     print('Profile written to file '+outfile)
+    
     return yfit
 
 
@@ -281,3 +291,46 @@ def tanhfit2(x, a,b,c,d,e):
     s = 0.5*c*(1.+d*(1.-x))
     f = s*(1.-t) + e
     return f
+
+
+
+
+def check_profile(profile):
+    """
+    Checks if a kinetic profile is positive everywhere and if the extended values
+    beyond the last closed flux surface are monotonically decreasing.
+    
+    Arguments:
+
+    **profile**
+    Name of kinetic profile, e.g. 'profile_te', 'profile_ne', 'profile_omega'
+    """
+    psi_n,prof = fpyl.ReadTwoColFile(profile)
+    psi_inner = fpyl.find_nearest(psi_n, 0.996)
+    psi_ind = fpyl.get_ind_at_val(psi_n, psi_inner, unique=True)
+    #print(psi_ind)
+    prof_ext = prof[psi_ind:]
+    is_decr = fpyl.strict_dec(prof_ext)
+    is_non_inc = fpyl.non_inc(prof_ext)
+    is_positive = all(i >= 0.0 for i in prof)
+    if is_decr and is_positive:
+        ierr = 0
+        fpyl.printnote('Outside of LCFS '+profile+' is strictly monotonic and positive.')
+    else:
+        if is_decr:
+            ierr = 1 # Profile is decreasing but not positive everywhere
+            fpyl.printerr('ERROR: '+profile+' is negative somewhere!')
+        elif is_positive:
+            if is_non_inc:
+                ierr = 0
+                fpyl.printnote('Outside of LCFS '+profile+' is monotonic and positive.')
+            else:
+                ierr = 2 # Profile is not decreasing, but positive everywhere
+                fpyl.printerr('ERROR: '+profile+' is not monotocially decreasing at psi_n > 1.')
+        else:
+            ierr = 3 # Profile is neither decreasing nor positive everywhere
+            fpyl.printerr('ERROR: '+profile+' is negative somewhere and not monotonically decreasing at psi_n > 1!')
+    #Plot profiles for verification
+    #psin,prof = fpyl.ReadTwoColFile(profile)
+    #fpyl.plot2d(psi_n,prof)
+    return ierr

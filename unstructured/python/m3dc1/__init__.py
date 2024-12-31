@@ -39,6 +39,7 @@ from m3dc1.flux_average         import flux_average
 from m3dc1.flux_average         import flux_average_at_psin
 from m3dc1.plot_flux_average    import plot_flux_average
 from m3dc1.eigenfunction        import eigenfunction
+from m3dc1.eigenfunction        import eigenfunction_vs_psin
 from m3dc1.eigenfunction        import mode_type
 from m3dc1.extend_profile       import extend_profile
 from m3dc1.mesh_size            import mesh_size
@@ -47,11 +48,16 @@ from m3dc1.tpf                  import tpf_vs_t
 from m3dc1                      import read_h5
 from m3dc1.compare_kinetic_profiles         import compare_kinetic_profiles
 from m3dc1.injection_rate       import injection_rate
+from m3dc1.get_field            import get_field
 
 from m3dc1.get_time_of_slice    import get_time_of_slice
 
+from m3dc1.gamma_file           import Gamma_file
+
 from m3dc1.extract_profiles     import extract_profiles
 from m3dc1.extract_profiles     import convert_p
+
+from m3dc1.get_shape            import get_shape
 
 from m3dc1.poincare             import run_trace
 from m3dc1.poincare             import plot_poincare
@@ -62,12 +68,19 @@ from m3dc1.gfile                import plot_gfile
 from m3dc1.gfile                import plot_flux
 from m3dc1.gfile                import plot_jphi
 
+from m3dc1.chease_equilibrium   import convert_eq_chease
+
 from m3dc1.plot_coils           import plot_coils
 
 from m3dc1.plot_mag_probes      import plot_mag_probes
 
 from m3dc1.write_field          import write_field
 from m3dc1.reduce_ts            import reduce_ts
+
+from m3dc1.pedestal_finder      import pedestal_finder
+from m3dc1.pedestal_finder      import pedestal_finder_fit
+from m3dc1.pedestal_finder      import get_ped_structure
+
 from m3dc1.input_vs_t           import input_vs_t
 
 #Modules in development

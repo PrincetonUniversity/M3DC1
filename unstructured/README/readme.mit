@@ -2,6 +2,7 @@
 
    ssh -P eofe4.mit.edu -l [username]
    ssh -P eofe10.mit.edu -l [username]
+   salloc -p sched_mit_psfc_r8 --nodes 1 --ntasks-per-node=1 01:00:00 --x11
 
 2. code
    git clone git@github.com:PrincetonUniversity/M3DC1.git 
@@ -14,20 +15,19 @@
    for development modules:
        export M3DC1_CODE_DIR=$HOME/src/M3DC1  [for example]
        module use $M3DC1_CODE_DIR/unstructured/modules/mit
-       module load m3dc1/devel-gcc
+       module load m3dc1/devel-intel
 
    or
-   module load cmake gcc/12.2.0-x86_64
-   module use /orcd/nese/psfc/001/software/modulefiles/spack-modules
-   module load openmpi-4.1.4-gcc-12.2.0-3r4zaih
+   module use /orcd/nese/psfc/001/software/spack/2023-07-01-physics-rpp/spack/share/spack/modules-test/linux-rocky8-x86_64
+   module load intel-oneapi-mkl/2023.1.0-intel-oneapi-mpi-2021.9.0-gcc-12.2.0-module-seow5nc
 
 4. compile code
 
-   make ARCH=mit_gcc all
-    (make OPT=1 RL=1 MAX_PTS=25 ARCH=mit_gcc
-     make OPT=1 COM=1 MAX_PTS=25 ARCH=mit_gcc
-     make 3D=1 OPT=1 MAX_PTS=60 ARCH=mit_gcc
-     make 3D=1 OPT=1 MAX_PTS=60 ARCH=mit_gcc
+   make ARCH=mit all
+    (make OPT=1 RL=1 MAX_PTS=25 ARCH=mit
+     make OPT=1 COM=1 MAX_PTS=25 ARCH=mit
+     make 3D=1 OPT=1 MAX_PTS=60 ARCH=mit
+     make 3D=1 OPT=1 MAX_PTS=60 ARCH=mit
     )
 
 5. mesh utility
@@ -40,7 +40,7 @@
   For more details, see readme and M3DC1 User's Guide (https://m3dc1.pppl.gov/M3DC1.pdf)
 
 5.2 mesh partitioning and merging
-  see $SCOREC_UTIL_DIR in mit_gcc.mk
+  see $SCOREC_UTIL_DIR in mit.mk
 
 6. options_bjacobi for 3D
 

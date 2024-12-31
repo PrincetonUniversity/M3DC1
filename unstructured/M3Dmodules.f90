@@ -309,8 +309,20 @@ module basic
                          ! 2 = CGL form for the pressure tensor (incompressible)
                          ! 3 = CGL form for pressure tensor (full)
 #ifdef USEPARTICLES
-  integer :: kinetic_thermal
-  logical :: gyroaverage
+  integer :: kinetic_fast_ion, kinetic_thermal_ion
+  integer :: igyroaverage
+  integer :: istatic_gradf
+  integer :: particle_linear
+  integer :: particle_substeps
+  real :: fast_ion_mass, fast_ion_z
+  integer :: fast_ion_dist
+  real :: fast_ion_max_energy
+  integer :: num_par_max
+  real, dimension(2) :: num_par_scale
+  real, dimension(2) :: kinetic_nrmfac_scale
+  integer :: ikinetic_vpar
+  real :: vpar_reduce
+  real :: smooth_par, smooth_pres
 #endif
 
   integer :: iohmic_heating  ! 1 = include ohmic heating
@@ -339,6 +351,7 @@ module basic
   integer :: itime_independent ! 1 = exclude d/dt terms
   integer :: iset_pe_floor, iset_pi_floor
   integer :: iset_te_floor, iset_ti_floor
+  integer :: iset_ne_floor, iset_ni_floor
   integer :: idiff       ! 1 = solve for difference in solution in B,p from n to n+1
   integer :: idifv       ! 1 = solve for difference in solution in v from n to n+1
   integer :: ksp_max     ! if.gt.0  max number of petsc iterations before time step is repeated
@@ -357,7 +370,9 @@ module basic
   real :: gamma_gr       ! growth rate based on kinetic energy -- used in variable_timestep
   real :: pe_floor, pi_floor
   real :: te_floor, ti_floor
+  real :: ne_floor, ni_floor
   real :: frequency      ! frequency in time-independent calculation
+  real :: caramana_fac   ! coefficient for the explicit term in Caramana method (imp_mod=1)
 
   ! poloidal force parameters
   integer :: ipforce     ! 1 = include poloidal momentum source
@@ -556,7 +571,7 @@ module arrays
 #endif
 #ifdef USEPARTICLES
   type(field_type) :: rho_field, nf_field, tf_field, pf_field, vfpar0_field
-  type(field_type) :: nfi_field, tfi_field, pfi_field, psmooth_field, bzsmooth_field, psismooth_field, bz1_field, psi1_field, u0_field, chi0_field,vz0_field
+  type(field_type) :: nfi_field, tfi_field, pfi_field, psmooth_field, vparsmooth_field
   type(field_type) :: epar_field, den2_field
 
   type(field_type) :: p_f_par, p_f_perp  !Kinetic pressure tensor components

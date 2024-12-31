@@ -28,7 +28,7 @@ macro(simmetrixLibCheck libs isRequired)
 endmacro(simmetrixLibCheck)
 
 set(SIMMETRIX_LIB_NAMES
-  SimLicense  #-- valid for PPPL
+	#SimLicense  #-- valid for PPPL
   SimPartitionedMesh #-mpi
   SimMeshing
   SimMeshTools
@@ -53,7 +53,7 @@ string(REGEX REPLACE
   SIMMETRIX_INSTALL_DIR
   "${SIMMETRIX_INCLUDE_DIR}")
 
-set(SIMMETRIX_LIBRARIES ${SIMMETRIX_LIBS} )
+set(SIMMETRIX_LIBRARIES ${SIMMETRIX_LIBS} ${TIRPC_LIBRARY})
 set(SIMMETRIX_INCLUDE_DIRS ${SIMMETRIX_INCLUDE_DIR} )
 
 include(FindPackageHandleStandardArgs)
@@ -62,7 +62,7 @@ include(FindPackageHandleStandardArgs)
 find_package_handle_standard_args(SIMMETRIX  DEFAULT_MSG
                                   SIMMETRIX_LIBS SIMMETRIX_INCLUDE_DIR)
 
-mark_as_advanced(SIMMETRIX_INCLUDE_DIR SIMMETRIX_LIBS)
+mark_as_advanced(SIMMETRIX_INCLUDE_DIR SIMMETRIX_LIBS ${TIRPC_LIBRARY})
 
 set(SIMMETRIX_LINK_LIBS "")
 foreach(lib ${SIMMETRIX_LIB_NAMES})

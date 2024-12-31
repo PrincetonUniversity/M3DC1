@@ -102,8 +102,9 @@ def compare_kinetic_profiles(sim=None, fcoords='pest', deriv=0, points=200, file
     if not np.all(flux_ni==flux_ti):
         fpyl.printwarn('WARNING: fluxes for ni and ti are not identical!')
     
-    pe = ne*te*11604.51812*1.380649E-23
-    pi = ni*ti*11604.51812*1.380649E-23
+    norm = 11604.51812*1.380649E-23 if units=='mks' else 1.0
+    pe = ne*te*norm
+    pi = ni*ti*norm
     
     # Set font sizes and plot style parameters
     if pub:

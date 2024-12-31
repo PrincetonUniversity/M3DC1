@@ -1,6 +1,5 @@
 ! This module reads in and processes data from VMEC files
 module read_vmec 
-  use spline
   implicit none
   character(len=256) :: vmec_filename
   real :: bloat_factor     ! factor to expand VMEC domain 
@@ -11,25 +10,22 @@ module read_vmec
 #ifdef USEST
   integer :: nfp, lasym
   real, allocatable :: rbc(:), zbs(:)
-  real, allocatable :: rmnc(:,:), zmns(:,:), lmns(:,:)!, gmnc(:,:)
-  real, allocatable :: rmncz(:,:), zmnsz(:,:), lmnsz(:,:)!, gmncz(:,:)
+  real, allocatable :: rmnc(:,:), zmns(:,:)!, lmns(:,:), gmnc(:,:)
+  real, allocatable :: rmncz(:,:), zmnsz(:,:)!, lmnsz(:,:), gmncz(:,:)
   real, allocatable :: rbs(:), zbc(:)
-  real, allocatable :: rmns(:,:), zmnc(:,:), lmnc(:,:)
-  real, allocatable :: rmnsz(:,:), zmncz(:,:), lmncz(:,:)
+  real, allocatable :: rmns(:,:), zmnc(:,:)!, lmnc(:,:)
+  real, allocatable :: rmnsz(:,:), zmncz(:,:)!, lmncz(:,:)
+  real, allocatable :: presf(:)!, phiv(:), chiv(:)
   real, allocatable :: bsupumnc(:,:), bsupvmnc(:,:)
-  real, allocatable :: bsupumncz(:,:), bsupvmncz(:,:)
   real, allocatable :: bsupumns(:,:), bsupvmns(:,:)
-  real, allocatable :: bsupumnsz(:,:), bsupvmnsz(:,:)
-  real, allocatable :: presf(:), phiv(:), chiv(:)
+!  real, allocatable :: bsupumncz(:,:), bsupvmncz(:,:)
+!  real, allocatable :: bsupumnsz(:,:), bsupvmnsz(:,:)
 !  real, allocatable :: raxiscc(:), zaxiscs(:)
   integer, allocatable :: mb(:), nb(:), mb_nyq(:), nb_nyq(:)
   real, allocatable :: xmv(:), xnv(:), xnv_nyq(:), xmv_nyq(:)
   integer :: mn_mode, mn_mode_nyq, ns, n_tor, n_zer, m_pol, n_quad
   integer :: m_nyq, n_nyq, n_zer_nyq  
   real, allocatable :: s_vmec(:), quad(:,:) 
-  type(spline1d) :: presf_spline      ! total pressure
-  type(spline1d) :: phiv_spline       ! toroidal flux
-  type(spline1d) :: chiv_spline       ! poloidal flux
 
 contains
   ! read VMEC data and put on Zernike or spline basis
@@ -40,15 +36,12 @@ contains
     integer, intent(in) :: myrank
     integer :: i 
 
-    !call read_vmec_h5(myrank)
     call read_vmec_nc(myrank)
     ! real to integer
     mb = nint(xmv)
     nb = nint(xnv)
     mb_nyq = nint(xmv_nyq)
     nb_nyq = nint(xnv_nyq)
-    ! normalize pressure
-    presf = presf*pi*4e-7
     ! boundary coefficients
     rbc = rmnc(:,ns)
     zbs = zmns(:,ns)
@@ -58,12 +51,9 @@ contains
     endif
     ! Change from half to full mesh
     if(myrank.eq.0) print *, 'half mesh to full'
-    call half2full(mn_mode,mb,lmns)
-!    call half2full(mn_mode_nyq,mb_nyq,gmnc)
     call half2full(mn_mode_nyq,mb_nyq,bsupumnc)
     call half2full(mn_mode_nyq,mb_nyq,bsupvmnc)
     if(lasym.eq.1) then
-      call half2full(mn_mode,mb,lmnc)
       call half2full(mn_mode_nyq,mb_nyq,bsupumns)
       call half2full(mn_mode_nyq,mb_nyq,bsupvmns)
     end if
@@ -87,10 +77,6 @@ contains
     if(myrank.eq.0) print *, 'rmnc transformed'
     call zernike_transform(mn_mode,mb,zmns,zmnsz)
     if(myrank.eq.0) print *, 'zmns transformed'
-!    call zernike_transform(mn_mode,mb,lmns,lmnsz)
-!    if(myrank.eq.0) print *, 'lmns transformed'
-!    call zernike_transform(mn_mode_nyq,mb_nyq,gmnc,gmncz)
-!    if(myrank.eq.0) print *, 'gmnc transformed'
 !    call zernike_transform(mn_mode_nyq,mb_nyq,bsupumnc,bsupumncz)
 !    if(myrank.eq.0) print *, 'bsupumnc transformed'
 !    call zernike_transform(mn_mode_nyq,mb_nyq,bsupvmnc,bsupvmncz)
@@ -100,8 +86,6 @@ contains
       if(myrank.eq.0) print *, 'rmns transformed'
       call zernike_transform(mn_mode,mb,zmnc,zmncz)
       if(myrank.eq.0) print *, 'zmnc transformed'
-!      call zernike_transform(mn_mode,mb,lmnc,lmncz)
-!      if(myrank.eq.0) print *, 'lmnc transformed'
 !      call zernike_transform(mn_mode_nyq,mb_nyq,bsupumns,bsupumnsz)
 !      if(myrank.eq.0) print *, 'bsupumns transformed'
 !      call zernike_transform(mn_mode_nyq,mb_nyq,bsupvmns,bsupvmnsz)
@@ -109,28 +93,6 @@ contains
     endif
     ! Make sure pressure is positive
     if (presf(ns).lt.0) presf = presf - presf(ns)
-    ! 1D spline for pressure
-    call create_spline(presf_spline, ns, s_vmec, presf)
-    call create_spline(phiv_spline, ns, s_vmec, phiv)
-    call create_spline(chiv_spline, ns, s_vmec, chiv)
-
-!    do i = 1, mn_mode
-!        print *, mb(i), nb(i)
-!        print *, sum(rmncz(i,:)) 
-!        print *, rmnc(i,ns) 
-!       do j = mb(i), n_zer, 2
-!          !if (abs(rmncz(i,j+1).gt.0.1)) then
-!            print *, j, mb(i), nb(i)
-!            print *, rmncz(i,j+1)
-!          !end if 
-!          do k = ns, ns
-!             rho = sqrt((k-1.)/(ns-1))
-!             call zernike_polynomial(rho,j,mb(i),zmn) 
-!             !print *, rho, j, mb(i), zmn
-!          end do
-!       end do
-!    end do
-
   end subroutine process_vmec
 
   subroutine allocate_vmec()
@@ -145,12 +107,8 @@ contains
     allocate(mb_nyq(mn_mode_nyq))
     allocate(nb_nyq(mn_mode_nyq))
     allocate(presf(ns))
-    allocate(phiv(ns))
-    allocate(chiv(ns))
     allocate(rmnc(mn_mode,ns))
     allocate(zmns(mn_mode,ns))
-    allocate(lmns(mn_mode,ns))
-!    allocate(gmnc(mn_mode_nyq,ns))
     allocate(bsupumnc(mn_mode_nyq,ns))
     allocate(bsupvmnc(mn_mode_nyq,ns))
     allocate(rbc(mn_mode))
@@ -172,30 +130,21 @@ contains
     end if
     allocate(rmncz(mn_mode,n_zer+1))
     allocate(zmnsz(mn_mode,n_zer+1))
-    allocate(lmnsz(mn_mode,n_zer+1))
-!    allocate(gmncz(mn_mode_nyq,n_zer+1))
-    allocate(bsupumncz(mn_mode_nyq,n_zer+1))
-    allocate(bsupvmncz(mn_mode_nyq,n_zer+1))
+    !allocate(bsupumncz(mn_mode_nyq,n_zer+1))
+    !allocate(bsupvmncz(mn_mode_nyq,n_zer+1))
     if(lasym.eq.1) then
       allocate(rmns(mn_mode,ns))
       allocate(zmnc(mn_mode,ns))
-      allocate(lmnc(mn_mode,ns))
       allocate(rbs(mn_mode))
       allocate(zbc(mn_mode))
       allocate(rmnsz(mn_mode,n_zer+1))
       allocate(zmncz(mn_mode,n_zer+1))
-      allocate(lmncz(mn_mode,n_zer+1))
       allocate(bsupumns(mn_mode_nyq,ns))
       allocate(bsupvmns(mn_mode_nyq,ns))
-      allocate(bsupumnsz(mn_mode_nyq,n_zer+1))
-      allocate(bsupvmnsz(mn_mode_nyq,n_zer+1))
+      !allocate(bsupumnsz(mn_mode_nyq,n_zer+1))
+      !allocate(bsupvmnsz(mn_mode_nyq,n_zer+1))
     endif
     allocate(s_vmec(ns))
-!    if(mod(n_zer,2).eq.1) then
-!      n_quad = (n_zer+1)/2
-!    else 
-!      n_quad = n_zer/2
-!    end if 
     n_quad = 1*n_zer + 1
     allocate(quad(2,n_quad))
   end subroutine allocate_vmec
@@ -276,20 +225,11 @@ contains
     xnv_nyq = -xnv_nyq ! change sign for consistency
     if(myrank.eq.0) print *, 'xnv_nyq read'
 
-
     ! Get 1D array presf, phiv, chiv
     ierr = nf90_inq_varid(ncid, "presf", id)
     ierr = ierr + nf90_get_var(ncid, id, presf)
     if(ierr.ne.0) call safestop(5) 
     if(myrank.eq.0) print *, 'presf read'
-    ierr = nf90_inq_varid(ncid, "phi", id)
-    ierr = ierr + nf90_get_var(ncid, id, phiv)
-    if(ierr.ne.0) call safestop(5) 
-    if(myrank.eq.0) print *, 'phiv read'
-    !ierr = nf90_inq_varid(ncid, "chi", id)
-    !ierr = ierr + nf90_get_var(ncid, id, chiv)
-    !if(ierr.ne.0) call safestop(5) 
-    !if(myrank.eq.0) print *, 'chiv read'
 
     ! Get 2D array rmnc, zmns, lmns 
     ierr = nf90_inq_varid(ncid, "rmnc", id)
@@ -300,10 +240,6 @@ contains
     ierr = ierr + nf90_get_var(ncid, id, zmns)
     if(ierr.ne.0) call safestop(5) 
     if(myrank.eq.0) print *, 'zmns read'
-    ierr = nf90_inq_varid(ncid, "lmns", id)
-    ierr = ierr + nf90_get_var(ncid, id, lmns)
-    if(ierr.ne.0) call safestop(5) 
-    if(myrank.eq.0) print *, 'lmns read'
     if(lasym.eq.1) then
       ierr = nf90_inq_varid(ncid, "rmns", id)
       ierr = ierr + nf90_get_var(ncid, id, rmns)
@@ -313,17 +249,9 @@ contains
       ierr = ierr + nf90_get_var(ncid, id, zmnc)
       if(ierr.ne.0) call safestop(5) 
       if(myrank.eq.0) print *, 'zmnc read'
-      ierr = nf90_inq_varid(ncid, "lmnc", id)
-      ierr = ierr + nf90_get_var(ncid, id, lmnc)
-      if(ierr.ne.0) call safestop(5) 
-      if(myrank.eq.0) print *, 'lmnc read'
     endif
 
     ! Get 2D array gmnc, bsupumnc, bsupsmnv 
-!    ierr = nf90_inq_varid(ncid, "gmnc", id)
-!    ierr = ierr + nf90_get_var(ncid, id, gmnc)
-!    if(ierr.ne.0) call safestop(5) 
-!    if(myrank.eq.0) print *, 'gmnc read'
     ierr = nf90_inq_varid(ncid, "bsupumnc", id)
     ierr = ierr + nf90_get_var(ncid, id, bsupumnc)
     if(ierr.ne.0) call safestop(5) 
@@ -343,110 +271,6 @@ contains
       if(myrank.eq.0) print *, 'bsupvmns read'
     endif
   end subroutine read_vmec_nc
-
-!! Depracated 
-!  subroutine read_vmec_h5(myrank)
-!    use hdf5
-!    
-!    implicit none
-!    
-!
-!    integer, intent(in) :: myrank 
-!    integer :: error 
-!
-!    integer(HID_T) :: file_id, dset_id, attr_id
-!    integer(HSIZE_T), dimension(1) :: dim0 = 1
-!    integer(HSIZE_T), dimension(1) :: dim1 
-!    integer(HSIZE_T), dimension(2) :: dim2
-!
-!    vmec_filename = "geometry.h5"
-!    call h5open_f(error)
-!    call h5fopen_f(vmec_filename, H5F_ACC_RDONLY_F, file_id, error)
-!
-!    ! read attributes ns, n_tor, m_pol, nfp, and mn_mode
-!    call h5gopen_f(file_id, '/', dset_id, error)
-!    call h5aopen_name_f(dset_id, 'ns', attr_id, error)
-!    call h5aread_f(attr_id, H5T_NATIVE_INTEGER, ns, dim0, error)
-!    call h5aclose_f(attr_id, error)
-!    call h5aopen_name_f(dset_id, 'ntor', attr_id, error)
-!    call h5aread_f(attr_id, H5T_NATIVE_INTEGER, n_tor, dim0, error)
-!    call h5aclose_f(attr_id, error)
-!    call h5aopen_name_f(dset_id, 'mpol', attr_id, error)
-!    call h5aread_f(attr_id, H5T_NATIVE_INTEGER, m_pol, dim0, error)
-!    call h5aclose_f(attr_id, error)
-!    call h5aopen_name_f(dset_id, 'nfp', attr_id, error)
-!    call h5aread_f(attr_id, H5T_NATIVE_INTEGER, nfp, dim0, error)
-!    call h5aclose_f(attr_id, error)
-!    call h5aopen_name_f(dset_id, 'mnmode', attr_id, error)
-!    call h5aread_f(attr_id, H5T_NATIVE_INTEGER, mn_mode, dim0, error)
-!    call h5aclose_f(attr_id, error)
-!    call h5gclose_f(dset_id, error)
-!    mn_mode_nyq = mn_mode
-!    if(myrank.eq.0) print *, 'attributes read'
-!    if(myrank.eq.0) print *, mn_mode, mn_mode_nyq, ns, nfp
-!
-!    call allocate_vmec()
-!
-!    dim1(1) = mn_mode
-!    ! read 1d arrays xmv and xnv 
-!    call h5dopen_f(file_id, 'xm', dset_id, error)
-!    call h5dread_f(dset_id, H5T_NATIVE_DOUBLE, xmv, dim1, error)
-!    call h5dclose_f(dset_id, error)
-!    call h5dopen_f(file_id, 'xn', dset_id, error)
-!    call h5dread_f(dset_id, H5T_NATIVE_DOUBLE, xnv, dim1, error)
-!    call h5dclose_f(dset_id, error)
-!    if(myrank.eq.0) print *, 'xmv, xnv read'
-!
-!    dim1(1) = ns
-!    ! read 1d array presf
-!    call h5dopen_f(file_id, 'presf', dset_id, error)
-!    call h5dread_f(dset_id, H5T_NATIVE_DOUBLE, presf, dim1, error)
-!    call h5dclose_f(dset_id, error)
-!    if(myrank.eq.0) print *, 'presf read'
-!
-!!    dim1(1) = n_tor+1
-!!    allocate(raxiscc(n_tor+1))
-!!    allocate(zaxiscs(n_tor+1))
-!!    ! read 1d arrays raxisicc and zaxiscs 
-!!    call h5dopen_f(file_id, 'raxiscc', dset_id, error)
-!!    call h5dread_f(dset_id, H5T_NATIVE_DOUBLE, raxiscc, dim1, error)
-!!    call h5dclose_f(dset_id, error)
-!!    call h5dopen_f(file_id, 'zaxiscs', dset_id, error)
-!!    call h5dread_f(dset_id, H5T_NATIVE_DOUBLE, zaxiscs, dim1, error)
-!!    call h5dclose_f(dset_id, error)
-!!    if(myrank.eq.0) print *, 'raxiscc, zaxiscs read'
-!!    if(myrank.eq.0) print *, raxiscc(:) 
-!!    if(myrank.eq.0) print *, zaxiscs(:) 
-!
-!    dim2(1) = mn_mode
-!    dim2(2) = ns
-!    ! read 2d arrays rmnc and zmns
-!    call h5dopen_f(file_id, 'rmnc', dset_id, error)
-!    call h5dread_f(dset_id, H5T_NATIVE_DOUBLE, rmnc, dim2, error)
-!    call h5dclose_f(dset_id, error)
-!    call h5dopen_f(file_id, 'zmns', dset_id, error)
-!    call h5dread_f(dset_id, H5T_NATIVE_DOUBLE, zmns, dim2, error)
-!    call h5dclose_f(dset_id, error)
-!    if(myrank.eq.0) print *, 'rmnc, zmns read'
-!    call h5dopen_f(file_id, 'bsupumnc', dset_id, error)
-!    call h5dread_f(dset_id, H5T_NATIVE_DOUBLE, bsupumnc, dim2, error)
-!    call h5dclose_f(dset_id, error)
-!    call h5dopen_f(file_id, 'bsupvmnc', dset_id, error)
-!    call h5dread_f(dset_id, H5T_NATIVE_DOUBLE, bsupvmnc, dim2, error)
-!    call h5dclose_f(dset_id, error)
-!    if(myrank.eq.0) print *, 'bsupumnc, bsupvmnc read'
-!
-!    call h5fclose_f(file_id, error)
-!    call h5close_f(error)
-!
-!    if(mn_mode.eq.0) then 
-!      if(myrank.eq.0) print *, 'Error: could not find geometry'
-!      call safestop(5)
-!    else
-!      if(myrank.eq.0) print *, 'VMEC geometry read'
-!    end if
-!
-!  endsubroutine read_vmec_h5
 
   ! read boundary geometry from file
   subroutine read_boundary_geometry(myrank)
@@ -476,42 +300,35 @@ contains
     deallocate(xnv)
     deallocate(mb)
     deallocate(nb)
-!    deallocate(xmv_nyq)
-!    deallocate(xnv_nyq)
-!    deallocate(mb_nyq)
-!    deallocate(nb_nyq)
+    deallocate(xmv_nyq)
+    deallocate(xnv_nyq)
+    deallocate(mb_nyq)
+    deallocate(nb_nyq)
     deallocate(rmnc)
     deallocate(zmns)
-    deallocate(lmns)
     deallocate(rmncz)
     deallocate(zmnsz)
-    deallocate(lmnsz)
-!    deallocate(gmnc)
-!    deallocate(gmncz)
-!    deallocate(bsupumnc)
-!    deallocate(bsupvmnc)
-!    deallocate(bsupumncz)
-!    deallocate(bsupvmncz)
+    deallocate(bsupumnc)
+    deallocate(bsupvmnc)
     deallocate(rbc)
     deallocate(zbs)
+!    deallocate(bsupumncz)
+!    deallocate(bsupvmncz)
     if(lasym.eq.1) then
       deallocate(rmns)
       deallocate(zmnc)
-      deallocate(lmnc)
       deallocate(rmnsz)
       deallocate(zmncz)
-      deallocate(lmncz)
       deallocate(rbs)
       deallocate(zbc)
+      deallocate(bsupumns)
+      deallocate(bsupvmns)
+!      deallocate(bsupumnsz)
+!      deallocate(bsupvmnsz)
     endif
     deallocate(s_vmec)
     deallocate(quad)
     deallocate(presf)
-    deallocate(phiv)
-    deallocate(chiv)
-    call destroy_spline(presf_spline)
-    call destroy_spline(phiv_spline)
-    call destroy_spline(chiv_spline)
   end subroutine destroy_vmec
 
   ! evaluate zernike-representation at r
@@ -538,7 +355,6 @@ contains
 
   ! radial zernike transform on VMEC data
   pure subroutine zernike_transform(mn,m,fmn,fout)
-  !pure subroutine zernike_transform(fmn,fout)
     implicit none
 
     integer, intent(in) :: mn 
@@ -561,26 +377,6 @@ contains
           end do
        end do
     end do
-
-!    nt = 1024*n_zer 
-!
-!    do k = 1, nt
-!       rho = sqrt((k-1.)/(nt-1))
-!       call vmec_interpl(rho,mn,m,fmn,ftemp)
-!       do i = 1, mn_mode
-!          do j = mb(i), n_zer-2, 2
-!             call zernike_polynomial(rho,j,mb(i),zmn) 
-!             if (k.eq.1 .or. k.eq.nt) then
-!                fout(i,j+1) = fout(i,j+1) + ftemp(i)*zmn*(j+1)/(2*nt-2) 
-!             else
-!                fout(i,j+1) = fout(i,j+1) + ftemp(i)*zmn*(j+1)/(nt-1) 
-!             end if 
-!          end do
-!          ! calculate integral in s, substract end points
-!          !fout(i,j+1) = (sum(fmn(i,:)*zmn)-fmn(i,1)*zmn(1)/2&
-!          !            -fmn(i,ns)*zmn(ns)/2)/(ns-1)*(j+1)
-!       end do
-!    end do
 
     ! make sure the coefficients sum up to the boundary value 
     do i = 1, mn
@@ -616,17 +412,6 @@ contains
     else 
        z = 0.
     end if    
-
-!    z = 0.
-!    if (mod(n-m, 2) .eq. 0 .and. r.le.1) then
-!    !if (mod(n-m, 2) .eq. 0) then
-!       do k = 0, (n-m)/2
-!          z = z + r**(n-2*k)*(-1)**k*&
-!              factorial(n-k)/(factorial(k)*&
-!              factorial((n+m)/2-k)*factorial((n-m)/2-k))
-!              binomial(n-k,k)*binomial(n-2*k,(n-m)/2-k)
-!       end do
-!    end if 
 
   end subroutine zernike_polynomial
 
@@ -689,12 +474,6 @@ contains
     real, dimension(mn,ns) :: ftemp
     integer :: i 
 
-!    fmn(:,1) = fmn(:,2)*1.5 - fmn(:,3)*.5
-!    do i = 2, ns-1
-!       fmn(:,i) = .5*(fmn(:,i+1) + fmn(:,i)) 
-!    end do
-!    fmn(:,ns) = fmn(:,ns-1)*2 - fmn(:,ns-2)
-  
     ftemp(:,1) = fmn(:,2)*1.5 - fmn(:,3)*.5
     ftemp(:,ns) = fmn(:,ns)*1.5 - fmn(:,ns-1)*.5
     do i = 2, ns-1
@@ -743,42 +522,11 @@ contains
       quad(2,i) = 2./((1.-x**2)*df**2)
     end do
 
-    !integer, parameter :: p = 8 ! quadruple precision
-    !real(kind = p) :: r(2, n)
-    !real(kind = p) :: x, f, df, dx
-    !real(kind = p) :: p0(n+1), p1(n+1), tmp(n+1)
-  
-    !p0 = 0._p
-    !p1 = 0._p
-    !tmp = 0._p
-   
-    !p0(1) = 1._p
-    !p1(1:2) = [1._p, 0._p]
-   
-    !do k = 2, n
-    !  tmp(1:k+1) = ((2*k-1)*p1(1:k+1)-(k-1)*[0._p, 0._p,p0(1:k-1)])/k
-    !  p0 = p1; p1 = tmp
-    !end do
-    !do i = 1, n
-    !  x = cos(pi*(i-0.25_p)/(n+0.5_p))
-    !  do iter = 1, 10
-    !    f = p1(1); df = 0._p
-    !    do k = 2, size(p1)
-    !      df = f + x*df
-    !      f  = p1(k) + x * f
-    !    end do
-    !    dx =  f / df
-    !    x = x - dx
-    !    if (abs(dx)<10*epsilon(dx)) exit
-    !  end do
-    !  r(1,i) = x
-    !  r(2,i) = 2/((1-x**2)*df**2)
-    !end do
-    !quad = dble(r)
   end subroutine gaussquad 
 
   subroutine bloat_domain(myrank)
     use math
+    use spline 
     implicit none
 
     real, allocatable :: rreal(:,:,:), zreal(:,:,:)
