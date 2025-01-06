@@ -26,9 +26,6 @@
 #ifdef STELLAR
 char simLic[128]="/home/PPPL/simmetrix/license/simmetrix.lic";
 #endif
-#ifdef MIT
-char simLic[128]="/orcd/nese/psfc/001/software/simmetrix/RLMServer-14/server.lic";
-#endif
 #ifdef PPPL
 char simLic[128]="/usr/pppl/Simmetrix/simmodsuite.lic";
 #endif
@@ -36,7 +33,11 @@ char simLic[128]="/usr/pppl/Simmetrix/simmodsuite.lic";
 char simLic[128]="/scratch/ntm/software/Simmetrix/license/simmodsuite.lic";
 #endif
 #else
-char simLic[128]="/net/common/meshSim/license/license.txt";
+#ifdef MIT
+  char simLic[128]="/orcd/nese/psfc/001/software/simmetrix/RLMServer-14/server.lic";
+#else // scorec
+  char simLic[128]="/net/common/meshSim/license/license.txt";
+#endif
 #endif
 
 int main(int argc, char** argv)

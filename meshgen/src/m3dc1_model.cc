@@ -514,12 +514,22 @@ void attach_piecewise_linear_curve ( int* edge, int * numPts, double * points)
     knots.at(knotsize-i-1)=1.0;
   }
   double increment=1.0/(*numPts-1);
+  double totalLength = 0.0;
+  std::vector <double> lengthVector;
+  for( int i=1; i<*numPts; i++)
+  {
+    double pt1[2] = {points[2*i-2],points[2*i-1]};
+    double pt2[2] = {points[2*i],points[2*i+1]};
+    double length = getDist2D(pt1,pt2);
+    totalLength = length+totalLength;
+    lengthVector.push_back(totalLength);
+  }
   for (int i=0; i<*numPts-2; i++)
   {
-    //double increment=inter_len.at(i)/len;
-    knots.at(order_p+i)=knots.at(order_p+i-1)+increment;
+    double par = lengthVector[i]/totalLength;
+    knots.at(order_p+i)=par;
+    // knots.at(order_p+i)=knots.at(order_p+i-1)+increment;
   }
-
   for( int i=0; i<*numPts; i++)
   {
     ctrlPointsX.at(i)=points[2*i];
@@ -530,11 +540,10 @@ void attach_piecewise_linear_curve ( int* edge, int * numPts, double * points)
   data[1] = new M3DC1::BSpline(order_p,ctrlPointsY,knots, weight);
   data2Clean.push_back(data);
   int edgePeriodic = 0;
+  if(vtx.first==vtx.second) edgePeriodic=1;
   double edgeRange[2] = {0.0, 1.0};
-  //gmi_add_analytic(m3dc1_model::instance()->model, 1, *edge, edgeFunction, &edgePeriodic, &edgeRange, data);
   gmi_ent* gedge = gmi_add_analytic(m3dc1_model::instance()->model, 1, *edge, edgeFunction, &edgePeriodic, &edgeRange, data);
   make_edge_topo(m3dc1_model::instance()->model,gedge, vtx.first, vtx.second);
-//  if (!PCU_Comm_Self()) std::cout<<"[p"<<PCU_Comm_Self()<<"] "<<__func__<<": new edge "<<*edge<<" vtx("<<vtx.first<<", "<<vtx.second<<")\n";
 }
 
 // **********************************************
@@ -1195,24 +1204,21 @@ void save_multi_rgn_model(const char* filename, vector< vector<int> >& face_bdry
   fprintf(fp,"%d %d %d %d %d\n", numL, separatrixLoop, innerWallLoop, outerWallLoop, vacuumLoop);
 
   int idx=0, numLoops, numE /* #edges */;
-  vector<pGEdge> faceEdges;
+  vector<pGEdge> loopEdges;
   pGEdge ge;
 
   for (std::map<int, vector<int> >:: iterator it=loopContainer.begin(); it!=loopContainer.end(); it++)
   {
-    faceEdges.clear();
-    for (int i=0; i<face_bdry[idx].size(); ++i)
-    {
-      for (int nEdge = 0; nEdge <edgesOnLoop.at(face_bdry[idx][i]).size(); ++nEdge)
-      { 
-        ge = edgesOnLoop.at(face_bdry[idx][i])[nEdge];
-       	faceEdges.push_back(ge);
-      }
+    loopEdges.clear();
+    for (int nEdge = 0; nEdge <edgesOnLoop.at(it->first).size(); ++nEdge)
+    { 
+      ge = edgesOnLoop.at(it->first)[nEdge];
+      loopEdges.push_back(ge);
     }
-    numE = faceEdges.size();
+    numE = it->second.size();
     fprintf(fp,"%d %d\n", it->first /*loop ID*/, numE);
     // first write all vtx on the loop
-    for (vector<pGEdge>::iterator eit=faceEdges.begin(); eit!=faceEdges.end(); ++eit)
+    for (vector<pGEdge>::iterator eit=loopEdges.begin(); eit!=loopEdges.end(); ++eit)
     {
       int edge_id=ge_edgeid[*eit];
       std::pair<int, int> vtx=edgeContainer[edge_id];
@@ -1220,7 +1226,7 @@ void save_multi_rgn_model(const char* filename, vector< vector<int> >& face_bdry
       fprintf(fp,"%d %lf %lf %lf\n", vtx.first, xyz[0], xyz[1], xyz[2]);
     }
 
-    for (vector<pGEdge>::iterator eit=faceEdges.begin(); eit!=faceEdges.end(); ++eit)
+    for (vector<pGEdge>::iterator eit=loopEdges.begin(); eit!=loopEdges.end(); ++eit)
     {
       int edge_id=ge_edgeid[*eit];
       gmi_ent* ae = gmi_find(model, 1, edge_id);

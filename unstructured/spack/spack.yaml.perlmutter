@@ -5,23 +5,9 @@
 spack:
   # add package specs to the `specs` list
   specs:
-  - zlib%nvhpc~shared
-  - hdf5%nvhpc+fortran+hl+mpi~shared
-  - gsl%nvhpc~shared
-  - fftw%nvhpc
-  - netcdf-c%nvhpc+mpi~shared
-  - netcdf-fortran%nvhpc~shared
-  - metis%nvhpc~shared
-  - parmetis%nvhpc~shared
-  - mumps%nvhpc+metis+parmetis~openmp~shared
-  - superlu-dist%nvhpc~shared
-  - petsc%nvhpc+fortran~complex~fftw~hypre~hdf5+mumps+scalapack~shared
-  - petsc%nvhpc+fortran+complex~fftw~hypre~hdf5+mumps+scalapack~shared
-  - zoltan%nvhpc~fortran+parmetis~shared
-  - pumi%nvhpc+zoltan~shared
-  - m3dc1%nvhpc~3d~complex
-  - m3dc1%nvhpc+3d~complex
-  - m3dc1%nvhpc~3d+complex
+  - m3dc1%nvhpc~3d~complex ^cray-mpich ^cray-libsci ^zstd%gcc
+  - m3dc1%nvhpc+3d~complex+particle ^cray-mpich ^cray-libsci ^zstd%gcc
+  - m3dc1%nvhpc~3d+complex+particle ^cray-mpich ^cray-libsci ^zstd%gcc
   view:
     default:
       root: .spack-env/view

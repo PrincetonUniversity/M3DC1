@@ -8,10 +8,11 @@ Created on Fri Apr  01 2022
 import numpy as np
 import m3dc1.fpylib as fpyl
 from m3dc1.eval_field import eval_field
+from fpy import fio_py
 
 
 def get_field(field, coord='scalar', row=1, sim=None, filename='C1.h5', time=None, phi=0, linear=False,
-               diff=False, tor_av=1, units='mks', res=250, quiet=False, phys=False):
+               diff=False, tor_av=1, units='mks', res=250, quiet=False, phys=False, R_range=None, Z_range=None):
     """
     Returns field values on an equidistant rectangular R,phi,Z grid.
     
@@ -73,6 +74,7 @@ def get_field(field, coord='scalar', row=1, sim=None, filename='C1.h5', time=Non
     
     sim, time = fpyl.setup_sims(sim,filename,time,linear,diff)
     #field_idx = fpyl.get_field_idx(coord)
+    fio_py.set_quiet_option(True)
 
     # Make 3D grid based on the mesh points
     mesh_ob      = sim[0].get_mesh(quiet=quiet)
@@ -80,20 +82,35 @@ def get_field(field, coord='scalar', row=1, sim=None, filename='C1.h5', time=Non
     R_mesh       = mesh_pts[:,4]
     Z_mesh       = mesh_pts[:,5]
     phi0 = phi*1
-    R_range      = [np.amin(R_mesh),np.amax(R_mesh)]
-    Z_range      = [np.amin(Z_mesh),np.amax(Z_mesh)]
+
+    if (R_range is None) or (Z_range is None):
+        if phys:
+            # rst = eval_field('rst', R, phi, Z, sim=sim, filename=filename, time=time)
+            # zst = eval_field('zst', R, phi, Z, sim=sim, filename=filename, time=time)
+            R_mesh = eval_field('rst', mesh_pts[:,4], phi0*np.ones_like(mesh_pts[:,4]), mesh_pts[:,5], sim=sim[0], filename=filename, time=-1, quiet=quiet)
+
+        R_range      = [np.nanmin(R_mesh),np.nanmax(R_mesh)]
+        if not quiet:
+            print("R_range=",R_range)
+    if (R_range is None) or (Z_range is None):
+        if phys:
+            Z_mesh = eval_field('zst', mesh_pts[:,4], phi0*np.ones_like(mesh_pts[:,4]), mesh_pts[:,5], sim=sim[0], filename=filename, time=-1, quiet=quiet)
+        Z_range      = [np.nanmin(Z_mesh),np.nanmax(Z_mesh)]
+        if not quiet:
+            print("Z_range=",Z_range)
+     # R_range=[1.1,1.3]
+    # Z_range=[-0.35,0.35]
     R_linspace   = np.linspace(R_range[0], R_range[1], res, endpoint=True)
     phi_linspace = np.linspace(phi,         (360+phi), tor_av, endpoint=False)
     Z_linspace   = np.linspace(Z_range[0], Z_range[1], res, endpoint=True)
     R, phi, Z    = np.meshgrid(R_linspace, phi_linspace,Z_linspace)
-    
-    if phys:
-        rst = eval_field('rst', R, phi, Z, sim=sim, filename=filename, time=time)
-        zst = eval_field('zst', R, phi, Z, sim=sim, filename=filename, time=time)
-        R_mesh = eval_field('rst', mesh_pts[:,4], phi0*np.ones_like(mesh_pts[:,4]), mesh_pts[:,5], sim=sim, filename=filename, time=time)
-        Z_mesh = eval_field('zst', mesh_pts[:,4], phi0*np.ones_like(mesh_pts[:,4]), mesh_pts[:,5], sim=sim, filename=filename, time=time)
+    # if phys:
+    #     rst = eval_field('rst', R, phi, Z, sim=sim, filename=filename, time=-1, quiet=quiet)
+    #     zst = eval_field('zst', R, phi, Z, sim=sim, filename=filename, time=-1, quiet=quiet)
+    #     R_mesh = eval_field('rst', mesh_pts[:,4], phi0*np.ones_like(mesh_pts[:,4]), mesh_pts[:,5], sim=sim, filename=filename, time=time)
+    #     Z_mesh = eval_field('zst', mesh_pts[:,4], phi0*np.ones_like(mesh_pts[:,4]), mesh_pts[:,5], sim=sim, filename=filename, time=time)
 
-
+ 
     # Get the magnetic axis at time zero, which will be used for poloidal coordinates
     if coord in ['poloidal', 'radial']:
         R_mag =  sim[0].get_time_trace('xmag').values[0]
@@ -190,14 +207,16 @@ def get_field(field, coord='scalar', row=1, sim=None, filename='C1.h5', time=Non
         field1_ave    = [np.average(field1, 0)]
     R_ave = np.average(R, 0)
     Z_ave = np.average(Z, 0)
-    if phys:
-        rst_ave    = np.average(rst, 0)
-        zst_ave    = np.average(zst, 0)
-        R_ave = np.where(np.isnan(rst_ave), R_ave, rst_ave)
-        Z_ave = np.where(np.isnan(zst_ave), Z_ave, zst_ave)
+    # if phys:
+    #     rst_ave    = np.average(rst, 0)
+    #     zst_ave    = np.average(zst, 0)
+    #     R_ave = np.where(np.isnan(rst_ave), R_ave, rst_ave)
+    #     Z_ave = np.where(np.isnan(zst_ave), Z_ave, zst_ave)
     
     if units.lower()=='m3dc1':
         field1_ave = fpyl.get_conv_field(units,field,field1_ave,sim=sim[0])
+
+    fio_py.set_quiet_option(False)
     
     return sim, time, mesh_ob, R, phi, Z, R_mesh, Z_mesh, R_ave, Z_ave, np.asarray(field1_ave)
 

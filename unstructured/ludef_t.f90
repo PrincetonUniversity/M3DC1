@@ -215,6 +215,19 @@ subroutine vorticity_lin(trialx, lin, ssterm, ddterm, r_bf, q_bf, advfield, &
      if(advfield.eq.1) then
         ddterm(:,p_g) = ddterm(:,p_g) + dt*v1p(trialx,lin)
 
+#ifdef USEPARTICLES
+        if (kinetic.eq.1) then
+           tempx = -v1pbb1psi(trialx,pfi079,b2i79(:,OP_1),lin)
+           ddterm(:,psi_g) = ddterm(:,psi_g) + dt*tempx
+
+           if (i3d.eq.1 .and. numvar.ge.2) then
+               tempx = -v1pbb1f(trialx,pfi079,b2i79(:,OP_1),lin)
+               r_bf = r_bf -     thimp_bf     *dt*tempx
+               q_bf = q_bf + (1.-thimp_bf*bdf)*dt*tempx
+           endif
+        endif
+#endif
+
         ! "Parabolization" terms
         tempx = v1up(trialx,lin,pt79)
         ssterm(:,u_g) = ssterm(:,u_g) - thimp*thimp*dt*dt*tempx
@@ -919,6 +932,19 @@ subroutine axial_vel_lin(trialx, lin, ssterm, ddterm, r_bf, q_bf, advfield, &
         ddterm(:,p_g) = ddterm(:,p_g) + dt* &
              v2p(trialx,lin)
 
+#ifdef USEPARTICLES
+        if (kinetic.eq.1) then
+           tempx = -v2pbb1psi(trialx,pfi079,b2i79(:,OP_1),lin)
+           ddterm(:,psi_g) = ddterm(:,psi_g) + dt*tempx
+
+           if (i3d.eq.1 .and. numvar.ge.2) then
+               tempx = -v2pbb1f(trialx,pfi079,b2i79(:,OP_1),lin)
+               r_bf = r_bf -     thimp_bf     *dt*tempx
+               q_bf = q_bf + (1.-thimp_bf*bdf)*dt*tempx
+           endif
+        endif
+#endif
+
         ! parabolization terms
         tempx = v2up(trialx,lin,pt79)
         ssterm(:,u_g) = ssterm(:,u_g) - thimp*thimp*dt*dt*tempx
@@ -1374,6 +1400,19 @@ subroutine compression_lin(trialx, lin, ssterm, ddterm, r_bf, q_bf, advfield, &
   if(advfield.eq.1) then
      ddterm(:,p_g) = ddterm(:,p_g) + dt*  &
           v3p(trialx,lin)
+ 
+#ifdef USEPARTICLES
+     if (kinetic.eq.1) then
+        tempx = -v3pbb1psi(trialx,pfi079,b2i79(:,OP_1),lin)
+        ddterm(:,psi_g) = ddterm(:,psi_g) + dt*tempx
+
+        if (i3d.eq.1 .and. numvar.ge.2) then
+           tempx = -v3pbb1f(trialx,pfi079,b2i79(:,OP_1),lin)
+           r_bf = r_bf -     thimp_bf     *dt*tempx
+           q_bf = q_bf + (1.-thimp_bf*bdf)*dt*tempx
+        endif
+     endif
+#endif
 
      ! parabolization terms
      tempx = v3up     (trialx,lin,pt79)
@@ -4363,30 +4402,72 @@ subroutine temperature_lin(trialx, lin, ssterm, ddterm, q_ni, r_bf, q_bf,&
     else  ! on linear.eq.0
        ! Assumes no contribution from equilibrium f
 
-        tempx = tepsipsikappar(trialx,lin,ps079,pp079,b2i79,kar79) &
+       tempx = tepsipsikappar(trialx,lin,ps079,pp079,b2i79,kar79) &
             + tepsipsikappar(trialx,ps079,lin,pp079,b2i79,kar79) &
-             + tepsibkapparl  (trialx,lin,bz079,pp079,b2i79,kar79)
-        ssterm(:,psi_g) = ssterm(:,psi_g) -       thimpf     *dt*tempx*fac
-        ddterm(:,psi_g) = ddterm(:,psi_g) + (1. - thimpf*bdf)*dt*tempx*fac
+#ifdef USECOMPLEX
+            + tepsibkapparl  (trialx,lin,bz079,pp079,b2i79,kar79)
+#else
+            + tepsibkappar  (trialx,lin,bz079,pp079,b2i79,kar79)
+#endif
+       ssterm(:,psi_g) = ssterm(:,psi_g) -       thimpf     *dt*tempx*fac
+       ddterm(:,psi_g) = ddterm(:,psi_g) + (1. - thimpf*bdf)*dt*tempx*fac
 
        if(numvar.ge.2) then
+#ifdef USECOMPLEX
           tempx = tepsibkapparl(trialx,ps079,lin,pp079,b2i79,kar79) &
                + tebbkapparl  (trialx,lin,bz079,pp079,b2i79,kar79) &
                + tebbkapparl  (trialx,bz079,lin,pp079,b2i79,kar79)
+#else
+          tempx = tepsibkappar(trialx,ps079,lin,pp079,b2i79,kar79) &
+               + tebbkappar  (trialx,lin,bz079,pp079,b2i79,kar79) &
+               + tebbkappar  (trialx,bz079,lin,pp079,b2i79,kar79)
+#endif
           ssterm(:,bz_g) = ssterm(:,bz_g) -       thimpf     *dt*tempx*fac
           ddterm(:,bz_g) = ddterm(:,bz_g) + (1. - thimpf*bdf)*dt*tempx*fac
        end if
 
-        tempx = tepsipsikappar(trialx,ps079,ps079,lin,b2i79,kar79) &
-             + tepsibkapparl  (trialx,ps079,bz079,lin,b2i79,kar79) &
-             + tebbkapparl    (trialx,bz079,bz079,lin,b2i79,kar79)
-        ssterm(:,pp_g) = ssterm(:,pp_g) -       thimp     *dt*tempx*fac
-        ddterm(:,pp_g) = ddterm(:,pp_g) + (1. - thimp*bdf)*dt*tempx*fac
- !
+       tempx = tepsipsikappar(trialx,ps079,ps079,lin,b2i79,kar79) &
+#ifdef USECOMPLEX
+            + tepsibkapparl  (trialx,ps079,bz079,lin,b2i79,kar79) &
+            + tebbkapparl    (trialx,bz079,bz079,lin,b2i79,kar79)
+#else
+            + tepsibkappar  (trialx,ps079,bz079,lin,b2i79,kar79) &
+            + tebbkappar    (trialx,bz079,bz079,lin,b2i79,kar79)
+#endif
+       ssterm(:,pp_g) = ssterm(:,pp_g) -       thimp     *dt*tempx*fac
+       ddterm(:,pp_g) = ddterm(:,pp_g) + (1. - thimp*bdf)*dt*tempx*fac
 
        if(i3d.eq.1 .and. numvar.ge.2) then
-          tempx = tepsifkappar(trialx,ps079,lin,pp079,b2i79,kar79) &
+          tempx = tepsifkappar(trialx,ps079,bfp079,lin,b2i79,kar79) &
+#ifdef USECOMPLEX
+               + tebfkapparl  (trialx,bz079,bfp079,lin,b2i79,kar79) &
+#else
+               + tebfkappar  (trialx,bz079,bfp079,lin,b2i79,kar79) &
+#endif
+               + teffkappar  (trialx,bfp079,bfp079,lin,b2i79,kar79)
+          ssterm(:,pp_g) = ssterm(:,pp_g) -          thimp     *dt*tempx*fac
+          ddterm(:,pp_g) = ddterm(:,pp_g) + (1.    - thimp*bdf)*dt*tempx*fac
+
+          tempx = tepsifkappar(trialx,lin,bfp079,pp079,b2i79,kar79)
+          ssterm(:,psi_g) = ssterm(:,psi_g) -       thimpf     *dt*tempx*fac
+          ddterm(:,psi_g) = ddterm(:,psi_g) + (1. - thimpf*bdf)*dt*tempx*fac
+
+#ifdef USECOMPLEX
+          tempx = tebfkapparl(trialx,lin,bfp079,pp079,b2i79,kar79)
+#else
+          tempx = tebfkappar(trialx,lin,bfp079,pp079,b2i79,kar79)
+#endif
+          ssterm(:,bz_g) = ssterm(:,bz_g) -       thimpf     *dt*tempx*fac
+          ddterm(:,bz_g) = ddterm(:,bz_g) + (1. - thimpf*bdf)*dt*tempx*fac
+
+          tempx = teffkappar(trialx,lin,bfp079,pp079,b2i79,kar79) &
+               + teffkappar(trialx,bfp079,lin,pp079,b2i79,kar79) &
+               + tepsifkappar(trialx,ps079,lin,pp079,b2i79,kar79) &
+#ifdef USECOMPLEX
                + tebfkapparl (trialx,bz079,lin,pp079,b2i79,kar79)
+#else
+               + tebfkappar (trialx,bz079,lin,pp079,b2i79,kar79)
+#endif
           r_bf = r_bf -       thimp_bf     *dt*tempx*fac
           q_bf = q_bf + (1. - thimp_bf*bdf)*dt*tempx*fac
        endif

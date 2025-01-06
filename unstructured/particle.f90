@@ -66,6 +66,9 @@ module particles
       integer                  :: jel         !Predicted element of residence
       real, dimension(3, 4)     :: kx
       integer, dimension(4)     :: kel
+      real                     :: gradcoef0
+      real                     :: df0de0
+      real                     :: df0dxi0
       logical                  :: deleted
    end type particle
 
@@ -115,6 +118,8 @@ module particles
 !$acc declare create(psi_axis, nf_axis, nfi_axis, toroidal_period_particle)
    integer :: gyroaverage_particle, fast_ion_dist_particle
 !$acc declare create(gyroaverage_particle,fast_ion_dist_particle)
+   integer :: istatic_gradf_particle
+!$acc declare create(istatic_gradf_particle)
    real :: fast_ion_max_energy_particle
 !$acc declare create(fast_ion_max_energy_particle)
    integer :: num_energy, num_pitch, num_r
@@ -136,13 +141,13 @@ subroutine define_mpi_particle(ierr)
    include 'mpif.h'
 
    integer, intent(out) :: ierr
-   integer, parameter :: pnvars = 12
-   integer, dimension(pnvars), parameter :: pblklen = (/3, vspdims, 1, 1, 1, 1, 1, 1, 1, 12, 4, 1/)
+   integer, parameter :: pnvars = 15
+   integer, dimension(pnvars), parameter :: pblklen = (/3, vspdims, 1, 1, 1, 1, 1, 1, 1, 12, 4, 1, 1, 1, 1/)
    integer(kind=MPI_ADDRESS_KIND), dimension(pnvars) :: pdspls
    integer, dimension(pnvars), parameter :: ptyps = (/MPI_DOUBLE_PRECISION, MPI_DOUBLE_PRECISION, &
  MPI_DOUBLE_PRECISION, MPI_DOUBLE_PRECISION, MPI_DOUBLE_PRECISION, &
  MPI_DOUBLE_PRECISION, MPI_INTEGER, MPI_INTEGER, MPI_INTEGER, &
-                                                      MPI_DOUBLE_PRECISION, MPI_INTEGER, MPI_LOGICAL/)
+ MPI_DOUBLE_PRECISION, MPI_INTEGER, MPI_DOUBLE_PRECISION, MPI_DOUBLE_PRECISION, MPI_DOUBLE_PRECISION, MPI_LOGICAL/)
 
    type(particle) :: dum_par
 
@@ -168,8 +173,14 @@ subroutine define_mpi_particle(ierr)
    pdspls(10) = pdspls(10) - pdspls(1)
    call mpi_get_address(dum_par%kel, pdspls(11), ierr)
    pdspls(11) = pdspls(11) - pdspls(1)
-   call mpi_get_address(dum_par%deleted, pdspls(12), ierr)
+   call mpi_get_address(dum_par%gradcoef0, pdspls(12), ierr)
    pdspls(12) = pdspls(12) - pdspls(1)
+   call mpi_get_address(dum_par%df0de0, pdspls(13), ierr)
+   pdspls(13) = pdspls(13) - pdspls(1)
+   call mpi_get_address(dum_par%df0dxi0, pdspls(14), ierr)
+   pdspls(14) = pdspls(14) - pdspls(1)
+   call mpi_get_address(dum_par%deleted, pdspls(15), ierr)
+   pdspls(15) = pdspls(15) - pdspls(1)
    pdspls(1) = 0
 
    call mpi_type_create_struct(pnvars, pblklen, pdspls, ptyps, mpi_particle, ierr)
@@ -416,13 +427,14 @@ subroutine init_particles(lrestart, ierr)
    integer :: info
    integer :: child_pid
    integer(kind=MPI_ADDRESS_KIND) :: pppp
-   real, dimension(3) :: gradpsi
+   real, dimension(3) :: gradpsi, gradrho, gradf, gradT
    real :: gradcoef
    real :: rho, f0, fx, T00, f_mesh, df0de
    real, allocatable, dimension(:) :: rho_vals, psi_vals, nf_vals, tf_vals
    integer :: ipoint, dotloc
 
    real, dimension(3) :: bhat, Bstar, Jcyl, svec, dBdR, dBdphi, dBdz, gradB0, gradB1, BxgrdB, dvdt
+   real :: gradcoef0, df0de0, df0dxi0
    real :: Rinv, Bss, dB1, di, R_axis, di_axis
    integer :: num_f
    real, dimension(:), allocatable :: f_array_temp
@@ -599,6 +611,7 @@ subroutine init_particles(lrestart, ierr)
    particle_linear_particle = particle_linear
    toroidal_period_particle = toroidal_period
    gyroaverage_particle = igyroaverage
+   istatic_gradf_particle = istatic_gradf
    psubsteps_particle = particle_substeps
    kinetic_thermal_ion_particle=kinetic_thermal_ion
    fast_ion_dist_particle = fast_ion_dist
@@ -693,9 +706,9 @@ subroutine init_particles(lrestart, ierr)
          call update_geom_terms_st(geomterms, elfieldcoefs(itri), .false.)
 #endif
          if (sps==1) then
-            call evalf0i(dpar%x, elfieldcoefs(itri), geomterms, f_mesh, T00, gradcoef)
+            f_mesh = dot_product(elfieldcoefs(itri)%nfi,geomterms%g)
          else
-            call evalf0(dpar%x, elfieldcoefs(itri), geomterms, f_mesh, T00, rho, gradcoef)
+            f_mesh = dot_product(elfieldcoefs(itri)%nf,geomterms%g)
          endif
 #ifdef USEST
          !npar_ratio_local=(x_max-x_min)*(dot_product(elfieldcoefs(itri)%rst,geomterms%g)/R_axis)/(di/di_axis)*(z_max-z_min)*f_mesh*2/nplanes
@@ -746,9 +759,9 @@ subroutine init_particles(lrestart, ierr)
          call update_geom_terms_st(geomterms, elfieldcoefs(itri), .false.)
 #endif
          if (sps==1) then
-            call evalf0i(dpar%x, elfieldcoefs(itri), geomterms, f_mesh, T00, gradcoef)
+            f_mesh = dot_product(elfieldcoefs(itri)%nfi,geomterms%g)
          else
-            call evalf0(dpar%x, elfieldcoefs(itri), geomterms, f_mesh, T00, rho, gradcoef)
+            f_mesh = dot_product(elfieldcoefs(itri)%nf,geomterms%g)
          endif
 #ifdef USEST
          npar_local=int(num_par_max*(x_max-x_min)*(dot_product(elfieldcoefs(itri)%rst,geomterms%g)/R_axis)/(di/di_axis)&
@@ -792,28 +805,12 @@ subroutine init_particles(lrestart, ierr)
                cycle
             end if !ierr
             if (sps==1) then
-               call evalf0i(dpar%x, elfieldcoefs(itri), geomterms, f0, T00, gradcoef)
-               dpar%jel = itri
-               if (vspdims .eq. 2) then
-                  call getBcyl(dpar%x, elfieldcoefs(itri), geomterms, Bcyl, deltaB, gradB0, gradB1, dB1)
-               else
-                  !call getBcylprime(dpar%x, elfieldcoefs(itri), geomterms, Bcyl, deltaB, dBdR, dBdphi, dBdz, .false.)
-               end if
-               !write(0,*) Bcyl
-               B0 = sqrt(dot_product(Bcyl, Bcyl))
-               bhat = Bcyl/B0                         !Unit vector in b direction
-               dpar%sps = 1
-               !for Maxwellian
-               call random_number(ran_temp)
-               y1 = sqrt( - 2*log(ran_temp) )
-               vperp=y1*sqrt(T00*1.6e-19/m_ion(sps))
-               call random_number(ran_temp)
-               call random_number(ran_temp2)
-               y1 = sqrt( - 2*log(ran_temp) )* cos( twopi*ran_temp2)
-               vpar=y1*sqrt(T00*1.6e-19/m_ion(sps))
-               !dpar%f0=dpar%f0*T00**(-1.5)*exp(-m_ion*(vpar**2+vperp**2)/(2*T00*1.6e-19))
+               T00 = dot_product(elfieldcoefs(itri)%tfi,geomterms%g)
             else
-               call evalf0(dpar%x, elfieldcoefs(itri), geomterms, f0, T00, rho, gradcoef)
+               T00 = dot_product(elfieldcoefs(itri)%tf,geomterms%g)
+            endif
+            dpar%jel = itri
+            dpar%sps = sps
 !#ifdef USEST
 !               radi = 1.-rho
 !               radi_i=int((radi-r_array(1))/(r_array(2)-r_array(1)))+1
@@ -850,18 +847,8 @@ subroutine init_particles(lrestart, ierr)
 !               !if (f0<0) write(0,*) f0
 !               call random_number(ran_temp)
 !               if (ran_temp > f0) cycle
-               dpar%jel = itri
-               if (vspdims .eq. 2) then
-                  call getBcyl(dpar%x, elfieldcoefs(itri), geomterms, Bcyl, deltaB, gradB0, gradB1, dB1)
-               else
-                  !call getBcylprime(dpar%x, elfieldcoefs(itri), geomterms, Bcyl, deltaB, dBdR, dBdphi, dBdz, .false.)
-               end if
-               !write(0,*) Bcyl
-               B0 = sqrt(dot_product(Bcyl, Bcyl))
-               bhat = Bcyl/B0                         !Unit vector in b direction
                !Rinv = 1.0/dpar%x(1)
                !Rinv = 1.0/dot_product(elfieldcoefs(itri)%rst,geomterms%g)
-               dpar%sps = 2
                !dpar%df0dpsi=gradcoef
                !!monoenergy
                !y2 = acos(ran_temp*2-1)
@@ -870,32 +857,43 @@ subroutine init_particles(lrestart, ierr)
                !Pphi = dot_product(elfieldcoefs(itri)%psiv0, geomterms%g) + (1./qm_ion) * vpar *  dot_product(elfieldcoefs(itri)%Bzv0, geomterms%g)/B0
                !dpar%f0=Pphi
                !dpar%f0=maxspeed**2
-               if (fast_ion_dist.eq.1) then
-                  !for Maxwellian
-                  call random_number(ran_temp)
-                  y1 = sqrt( - 2*log(ran_temp) )
-                  vperp=y1*sqrt(T00*1.6e-19/m_ion(sps))
-                  call random_number(ran_temp)
-                  call random_number(ran_temp2)
-                  y1 = sqrt( - 2*log(ran_temp) )* cos( twopi*ran_temp2)
-                  vpar=y1*sqrt(T00*1.6e-19/m_ion(sps))
-                  !dpar%f0=dpar%f0*T00**(-1.5)*exp(-m_ion*(vpar**2+vperp**2)/(2*T00*1.6e-19))
-               elseif (fast_ion_dist.eq.2) then
-                  !for slowingdown
+            if ((sps.eq.1).or.(fast_ion_dist.eq.1)) then
+               !for Maxwellian
+               call random_number(ran_temp)
+               y1 = sqrt( - 2*log(ran_temp) )
+               vperp=y1*sqrt(T00*1.6e-19/m_ion(sps))
+               call random_number(ran_temp)
+               call random_number(ran_temp2)
+               y1 = sqrt( - 2*log(ran_temp) )* cos( twopi*ran_temp2)
+               vpar=y1*sqrt(T00*1.6e-19/m_ion(sps))
+               !dpar%f0=dpar%f0*T00**(-1.5)*exp(-m_ion*(vpar**2+vperp**2)/(2*T00*1.6e-19))
+            elseif (fast_ion_dist.eq.2) then
+               !for slowingdown
 #ifdef USEST
-                  y1 = sqrt(energy*2*1.6e-19/m_ion(sps))
-                  vpar = y1 * pitch
-                  vperp = y1 * sqrt(1-pitch**2)
+               y1 = sqrt(energy*2*1.6e-19/m_ion(sps))
+               vpar = y1 * pitch
+               vperp = y1 * sqrt(1-pitch**2)
 #else
-                  call random_number(ran_temp)
-                  y1 = (exp(ran_temp*log((fast_ion_max_energy/T00)**(1.5)+1)) - 1.)**(1./3.)
-                  call random_number(ran_temp)
-                  y2 = acos(ran_temp*2 - 1)
-                  vpar = y1*sqrt(2*T00*1.6e-19/m_ion(sps))*cos(y2)
-                  vperp = y1*sqrt(2*T00*1.6e-19/m_ion(sps))*sin(y2)
+               call random_number(ran_temp)
+               y1 = (exp(ran_temp*log((fast_ion_max_energy/T00)**(1.5)+1)) - 1.)**(1./3.)
+               call random_number(ran_temp)
+               y2 = acos(ran_temp*2 - 1)
+               vpar = y1*sqrt(2*T00*1.6e-19/m_ion(sps))*cos(y2)
+               vperp = y1*sqrt(2*T00*1.6e-19/m_ion(sps))*sin(y2)
 #endif
-               endif
             endif
+            call evalf0(dpar%x, vpar, vperp, elfieldcoefs(itri), geomterms, sps, f0, gradcoef0, df0de0, df0dxi0)
+            dpar%gradcoef0=gradcoef0
+            dpar%df0de0=df0de0
+            dpar%df0dxi0=df0dxi0
+            if (vspdims .eq. 2) then
+               call getBcyl(dpar%x, elfieldcoefs(itri), geomterms, Bcyl, deltaB, gradB0, gradB1, dB1)
+            else
+               !call getBcylprime(dpar%x, elfieldcoefs(itri), geomterms, Bcyl, deltaB, dBdR, dBdphi, dBdz, .false.)
+            end if
+            !write(0,*) Bcyl
+            B0 = sqrt(dot_product(Bcyl, Bcyl))
+            bhat = Bcyl/B0                         !Unit vector in b direction
             !dpar%f0=dpar%f0*1./((vpar**2+vperp**2)**(1.5)+T00**3)
 
             !if (vspdims.eq.5) then !full orbit
@@ -987,7 +985,7 @@ subroutine init_particles(lrestart, ierr)
 !$acc update device(m_ion,q_ion,qm_ion)
 !$acc update device(dt_particle,t0_norm_particle,v0_norm_particle,b0_norm_particle,rfac_particle)
 !$acc update device(particle_linear_particle,psi_axis,nf_axis,nfi_axis,toroidal_period_particle)
-!$acc update device(gyroaverage_particle,psubsteps_particle)
+!$acc update device(gyroaverage_particle,psubsteps_particle,istatic_grad_particle)
 !$acc update device(kinetic_thermal_ion_particle,fast_ion_dist_particle,fast_ion_max_energy_particle)
 #ifdef USEST
 !!$acc update device(num_energy,num_pitch,num_r) async(blocky)
@@ -1148,23 +1146,23 @@ subroutine rk4(part, dt, last_step, ierr)
    itri = part%jel
    !if (ierr .eq. 1) return
    !1st step
-   call fdot(part%x, part%v, part%wt, k1, l1, m1, n1, itri, kel, ierr, part%sps)
+   call fdot(part%x, part%v, part%wt, k1, l1, m1, n1, itri, kel, part%gradcoef0, part%df0de0, part%df0dxi0, ierr, part%sps)
    if (ierr .eq. 1) return
    y1 = part%x + hh*k1; z1 = part%v + hh*l1; w1 = part%wt + hh*m1
    !write(0,*) k1(1),k1(2),k1(3)
 
    !2nd step
-   call fdot(y1, z1, w1, k2, l2, m2, n2, itri, kel, ierr, part%sps)
+   call fdot(y1, z1, w1, k2, l2, m2, n2, itri, kel, part%gradcoef0, part%df0de0, part%df0dxi0, ierr, part%sps)
    if (ierr .eq. 1) return
    y1 = part%x + hh*k2; z1 = part%v + hh*l2; w1 = part%wt + hh*m2
 
    !3rd step
-   call fdot(y1, z1, w1, k3, l3, m3, n3, itri, kel, ierr, part%sps)
+   call fdot(y1, z1, w1, k3, l3, m3, n3, itri, kel, part%gradcoef0, part%df0de0, part%df0dxi0, ierr, part%sps)
    if (ierr .eq. 1) return
    y1 = part%x + dt*k3; z1 = part%v + dt*l3; w1 = part%wt + dt*m3
 
    !4th step
-   call fdot(y1, z1, w1, k4, l4, m4, n4, itri, kel, ierr, part%sps)
+   call fdot(y1, z1, w1, k4, l4, m4, n4, itri, kel,  part%gradcoef0, part%df0de0, part%df0dxi0, ierr, part%sps)
    if (ierr .eq. 1) return
    part%x = part%x + onethird*dt*(k2 + k3 + 0.5*(k1 + k4))
    part%v = part%v + onethird*dt*(l2 + l3 + 0.5*(l1 + l4))
@@ -1194,7 +1192,8 @@ subroutine rk4(part, dt, last_step, ierr)
    bhat = B_cyl*B0inv                         !Unit vector in b direction
    !write(0,*) part%gid
    !if (part%gid==2117425261) then
-   if (abs(dot_product(elfieldcoefs(itri)%rho, geomterms%g))>0.95) part%wt=0.
+   ! if (abs(dot_product(elfieldcoefs(itri)%rho, geomterms%g))>0.9) part%wt=0.
+   ! write(0,*) (abs(dot_product(elfieldcoefs(itri)%rho, geomterms%g)))
    !write(0,*) part%v(1)**2+2.*qm_ion*part%v(2)/B0inv, 1./B0inv, part%v(1), itri
    !if (part%x(2)<0) write(0,*) 'cc',dot_product(geomterms%g,elfieldcoefs(itri)%rst),dot_product(geomterms%g,elfieldcoefs(itri)%zst)
    !write(0,*) xtemp(1),xtemp(2),xtemp(3),dot_product(geomterms%g,elfieldcoefs(itri)%Bzv0),itri
@@ -1254,7 +1253,7 @@ subroutine rk4(part, dt, last_step, ierr)
    endif
 end subroutine rk4
 
-subroutine fdot(x, v, w, dxdt, dvdt, dwdt, dEpdt, itri, kel, ierr, sps)
+subroutine fdot(x, v, w, dxdt, dvdt, dwdt, dEpdt, itri, kel, gradcoef0, df0de0, df0dxi0, ierr, sps)
 !$acc routine seq
    use basic
    implicit none
@@ -1265,6 +1264,7 @@ subroutine fdot(x, v, w, dxdt, dvdt, dwdt, dEpdt, itri, kel, ierr, sps)
    real, dimension(vspdims), intent(in)                       :: v
    real, dimension(vspdims), intent(out)                      :: dvdt
    real, intent(in)                                           :: w
+   real, intent(in) :: gradcoef0, df0de0, df0dxi0
    real, intent(out)                                          :: dwdt
    real, intent(out)                                          :: dEpdt
    !type(elfield), dimension(nneighbors+1), target, intent(in) :: fh
@@ -1285,7 +1285,7 @@ subroutine fdot(x, v, w, dxdt, dvdt, dwdt, dEpdt, itri, kel, ierr, sps)
    real, dimension(vspdims)                                  :: v2, vs, vu
    real, dimension(3) :: dBdR, dBdphi, dBdz, dB0dR, dB0dphi, dB0dz, dB1dR, dB1dphi, dB1dz
    real, dimension(3) :: gradB0, gradB, gradB02, gradB1, gradB12, dEdR, dEdphi, dEdz
-   real, dimension(3) :: weqv0, weqv1, weqvD, weqvD1, gradpsi, gradf, gradpe
+   real, dimension(3) :: weqv0, weqv1, weqvD, weqvD1, gradpsi, gradf, gradpe, gradrho
    vectype, dimension(3) :: temp
    real f0, T0, tmp1, tmp2, tmp3, tmp4, tmp5, df0de, df0dxi, spd, gradcoef, dB1, dB12, j0xb, ne0, te0, dBdt, dEdt, dxidt
    real :: Rinv, B0inv, Binv, Bss, Bss0
@@ -1453,6 +1453,7 @@ subroutine fdot(x, v, w, dxdt, dvdt, dwdt, dEpdt, itri, kel, ierr, sps)
    else
       E_cyl=E_cyl-dot_product(E_cyl,B_cyl)*Binv
    endif
+   ! E_cyl=0.
 
    ! Gradient of B0 = grad(B.B)/(2 B0) = (B . grad B)/B0
    gradB0(1) = dot_product(bhat0, dB0dR)
@@ -1562,9 +1563,9 @@ subroutine fdot(x, v, w, dxdt, dvdt, dwdt, dEpdt, itri, kel, ierr, sps)
 
    !Weights evolve in delta-f method only.
    ! V1 = (ExB)/(B**2) + U deltaB/B
-   !weqv1(1) = ((E_cyl(2)*B_cyl(3) - E_cyl(3)*B_cyl(2))*B0inv + v(1)*deltaB(1))*B0inv
-   !weqv1(2) = ((E_cyl(3)*B_cyl(1) - E_cyl(1)*B_cyl(3))*B0inv + v(1)*deltaB(2))*B0inv
-   !weqv1(3) = ((E_cyl(1)*B_cyl(2) - E_cyl(2)*B_cyl(1))*B0inv + v(1)*deltaB(3))*B0inv
+   ! weqv1(1) = ((E_cyl(2)*B_cyl(3) - E_cyl(3)*B_cyl(2))*B0inv + 0*v(1)*deltaB(1))*B0inv
+   ! weqv1(2) = ((E_cyl(3)*B_cyl(1) - E_cyl(1)*B_cyl(3))*B0inv + 0*v(1)*deltaB(2))*B0inv
+   ! weqv1(3) = ((E_cyl(1)*B_cyl(2) - E_cyl(2)*B_cyl(1))*B0inv + 0*v(1)*deltaB(3))*B0inv
    spd = sqrt(v(1)*v(1) + 2.0*qm_ion(sps)*v(2)/B0inv)
    weqv1 = dxdt - dxdt0
    weqa1 = dvdt - dvdt0
@@ -1581,9 +1582,6 @@ subroutine fdot(x, v, w, dxdt, dvdt, dwdt, dEpdt, itri, kel, ierr, sps)
    tmp2 = tmp1*B0inv
    weqvD1 = tmp2*BxgrdB + tmp1*(Jcyl - dot_product(bhat, Jcyl)*bhat)
 
-   gradpsi = 0.0
-   gradpsi(1) = dot_product(elfieldcoefs(itri)%psiv0, geomterms%dr)
-   gradpsi(3) = dot_product(elfieldcoefs(itri)%psiv0, geomterms%dz)
    ne0 = dot_product(geomterms%g, elfieldcoefs(itri)%ne0)
 
    if (kinetic_thermal_ion_particle.eq.1) dEdt = dEdt + 1*q_ion(sps)*v(1)*(dot_product(-gradpe,bhat0)+j0xb)/ne0
@@ -1600,11 +1598,22 @@ subroutine fdot(x, v, w, dxdt, dvdt, dwdt, dEpdt, itri, kel, ierr, sps)
    ! j0xb=-dot_product(temp*te0,deltaB)*B0inv
 
    ! write(0,*) tmp1,(dot_product(-gradpe,bhat)+j0xb)
-   if (sps == 1) then
-      call evalf0i_advance(x, v, 1.0/B0inv, B_cyl(2), elfieldcoefs(itri), geomterms, sps, f0, gradf, df0de)
-      df0dxi = 0.
+   gradrho = 0.0
+   gradrho(1) = dot_product(elfieldcoefs(itri)%rho, geomterms%dr)
+   gradrho(3) = dot_product(elfieldcoefs(itri)%rho, geomterms%dz)
+#ifdef USEST
+   gradrho(2) = Rinv*dot_product(elfieldcoefs(itri)%rho, geomterms%dphi)
+#endif
+   if (istatic_gradf_particle.eq.0) then
+      call evalf0(x, v(1), sqrt(2.0*qm_ion(sps)*v(2)/B0inv), elfieldcoefs(itri), geomterms, sps, f0, gradcoef, df0de, df0dxi)
+      gradf = gradrho*gradcoef
+      ! write(0,*) v(1), sqrt(2.0*qm_ion(sps)*v(2)/B0inv)
+      ! gradcoef, df0de
+      ! call evalf0_advance(x, v, 1.0/B0inv, B_cyl(2), elfieldcoefs(itri), geomterms, sps, f0, gradf, df0de, df0dxi)
    else
-      call evalf0_advance(x, v, 1.0/B0inv, B_cyl(2), elfieldcoefs(itri), geomterms, sps, f0, gradf, df0de, df0dxi)
+      gradf = gradrho*gradcoef0
+      df0de = df0de0
+      df0dxi = df0dxi0
    end if
    !if (real(dot_product(fhptr%psiv0, geomterms%g))<0.15) then
    !   gradcoef=0.
@@ -1681,8 +1690,8 @@ subroutine fdot(x, v, w, dxdt, dvdt, dwdt, dEpdt, itri, kel, ierr, sps)
       dxdt = dxdt0
       dvdt = dvdt0
    end if
-   !dxdt=0.
-   !dvdt=0.
+   ! dxdt=0.
+   ! dvdt=0.
    dxdt(2) = Rinv*dxdt(2)  !phi-dot = (v_phi / R) for cylindrical case
 #ifdef USEST
    dxdt(1) = dxdt(1)-dRdphi*dxdt(2)
@@ -2752,130 +2761,18 @@ subroutine getEcyl(x, fh, gh, Ecyl)
 end subroutine getEcyl
 
 !---------------------------------------------------------------------------
-subroutine evalf0i(x, fh, gh, f0, T0, gradcoef)
-   use basic
-   implicit none
-
-   real, dimension(3), intent(in)       :: x
-   real, dimension(vspdims) :: v
-   real                     :: modB, Bphi
-   type(elfield), intent(in)            :: fh
-   type(xgeomterms), intent(in)         :: gh
-   real, intent(out)                    :: f0, T0
-   real, dimension(3)      :: gradpsi, gradf
-   real, intent(out)      :: gradcoef
-
-   !Math, physics parameters for Maxwellian distribution
-   real, parameter :: twopi = 6.283185307179586476925286766559
-   real, parameter :: vthermal = 100.0*vp1eV  !Maxwellian temperature = 10 keV
-   !real, parameter :: nrmfac = (vthermal*sqrt(twopi))**(-3)
-   real, parameter :: ecoef = -0.5*(vthermal**(-2))
-
-   !Parameters for slowing-down distribution
-   real, parameter :: vDTalpha = sqrt(3.5e+6/A_alpha)*vp1eV  !Birth speed of DT alpha
-   real, parameter :: vbeam = sqrt(1.0e+5)*vp1eV !Injection speed of 100 kV beam proton
-   real :: vmax
-   !real, parameter :: vmax = 981481 !or vbeam
-   real :: vcrit
-   !real :: sdc = 1.5/(twopi * log((vmax/vcrit)**3 + 1.0))
-
-   real s, spd, spsq !|v|, v-squared
-   real Ipa_d3v, Ipe_d3v
-   real psi0, Pphi, gradT
-
-   !vmax = (v0_norm_particle/100.0)*4.0
-   !vmax = 1.e7
-   !kim!vmax = 1.e6
-   !vcrit = 0.58 * vmax
-   !vcrit = 0.5 * vmax
-   !if (vspdims.eq.3) then
-   !   spsq = dot_product(v, v)
-   !else
-   !   spsq = v(1)*v(1) + 2.0*qm_ion*v(2)*modB
-   !endif
-
-   select case (1)
-   case (0) !Spatially uniform Maxwellian
-      !f0 = nrmfac * exp(ecoef * spsq)
-      !gradpsi = 0.0
-      !gradcoef = 0.
-      !df0de = (2.0*ecoef/m_ion) * f0
-      !if (.true.) then
-      !Ipa_d3v = m_ion * (vthermal**2)
-      !Ipe_d3v = Ipa_d3v
-      !endif
-   case (1) !Slowing-down distribution (Fu 2006 formulation)
-      !spd = sqrt(spsq)
-      !if (.true.) then
-      !f0 = 1./(spd**3 + vcrit**3)
-    !!kim!df0de = (-3.0 * spd * f0) / (m_ion)
-      !f0 = vcrit**3*f0
-    !!hou!f0 = 1./(spd**3 + vcrit**3)
-      !df0de = -1./(400*1e3*1.6e-19)
-      !else
-      !f0 = 0.0
-      !df0de = 0.0
-      !endif
-      gradpsi = 0.0
-      gradpsi(1) = dot_product(fh%psiv0, gh%dr)
-      gradpsi(3) = dot_product(fh%psiv0, gh%dz)
-      !gradf0(1) = gradf0(1)+v(1)/qm_ion/modB*dot_product(fh%Bzv0, gh%dr)
-      !gradf0(3) = gradf0(3)+v(1)/qm_ion/modB*dot_product(fh%Bzv0, gh%dz)
-      psi0 = dot_product(fh%psiv0, gh%g)
-      !gradf0 = gradf0/(0.0555/4.)
-      Pphi = psi0 + (1./qm_ion(1))*v(1)*Bphi*x(1)/modB/(b0_norm_particle/1.e4)
-      !hou!s=sqrt(abs(psi0/0.28036+1))
-      !s=sqrt(abs(psi0/0.08+1))
-      !gradcoef=-1/0.3/cosh((s-0.5)/0.2)**2/(2*s)/0.28036
-      !f0=f0*exp((Pphi-0.0555)/(0.0555/4.))
-      !hou!f0=exp(-m_ion*spd**2/(2*400*1e3*1.6e-19))*exp(-0.2/0.3*tanh((s-0.5)/(0.2)))
-      !f0=exp(-m_ion*spd**2/(2*17*1e3*1.6e-19))*exp(-0.2/0.3*tanh((s-0.5)/(0.2)))
-      !f0=exp(-0.2/0.3*tanh((s-0.5)/(0.2)))/exp(-0.2/0.3*tanh((-0.5/0.2)))
-      !call evaluate_spline(nf_spline, psi0, f0, gradcoef)
-      !psi0=1-psi0/psi_axis
-      f0 = dot_product(fh%nfi, gh%g)
-      gradf = 0.
-      gradf(1) = dot_product(fh%nfi, gh%dr)
-      gradf(3) = dot_product(fh%nfi, gh%dz)
-      gradcoef = dot_product(gradf, gradpsi)/dot_product(gradpsi, gradpsi)
-      gradcoef = gradcoef/f0
-      !call evaluate_spline(nf_spline, psi0, f0, gradcoef)
-      !gradcoef=gradcoef/f0/(-psi_axis)
-      T0 = dot_product(fh%tfi, gh%g)
-      !call evaluate_spline(tf_spline, psi0, T0, gradT)
-      !gradcoef=gradcoef+(-1.5+m_ion*spd**2/(2*T0*1e3*1.6e-19))*gradT/T0/(-psi_axis)
-      !if (f0<0.1) gradcoef=0
-      !df0de = -1./(T0*1e3*1.6e-19)
-      f0 = f0/nfi_axis
-      !f0=1!orbit
-      !f0=exp(-m_ion*spd**2/(2*T0*1e3*1.6e-19))
-      !f0=fx*T0**(-1.5)*exp(-m_ion*spd**2/(2*T0*1e3*1.6e-19))
-      !f0=fx
-      !T0=17
-      !f0=f0*exp((psi0-0.0555)/(0.0555/4.))
-      !gradf0 = gradf0/(1+4.*(1-f0temp/0.0607)**2)*8*(1-f0temp/0.0607)
-   case default
-      f0 = 1.0
-      !gradpsi = 0.
-      gradcoef = 0.0
-      !df0de = 0.0
-   end select
-end subroutine evalf0i
-
-subroutine evalf0i_advance(x, v, modB, Bphi, fh, gh, sps, f0, gradf, df0de)
+subroutine evalf0(x, vpar, vperp, fh, gh, sps, f0, gradcoef, df0de, df0dxi)
 !$acc routine seq
    use basic
    implicit none
 
    real, dimension(3), intent(in)       :: x
-   real, dimension(vspdims), intent(in) :: v
-   real, intent(in)                     :: modB, Bphi
+   real, intent(in)                     :: vpar, vperp
    type(elfield), intent(in)            :: fh
    type(xgeomterms), intent(in)         :: gh
    integer, intent(in)                  :: sps
-   real, intent(out)                    :: df0de
-   real, dimension(3), intent(out)      :: gradf
-   real, dimension(3)                   :: gradT
+   real, intent(out)                    :: gradcoef, df0de, df0dxi
+   real, dimension(3)                   :: gradf, gradT, gradrho
    real, intent(out)      :: f0
    real :: T0, gradcoef2
 
@@ -2906,274 +2803,14 @@ subroutine evalf0i_advance(x, v, modB, Bphi, fh, gh, sps, f0, gradf, df0de)
    !kim!vmax = 1.e6
    !vcrit = 0.58 * vmax
    vcrit = 0.5*vmax
-   if (vspdims .eq. 5) then
+   ! if (vspdims .eq. 5) then
       !spsq = dot_product(v, v)
-      spsq = v(4)*v(4) + 2.0*qm_ion(1)*v(5)*modB
-      xi = v(4)/sqrt(spsq)
-   else
-      spsq = v(1)*v(1) + 2.0*qm_ion(1)*v(2)*modB
-      xi = v(1)/sqrt(spsq)
-   end if
-
-   select case (1)
-   case (0) !Spatially uniform Maxwellian
-      !f0 = nrmfac*exp(ecoef*spsq)
-      !gradpsi = 0.0
-      !gradcoef = 0.
-      !df0de = (2.0*ecoef/m_ion)*f0
-      !if (.true.) then
-      !   Ipa_d3v = m_ion*(vthermal**2)
-      !   Ipe_d3v = Ipa_d3v
-      !end if
-   case (1) !Slowing-down distribution (Fu 2006 formulation)
-      spd = sqrt(spsq)
-      if (.true.) then
-         f0 = 1./(spd**3 + vcrit**3)
-         !kim!df0de = (-3.0 * spd * f0) / (m_ion)
-         f0 = vcrit**3*f0
-         !hou!f0 = 1./(spd**3 + vcrit**3)
-         df0de = -1./(400*1e3*1.6e-19)
-      else
-         f0 = 0.0
-         df0de = 0.0
-      end if
-      !gradpsi = 0.0
-      !gradpsi(1) = dot_product(fh%psiv0, gh%dr)
-      !gradpsi(3) = dot_product(fh%psiv0, gh%dz)
-      !fishbone!gradpsi(1) = gradpsi(1)+v(1)/qm_ion/modB*dot_product(fh%Bzv0, gh%dr)
-      !fishbone!gradpsi(3) = gradpsi(3)+v(1)/qm_ion/modB*dot_product(fh%Bzv0, gh%dz)
-#ifdef USEST
-      Rinv = 1.0/dot_product(fh%rst,gh%g)
-#endif
-      psi0 = dot_product(fh%psiv0, gh%g)
-      g0 = dot_product(fh%Bzv0, gh%g)
-      !gradf0 = gradf0/(0.0555/4.)
-      !Pphi = psi0 + (1./qm_ion) * v(1) * Bphi * x(1) / modB / (b0_norm_particle/1.e4)
-      Pphi = psi0 + (1./qm_ion(1))*v(1)*g0/modB
-      !hou!s=sqrt(abs(psi0/0.28036+1))
-      !s=sqrt(abs(psi0/0.08+1))
-      !hou!gradcoef2=-1/0.3/cosh((s-0.5)/0.2)**2/(2*s)/0.28036
-      !gradcoef2=-1/0.3/cosh((s-0.5)/0.2)**2/(2*s)/0.08
-      !f0=f0*exp((Pphi-0.0555)/(0.0555/4.))
-      !hou!f0=exp(-m_ion*spd**2/(2*400*1e3*1.6e-19))*exp(-0.2/0.3*tanh((s-0.5)/(0.2)))
-      !f0=exp(-m_ion*spd**2/(2*17*1e3*1.6e-19))*exp(-0.2/0.3*tanh((s-0.5)/(0.2)))
-      !f0=exp(-0.2/0.3*tanh((s-0.5)/(0.2)))/exp(-0.2/0.3*tanh((-0.5/0.2)))
-      !psi0=1-psi0/psi_axis
-
-      !call evaluate_spline_particle(nf_spline, psi0, f0, gradcoef)
-      f0 = dot_product(fh%nfi, gh%g)
-      gradf(1) = dot_product(fh%nfi, gh%dr)
-      gradf(3) = dot_product(fh%nfi, gh%dz)
-#ifdef USEST
-      gradf(2) = Rinv*dot_product(fh%nfi, gh%dphi)
-#else
-      gradf(2) = 0.
-#endif
-      gradf = gradf/f0
-      !if (abs(xi)<0.02) df0dxi=0.
-      ! if (abs(xi)>0.01) then
-      ! df0de = df0de+0.5*(1-xi**2)/xi/(m_ion*0.5*spd**2)*df0dxi
-      !df0de = df0de-gradcoef/(spd*xi)*dot_product(real(fh%Bzv0), gh%g)/modB/(q_ion)
-      ! endif
-      !call evaluate_spline_particle(tf_spline, psi0, T0, gradT)
-      T0 = dot_product(fh%tfi, gh%g)
-      gradT(1) = dot_product(fh%tfi, gh%dr)
-      gradT(3) = dot_product(fh%tfi, gh%dz)
-#ifdef USEST
-      gradT(2) = Rinv*dot_product(fh%tfi, gh%dphi)
-#else
-      gradT(2) = 0.
-#endif
-      !maxwellian
-      gradf=gradf+(-1.5+m_ion(1)*spd**2/(2*T0*1.6e-19))*gradT/T0
- !!if (psi0>0.64) gradcoef=0.
- !!if (psi0<0.1) gradcoef=0.
-      !f0=f0/nf_axis*T0**(-1.5)*exp(-m_ion*spd**2/(2*T0*1.6e-19))
-      df0de = -1./(T0*1.6e-19)
-      !slowingdown
-      !f0=f0/nf_axis*1./(spd**3+3.3363e6**3)
-      !df0de = -3./(spd**3 + T0**3)*spd/m_ion
-      !df0dxi = 0.
-      !df0dxi=-2*(xi+0.632)/0.55**2
-      ! if (xi>-0.02) df0dxi=0.
-
-      !f0=f0/nf_spline%y(1)
-      !gradcoef=1.
-      !T0=17
-      !f0=f0*exp((psi0-0.0555)/(0.0555/4.))
-      !gradf0 = gradf0/(1+4.*(1-f0temp/0.0607)**2)*8*(1-f0temp/0.0607)
- 
-   case default
-      f0 = 1.0
-      !gradpsi = 0.
-      !gradcoef = 0.0
-      df0de = 0.0
-   end select
-end subroutine evalf0i_advance
-
-subroutine evalf0(x, fh, gh, f0, T0, rho, gradcoef)
-   use basic
-   implicit none
-
-   real, dimension(3), intent(in)       :: x
-   real, dimension(vspdims) :: v
-   real                     :: modB, Bphi
-   type(elfield), intent(in)            :: fh
-   type(xgeomterms), intent(in)         :: gh
-   real, intent(out)                    :: f0, T0, rho
-   real, dimension(3)      :: gradpsi, gradf
-   real, intent(out)      :: gradcoef
-
-   !Math, physics parameters for Maxwellian distribution
-   real, parameter :: twopi = 6.283185307179586476925286766559
-   real, parameter :: vthermal = 100.0*vp1eV  !Maxwellian temperature = 10 keV
-   !real, parameter :: nrmfac = (vthermal*sqrt(twopi))**(-3)
-   real, parameter :: ecoef = -0.5*(vthermal**(-2))
-
-   !Parameters for slowing-down distribution
-   real, parameter :: vDTalpha = sqrt(3.5e+6/A_alpha)*vp1eV  !Birth speed of DT alpha
-   real, parameter :: vbeam = sqrt(1.0e+5)*vp1eV !Injection speed of 100 kV beam proton
-   real :: vmax
-   !real, parameter :: vmax = 981481 !or vbeam
-   real :: vcrit
-   !real :: sdc = 1.5/(twopi * log((vmax/vcrit)**3 + 1.0))
-
-   real s, spd, spsq !|v|, v-squared
-   real Ipa_d3v, Ipe_d3v
-   real psi0, Pphi, gradT
-
-   !vmax = (v0_norm_particle/100.0)*4.0
-   !vmax = 1.e7
-   !kim!vmax = 1.e6
-   !vcrit = 0.58 * vmax
-   !vcrit = 0.5 * vmax
-   !if (vspdims.eq.3) then
-   !   spsq = dot_product(v, v)
-   !else
-   !   spsq = v(1)*v(1) + 2.0*qm_ion*v(2)*modB
-   !endif
-
-   select case (1)
-   case (0) !Spatially uniform Maxwellian
-      !f0 = nrmfac * exp(ecoef * spsq)
-      !gradpsi = 0.0
-      !gradcoef = 0.
-      !df0de = (2.0*ecoef/m_ion) * f0
-      !if (.true.) then
-      !Ipa_d3v = m_ion * (vthermal**2)
-      !Ipe_d3v = Ipa_d3v
-      !endif
-   case (1) !Slowing-down distribution (Fu 2006 formulation)
-      !spd = sqrt(spsq)
-      !if (.true.) then
-      !f0 = 1./(spd**3 + vcrit**3)
-    !!kim!df0de = (-3.0 * spd * f0) / (m_ion)
-      !f0 = vcrit**3*f0
-    !!hou!f0 = 1./(spd**3 + vcrit**3)
-      !df0de = -1./(400*1.6e-19)
-      !else
-      !f0 = 0.0
-      !df0de = 0.0
-      !endif
-      gradpsi = 0.0
-      gradpsi(1) = dot_product(fh%psiv0, gh%dr)
-      gradpsi(3) = dot_product(fh%psiv0, gh%dz)
-      !gradf0(1) = gradf0(1)+v(1)/qm_ion/modB*dot_product(fh%Bzv0, gh%dr)
-      !gradf0(3) = gradf0(3)+v(1)/qm_ion/modB*dot_product(fh%Bzv0, gh%dz)
-      psi0 = dot_product(fh%psiv0, gh%g)
-      !gradf0 = gradf0/(0.0555/4.)
-      Pphi = psi0 + (1./qm_ion(2))*v(1)*Bphi*x(1)/modB/(b0_norm_particle/1.e4)
-      !hou!s=sqrt(abs(psi0/0.28036+1))
-      !s=sqrt(abs(psi0/0.08+1))
-      !gradcoef=-1/0.3/cosh((s-0.5)/0.2)**2/(2*s)/0.28036
-      !f0=f0*exp((Pphi-0.0555)/(0.0555/4.))
-      !hou!f0=exp(-m_ion*spd**2/(2*400*1e3*1.6e-19))*exp(-0.2/0.3*tanh((s-0.5)/(0.2)))
-      !f0=exp(-m_ion*spd**2/(2*17*1e3*1.6e-19))*exp(-0.2/0.3*tanh((s-0.5)/(0.2)))
-      !f0=exp(-0.2/0.3*tanh((s-0.5)/(0.2)))/exp(-0.2/0.3*tanh((-0.5/0.2)))
-      !call evaluate_spline(nf_spline, psi0, f0, gradcoef)
-      !psi0=1-psi0/psi_axis
-      rho = dot_product(fh%rho, gh%g)
-      f0 = dot_product(fh%nf, gh%g)
-      gradf = 0.
-      gradf(1) = dot_product(fh%nf, gh%dr)
-      gradf(3) = dot_product(fh%nf, gh%dz)
-      gradcoef = dot_product(gradf, gradpsi)/dot_product(gradpsi, gradpsi)
-      gradcoef = gradcoef/f0
-      !call evaluate_spline(nf_spline, psi0, f0, gradcoef)
-      !gradcoef=gradcoef/f0/(-psi_axis)
-      T0 = dot_product(fh%tf, gh%g)
-      !call evaluate_spline(tf_spline, psi0, T0, gradT)
-      !gradcoef=gradcoef+(-1.5+m_ion*spd**2/(2*T0*1e3*1.6e-19))*gradT/T0/(-psi_axis)
-      !if (f0<0.1) gradcoef=0
-      !df0de = -1./(T0*1e3*1.6e-19)
-      f0 = f0/nf_axis
-      !f0=1!orbit
-      !f0=exp(-m_ion*spd**2/(2*T0*1e3*1.6e-19))
-      !f0=fx*T0**(-1.5)*exp(-m_ion*spd**2/(2*T0*1e3*1.6e-19))
-      !f0=fx
-      !T0=17
-      !f0=f0*exp((psi0-0.0555)/(0.0555/4.))
-      !gradf0 = gradf0/(1+4.*(1-f0temp/0.0607)**2)*8*(1-f0temp/0.0607)
-   case default
-      f0 = 1.0
-      !gradpsi = 0.
-      gradcoef = 0.0
-      !df0de = 0.0
-   end select
-end subroutine evalf0
-
-subroutine evalf0_advance(x, v, modB, Bphi, fh, gh, sps, f0, gradf, df0de, df0dxi)
-!$acc routine seq
-   use basic
-   implicit none
-
-   real, dimension(3), intent(in)       :: x
-   real, dimension(vspdims), intent(in) :: v
-   real, intent(in)                     :: modB, Bphi
-   type(elfield), intent(in)            :: fh
-   type(xgeomterms), intent(in)         :: gh
-   integer, intent(in)                  :: sps
-   real, intent(out)                    :: df0de, df0dxi
-   real, dimension(3), intent(out)      :: gradf
-   real, dimension(3)                   :: gradT
-   real, intent(out)      :: f0
-   real :: T0, gradcoef2
-
-   !Math, physics parameters for Maxwellian distribution
-   real, parameter :: twopi = 6.283185307179586476925286766559
-   real, parameter :: vthermal = 100.0*vp1eV  !Maxwellian temperature = 10 keV
-   !real, parameter :: nrmfac = (vthermal*sqrt(twopi))**(-3)
-   real, parameter :: ecoef = -0.5*(vthermal**(-2))
-
-   !Parameters for slowing-down distribution
-   real, parameter :: vDTalpha = sqrt(3.5e+6/A_alpha)*vp1eV  !Birth speed of DT alpha
-   real, parameter :: vbeam = sqrt(1.0e+5)*vp1eV !Injection speed of 100 kV beam proton
-   real :: vmax
-   !real, parameter :: vmax = 981481 !or vbeam
-   real :: vcrit
-   !real :: sdc = 1.5/(twopi * log((vmax/vcrit)**3 + 1.0))
-
-   real s, spd, spsq !|v|, v-squared
-   real Ipa_d3v, Ipe_d3v
-   real psi0, g0, Pphi
-   real xi, radi, pitch, energy
-   integer radi_i, pitch_i, energy_i
-   real f1, f2, f3, f4, f5, f6
-   real df0dr, Rinv
-
-   !vmax = (v0_norm_particle/100.0)*4.0
-   vmax = 1.e7
-   !kim!vmax = 1.e6
-   !vcrit = 0.58 * vmax
-   vcrit = 0.5*vmax
-   if (vspdims .eq. 5) then
-      !spsq = dot_product(v, v)
-      spsq = v(4)*v(4) + 2.0*qm_ion(2)*v(5)*modB
-      xi = v(4)/sqrt(spsq)
-   else
-      spsq = v(1)*v(1) + 2.0*qm_ion(2)*v(2)*modB
-      xi = v(1)/sqrt(spsq)
-   end if
+      ! spsq = v(4)*v(4) + 2.0*qm_ion(2)*v(5)*modB
+      ! xi = v(4)/sqrt(spsq)
+   ! else
+      spsq = vpar**2 + vperp**2
+      xi = vpar/sqrt(spsq)
+   ! end if
 
    select case (1)
    case (0) !Spatially uniform Maxwellian
@@ -3203,11 +2840,11 @@ subroutine evalf0_advance(x, v, modB, Bphi, fh, gh, sps, f0, gradf, df0de, df0dx
       !fishbone!gradpsi(1) = gradpsi(1)+v(1)/qm_ion/modB*dot_product(fh%Bzv0, gh%dr)
       !fishbone!gradpsi(3) = gradpsi(3)+v(1)/qm_ion/modB*dot_product(fh%Bzv0, gh%dz)
       !Rinv = 1.0/dot_product(fh%rst,gh%g)
-      psi0 = dot_product(fh%psiv0, gh%g)
-      g0 = dot_product(fh%Bzv0, gh%g)
+      ! psi0 = dot_product(fh%psiv0, gh%g)
+      ! g0 = dot_product(fh%Bzv0, gh%g)
       !gradf0 = gradf0/(0.0555/4.)
       !Pphi = psi0 + (1./qm_ion) * v(1) * Bphi * x(1) / modB / (b0_norm_particle/1.e4)
-      Pphi = psi0 + (1./qm_ion(2))*v(1)*g0/modB
+      ! Pphi = psi0 + (1./qm_ion(2))*v(1)*g0/modB
       !hou!s=sqrt(abs(psi0/0.28036+1))
       !s=sqrt(abs(psi0/0.08+1))
       !hou!gradcoef2=-1/0.3/cosh((s-0.5)/0.2)**2/(2*s)/0.28036
@@ -3217,14 +2854,31 @@ subroutine evalf0_advance(x, v, modB, Bphi, fh, gh, sps, f0, gradf, df0de, df0dx
       !f0=exp(-m_ion*spd**2/(2*17*1e3*1.6e-19))*exp(-0.2/0.3*tanh((s-0.5)/(0.2)))
       !f0=exp(-0.2/0.3*tanh((s-0.5)/(0.2)))/exp(-0.2/0.3*tanh((-0.5/0.2)))
       !psi0=1-psi0/psi_axis
-
-#ifndef USEST
+#ifdef USEST
+      Rinv = 1.0/dot_product(fh%rst,gh%g)
+#endif
+ 
+! #ifndef USEST
       !call evaluate_spline_particle(nf_spline, psi0, f0, gradcoef)
-      f0 = dot_product(fh%nf, gh%g)
-      gradf(1) = dot_product(fh%nf, gh%dr)
-      gradf(3) = dot_product(fh%nf, gh%dz)
-      !gradf(2) = Rinv*dot_product(fh%nf, gh%dphi)
-      gradf(2) = 0.
+      if (sps==1) then
+         f0 = dot_product(fh%nfi, gh%g)
+         gradf(1) = dot_product(fh%nfi, gh%dr)
+         gradf(3) = dot_product(fh%nfi, gh%dz)
+#ifdef USEST
+         gradf(2) = Rinv*dot_product(fh%nfi, gh%dphi)
+#else
+         gradf(2) = 0.
+#endif
+      else
+         f0 = dot_product(fh%nf, gh%g)
+         gradf(1) = dot_product(fh%nf, gh%dr)
+         gradf(3) = dot_product(fh%nf, gh%dz)
+#ifdef USEST
+         gradf(2) = Rinv*dot_product(fh%nf, gh%dphi)
+#else
+         gradf(2) = 0.
+#endif
+      endif
       gradf = gradf/f0
       !if (abs(xi)<0.02) df0dxi=0.
       ! if (abs(xi)>0.01) then
@@ -3232,12 +2886,27 @@ subroutine evalf0_advance(x, v, modB, Bphi, fh, gh, sps, f0, gradf, df0de, df0dx
       !df0de = df0de-gradcoef/(spd*xi)*dot_product(real(fh%Bzv0), gh%g)/modB/(q_ion)
       ! endif
       !call evaluate_spline_particle(tf_spline, psi0, T0, gradT)
-      T0 = dot_product(fh%tf, gh%g)
-      gradT(1) = dot_product(fh%tf, gh%dr)
-      gradT(3) = dot_product(fh%tf, gh%dz)
-      !gradT(2) = Rinv*dot_product(fh%tf, gh%dphi)
-      gradT(2) = 0.
-      if (fast_ion_dist_particle.eq.1) then
+      if (sps==1) then
+         T0 = dot_product(fh%tfi, gh%g)
+         gradT(1) = dot_product(fh%tfi, gh%dr)
+         gradT(3) = dot_product(fh%tfi, gh%dz)
+#ifdef USEST
+         gradT(2) = Rinv*dot_product(fh%tfi, gh%dphi)
+#else
+         gradT(2) = 0.
+#endif
+      else
+         T0 = dot_product(fh%tf, gh%g)
+         gradT(1) = dot_product(fh%tf, gh%dr)
+         gradT(3) = dot_product(fh%tf, gh%dz)
+#ifdef USEST
+         gradT(2) = Rinv*dot_product(fh%tf, gh%dphi)
+#else
+         gradT(2) = 0.
+#endif
+      endif
+      
+      if ((sps==1).or.(fast_ion_dist_particle.eq.1)) then
          !maxwellian
          gradf=gradf+(-1.5+m_ion(sps)*spd**2/(2*T0*1.6e-19))*gradT/T0
     !!if (psi0>0.64) gradcoef=0.
@@ -3245,6 +2914,11 @@ subroutine evalf0_advance(x, v, modB, Bphi, fh, gh, sps, f0, gradf, df0de, df0dx
          f0=f0/nf_axis*T0**(-1.5)*exp(-m_ion(sps)*spd**2/(2*T0*1e3*1.6e-19))
          df0de = -1./(T0*1.6e-19)
          df0dxi = 0.
+         if (real(dot_product(fh%rho, gh%g))>0.8) then
+            gradf=0.
+            df0de=0.
+            df0dxi=0.
+         endif
       elseif (fast_ion_dist_particle.eq.2) then
          !slowingdown
          gradf=gradf-3./(spd**3 + (2*T0*1.6e-19/m_ion(sps))**(1.5))*(2*T0*1.6e-19/m_ion(sps))**(0.5)/m_ion(2)*1.6e-19*gradT
@@ -3260,98 +2934,105 @@ subroutine evalf0_advance(x, v, modB, Bphi, fh, gh, sps, f0, gradf, df0de, df0dx
       !T0=17
       !f0=f0*exp((psi0-0.0555)/(0.0555/4.))
       !gradf0 = gradf0/(1+4.*(1-f0temp/0.0607)**2)*8*(1-f0temp/0.0607)
+!#else
+!       radi = 1-dot_product(fh%rho, gh%g)
+!       if (radi<r_array(1)) radi=r_array(1)
+!       if (radi>r_array(num_r)) radi=r_array(num_r)
+!       radi_i=int((radi-r_array(1))/(r_array(2)-r_array(1)))+1
+!       if (radi_i>=num_r) radi_i=num_r-1
+!       pitch=xi
+!       if (pitch<pitch_array(1)) pitch=pitch_array(1)
+!       if (pitch>pitch_array(num_pitch)) pitch=pitch_array(num_pitch)
+!       pitch_i=int((xi-pitch_array(1))/(pitch_array(2)-pitch_array(1)))+1
+!       if (pitch_i>=num_pitch) pitch_i=num_pitch-1
+!       energy = m_ion(2)*spd**2/2./1.6e-19
+!       if (energy<energy_array(1)) energy=energy_array(1)
+!       if (energy>energy_array(num_energy)) energy=energy_array(num_energy)
+!       energy_i=int((energy-energy_array(1))/(energy_array(2)-energy_array(1)))+1
+!       if (energy_i>=num_energy) energy_i=num_energy-1
+!       f1=f_array(energy_i,pitch_i,radi_i)*(energy_array(energy_i+1)-energy)/(energy_array(energy_i+1)-energy_array(energy_i))
+!       f1=f1+f_array(energy_i+1,pitch_i,radi_i)*(energy-energy_array(energy_i))/(energy_array(energy_i+1)-energy_array(energy_i))
+!       f2=f_array(energy_i,pitch_i+1,radi_i)*(energy_array(energy_i+1)-energy)/(energy_array(energy_i+1)-energy_array(energy_i))
+!       f2=f2+f_array(energy_i+1,pitch_i+1,radi_i)*(energy-energy_array(energy_i))/(energy_array(energy_i+1)-energy_array(energy_i))
+!       f3=f1*(pitch_array(pitch_i+1)-pitch)/(pitch_array(pitch_i+1)-pitch_array(pitch_i))
+!       f3=f3+f2*(pitch-pitch_array(pitch_i))/(pitch_array(pitch_i+1)-pitch_array(pitch_i))
+!       f4=f_array(energy_i,pitch_i,radi_i+1)*(energy_array(energy_i+1)-energy)/(energy_array(energy_i+1)-energy_array(energy_i))
+!       f4=f4+f_array(energy_i+1,pitch_i,radi_i+1)*(energy-energy_array(energy_i))/(energy_array(energy_i+1)-energy_array(energy_i))
+!       f5=f_array(energy_i,pitch_i+1,radi_i+1)*(energy_array(energy_i+1)-energy)/(energy_array(energy_i+1)-energy_array(energy_i))
+!       f5=f5+f_array(energy_i+1,pitch_i+1,radi_i+1)*(energy-energy_array(energy_i))/(energy_array(energy_i+1)-energy_array(energy_i))
+!       f6=f4*(pitch_array(pitch_i+1)-pitch)/(pitch_array(pitch_i+1)-pitch_array(pitch_i))
+!       f6=f6+f5*(pitch-pitch_array(pitch_i))/(pitch_array(pitch_i+1)-pitch_array(pitch_i))
+!       f0=f3*(r_array(radi_i+1)-radi)/(r_array(radi_i+1)-r_array(radi_i))
+!       f0=f0+f6*(radi-r_array(radi_i))/(r_array(radi_i+1)-r_array(radi_i))
+!       !if ((f6/f3>10.).or.(f6/f3<0.1)) then
+!          df0dr=(f6-f3)/(r_array(radi_i+1)-r_array(radi_i))/(f6+f3+1e-10)*2
+!       !else
+!          !df0dr=(f6-f3)/(r_array(radi_i+1)-r_array(radi_i))/(f0+1e-10)
+!       !endif
+!       if (abs(df0dr)>0.2/(r_array(2)-r_array(1))) df0dr=0
+!       gradf = 0.
+!       gradf(1) = dot_product(fh%rho, gh%dr)
+!       gradf(3) = dot_product(fh%rho, gh%dz)
+!       !gradcoef=dot_product(gradf,gradpsi)/dot_product(gradpsi,gradpsi)
+!       !gradcoef=-gradcoef*df0dr
+!       gradf=-gradf*df0dr
+!       f1=f_array(energy_i,pitch_i,radi_i)*(pitch_array(pitch_i+1)-pitch)/(pitch_array(pitch_i+1)-pitch_array(pitch_i))
+!       f1=f1+f_array(energy_i,pitch_i+1,radi_i)*(pitch-pitch_array(pitch_i))/(pitch_array(pitch_i+1)-pitch_array(pitch_i))
+!       f2=f_array(energy_i,pitch_i,radi_i+1)*(pitch_array(pitch_i+1)-pitch)/(pitch_array(pitch_i+1)-pitch_array(pitch_i))
+!       f2=f2+f_array(energy_i,pitch_i+1,radi_i+1)*(pitch-pitch_array(pitch_i))/(pitch_array(pitch_i+1)-pitch_array(pitch_i))
+!       f3=f1*(r_array(radi_i+1)-radi)/(r_array(radi_i+1)-r_array(radi_i))
+!       f3=f3+f2*(radi-r_array(radi_i))/(r_array(radi_i+1)-r_array(radi_i))
+!       f4=f_array(energy_i+1,pitch_i,radi_i)*(pitch_array(pitch_i+1)-pitch)/(pitch_array(pitch_i+1)-pitch_array(pitch_i))
+!       f4=f4+f_array(energy_i+1,pitch_i+1,radi_i)*(pitch-pitch_array(pitch_i))/(pitch_array(pitch_i+1)-pitch_array(pitch_i))
+!       f5=f_array(energy_i+1,pitch_i,radi_i+1)*(pitch_array(pitch_i+1)-pitch)/(pitch_array(pitch_i+1)-pitch_array(pitch_i))
+!       f5=f5+f_array(energy_i+1,pitch_i+1,radi_i+1)*(pitch-pitch_array(pitch_i))/(pitch_array(pitch_i+1)-pitch_array(pitch_i))
+!       f6=f4*(r_array(radi_i+1)-radi)/(r_array(radi_i+1)-r_array(radi_i))
+!       f6=f6+f5*(radi-r_array(radi_i))/(r_array(radi_i+1)-r_array(radi_i))
+!       !if ((f6/f3>10.).or.(f6/f3<0.1)) then
+!          df0de=(f6-f3)/(energy_array(energy_i+1)-energy_array(energy_i))/(f6+f3+1e-10)*2
+!       !else
+!          !df0de=(f6-f3)/(energy_array(energy_i+1)-energy_array(energy_i))/(f0+1e-10)
+!       !endif
+!       !if ((energy_i==13) .or. (energy_i==20) .or. (energy_i==42)) then
+!       if (energy>174000) then
+!          df0de=0.
+!       endif
+!       if (abs(df0de)>1./(energy_array(2)-energy_array(1))) df0de=0
+!       df0de=df0de/1.6e-19
+!       f1=f_array(energy_i,pitch_i,radi_i)*(energy_array(energy_i+1)-energy)/(energy_array(energy_i+1)-energy_array(energy_i))
+!       f1=f1+f_array(energy_i+1,pitch_i,radi_i)*(energy-energy_array(energy_i))/(energy_array(energy_i+1)-energy_array(energy_i))
+!       f2=f_array(energy_i,pitch_i,radi_i+1)*(energy_array(energy_i+1)-energy)/(energy_array(energy_i+1)-energy_array(energy_i))
+!       f2=f2+f_array(energy_i+1,pitch_i,radi_i+1)*(energy-energy_array(energy_i))/(energy_array(energy_i+1)-energy_array(energy_i))
+!       f3=f1*(r_array(radi_i+1)-radi)/(r_array(radi_i+1)-r_array(radi_i))
+!       f3=f3+f2*(radi-r_array(radi_i))/(r_array(radi_i+1)-r_array(radi_i))
+!       f4=f_array(energy_i,pitch_i+1,radi_i)*(energy_array(energy_i+1)-energy)/(energy_array(energy_i+1)-energy_array(energy_i))
+!       f4=f4+f_array(energy_i+1,pitch_i+1,radi_i)*(energy-energy_array(energy_i))/(energy_array(energy_i+1)-energy_array(energy_i))
+!       f5=f_array(energy_i,pitch_i+1,radi_i+1)*(energy_array(energy_i+1)-energy)/(energy_array(energy_i+1)-energy_array(energy_i))
+!       f5=f5+f_array(energy_i+1,pitch_i+1,radi_i+1)*(energy-energy_array(energy_i))/(energy_array(energy_i+1)-energy_array(energy_i))
+!       f6=f4*(r_array(radi_i+1)-radi)/(r_array(radi_i+1)-r_array(radi_i))
+!       f6=f6+f5*(radi-r_array(radi_i))/(r_array(radi_i+1)-r_array(radi_i))
+!       !if ((f6/f3>10.).or.(f6/f3<0.1)) then
+!          df0dxi=(f6-f3)/(pitch_array(pitch_i+1)-pitch_array(pitch_i))/(f6+f3+1e-10)*2
+!       !else
+!          !df0dxi=(f6-f3)/(pitch_array(pitch_i+1)-pitch_array(pitch_i))/(f0+1e-10)
+!       !endif
+!       if (abs(df0dxi)>1./(pitch_array(2)-pitch_array(1))) df0dxi=0
+!#endif
+      gradrho(1) = dot_product(fh%rho,gh%dr)
+      gradrho(3) = dot_product(fh%rho,gh%dz)
+#ifdef USEST
+      gradrho(2) = Rinv*dot_product(fh%rho,gh%dphi)
 #else
-       radi = 1-dot_product(fh%rho, gh%g)
-       if (radi<r_array(1)) radi=r_array(1)
-       if (radi>r_array(num_r)) radi=r_array(num_r)
-       radi_i=int((radi-r_array(1))/(r_array(2)-r_array(1)))+1
-       if (radi_i>=num_r) radi_i=num_r-1
-       pitch=xi
-       if (pitch<pitch_array(1)) pitch=pitch_array(1)
-       if (pitch>pitch_array(num_pitch)) pitch=pitch_array(num_pitch)
-       pitch_i=int((xi-pitch_array(1))/(pitch_array(2)-pitch_array(1)))+1
-       if (pitch_i>=num_pitch) pitch_i=num_pitch-1
-       energy = m_ion(2)*spd**2/2./1.6e-19
-       if (energy<energy_array(1)) energy=energy_array(1)
-       if (energy>energy_array(num_energy)) energy=energy_array(num_energy)
-       energy_i=int((energy-energy_array(1))/(energy_array(2)-energy_array(1)))+1
-       if (energy_i>=num_energy) energy_i=num_energy-1
-       f1=f_array(energy_i,pitch_i,radi_i)*(energy_array(energy_i+1)-energy)/(energy_array(energy_i+1)-energy_array(energy_i))
-       f1=f1+f_array(energy_i+1,pitch_i,radi_i)*(energy-energy_array(energy_i))/(energy_array(energy_i+1)-energy_array(energy_i))
-       f2=f_array(energy_i,pitch_i+1,radi_i)*(energy_array(energy_i+1)-energy)/(energy_array(energy_i+1)-energy_array(energy_i))
-       f2=f2+f_array(energy_i+1,pitch_i+1,radi_i)*(energy-energy_array(energy_i))/(energy_array(energy_i+1)-energy_array(energy_i))
-       f3=f1*(pitch_array(pitch_i+1)-pitch)/(pitch_array(pitch_i+1)-pitch_array(pitch_i))
-       f3=f3+f2*(pitch-pitch_array(pitch_i))/(pitch_array(pitch_i+1)-pitch_array(pitch_i))
-       f4=f_array(energy_i,pitch_i,radi_i+1)*(energy_array(energy_i+1)-energy)/(energy_array(energy_i+1)-energy_array(energy_i))
-       f4=f4+f_array(energy_i+1,pitch_i,radi_i+1)*(energy-energy_array(energy_i))/(energy_array(energy_i+1)-energy_array(energy_i))
-       f5=f_array(energy_i,pitch_i+1,radi_i+1)*(energy_array(energy_i+1)-energy)/(energy_array(energy_i+1)-energy_array(energy_i))
-       f5=f5+f_array(energy_i+1,pitch_i+1,radi_i+1)*(energy-energy_array(energy_i))/(energy_array(energy_i+1)-energy_array(energy_i))
-       f6=f4*(pitch_array(pitch_i+1)-pitch)/(pitch_array(pitch_i+1)-pitch_array(pitch_i))
-       f6=f6+f5*(pitch-pitch_array(pitch_i))/(pitch_array(pitch_i+1)-pitch_array(pitch_i))
-       f0=f3*(r_array(radi_i+1)-radi)/(r_array(radi_i+1)-r_array(radi_i))
-       f0=f0+f6*(radi-r_array(radi_i))/(r_array(radi_i+1)-r_array(radi_i))
-       !if ((f6/f3>10.).or.(f6/f3<0.1)) then
-          df0dr=(f6-f3)/(r_array(radi_i+1)-r_array(radi_i))/(f6+f3+1e-10)*2
-       !else
-          !df0dr=(f6-f3)/(r_array(radi_i+1)-r_array(radi_i))/(f0+1e-10)
-       !endif
-       if (abs(df0dr)>0.2/(r_array(2)-r_array(1))) df0dr=0
-       gradf = 0.
-       gradf(1) = dot_product(fh%rho, gh%dr)
-       gradf(3) = dot_product(fh%rho, gh%dz)
-       !gradcoef=dot_product(gradf,gradpsi)/dot_product(gradpsi,gradpsi)
-       !gradcoef=-gradcoef*df0dr
-       gradf=-gradf*df0dr
-       f1=f_array(energy_i,pitch_i,radi_i)*(pitch_array(pitch_i+1)-pitch)/(pitch_array(pitch_i+1)-pitch_array(pitch_i))
-       f1=f1+f_array(energy_i,pitch_i+1,radi_i)*(pitch-pitch_array(pitch_i))/(pitch_array(pitch_i+1)-pitch_array(pitch_i))
-       f2=f_array(energy_i,pitch_i,radi_i+1)*(pitch_array(pitch_i+1)-pitch)/(pitch_array(pitch_i+1)-pitch_array(pitch_i))
-       f2=f2+f_array(energy_i,pitch_i+1,radi_i+1)*(pitch-pitch_array(pitch_i))/(pitch_array(pitch_i+1)-pitch_array(pitch_i))
-       f3=f1*(r_array(radi_i+1)-radi)/(r_array(radi_i+1)-r_array(radi_i))
-       f3=f3+f2*(radi-r_array(radi_i))/(r_array(radi_i+1)-r_array(radi_i))
-       f4=f_array(energy_i+1,pitch_i,radi_i)*(pitch_array(pitch_i+1)-pitch)/(pitch_array(pitch_i+1)-pitch_array(pitch_i))
-       f4=f4+f_array(energy_i+1,pitch_i+1,radi_i)*(pitch-pitch_array(pitch_i))/(pitch_array(pitch_i+1)-pitch_array(pitch_i))
-       f5=f_array(energy_i+1,pitch_i,radi_i+1)*(pitch_array(pitch_i+1)-pitch)/(pitch_array(pitch_i+1)-pitch_array(pitch_i))
-       f5=f5+f_array(energy_i+1,pitch_i+1,radi_i+1)*(pitch-pitch_array(pitch_i))/(pitch_array(pitch_i+1)-pitch_array(pitch_i))
-       f6=f4*(r_array(radi_i+1)-radi)/(r_array(radi_i+1)-r_array(radi_i))
-       f6=f6+f5*(radi-r_array(radi_i))/(r_array(radi_i+1)-r_array(radi_i))
-       !if ((f6/f3>10.).or.(f6/f3<0.1)) then
-          df0de=(f6-f3)/(energy_array(energy_i+1)-energy_array(energy_i))/(f6+f3+1e-10)*2
-       !else
-          !df0de=(f6-f3)/(energy_array(energy_i+1)-energy_array(energy_i))/(f0+1e-10)
-       !endif
-       !if ((energy_i==13) .or. (energy_i==20) .or. (energy_i==42)) then
-       if (energy>174000) then
-          df0de=0.
-       endif
-       if (abs(df0de)>1./(energy_array(2)-energy_array(1))) df0de=0
-       df0de=df0de/1.6e-19
-       f1=f_array(energy_i,pitch_i,radi_i)*(energy_array(energy_i+1)-energy)/(energy_array(energy_i+1)-energy_array(energy_i))
-       f1=f1+f_array(energy_i+1,pitch_i,radi_i)*(energy-energy_array(energy_i))/(energy_array(energy_i+1)-energy_array(energy_i))
-       f2=f_array(energy_i,pitch_i,radi_i+1)*(energy_array(energy_i+1)-energy)/(energy_array(energy_i+1)-energy_array(energy_i))
-       f2=f2+f_array(energy_i+1,pitch_i,radi_i+1)*(energy-energy_array(energy_i))/(energy_array(energy_i+1)-energy_array(energy_i))
-       f3=f1*(r_array(radi_i+1)-radi)/(r_array(radi_i+1)-r_array(radi_i))
-       f3=f3+f2*(radi-r_array(radi_i))/(r_array(radi_i+1)-r_array(radi_i))
-       f4=f_array(energy_i,pitch_i+1,radi_i)*(energy_array(energy_i+1)-energy)/(energy_array(energy_i+1)-energy_array(energy_i))
-       f4=f4+f_array(energy_i+1,pitch_i+1,radi_i)*(energy-energy_array(energy_i))/(energy_array(energy_i+1)-energy_array(energy_i))
-       f5=f_array(energy_i,pitch_i+1,radi_i+1)*(energy_array(energy_i+1)-energy)/(energy_array(energy_i+1)-energy_array(energy_i))
-       f5=f5+f_array(energy_i+1,pitch_i+1,radi_i+1)*(energy-energy_array(energy_i))/(energy_array(energy_i+1)-energy_array(energy_i))
-       f6=f4*(r_array(radi_i+1)-radi)/(r_array(radi_i+1)-r_array(radi_i))
-       f6=f6+f5*(radi-r_array(radi_i))/(r_array(radi_i+1)-r_array(radi_i))
-       !if ((f6/f3>10.).or.(f6/f3<0.1)) then
-          df0dxi=(f6-f3)/(pitch_array(pitch_i+1)-pitch_array(pitch_i))/(f6+f3+1e-10)*2
-       !else
-          !df0dxi=(f6-f3)/(pitch_array(pitch_i+1)-pitch_array(pitch_i))/(f0+1e-10)
-       !endif
-       if (abs(df0dxi)>1./(pitch_array(2)-pitch_array(1))) df0dxi=0
+      gradrho(2) = 0.
 #endif
- 
+      gradcoef = dot_product(gradf, gradrho)/dot_product(gradrho, gradrho)
    case default
       f0 = 1.0
       !gradpsi = 0.
       !gradcoef = 0.0
       df0de = 0.0
    end select
-end subroutine evalf0_advance
+end subroutine evalf0
 !---------------------------------------------------------------------------
 subroutine particle_pressure_rhs
    use basic
@@ -3386,6 +3067,8 @@ subroutine particle_pressure_rhs
    integer :: ipart_begin_local, ipart_end_local
    real, dimension(3) :: xtemp
    real, dimension(vspdims) :: vtemp
+   real, dimension(3) :: B_cyl, gradB0, gradB1
+   real :: dB1
    !nelms = size(pdata)
    !nelms = local_elements()
    !elcoefs(:)%itri = 0
@@ -3436,7 +3119,12 @@ subroutine particle_pressure_rhs
        !!iwe = iwe + 1
             !cycle !next particle
          end if
-         B0 = pdata(ipart)%B0
+         if (pdata(ipart)%B0.ne.0) then
+            B0 = pdata(ipart)%B0
+         else
+            call getBcyl(pdata(ipart)%x, elfieldcoefs(itri), geomterms, B_cyl, deltaB, gradB0, gradB1, dB1)
+            B0 = sqrt(dot_product(B_cyl, B_cyl))  !1/magnitude of B
+         endif
          !Use B and v to get parallel and perp components of particle velocity
          if (vspdims .eq. 2) then ! drift-kinetic: v_|| = v(1),  mu = q * v(2)
             vpar = pdata(ipart)%v(1)
@@ -3465,8 +3153,8 @@ subroutine particle_pressure_rhs
             !   wnuhere2=0
             !endif
          end if
-         !wnuhere = (pdata(ipart)%wt) * geomterms%g
-         !wnuhere2 = (pdata(ipart)%wt) * geomterms%g
+         wnuhere = (pdata(ipart)%wt) * geomterms%g
+         wnuhere2 = (pdata(ipart)%wt) * geomterms%g
          ! wnuhere = geomterms%g
          ! wnuhere2 = geomterms%g
          wnuhere = wnuhere*nrmfac(pdata(ipart)%sps)
@@ -3482,7 +3170,9 @@ subroutine particle_pressure_rhs
                *(b0_norm/1e4)**2/(4*3.14159*1e-7)/(n0_norm*1e6)
 #ifndef USECOMPLEX
             coeffspai_local(:, itri) = coeffspai_local(:, itri) + ppar*wnuhere/4
+            ! coeffspai_local(:,itri) = coeffspai_local(:,itri) + ppar*geomterms%g*nrmfac(pdata(ipart)%sps)/4
             coeffspei_local(:, itri) = coeffspei_local(:, itri) + pperp*wnuhere2/4
+            ! coeffspei_local(:,itri) = coeffspei_local(:,itri) + pperp*geomterms%g*nrmfac(pdata(ipart)%sps)/4
             coeffsdei_local(:, itri) = coeffsdei_local(:, itri) + wnuhere/4&
                *(b0_norm/1e4)**2/(4*3.14159*1e-7)/(n0_norm*1e6)
             coeffsvpi_local(:, itri) = coeffsvpi_local(:, itri) + vpar/(v0_norm/100.)*wnuhere/4&
@@ -3676,7 +3366,7 @@ subroutine hdf5_write_particles(ierr)
 
    character(LEN=32) :: part_file_name
    real, dimension(:, :), allocatable :: values
-   integer, parameter :: pdims = vspdims + 6
+   integer, parameter :: pdims = vspdims + 9
    integer(HID_T) :: plist_id, part_file_id, part_root_id, group_id
    integer(HID_T) :: filespace, memspace, dset_id
    integer(HSIZE_T), dimension(2) :: local_dims, global_dims
@@ -3822,7 +3512,10 @@ subroutine hdf5_write_particles(ierr)
             values(9, ipart) = pdata(pindex)%v(3)
             values(10, ipart) = pdata(pindex)%v(4)
          end if
-         values(pdims, ipart) = pdata(pindex)%v(vspdims)
+         ! values(pdims, ipart) = pdata(pindex)%v(vspdims)
+         values(9, ipart) = pdata(pindex)%gradcoef0
+         values(10, ipart) = pdata(pindex)%df0de0
+         values(11, ipart) = pdata(pindex)%df0dxi0
       end do !ipart
 
       !Write the dataset
@@ -3866,7 +3559,7 @@ subroutine hdf5_read_particles(filename, ierr)
    integer, intent(out) :: ierr
 
    integer, parameter :: chunksize = 1024 ! # of particles to read in one pass
-   integer, parameter :: ldim = vspdims + 6 ! Leading dimension of particle data array
+   integer, parameter :: ldim = vspdims + 9 ! Leading dimension of particle data array
 
    type(particle) :: dpar
    real, dimension(:, :), allocatable :: valbuf
@@ -3946,7 +3639,7 @@ subroutine hdf5_read_particles(filename, ierr)
                   print *, 'Error ', ierr, ': dataspace has wrong dimensions in restart file!'
             else
                call h5sget_simple_extent_dims_f(filespace, pdims, pmaxdims, ierr)
-               if (pdims(1) .ne. vspdims + 6) then
+               if (pdims(1) .ne. vspdims + 9) then
                   if (myrank .eq. 0) &
                      print *, 'Error ', ierr, &
                      ': dataspace has wrong dimensions in restart file!'
@@ -4008,7 +3701,9 @@ subroutine hdf5_read_particles(filename, ierr)
                      !dpar%x(2) = 3.1415926/2.
                      dpar%x(3) = valbuf(4, ipart)
                      dpar%wt = valbuf(5, ipart)
-                     !dpar%wt = 0.
+                     ! dpar%wt = 0.
+                     ! dpar%wt = dpar%wt*2.666
+                     ! dpar%wt = dpar%wt*17.
                      dpar%sps = valbuf(6, ipart)
                      !if (dpar%sps == 1) kinetic_thermal = 1
                      dpar%v(1) = valbuf(7, ipart)
@@ -4019,7 +3714,10 @@ subroutine hdf5_read_particles(filename, ierr)
                         dpar%v(3) = valbuf(9, ipart)
                         dpar%v(4) = valbuf(10, ipart)
                      end if
-                     dpar%v(vspdims) = valbuf(ldim, ipart)
+                     ! dpar%v(vspdims) = valbuf(ldim, ipart)
+                     dpar%gradcoef0 = valbuf(9, ipart)
+                     dpar%df0de0 = valbuf(10, ipart)
+                     dpar%df0dxi0 = valbuf(11, ipart)
                      dpar%kx(:, 1) = dpar%x
                      dpar%kx(:, 2) = dpar%x
                      dpar%kx(:, 3) = dpar%x
@@ -4249,7 +3947,7 @@ subroutine set_parallel_velocity
       ! temp79a= 0.99*vipar79(:,OP_1)/nfi079(:,OP_1)/sqrt(ri2_79* &
       ! temp79a= vipar79(:,OP_1)*ni79(:,OP_1)/sqrt(ri2_79* &
       ((pst79(:,OP_DR)-r_79*bfpt79(:,OP_DZ))**2 + (pst79(:,OP_DZ)+r_79*bfpt79(:,OP_DR))**2 + bzt79(:,OP_1)*bzt79(:,OP_1))) &
-         -vpar_reduce*temp79c*temp79a
+         -vpar_reduce*temp79c*temp79b
        else
        temp79a=-vpar_reduce*temp79b
         endif
@@ -4323,6 +4021,40 @@ subroutine set_parallel_velocity
      call destroy_vector(b1_vel)
      call destroy_vector(vel_vec)
    vsource=0.
+
+
+     call create_field(p_v)
+   p_v=0.
+  do itri=1,local_elements()
+     call define_element_quadrature(itri, int_pts_main, int_pts_tor)
+     call define_fields(itri, FIELD_PSI + FIELD_I + FIELD_PHI + FIELD_V + FIELD_CHI+FIELD_N+FIELD_NI+FIELD_KIN, 1, 0)
+     !temp79a=(pipar79(:,OP_1)*0+piper79(:,OP_1)*3)/3.
+     !temp79a=nfi79(:,OP_1)*te079(:,OP_1)*2
+     !temp79a=nfi79(:,OP_1)*te079(:,OP_1)+p179(:,OP_1)-n179(:,OP_1)*te0
+     temp79a= ((ri_79*ps079(:,OP_DR)-bfp079(:,OP_DZ))*(r_79*ph179(:,OP_DR)+ri2_79*ch179(:,OP_DZ)) &
+             +(-ri_79*ps079(:,OP_DZ)-bfp079(:,OP_DR))*(-r_79*ph179(:,OP_DZ)+ri2_79*ch179(:,OP_DR)) &
+              + bz079(:,OP_1)*vz179(:,OP_1)) &
+            /sqrt(ri2_79* &
+            ((ps079(:,OP_DR)-r_79*bfp079(:,OP_DZ))**2 + (ps079(:,OP_DZ)+r_79*bfp079(:,OP_DR))**2 + bz079(:,OP_1)*bz079(:,OP_1)))
+     ! temp79b=(r_79*ph179(:,OP_DR)+ri2_79*ch179(:,OP_DZ))**2+ &
+     !         +(-r_79*ph179(:,OP_DZ)+ri2_79*ch179(:,OP_DR))**2+ (r_79*vz179(:,OP_1))**2
+     ! temp79a = sqrt(temp79b-temp79a**2)
+             
+     ! temp79a= ps179(:,OP_GS)
+     ! temp79a= ri2_79*ps179(:,OP_DRP)-ri_79*bz179(:,OP_DZ)-ri_79*bfp179(:,OP_DZP)
+      dofs = intx2(mu79(:,:,OP_1),temp79a)
+     call vector_insert_block(p_v%vec,itri,1,dofs,VEC_ADD)
+  end do
+  !call newvar_solve(p_v%vec,diff_mat)
+  !call sum_shared(p_v%vec)
+  !call newsolve(diff3_mat, p_v%vec, ierr)
+  call newvar_solve(p_v%vec,mass_mat_lhs)
+  !if(calc_matrices.eq.1) then
+  !write(0,*) "111111111111111111"
+  vparsmooth_field=p_v
+  call destroy_field(p_v)
+
+
 end subroutine set_parallel_velocity
 
 subroutine set_density

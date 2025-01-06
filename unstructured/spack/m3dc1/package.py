@@ -25,7 +25,8 @@ class M3dc1(CMakePackage):
 
     variant("3d", default=False, description="Enable 3D")
     variant("complex", default=False, description="Enable complex")
-    variant("particle", default=False, description="Enable particle-in-cell")
+    variant("particle", default=False, description="Enable particle")
+    variant("openmp", default=False, description="Enable OpenMP")
     # variant("zoltan", default=False, description="Enable Zoltan Features")
     # variant("fortran", default=False, description="Enable FORTRAN interface")
     # variant("testing", default=False, description="Enable all tests")
@@ -45,6 +46,8 @@ class M3dc1(CMakePackage):
     # )
 
     conflicts("+complex", when="+3d")
+    conflicts("zlib-ng")
+    conflicts("openblas")
 
     depends_on("cmake@3:", type="build")
     depends_on("hdf5+fortran+hl+mpi")
@@ -70,5 +73,6 @@ class M3dc1(CMakePackage):
             self.define_from_variant("ENABLE_3D", "3d"),
             self.define_from_variant("ENABLE_COMPLEX", "complex"),
             self.define_from_variant("ENABLE_PARTICLE", "particle"),
+            self.define_from_variant("ENABLE_OPENMP", "openmp"),
         ]
         return args

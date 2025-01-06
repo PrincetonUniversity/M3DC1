@@ -52,17 +52,18 @@
 #ifdef STELLAR
 char simLic[128]="/home/PPPL/simmetrix/license/simmetrix.lic";
 #endif
-#ifdef MIT
-char simLic[128]="/orcd/nese/psfc/001/software/simmetrix/RLMServer-14/server.lic";
-#endif
 #ifdef PPPL
 char simLic[128]="/usr/pppl/Simmetrix/simmodsuite.lic";
 #endif
 #ifdef SDUMONT
 char simLic[128]="/scratch/ntm/software/Simmetrix/license/simmodsuite.lic";
 #endif
+#else
+#ifdef MIT
+  char simLic[128]="/orcd/nese/psfc/001/software/simmetrix/RLMServer-14/server.lic";
 #else // scorec
-char simLic[128]="/net/common/meshSim/license/license.txt";
+  char simLic[128]="/net/common/meshSim/license/license.txt";
+#endif
 #endif
 
 extern pGVertex GE_insertVertex(pGEdge, double);
@@ -523,8 +524,8 @@ void get_multi_rgn()
     create_vtx(&gv1_id,&(interpolate_points.at(0)));
     create_edge(&ge1_id, &gv1_id, &gv1_id);
     
-    attach_natural_cubic_curve(&ge1_id,&num_pts,&(interpolate_points.at(0)));
-    //attach_piecewise_linear_curve(&ge1_id,&num_pts,&(interpolate_points.at(0)));
+    //attach_natural_cubic_curve(&ge1_id,&num_pts,&(interpolate_points.at(0)));
+    attach_piecewise_linear_curve(&ge1_id,&num_pts,&(interpolate_points.at(0)));
 
     // now set the loop closed
     int innerWallEdges[]={ge1_id};
@@ -576,10 +577,10 @@ void inner_outer_wall_pts()
       create_vtx(&gv1_id,&(out_pts.at(0)));
       create_edge(&ge1_id, &gv1_id, &gv1_id);
        
-      //if (num_out_pts <= 10)
-      	attach_natural_cubic_curve(&ge1_id,&num_out_pts,&(out_pts.at(0)));
-      //else
-//	attach_piecewise_linear_curve(&ge1_id,&num_out_pts,&(out_pts.at(0)));
+      if (num_out_pts <= 10)
+        attach_natural_cubic_curve(&ge1_id,&num_out_pts,&(out_pts.at(0)));
+      else
+        attach_piecewise_linear_curve(&ge1_id,&num_out_pts,&(out_pts.at(0)));
 
       int outerWallEdges[]={ge1_id};
       num_ge = 1;
@@ -674,28 +675,22 @@ int make_sim_model (pGModel& sim_model, vector< vector<int> >& face_bdry)
               ctrlPts3D.at(3*k+1)=ctrlPtsY.at(k);
               ctrlPts3D[3*k+2]=0.0;
             }
-
 	    // To make it consistent, we will define every edge in counter-clockwise direction.
 	    // If curve is clockwise, set edge dir to 0, otherwise 1 to follow the above convention.
 	    int edgeDir = 1;
 	    bool clockwise = curveOrientation(ctrlPts3D);
             if (clockwise)
 		edgeDir = 0;
-#ifndef SIM12
-	    //if (numPts < 10 || loopNumber == vacuumLoopId)
-#endif
-            	curve = SCurve_createBSpline(order,numPts,&ctrlPts3D[0],&knots[0],NULL);
-#ifndef SIM12
-	    //else
-	//	curve = SCurve_createPiecewiseLinear(numPts,&ctrlPts3D[0]);
-#endif
-           if (numE == 1)
+
+            // Define the curve
+            curve = SCurve_createBSpline(order,numPts,&ctrlPts3D[0],&knots[0],NULL);
+            if (numE == 1)
 #ifdef SIM12
                 pe = GIP_insertEdgeInRegion(part, startVert, startVert, curve, edgeDir, outerRegion);
 #else
            	pe = GR_createEdge(GIP_outerRegion(part), startVert, startVert, curve, edgeDir);
 #endif
-	   else if (numE == 2)
+	    else if (numE == 2)
 #ifdef SIM12
                 pe = GIP_insertEdgeInRegion(part, startVert, endVert, curve, edgeDir, outerRegion);
 #else
