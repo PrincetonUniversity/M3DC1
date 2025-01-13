@@ -1715,7 +1715,7 @@ contains
         if (kinetic_thermal_ion.eq.1) then
            call eval_ops(itri, p_i_par, pipar79, rfac)
            call eval_ops(itri, p_i_perp, piper79, rfac)
-           call eval_ops(itri, p_field(0), pfi079, rfac)
+           call eval_ops(itri, pfi_field, pfi079, rfac)
 
            call eval_ops(itri, den_i_1, nfi79, rfac)
            call eval_ops(itri, nfi_field, nfi079, rfac)
@@ -1724,6 +1724,7 @@ contains
         else
            pipar79 = 0.
            piper79 = 0.
+           pfi079 = 0.
            nfi79 = 0.
            nfi079 = 0.
            vipar79 = 0.
@@ -1731,7 +1732,7 @@ contains
         call eval_ops(itri, rho_field, rhof79, rfac)
            ! pipar79 = 0.
            ! piper79 = 0.
-           pfi079 = 0.
+           ! pfi079 = 0.
          
         !do ipoint=1,MAX_PTS
         !      if (real(rhof79(ipoint,OP_1))>0.85) then
