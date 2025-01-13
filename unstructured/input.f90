@@ -1255,6 +1255,10 @@ subroutine set_defaults
        "1: Solve linear delta-f equation. 0: Include nonlinear terms in delta-f", particle_grp)
   call add_var_int("particle_substeps", particle_substeps, 40, &
        "Number of subcycles for particle pushing in one MHD timestep", particle_grp)
+  call add_var_int("particle_couple", particle_couple, 0, &
+       "0: Pressure coupling. 1: Current coupling", particle_grp)
+  call add_var_int("iconst_f0", iconst_f0, 0, &
+       "Use a constant f0 for delta-f equation", particle_grp)
   call add_var_double("fast_ion_mass", fast_ion_mass, ion_mass, &
        "Fast ion mass (in units of m_p)", particle_grp)
   call add_var_double("fast_ion_z", fast_ion_z, z_ion, &

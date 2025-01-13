@@ -390,6 +390,7 @@ subroutine den_eq
   call mult(te_field(0), 0.5)
   call mult(p_field(0), 0.5)
   call mult(pe_field(0), 0.5)
+  pfi_field = p_field(0)
 #endif
 
   call destroy_field(den_vec)

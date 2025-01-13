@@ -216,12 +216,12 @@ subroutine vorticity_lin(trialx, lin, ssterm, ddterm, r_bf, q_bf, advfield, &
         ddterm(:,p_g) = ddterm(:,p_g) + dt*v1p(trialx,lin)
 
 #ifdef USEPARTICLES
-        if (kinetic.eq.1) then
-           tempx = -v1pbb1psi(trialx,pfi079,b2i79(:,OP_1),lin)
+        if ((particle_couple.eq.1).and.(kinetic.eq.1)) then
+           tempx = -v1pbb1psi(trialx,pfi079+pf079,b2i79(:,OP_1),lin)
            ddterm(:,psi_g) = ddterm(:,psi_g) + dt*tempx
 
            if (i3d.eq.1 .and. numvar.ge.2) then
-               tempx = -v1pbb1f(trialx,pfi079,b2i79(:,OP_1),lin)
+               tempx = -v1pbb1f(trialx,pfi079+pf079,b2i79(:,OP_1),lin)
                r_bf = r_bf -     thimp_bf     *dt*tempx
                q_bf = q_bf + (1.-thimp_bf*bdf)*dt*tempx
            endif
@@ -602,11 +602,11 @@ subroutine vorticity_nolin(trialx, r4term)
   ! ~~~~~~~~~~~~~
   if(kinetic_fast_ion .eq. 1) then
      r4term = r4term + 1.0*dt*(( &
-                 ! v1pbb(trialx,pfper79,b2i79(:,OP_1)) & !parallel term
+                 (1-particle_couple)*v1pbb(trialx,pfper79,b2i79(:,OP_1)) & !parallel term
                  + v1p(trialx,pfper79) -v1pbb(trialx,pfper79,b2i79(:,OP_1)) &
                  ) &
                  +( &
-                 ! v1pbb(trialx,pfpar79-pfper79,b2i79(:,OP_1))+0.5*v1pbb(trialx,b2i79,pfpar79(:,OP_1)-pfper79(:,OP_1))    & !parallel term
+                 (1-particle_couple)*v1pbb(trialx,pfpar79-pfper79,b2i79(:,OP_1))+0.5*v1pbb(trialx,b2i79,pfpar79(:,OP_1)-pfper79(:,OP_1))    & !parallel term
                 -0.5*v1p_2(trialx,b2i79,(pfpar79(:,OP_1)-pfper79(:,OP_1))/b2i79(:,OP_1)) &
                 +0.5*v1pbb(trialx,b2i79,pfpar79(:,OP_1)-pfper79(:,OP_1)) &
                 + v1jxb(trialx,(pfpar79(:,OP_1)-pfper79(:,OP_1))*b2i79(:,OP_1)) &
@@ -615,11 +615,11 @@ subroutine vorticity_nolin(trialx, r4term)
     endif
    if(kinetic_thermal_ion .eq. 1) then
      r4term = r4term + 1.0*dt*(( &
-                 ! v1pbb(trialx,piper79,b2i79(:,OP_1)) & !parallel term
+                 (1-particle_couple)*v1pbb(trialx,piper79,b2i79(:,OP_1)) & !parallel term
                  + v1p(trialx,piper79) -v1pbb(trialx,piper79,b2i79(:,OP_1)) &
                  ) &
                  +( &
-                 ! v1pbb(trialx,pipar79-piper79,b2i79(:,OP_1))+0.5*v1pbb(trialx,b2i79,pipar79(:,OP_1)-piper79(:,OP_1))    & !parallel term
+                 (1-particle_couple)*v1pbb(trialx,pipar79-piper79,b2i79(:,OP_1))+0.5*v1pbb(trialx,b2i79,pipar79(:,OP_1)-piper79(:,OP_1))    & !parallel term
                 -0.5*v1p_2(trialx,b2i79,(pipar79(:,OP_1)-piper79(:,OP_1))/b2i79(:,OP_1)) &
                 +0.5*v1pbb(trialx,b2i79,pipar79(:,OP_1)-piper79(:,OP_1)) &
                 + v1jxb(trialx,(pipar79(:,OP_1)-piper79(:,OP_1))*b2i79(:,OP_1)) &
@@ -933,12 +933,12 @@ subroutine axial_vel_lin(trialx, lin, ssterm, ddterm, r_bf, q_bf, advfield, &
              v2p(trialx,lin)
 
 #ifdef USEPARTICLES
-        if (kinetic.eq.1) then
-           tempx = -v2pbb1psi(trialx,pfi079,b2i79(:,OP_1),lin)
+        if ((particle_couple.eq.1).and.(kinetic.eq.1)) then
+           tempx = -v2pbb1psi(trialx,pfi079+pf079,b2i79(:,OP_1),lin)
            ddterm(:,psi_g) = ddterm(:,psi_g) + dt*tempx
 
            if (i3d.eq.1 .and. numvar.ge.2) then
-               tempx = -v2pbb1f(trialx,pfi079,b2i79(:,OP_1),lin)
+               tempx = -v2pbb1f(trialx,pfi079+pf079,b2i79(:,OP_1),lin)
                r_bf = r_bf -     thimp_bf     *dt*tempx
                q_bf = q_bf + (1.-thimp_bf*bdf)*dt*tempx
            endif
@@ -1161,11 +1161,11 @@ subroutine axial_vel_nolin(trialx, r4term)
   ! ~~~~~~~~~~~~~
   if(kinetic_fast_ion .eq. 1) then
      r4term = r4term + 1.0*dt*(( &
-                 ! v2pbb(trialx,pfper79,b2i79(:,OP_1)) & !parallel term
+                 (1-particle_couple)*v2pbb(trialx,pfper79,b2i79(:,OP_1)) & !parallel term
                  + v2p(trialx,pfper79) -v2pbb(trialx,pfper79,b2i79(:,OP_1)) &
                  ) &
                  +( &
-                 ! v2pbb(trialx,pfpar79-pfper79,b2i79(:,OP_1))+0.5*v2pbb(trialx,b2i79,pfpar79(:,OP_1)-pfper79(:,OP_1))    & !parallel term
+                 (1-particle_couple)*v2pbb(trialx,pfpar79-pfper79,b2i79(:,OP_1))+0.5*v2pbb(trialx,b2i79,pfpar79(:,OP_1)-pfper79(:,OP_1))    & !parallel term
                 -0.5*v2p_2(trialx,b2i79,(pfpar79(:,OP_1)-pfper79(:,OP_1))/b2i79(:,OP_1)) &
                 +0.5*v2pbb(trialx,b2i79,pfpar79(:,OP_1)-pfper79(:,OP_1)) &
                 + v2jxb(trialx,(pfpar79(:,OP_1)-pfper79(:,OP_1))*b2i79(:,OP_1)) &
@@ -1174,11 +1174,11 @@ subroutine axial_vel_nolin(trialx, r4term)
    endif
    if(kinetic_thermal_ion .eq. 1) then
      r4term = r4term + 1.0*dt*(( &
-                 ! v2pbb(trialx,piper79,b2i79(:,OP_1)) & !parallel term
+                 (1-particle_couple)*v2pbb(trialx,piper79,b2i79(:,OP_1)) & !parallel term
                  + v2p(trialx,piper79) -v2pbb(trialx,piper79,b2i79(:,OP_1)) &
                  ) &
                  +( &
-                 ! v2pbb(trialx,pipar79-piper79,b2i79(:,OP_1))+0.5*v2pbb(trialx,b2i79,pipar79(:,OP_1)-piper79(:,OP_1))    & !parallel term
+                 (1-particle_couple)*v2pbb(trialx,pipar79-piper79,b2i79(:,OP_1))+0.5*v2pbb(trialx,b2i79,pipar79(:,OP_1)-piper79(:,OP_1))    & !parallel term
                 -0.5*v2p_2(trialx,b2i79,(pipar79(:,OP_1)-piper79(:,OP_1))/b2i79(:,OP_1)) &
                 +0.5*v2pbb(trialx,b2i79,pipar79(:,OP_1)-piper79(:,OP_1)) &
                 + v2jxb(trialx,(pipar79(:,OP_1)-piper79(:,OP_1))*b2i79(:,OP_1)) &
@@ -1402,12 +1402,12 @@ subroutine compression_lin(trialx, lin, ssterm, ddterm, r_bf, q_bf, advfield, &
           v3p(trialx,lin)
  
 #ifdef USEPARTICLES
-     if (kinetic.eq.1) then
-        tempx = -v3pbb1psi(trialx,pfi079,b2i79(:,OP_1),lin)
+     if ((particle_couple.eq.1).and.(kinetic.eq.1)) then
+        tempx = -v3pbb1psi(trialx,pfi079+pf079,b2i79(:,OP_1),lin)
         ddterm(:,psi_g) = ddterm(:,psi_g) + dt*tempx
 
         if (i3d.eq.1 .and. numvar.ge.2) then
-           tempx = -v3pbb1f(trialx,pfi079,b2i79(:,OP_1),lin)
+           tempx = -v3pbb1f(trialx,pfi079+pf079,b2i79(:,OP_1),lin)
            r_bf = r_bf -     thimp_bf     *dt*tempx
            q_bf = q_bf + (1.-thimp_bf*bdf)*dt*tempx
         endif
@@ -1773,11 +1773,11 @@ subroutine compression_nolin(trialx, r4term)
   ! ~~~~~~~~~~~~~
   if(kinetic .eq. 1) then
      r4term = r4term + 1.0*dt*(( &
-                 ! v3pbb(trialx,pfper79,b2i79(:,OP_1)) & !parallel term
+                 (1-particle_couple)*v3pbb(trialx,pfper79,b2i79(:,OP_1)) & !parallel term
                  + v3p(trialx,pfper79) -v3pbb(trialx,pfper79,b2i79(:,OP_1)) &
                  ) &
                  +( &
-                 ! v3pbb(trialx,pfpar79-pfper79,b2i79(:,OP_1))+0.5*v3pbb(trialx,b2i79,pfpar79(:,OP_1)-pfper79(:,OP_1))    & !parallel term
+                 (1-particle_couple)*v3pbb(trialx,pfpar79-pfper79,b2i79(:,OP_1))+0.5*v3pbb(trialx,b2i79,pfpar79(:,OP_1)-pfper79(:,OP_1))    & !parallel term
                 -0.5*v3p_2(trialx,b2i79,(pfpar79(:,OP_1)-pfper79(:,OP_1))/b2i79(:,OP_1)) &
                 +0.5*v3pbb(trialx,b2i79,pfpar79(:,OP_1)-pfper79(:,OP_1)) &
                 + v3jxb(trialx,(pfpar79(:,OP_1)-pfper79(:,OP_1))*b2i79(:,OP_1)) &
@@ -1786,11 +1786,11 @@ subroutine compression_nolin(trialx, r4term)
    endif
    if(kinetic_thermal_ion .eq. 1) then
      r4term = r4term + 1.0*dt*(( &
-                 ! v3pbb(trialx,piper79,b2i79(:,OP_1)) & !parallel term
+                 (1-particle_couple)*v3pbb(trialx,piper79,b2i79(:,OP_1)) & !parallel term
                  + v3p(trialx,piper79) -v3pbb(trialx,piper79,b2i79(:,OP_1)) &
                  ) &
                  +( &
-                 ! v3pbb(trialx,pipar79-piper79,b2i79(:,OP_1))+0.5*v3pbb(trialx,b2i79,pipar79(:,OP_1)-piper79(:,OP_1))    & !parallel term
+                 (1-particle_couple)*v3pbb(trialx,pipar79-piper79,b2i79(:,OP_1))+0.5*v3pbb(trialx,b2i79,pipar79(:,OP_1)-piper79(:,OP_1))    & !parallel term
                 -0.5*v3p_2(trialx,b2i79,(pipar79(:,OP_1)-piper79(:,OP_1))/b2i79(:,OP_1)) &
                 +0.5*v3pbb(trialx,b2i79,pipar79(:,OP_1)-piper79(:,OP_1)) &
                 + v3jxb(trialx,(pipar79(:,OP_1)-piper79(:,OP_1))*b2i79(:,OP_1)) &

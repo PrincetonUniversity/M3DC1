@@ -83,6 +83,8 @@ module particles
    real, dimension(2) :: nrmfac
    integer :: particle_linear_particle, psubsteps_particle, kinetic_thermal_ion_particle
 !$acc declare create(particle_linear_particle, psubsteps_particle, kinetic_thermal_ion_particle)
+   integer :: iconst_f0_particle
+!$acc declare create(iconst_f0_particle)
    real :: dt_particle, t0_norm_particle, v0_norm_particle, b0_norm_particle
 !$acc declare create(dt_particle, t0_norm_particle, v0_norm_particle,b0_norm_particle)
    complex :: rfac_particle
@@ -609,6 +611,7 @@ subroutine init_particles(lrestart, ierr)
    particle_linear_particle = particle_linear
    toroidal_period_particle = toroidal_period
    gyroaverage_particle = igyroaverage
+   iconst_f0_particle = iconst_f0
    psubsteps_particle = particle_substeps
    kinetic_thermal_ion_particle=kinetic_thermal_ion
    fast_ion_dist_particle = fast_ion_dist
@@ -982,7 +985,7 @@ subroutine init_particles(lrestart, ierr)
 !$acc update device(m_ion,q_ion,qm_ion)
 !$acc update device(dt_particle,t0_norm_particle,v0_norm_particle,b0_norm_particle,rfac_particle)
 !$acc update device(particle_linear_particle,psi_axis,nf_axis,nfi_axis,toroidal_period_particle)
-!$acc update device(gyroaverage_particle,psubsteps_particle)
+!$acc update device(gyroaverage_particle,psubsteps_particle,iconst_f0_particle)
 !$acc update device(kinetic_thermal_ion_particle,fast_ion_dist_particle,fast_ion_max_energy_particle)
 #ifdef USEST
 !!$acc update device(num_energy,num_pitch,num_r) async(blocky)
@@ -1632,9 +1635,11 @@ subroutine fdot(x, v, w, dxdt, dvdt, dwdt, dEpdt, itri, kel, f00, ierr, sps)
 #endif
    call evalf0(x, v(1), sqrt(2.0*qm_ion(sps)*v(2)/B0inv), elfieldcoefs(itri), geomterms, sps, f0, gradcoef, df0de, df0dxi)
    gradf = gradrho*gradcoef
-   ! gradf = gradrho*gradcoef*f0/f00
-   ! df0de = df0de*f0/f00
-   ! df0dxi = df0dxi*f0/f00
+   if (iconst_f0_particle.eq.1) then
+      gradf = gradf*f0/f00
+      df0de = df0de*f0/f00
+      df0dxi = df0dxi*f0/f00
+   endif
    ! write(0,*) v(1), sqrt(2.0*qm_ion(sps)*v(2)/B0inv)
    ! gradcoef, df0de
    ! call evalf0_advance(x, v, 1.0/B0inv, B_cyl(2), elfieldcoefs(itri), geomterms, sps, f0, gradf, df0de, df0dxi)

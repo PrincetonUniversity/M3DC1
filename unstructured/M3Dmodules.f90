@@ -313,6 +313,8 @@ module basic
   integer :: igyroaverage
   integer :: particle_linear
   integer :: particle_substeps
+  integer :: particle_couple
+  integer :: iconst_f0
   real :: fast_ion_mass, fast_ion_z
   integer :: fast_ion_dist
   real :: fast_ion_max_energy
