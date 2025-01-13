@@ -66,9 +66,9 @@ module particles
       integer                  :: jel         !Predicted element of residence
       real, dimension(3, 4)     :: kx
       integer, dimension(4)     :: kel
-      real                     :: gradcoef0
-      real                     :: df0de0
-      real                     :: df0dxi0
+      real                     :: f0
+      real, dimension(3)       :: x0           !Position in cylindrical coords
+      real, dimension(vspdims) :: v0           !Velocity
       logical                  :: deleted
    end type particle
 
@@ -118,8 +118,6 @@ module particles
 !$acc declare create(psi_axis, nf_axis, nfi_axis, toroidal_period_particle)
    integer :: gyroaverage_particle, fast_ion_dist_particle
 !$acc declare create(gyroaverage_particle,fast_ion_dist_particle)
-   integer :: istatic_gradf_particle
-!$acc declare create(istatic_gradf_particle)
    real :: fast_ion_max_energy_particle
 !$acc declare create(fast_ion_max_energy_particle)
    integer :: num_energy, num_pitch, num_r
@@ -142,7 +140,7 @@ subroutine define_mpi_particle(ierr)
 
    integer, intent(out) :: ierr
    integer, parameter :: pnvars = 15
-   integer, dimension(pnvars), parameter :: pblklen = (/3, vspdims, 1, 1, 1, 1, 1, 1, 1, 12, 4, 1, 1, 1, 1/)
+   integer, dimension(pnvars), parameter :: pblklen = (/3, vspdims, 1, 1, 1, 1, 1, 1, 1, 12, 4, 1, 3, vspdims, 1/)
    integer(kind=MPI_ADDRESS_KIND), dimension(pnvars) :: pdspls
    integer, dimension(pnvars), parameter :: ptyps = (/MPI_DOUBLE_PRECISION, MPI_DOUBLE_PRECISION, &
  MPI_DOUBLE_PRECISION, MPI_DOUBLE_PRECISION, MPI_DOUBLE_PRECISION, &
@@ -173,11 +171,11 @@ subroutine define_mpi_particle(ierr)
    pdspls(10) = pdspls(10) - pdspls(1)
    call mpi_get_address(dum_par%kel, pdspls(11), ierr)
    pdspls(11) = pdspls(11) - pdspls(1)
-   call mpi_get_address(dum_par%gradcoef0, pdspls(12), ierr)
+   call mpi_get_address(dum_par%f0, pdspls(12), ierr)
    pdspls(12) = pdspls(12) - pdspls(1)
-   call mpi_get_address(dum_par%df0de0, pdspls(13), ierr)
+   call mpi_get_address(dum_par%x0, pdspls(13), ierr)
    pdspls(13) = pdspls(13) - pdspls(1)
-   call mpi_get_address(dum_par%df0dxi0, pdspls(14), ierr)
+   call mpi_get_address(dum_par%v0, pdspls(14), ierr)
    pdspls(14) = pdspls(14) - pdspls(1)
    call mpi_get_address(dum_par%deleted, pdspls(15), ierr)
    pdspls(15) = pdspls(15) - pdspls(1)
@@ -611,7 +609,6 @@ subroutine init_particles(lrestart, ierr)
    particle_linear_particle = particle_linear
    toroidal_period_particle = toroidal_period
    gyroaverage_particle = igyroaverage
-   istatic_gradf_particle = istatic_gradf
    psubsteps_particle = particle_substeps
    kinetic_thermal_ion_particle=kinetic_thermal_ion
    fast_ion_dist_particle = fast_ion_dist
@@ -883,9 +880,7 @@ subroutine init_particles(lrestart, ierr)
 #endif
             endif
             call evalf0(dpar%x, vpar, vperp, elfieldcoefs(itri), geomterms, sps, f0, gradcoef0, df0de0, df0dxi0)
-            dpar%gradcoef0=gradcoef0
-            dpar%df0de0=df0de0
-            dpar%df0dxi0=df0dxi0
+            dpar%f0=f0
             if (vspdims .eq. 2) then
                call getBcyl(dpar%x, elfieldcoefs(itri), geomterms, Bcyl, deltaB, gradB0, gradB1, dB1)
             else
@@ -926,6 +921,8 @@ subroutine init_particles(lrestart, ierr)
             !pdata(ielm)%ion(ip)%v(1) = 100000.                        !v_parallel
             dpar%v(2) = (0.5*vperp**2)/(qm_ion(sps)*B0)  !mu/q
             !pdata(ielm)%ion(ip)%wt = 1.
+            dpar%x0=dpar%x
+            dpar%v0=dpar%v
             dpar%dB = 0.
             dpar%dE = 0.
             !endif !vspdims
@@ -985,7 +982,7 @@ subroutine init_particles(lrestart, ierr)
 !$acc update device(m_ion,q_ion,qm_ion)
 !$acc update device(dt_particle,t0_norm_particle,v0_norm_particle,b0_norm_particle,rfac_particle)
 !$acc update device(particle_linear_particle,psi_axis,nf_axis,nfi_axis,toroidal_period_particle)
-!$acc update device(gyroaverage_particle,psubsteps_particle,istatic_grad_particle)
+!$acc update device(gyroaverage_particle,psubsteps_particle)
 !$acc update device(kinetic_thermal_ion_particle,fast_ion_dist_particle,fast_ion_max_energy_particle)
 #ifdef USEST
 !!$acc update device(num_energy,num_pitch,num_r) async(blocky)
@@ -1093,6 +1090,12 @@ subroutine advance_particles(tinc)
          call rk4(pdata(ipart), tinc, istep .eq. psubsteps_particle, ierr)
          if (ierr .eq. 1) then ! Particle exited local+ghost domain -> lost
             pdata(ipart)%deleted = .true.
+            ! pdata(ipart)%x = pdata(ipart)%x0
+            ! pdata(ipart)%v = pdata(ipart)%v0
+            ! pdata(ipart)%wt = 0.
+            ! call mesh_search(pdata(ipart)%jel, pdata(ipart)%x, itri)
+            ! pdata(ipart)%jel = itri
+            ! pdata(ipart)%kel(:) = itri
             cycle !Break out of tinc loop, go to next particle.
          end if
       end do!ielm
@@ -1138,6 +1141,7 @@ subroutine rk4(part, dt, last_step, ierr)
    real :: ran_temp, dB1
    real :: x, y, dphi, vR, vphi
    real :: wtt, wt2, wt3
+   real :: gradcoef, df0de, df0dxi, f0
 
    !ierr = 0
    hh = 0.5*dt
@@ -1146,23 +1150,23 @@ subroutine rk4(part, dt, last_step, ierr)
    itri = part%jel
    !if (ierr .eq. 1) return
    !1st step
-   call fdot(part%x, part%v, part%wt, k1, l1, m1, n1, itri, kel, part%gradcoef0, part%df0de0, part%df0dxi0, ierr, part%sps)
+   call fdot(part%x, part%v, part%wt, k1, l1, m1, n1, itri, kel, part%f0, ierr, part%sps)
    if (ierr .eq. 1) return
    y1 = part%x + hh*k1; z1 = part%v + hh*l1; w1 = part%wt + hh*m1
    !write(0,*) k1(1),k1(2),k1(3)
 
    !2nd step
-   call fdot(y1, z1, w1, k2, l2, m2, n2, itri, kel, part%gradcoef0, part%df0de0, part%df0dxi0, ierr, part%sps)
+   call fdot(y1, z1, w1, k2, l2, m2, n2, itri, kel, part%f0, ierr, part%sps)
    if (ierr .eq. 1) return
    y1 = part%x + hh*k2; z1 = part%v + hh*l2; w1 = part%wt + hh*m2
 
    !3rd step
-   call fdot(y1, z1, w1, k3, l3, m3, n3, itri, kel, part%gradcoef0, part%df0de0, part%df0dxi0, ierr, part%sps)
+   call fdot(y1, z1, w1, k3, l3, m3, n3, itri, kel, part%f0, ierr, part%sps)
    if (ierr .eq. 1) return
    y1 = part%x + dt*k3; z1 = part%v + dt*l3; w1 = part%wt + dt*m3
 
    !4th step
-   call fdot(y1, z1, w1, k4, l4, m4, n4, itri, kel,  part%gradcoef0, part%df0de0, part%df0dxi0, ierr, part%sps)
+   call fdot(y1, z1, w1, k4, l4, m4, n4, itri, kel, part%f0, ierr, part%sps)
    if (ierr .eq. 1) return
    part%x = part%x + onethird*dt*(k2 + k3 + 0.5*(k1 + k4))
    part%v = part%v + onethird*dt*(l2 + l3 + 0.5*(l1 + l4))
@@ -1250,10 +1254,32 @@ subroutine rk4(part, dt, last_step, ierr)
    end if
    part%B0 = 1./B0inv
    part%jel = itri
+
+   ! call evalf0(part%x, part%v(1), sqrt(2.0*qm_ion(part%sps)*part%v(2)/B0inv), elfieldcoefs(itri), geomterms, part%sps, f0, gradcoef, df0de, df0dxi)
+   ! if (part%f0/f0>10) then
+   !    if (floor(mod(part%x(1)*100000,500.0))==0) then
+   !       write(0,*) "33333333333333333333",part%f0/f0
+   !       part%x=part%x0
+   !       part%v=part%v0
+   !       part%wt=0.
+   !       call mesh_search(part%jel, part%x, itri)
+   !       part%jel=itri
+   !       part%kel(:)=itri
+   !       endif
+   ! endif
+   ! if (f0/part%f0>10) then
+   !    part%x=part%x0
+   !    part%v=part%v0
+   !    part%wt=0.
+   !    call mesh_search(part%jel, part%x, itri)
+   !    part%jel=itri
+   !    part%kel(:)=itri
+   !    write(0,*) "55555555555555",part%f0/f0
+   ! endif
    endif
 end subroutine rk4
 
-subroutine fdot(x, v, w, dxdt, dvdt, dwdt, dEpdt, itri, kel, gradcoef0, df0de0, df0dxi0, ierr, sps)
+subroutine fdot(x, v, w, dxdt, dvdt, dwdt, dEpdt, itri, kel, f00, ierr, sps)
 !$acc routine seq
    use basic
    implicit none
@@ -1264,7 +1290,7 @@ subroutine fdot(x, v, w, dxdt, dvdt, dwdt, dEpdt, itri, kel, gradcoef0, df0de0, 
    real, dimension(vspdims), intent(in)                       :: v
    real, dimension(vspdims), intent(out)                      :: dvdt
    real, intent(in)                                           :: w
-   real, intent(in) :: gradcoef0, df0de0, df0dxi0
+   real, intent(in)                                           :: f00
    real, intent(out)                                          :: dwdt
    real, intent(out)                                          :: dEpdt
    !type(elfield), dimension(nneighbors+1), target, intent(in) :: fh
@@ -1604,22 +1630,14 @@ subroutine fdot(x, v, w, dxdt, dvdt, dwdt, dEpdt, itri, kel, gradcoef0, df0de0, 
 #ifdef USEST
    gradrho(2) = Rinv*dot_product(elfieldcoefs(itri)%rho, geomterms%dphi)
 #endif
-   if (istatic_gradf_particle.eq.0) then
-      call evalf0(x, v(1), sqrt(2.0*qm_ion(sps)*v(2)/B0inv), elfieldcoefs(itri), geomterms, sps, f0, gradcoef, df0de, df0dxi)
-      gradf = gradrho*gradcoef
-      ! write(0,*) v(1), sqrt(2.0*qm_ion(sps)*v(2)/B0inv)
-      ! gradcoef, df0de
-      ! call evalf0_advance(x, v, 1.0/B0inv, B_cyl(2), elfieldcoefs(itri), geomterms, sps, f0, gradf, df0de, df0dxi)
-   else
-      gradf = gradrho*gradcoef0
-      df0de = df0de0
-      df0dxi = df0dxi0
-   end if
-   !if (real(dot_product(fhptr%psiv0, geomterms%g))<0.15) then
-   !   gradcoef=0.
-   !   df0de=0.
-   !   df0dxi=0.
-   !endif
+   call evalf0(x, v(1), sqrt(2.0*qm_ion(sps)*v(2)/B0inv), elfieldcoefs(itri), geomterms, sps, f0, gradcoef, df0de, df0dxi)
+   gradf = gradrho*gradcoef
+   ! gradf = gradrho*gradcoef*f0/f00
+   ! df0de = df0de*f0/f00
+   ! df0dxi = df0dxi*f0/f00
+   ! write(0,*) v(1), sqrt(2.0*qm_ion(sps)*v(2)/B0inv)
+   ! gradcoef, df0de
+   ! call evalf0_advance(x, v, 1.0/B0inv, B_cyl(2), elfieldcoefs(itri), geomterms, sps, f0, gradf, df0de, df0dxi)
 
    ! vD = (1/(e B**3))(M_i U**2 + mu B)(B x grad B) + ((M_i U**2)/(eB**2))*J_perp
    tmp3 = tmp2*dot_product(gradB0, deltaB)
@@ -1669,7 +1687,7 @@ subroutine fdot(x, v, w, dxdt, dvdt, dwdt, dEpdt, itri, kel, gradcoef0, df0de0, 
    !end if
    !if (deltaB_last(2).ne.0.) write(0,*) deltaB(2),deltaB_last(2)
    !dEpdt = q_ion*(dot_product(weqvD, E_cyl)+v(2)*dB0dt)
-   !write(0,*) dt_particle, t0_norm_particle
+   !write(0,*) dt_particle, t0_norm_particlk
    !Pphi = dot_product(fhptr%psiv0, geomterms%g) + (1./qm_ion) * v(1) *  dot_product(fhptr%Bzv0, geomterms%g) *B0inv!orbit
    !Pphi = dot_product(fhptr%psiv0, geomterms%g) !orbit
    !dwdt = abs(Pphi/f00-1)/(dt_particle*t0_norm_particle)!orbit
@@ -2911,7 +2929,7 @@ subroutine evalf0(x, vpar, vperp, fh, gh, sps, f0, gradcoef, df0de, df0dxi)
          gradf=gradf+(-1.5+m_ion(sps)*spd**2/(2*T0*1.6e-19))*gradT/T0
     !!if (psi0>0.64) gradcoef=0.
     !!if (psi0<0.1) gradcoef=0.
-         f0=f0/nf_axis*T0**(-1.5)*exp(-m_ion(sps)*spd**2/(2*T0*1e3*1.6e-19))
+         f0=f0*T0**(-1.5)*exp(-m_ion(sps)*spd**2/(2*T0*1.6e-19))
          df0de = -1./(T0*1.6e-19)
          df0dxi = 0.
          if (real(dot_product(fh%rho, gh%g))>0.8) then
@@ -2922,7 +2940,7 @@ subroutine evalf0(x, vpar, vperp, fh, gh, sps, f0, gradcoef, df0de, df0dxi)
       elseif (fast_ion_dist_particle.eq.2) then
          !slowingdown
          gradf=gradf-3./(spd**3 + (2*T0*1.6e-19/m_ion(sps))**(1.5))*(2*T0*1.6e-19/m_ion(sps))**(0.5)/m_ion(2)*1.6e-19*gradT
-         f0=f0/nf_axis*1./(spd**3+(T0*2*1.6e-19/m_ion(sps))**(1.5))
+         f0=f0/(spd**3+(T0*2*1.6e-19/m_ion(sps))**(1.5))
          df0de = -3./(spd**3 + (2*T0*1.6e-19/m_ion(sps))**(1.5))*spd/m_ion(2)
          df0dxi = 0.
          !df0dxi=-2*(xi+0.632)/0.55**2
@@ -3366,7 +3384,7 @@ subroutine hdf5_write_particles(ierr)
 
    character(LEN=32) :: part_file_name
    real, dimension(:, :), allocatable :: values
-   integer, parameter :: pdims = vspdims + 9
+   integer, parameter :: pdims = vspdims + 12
    integer(HID_T) :: plist_id, part_file_id, part_root_id, group_id
    integer(HID_T) :: filespace, memspace, dset_id
    integer(HSIZE_T), dimension(2) :: local_dims, global_dims
@@ -3513,9 +3531,12 @@ subroutine hdf5_write_particles(ierr)
             values(10, ipart) = pdata(pindex)%v(4)
          end if
          ! values(pdims, ipart) = pdata(pindex)%v(vspdims)
-         values(9, ipart) = pdata(pindex)%gradcoef0
-         values(10, ipart) = pdata(pindex)%df0de0
-         values(11, ipart) = pdata(pindex)%df0dxi0
+         values(9, ipart) = pdata(pindex)%f0
+         values(10, ipart) = pdata(pindex)%x0(1)
+         values(11, ipart) = pdata(pindex)%x0(2)
+         values(12, ipart) = pdata(pindex)%x0(3)
+         values(13, ipart) = pdata(pindex)%v0(1)
+         values(14, ipart) = pdata(pindex)%v0(2)
       end do !ipart
 
       !Write the dataset
@@ -3559,7 +3580,7 @@ subroutine hdf5_read_particles(filename, ierr)
    integer, intent(out) :: ierr
 
    integer, parameter :: chunksize = 1024 ! # of particles to read in one pass
-   integer, parameter :: ldim = vspdims + 9 ! Leading dimension of particle data array
+   integer, parameter :: ldim = vspdims + 12 ! Leading dimension of particle data array
 
    type(particle) :: dpar
    real, dimension(:, :), allocatable :: valbuf
@@ -3639,7 +3660,7 @@ subroutine hdf5_read_particles(filename, ierr)
                   print *, 'Error ', ierr, ': dataspace has wrong dimensions in restart file!'
             else
                call h5sget_simple_extent_dims_f(filespace, pdims, pmaxdims, ierr)
-               if (pdims(1) .ne. vspdims + 9) then
+               if (pdims(1) .ne. ldim) then
                   if (myrank .eq. 0) &
                      print *, 'Error ', ierr, &
                      ': dataspace has wrong dimensions in restart file!'
@@ -3702,6 +3723,7 @@ subroutine hdf5_read_particles(filename, ierr)
                      dpar%x(3) = valbuf(4, ipart)
                      dpar%wt = valbuf(5, ipart)
                      ! dpar%wt = 0.
+                     ! dpar%wt = dpar%wt*1.19
                      ! dpar%wt = dpar%wt*2.666
                      ! dpar%wt = dpar%wt*17.
                      dpar%sps = valbuf(6, ipart)
@@ -3715,9 +3737,12 @@ subroutine hdf5_read_particles(filename, ierr)
                         dpar%v(4) = valbuf(10, ipart)
                      end if
                      ! dpar%v(vspdims) = valbuf(ldim, ipart)
-                     dpar%gradcoef0 = valbuf(9, ipart)
-                     dpar%df0de0 = valbuf(10, ipart)
-                     dpar%df0dxi0 = valbuf(11, ipart)
+                     dpar%f0 = valbuf(9, ipart)
+                     dpar%x0(1) = valbuf(10, ipart)
+                     dpar%x0(2) = valbuf(11, ipart)
+                     dpar%x0(3) = valbuf(12, ipart)
+                     dpar%v0(1) = valbuf(13, ipart)
+                     dpar%v0(2) = valbuf(14, ipart)
                      dpar%kx(:, 1) = dpar%x
                      dpar%kx(:, 2) = dpar%x
                      dpar%kx(:, 3) = dpar%x

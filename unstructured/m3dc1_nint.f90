@@ -1731,7 +1731,7 @@ contains
         call eval_ops(itri, rho_field, rhof79, rfac)
            ! pipar79 = 0.
            ! piper79 = 0.
-           pfi079 = 0.
+           ! pfi079 = 0.
          
         !do ipoint=1,MAX_PTS
         !      if (real(rhof79(ipoint,OP_1))>0.85) then

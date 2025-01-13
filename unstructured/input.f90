@@ -1253,8 +1253,6 @@ subroutine set_defaults
        "1: Enable gyro-averaging for PIC simulation", particle_grp)
   call add_var_int("particle_linear", particle_linear, linear, &
        "1: Solve linear delta-f equation. 0: Include nonlinear terms in delta-f", particle_grp)
-  call add_var_int("istatic_gradf", istatic_gradf, 0, &
-       "1: Evaluate Grad.f0 at the begining of the simulation and associate it with particles", particle_grp)
   call add_var_int("particle_substeps", particle_substeps, 40, &
        "Number of subcycles for particle pushing in one MHD timestep", particle_grp)
   call add_var_double("fast_ion_mass", fast_ion_mass, ion_mass, &

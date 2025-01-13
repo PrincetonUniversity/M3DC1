@@ -311,7 +311,6 @@ module basic
 #ifdef USEPARTICLES
   integer :: kinetic_fast_ion, kinetic_thermal_ion
   integer :: igyroaverage
-  integer :: istatic_gradf
   integer :: particle_linear
   integer :: particle_substeps
   real :: fast_ion_mass, fast_ion_z
