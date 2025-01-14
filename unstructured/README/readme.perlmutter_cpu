@@ -100,4 +100,9 @@
    ./run $M3DC1_ARCH
    ./check $M3DC1_ARCH
 
+   run individual test
+   ./run $M3DC1_ARCH pellet
+   ./run $M3DC1_ARCH KPRAD_restart
+   ./run $M3DC1_ARCH NCSX
+
 

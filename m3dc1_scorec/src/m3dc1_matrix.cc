@@ -1424,7 +1424,6 @@ int matrix_solve:: setKspType()
 	  ierr=PCBJacobiSetTotalBlocks(pc, nplane, blks);
 	  ierr=PetscFree(blks);
 	  */
-
 	  //fssolve is turned on only if the solve is 5 or 17
 	  PetscInt fssolve=-1;
 	  ierr = PetscOptionsGetInt(NULL,NULL,"-fssolve",&fssolve,NULL); CHKERRQ(ierr);
@@ -1446,6 +1445,7 @@ int matrix_solve:: setKspType()
 	          if (!PCU_Comm_Self()) std::cout<<"[M3DC1 INFO] "<<__func__<<": matrix "<<mymatrix_id<<" is going to use LineSolve preconditioner"<<"\n";
 	          if(!LineSet) setLSType();
 	  }
+	  if(mymatrix_id==5) ierr = KSPAppendOptionsPrefix(*ksp,"hard_");
   }
 
   ierr = KSPSetFromOptions(*ksp); CHKERRQ(ierr);
