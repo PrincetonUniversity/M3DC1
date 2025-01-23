@@ -583,6 +583,11 @@ int m3dc1_matrix::setupParaMat()
   ierr= MatSetBlockSize(*A, dofPerEnt);
 
   ierr = MatSetType(*A, MATMPIAIJ); CHKERRQ(ierr);
+  if(mymatrix_id==5) {
+	  ierr= MatSetOptionsPrefix(*A,"mhard_");
+	  if (!PCU_Comm_Self()) 
+		  std::cout<<"[M3DC1 INFO] "<<__func__<<": Lable Mat A="<<mymatrix_id<<" to be hard\n";
+  }
   ierr = MatSetFromOptions(*A); CHKERRQ(ierr);
 //cj  if (!PCU_Comm_Self()) std::cout<<"[M3DC1 INFO] "<<__func__<<": MatCreate A num_own_dof="<<num_own_dof<<" num_own_ent="<<num_own_ent<<" dofPerEnt="<<dofPerEnt<<" mat_dim="<<mat_dim<<"\n";
   return M3DC1_SUCCESS;
@@ -764,6 +769,8 @@ matrix_solve::matrix_solve(int i, int s, FieldID f): m3dc1_matrix(i,s,f)
   remotePidOwned=NULL;
   remoteNodeRow=NULL; // <pid, <locnode>, numAdj>
   remoteNodeRowSize=NULL;
+  mymatrix_id=i;
+	  if (!PCU_Comm_Self()) std::cout<<"[M3DC1 INFO] "<<__func__<<": matrix="<<mymatrix_id<<"\n";
   initialize();
 }
 
@@ -1353,10 +1360,11 @@ int matrix_solve:: setKspType()
   CHKERRQ(ierr);
 
   //bjacobi for matrix 5
-  PetscInt bjsolve=-1;
-  ierr = PetscOptionsGetInt(NULL,NULL,"-bjsolve",&bjsolve,NULL); CHKERRQ(ierr);
+  PetscInt bjsolve=5;
+//  ierr = PetscOptionsGetInt(NULL,NULL,"-bjsolve",&bjsolve,NULL); CHKERRQ(ierr);
   if(mymatrix_id==bjsolve) {
       ierr= KSPAppendOptionsPrefix(*ksp,"hard_");
+      if (!PCU_Comm_Self()) std::cout<<"[M3DC1 INFO] "<<__func__<<": Label solve "<<mymatrix_id<<" to be hard\n";
   }
 
   //mgsolve is turned on only if the solve is 5 or 17
@@ -1424,6 +1432,7 @@ int matrix_solve:: setKspType()
 	  ierr=PCBJacobiSetTotalBlocks(pc, nplane, blks);
 	  ierr=PetscFree(blks);
 	  */
+
 	  //fssolve is turned on only if the solve is 5 or 17
 	  PetscInt fssolve=-1;
 	  ierr = PetscOptionsGetInt(NULL,NULL,"-fssolve",&fssolve,NULL); CHKERRQ(ierr);
@@ -1445,7 +1454,6 @@ int matrix_solve:: setKspType()
 	          if (!PCU_Comm_Self()) std::cout<<"[M3DC1 INFO] "<<__func__<<": matrix "<<mymatrix_id<<" is going to use LineSolve preconditioner"<<"\n";
 	          if(!LineSet) setLSType();
 	  }
-	  if(mymatrix_id==5) ierr = KSPAppendOptionsPrefix(*ksp,"hard_");
   }
 
   ierr = KSPSetFromOptions(*ksp); CHKERRQ(ierr);
@@ -1512,7 +1520,7 @@ int matrix_solve:: setBgmgType()
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 
 //    ierr= KSPCreate(PETSC_COMM_WORLD,&ksp);
-      ierr= KSPAppendOptionsPrefix(*ksp,"hard_");
+//      ierr= KSPAppendOptionsPrefix(*ksp,"hard_");
     PC pcmg;
 #ifdef RICHARDSON
     PC pcksp;
@@ -1614,6 +1622,11 @@ int matrix_solve:: setBgmgType()
 	ierr= MatSetSizes(mg_interp_mat[level], mg_num_own_ent[level+1]*dofPerEnt, mg_num_own_ent[level]*dofPerEnt, plane_dim*mg_nplanes[level+1], plane_dim*mg_nplanes[level]);
 
 	ierr= MatSetType(mg_interp_mat[level], MATMPIAIJ);
+                     {
+	  ierr= MatSetOptionsPrefix(mg_interp_mat[level],"ihard_");
+	  if (!PCU_Comm_Self()) 
+		  std::cout<<"[M3DC1 INFO] "<<__func__<<": Lable I="<<mymatrix_id<<" to be hard\n";
+		     }
   	ierr= MatSetBlockSize(mg_interp_mat[level], dofPerEnt);
 	ierr= MatSetFromOptions(mg_interp_mat[level]);
         ierr= MatSetUp(mg_interp_mat[level]);
@@ -1764,7 +1777,7 @@ int matrix_solve:: setBgmgFSType()
 
     PC pcmg;
 //    ierr= KSPCreate(PETSC_COMM_WORLD,&ksp);
-      ierr= KSPAppendOptionsPrefix(*ksp,"hard_");
+//      ierr= KSPAppendOptionsPrefix(*ksp,"hard_");
 #ifdef RICHARDSON
     PC pcksp;
       ierr= KSPGetPC(*ksp,&pcksp);
@@ -2414,7 +2427,7 @@ int matrix_solve:: setFSBgmgType2(KSP *ksp, int nsplit)
 
     PC pc;
 //    ierr= KSPCreate(PETSC_COMM_WORLD,&ksp);
-      ierr= KSPAppendOptionsPrefix(*ksp,"hard_");
+//      ierr= KSPAppendOptionsPrefix(*ksp,"hard_");
       ierr= KSPGetPC(*ksp,&pc);
       ierr= PCSetType(pc,PCMG);
       ierr= PCMGSetLevels(pc,mg_nlevels,NULL);
