@@ -1250,7 +1250,9 @@ int matrix_solve:: setKspType()
 	  for (int i = 0; i < nplane; i++) blks[i] = plane_dim;
 	  ierr=PCBJacobiSetTotalBlocks(pc, nplane, blks);
 	  ierr=PetscFree(blks);
-  */}
+	  */
+	  if(mymatrix_id==5) ierr = KSPAppendOptionsPrefix(*ksp,"hard_");
+  }
 
   ierr = KSPSetFromOptions(*ksp); CHKERRQ(ierr);
   kspSet=1;
