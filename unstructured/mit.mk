@@ -43,7 +43,7 @@ else
   endif
 endif
 
-SCOREC_BASE_DIR=$(PETSC_DIR)/$(PETSC_ARCH)
+SCOREC_BASE_DIR=/orcd/nese/psfc/001/scorec/openmpi4.1.4-gcc12.2.0/petsc3.19.2
 SCOREC_UTIL_DIR=$(SCOREC_BASE_DIR)/bin
 PUMI_DIR=$(SCOREC_BASE_DIR)
 PUMI_LIB = -lpumi -lapf -lapf_zoltan -lcrv -lsam -lspr -lmth -lgmi -lma -lmds -lparma -lpcu -lph -llion
