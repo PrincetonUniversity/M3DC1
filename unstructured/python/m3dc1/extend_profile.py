@@ -29,6 +29,10 @@ def extend_profile(filename,psimax=1.05,psimatch=-1,fitrange=None,minval=None,ma
     **psimax**
     Value of normalized psi to which the profile will be extended
 
+    **psimatch**
+    Value of psin where the existing profile and the extended profile match,
+    i.e. value of psin, where extension begins.
+
     **fitrange**
     Range of normalized psi that is considered for tanh fit
 

@@ -24,7 +24,7 @@ from m3dc1.plot_coils import plot_coils
 
 def plot_shape(sim=None, filename='C1.h5', gfile=None, time=-1, phi=0, res=250, Nlvl_in=10, Nlvl_out=1,
                mesh=False, bound=False, lcfs=False, coils=False, phys=False, ax=None, pub=False,
-               fignum=None, quiet=False):
+               fignum=None, quiet=False, export=False, txtname=None):
     """
     Plot flux surfaces in poloidal plane
     
@@ -168,7 +168,7 @@ def plot_shape(sim=None, filename='C1.h5', gfile=None, time=-1, phi=0, res=250, 
         if mesh or bound:
             if mesh and bound:#Make sure that whole mesh is plotted. If both are true, plot_mesh only plots boundary.
                 bound = False
-            meshplt = plot_mesh(elms,boundary=bound,ax=axs,pub=pub,phys=phys)
+            meshplt = plot_mesh(elms,boundary=bound,ax=axs,pub=pub,phys=phys,export=export,txtname=txtname)
         
         R_ave          = np.average(R, 0)
         Z_ave          = np.average(Z, 0)
@@ -176,6 +176,11 @@ def plot_shape(sim=None, filename='C1.h5', gfile=None, time=-1, phi=0, res=250, 
         
         pltcol = next(cols)
         cont = axs.contour(R_ave, Z_ave, psifield,levels,zorder=0,linewidths=linew,colors=pltcol)
+        
+        if export:
+            np.savetxt(txtname+'_'+str(i)+'_R',R_ave,delimiter='   ')
+            np.savetxt(txtname+'_'+str(i)+'_Z',Z_ave,delimiter='   ')
+            np.savetxt(txtname+'_'+str(i)+'_field',psifield,delimiter='   ')
         
         if lcfs:
             cont = axs.contour(R_ave, Z_ave, psifield,[psi_lcfs],colors=pltcol,linewidths=bdlw,linestyles='--',zorder=10)

@@ -24,9 +24,9 @@ from m3dc1.plot_coils import plot_coils
 
 
 def plot_field(field, coord='scalar', row=1, sim=None, filename='C1.h5', time=None, phi=0, linear=False,
-               diff=False, tor_av=1, mesh=False, bound=False, lcfs=False, coils=False, units='mks',points=250,
-               prange=None, cmap='viridis', cmap_midpt=None, clvl=100, quiet=False,
-               save=False, savedir=None, pub=False, titlestr=None, showtitle=True, shortlbl=False, ntor=None, phys=False, R_range=None, Z_range=None):
+               diff=False, scale=1.0, tor_av=1, mesh=False, bound=False, lcfs=False, coils=False, units='mks',points=250,
+               fac=1.,prange=None, cmap='viridis', cmap_midpt=None, clvl=100, quiet=False, save=False, savedir=None,
+               pub=False, titlestr=None, showtitle=True, shortlbl=False, ntor=None, phys=False,export=False,txtname=None, R_range=None, Z_range=None):
     """
     Plots a field in the R,Z plane.
     
@@ -137,10 +137,10 @@ def plot_field(field, coord='scalar', row=1, sim=None, filename='C1.h5', time=No
     """
     
     sim, time, mesh_ob, R, phi_list, Z, R_mesh, Z_mesh, R_ave, Z_ave, field1_ave = get_field(field=field, coord=coord, row=row, sim=sim, filename=filename, time=time, phi=phi, linear=linear,
-               diff=diff, tor_av=tor_av, units=units, res=points, quiet=quiet, phys=phys, R_range=R_range, Z_range=Z_range)
+               diff=diff, scale=scale, tor_av=tor_av, units=units, res=points, quiet=quiet, phys=phys, R_range=R_range, Z_range=Z_range)
     
 
-    fieldlabel,unitlabel = fpyl.get_fieldlabel(units,field,shortlbl=shortlbl)
+    fieldlabel,unitlabel = fpyl.get_fieldlabel(units,field,shortlbl=shortlbl,fac=fac)
     cbarlbl = fieldlabel + ' (' + unitlabel + ')'
 
 
@@ -167,7 +167,7 @@ def plot_field(field, coord='scalar', row=1, sim=None, filename='C1.h5', time=No
         axs = np.asarray([axs])
     else:
         fig, axs = plt.subplots(1, 3, sharey=True,figsize=(14,7))
-        comp = ['R','\phi','Z']
+        comp = ['R',r'\phi','Z']
     
     if titlestr is None:
         if coord in ['vector', 'tensor']:
@@ -196,13 +196,22 @@ def plot_field(field, coord='scalar', row=1, sim=None, filename='C1.h5', time=No
             bound = False
         meshplt = plot_mesh(mesh_ob,boundary=bound,ax=axs,meshcol='C1',pub=pub,phys=phys,quiet=quiet)
     
+    if fac != 1.:
+        field1_ave = field1_ave*fac
+    
     for i,ax in enumerate(axs):
         if cmap_midpt is not None:
             field1_ave_clean = field1_ave[i][np.logical_not(np.isnan(field1_ave[i]))]
+            vmin = np.amin(field1_ave_clean)
+            vmid = cmap_midpt
+            vmax = np.amax(field1_ave_clean)
+            if not np.all(np.diff([vmin,vmid,vmax]) >= 0): #Check if values are in ascending order
+                vmid = vmin + (vmax-vmin)/2
+                fpyl.printwarn('WARNING: cmap_midpt is either too low or too high! Resetting cmap_midpt to vmin + (vmax-vmin)/2.')
             if StrictVersion(sys.modules[plt.__package__].__version__) < StrictVersion('3.2'):#DivergingNorm became TwoSlopeNorm in matplotlib version >=3.2
-                norm = colors.DivergingNorm(vmin=np.amin(field1_ave_clean), vcenter=cmap_midpt, vmax=np.amax(field1_ave_clean))
+                norm = colors.DivergingNorm(vmin=vmin, vcenter=vmid, vmax=vmax)
             else:
-                norm = colors.TwoSlopeNorm(vmin=np.amin(field1_ave_clean), vcenter=cmap_midpt, vmax=np.amax(field1_ave_clean))
+                norm = colors.TwoSlopeNorm(vmin=vmin, vcenter=vmid, vmax=vmax)
             cont = ax.contourf(R_ave, Z_ave, field1_ave[i],clvl, cmap=cmap,norm=norm)
         else:
             if isinstance(prange,(tuple,list)):
@@ -300,5 +309,10 @@ def plot_field(field, coord='scalar', row=1, sim=None, filename='C1.h5', time=No
             nout=ntor
         
         plt.savefig(fieldstr + '_' + timestr + '_n'+"{:d}".format(nout)+'.png', format='png',dpi=900,bbox_inches='tight')
+    
+    if export:
+        np.savetxt(txtname+'_R',np.vstack(R_ave),delimiter='   ')
+        np.savetxt(txtname+'_Z',np.vstack(Z_ave),delimiter='   ')
+        np.savetxt(txtname+'_field',np.vstack(field1_ave),delimiter='   ')
     
     return

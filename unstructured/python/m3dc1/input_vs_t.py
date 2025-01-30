@@ -10,7 +10,9 @@ import glob
 import traceback
 import matplotlib.pyplot as plt
 from matplotlib.ticker import LinearLocator, MultipleLocator, FormatStrFormatter
+import m3dc1.fpylib as fpyl
 from m3dc1.get_time_of_slice import get_time_of_slice
+
 
 def input_vs_t(param,wd=None,units='m3dc1',millisec=False,makeplot=True,fignum=None):
     """
@@ -71,10 +73,13 @@ def input_vs_t(param,wd=None,units='m3dc1',millisec=False,makeplot=True,fignum=N
                 print(err)
                 
         
-        values.append(float(value))
         ts = int(restart_line.split()[-1])
-        time = get_time_of_slice(ts,units=units,millisec=millisec)
-        times.append(time)
+        try:
+            time = get_time_of_slice(ts,units=units,millisec=millisec)
+            values.append(float(value))
+            times.append(time)
+        except:
+            fpyl.printwarn('WARNING: Not able to read time slice '+ str(ts))
         print(restart_line)
         print(param_line)
         print('------------------------------------')

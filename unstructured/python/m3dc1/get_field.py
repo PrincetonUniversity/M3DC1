@@ -12,7 +12,7 @@ from fpy import fio_py
 
 
 def get_field(field, coord='scalar', row=1, sim=None, filename='C1.h5', time=None, phi=0, linear=False,
-               diff=False, tor_av=1, units='mks', res=250, quiet=False, phys=False, R_range=None, Z_range=None):
+               diff=False, scale=1.0, tor_av=1, units='mks', res=250, quiet=False, phys=False, R_range=None, Z_range=None):
     """
     Returns field values on an equidistant rectangular R,phi,Z grid.
     
@@ -110,7 +110,7 @@ def get_field(field, coord='scalar', row=1, sim=None, filename='C1.h5', time=Non
     #     R_mesh = eval_field('rst', mesh_pts[:,4], phi0*np.ones_like(mesh_pts[:,4]), mesh_pts[:,5], sim=sim, filename=filename, time=time)
     #     Z_mesh = eval_field('zst', mesh_pts[:,4], phi0*np.ones_like(mesh_pts[:,4]), mesh_pts[:,5], sim=sim, filename=filename, time=time)
 
- 
+
     # Get the magnetic axis at time zero, which will be used for poloidal coordinates
     if coord in ['poloidal', 'radial']:
         R_mag =  sim[0].get_time_trace('xmag').values[0]
