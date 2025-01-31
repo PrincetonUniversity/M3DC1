@@ -36,10 +36,10 @@ def plot_field(field, coord='scalar', row=1, sim=None, filename='C1.h5', time=No
     The field that is to be plotted, i.e. 'B', 'j', etc.
 
     **coord**
-    The chosen part of a vector field to be plotted, options are:
+    The vector component of the field to be plotted, options are:
     'phi', 'R', 'Z', 'poloidal', 'radial', 'scalar', 'vector', 'tensor'.
     Scalar is reserved for scalar fields.
-    Poloidal takes the magnetic axis at time=0 as the origin, and
+    'Poloidal' takes the magnetic axis at time=0 as the origin, and
     defines anti-clockwise as the positive direction.
     Radial also takes the magnetic axis as the origin.
 
@@ -223,13 +223,8 @@ def plot_field(field, coord='scalar', row=1, sim=None, filename='C1.h5', time=No
             else:
                 cont = ax.contourf(R_ave, Z_ave, field1_ave[i],clvl, cmap=cmap)
         # Set and format axes limits and labels
-        # if phys:
-        if False:
-            ax.set_xlim([fpyl.get_axlim(np.amin(R_mesh),'min',0.1),fpyl.get_axlim(np.amax(R_mesh),'max',0.1)])
-            ax.set_ylim([fpyl.get_axlim(np.amin(Z_mesh),'min',0.1),fpyl.get_axlim(np.amax(Z_mesh),'max',0.1)])
-        else:
-            ax.set_xlim([fpyl.get_axlim(np.amin(R_ave),'min',0.1),fpyl.get_axlim(np.amax(R_ave),'max',0.1)])
-            ax.set_ylim([fpyl.get_axlim(np.amin(Z_ave),'min',0.1),fpyl.get_axlim(np.amax(Z_ave),'max',0.1)])
+        ax.set_xlim([fpyl.get_axlim(np.amin(R_ave),'min',0.1),fpyl.get_axlim(np.amax(R_ave),'max',0.1)])
+        ax.set_ylim([fpyl.get_axlim(np.amin(Z_ave),'min',0.1),fpyl.get_axlim(np.amax(Z_ave),'max',0.1)])
         ax.set_xlabel(r'$R/m$',fontsize=axlblfs)
         ax.set_ylabel(r'$Z/m$',fontsize=axlblfs)
         ax.tick_params(axis='both', which='major', labelsize=ticklblfs)
