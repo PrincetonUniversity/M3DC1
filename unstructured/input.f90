@@ -699,6 +699,8 @@ subroutine set_defaults
        "1: read profile_pscale for factor to scale p and p'", gs_grp)
   call add_var_double("vscale", vscale, 1., &
        "Factor multiplying toroidal rotation profile", gs_grp)
+  call add_var_int("igs_store_coils", igs_store_coils, 0, &
+       "Store coil fields in GS solve", gs_grp)
   call add_var_double_array("gs_vertical_feedback", gs_vertical_feedback, &
        maxcoils, 0., &
        "Proportional feedback of each coil to vertical displacements", gs_grp)

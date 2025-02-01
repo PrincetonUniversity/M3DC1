@@ -541,6 +541,7 @@ module arrays
   type(field_type) :: temporary_field
   
   type(field_type) :: psi_coil_field
+  type(field_type), allocatable :: psi_coil_fields(:)
 
   ! the indicies of the named fields within the field vector
   integer, parameter :: u_g = 1
