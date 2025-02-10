@@ -72,12 +72,16 @@ class Gfile():
 
 def read_gfile(fname,quiet=False):
     """
-    Reads information from EFIT g-file
+    Reads information from EFIT g-eqdsk file and stores it
+    in a Gfile object.
     
     Arguments:
 
     **fname**
-    Name of file that will be read, i.e. "g123456.00789"
+    Name of GEQDSK file that will be read, e.g. "g123456.00789"
+    
+    **quiet**
+    True / False. If True, suppress output to terminal.
     """
     f = open(fname, 'r')
     data = f.readlines()
@@ -127,13 +131,22 @@ def read_gfile(fname,quiet=False):
                 print(timestr.group(1), shotnum.group(1), gfile_data.date)
             
         else:
+            gfile_data.shot = 'n/a'
+            gfile_data.time = 'n/a'
             try:
                 gfile_data.idum = int(temp[-3])
                 gfile_data.nw = int(temp[-2])
                 gfile_data.nh = int(temp[-1])
             except:
-                fpylib.printerr('Error reading g-file in line 1!')
-                return
+                try:
+                    #Try reading first line using Fortran format
+                    gfile_data.idum = int(data[0][48:52])
+                    gfile_data.nw = int(data[0][52:56])
+                    gfile_data.nh = int(data[0][56:])
+                except:
+                    fpyl.printerr('Error reading g-file in line 1!')
+                    print(data[0])
+                    return
     
     #temp = data[1].split()
     temp = fpyl.read_floats(data[1])

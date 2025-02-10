@@ -24,13 +24,24 @@ from m3dc1.flux_average import flux_average
 from m3dc1.plot_mesh import plot_mesh
 from m3dc1.plot_coils import plot_coils
 
-def eigenfunction(sim=None,time=1,phit=0.0,filename='C1.h5',fcoords=None,points=200,fourier=True,units='m3dc1',makeplot=True,show_res=False,
+def eigenfunction(field='p',coord='scalar',sim=None,time=1,phit=0.0,filename='C1.h5',fcoords=None,points=200,fourier=True,units='m3dc1',makeplot=True,show_res=False,
                   device='nstx',norm_to_unity=False,drop_low_m=-1,nummodes=10,cmap='jet',coils=False,mesh=False,bound=False, phys=False,pub=False,n=None,titlestr=None,save=False,savedir=None,xlimits=[None,None],colorbounds=None,extend_cbar='neither',
                   in_plot_txt=None,export=False,figsize=None,quiet=False):
     """
     Calculates the linear eigenfunction ~(p1-p0)
 
     Arguments:
+
+    **field**
+    The field that is to be plotted, i.e. 'B', 'j', etc.
+
+    **coord**
+    The vector component of the field to be plotted, options are:
+    'phi', 'R', 'Z', 'poloidal', 'radial', 'scalar', 'vector', 'tensor'.
+    Scalar is reserved for scalar fields.
+    'Poloidal' takes the magnetic axis at time=0 as the origin, and
+    defines anti-clockwise as the positive direction.
+    Radial also takes the magnetic axis as the origin.
 
     **sim**
     Simulation object(s) at equilibrium and/or time where the eigenfunction shall be calculated.
@@ -162,9 +173,9 @@ def eigenfunction(sim=None,time=1,phit=0.0,filename='C1.h5',fcoords=None,points=
         cols = col_cycler(['C0','C1','C2','C3','C4','C5','C6','C7','C8','C9'])
     
     # Evaluate fields
-    p1 = eval_field('p', fc.rpath, torphi, fc.zpath, coord='scalar', sim=sims[1], filename=filename, time=sims[1].timeslice)
+    p1 = eval_field(field, fc.rpath, torphi, fc.zpath, coord=coord, sim=sims[1], filename=filename, time=sims[1].timeslice)
 
-    p0 = eval_field('p', fc.rpath, torphi, fc.zpath, coord='scalar', sim=sims[0],time=sims[0].timeslice)
+    p0 = eval_field(field, fc.rpath, torphi, fc.zpath, coord=coord, sim=sims[0],time=sims[0].timeslice)
     
     ef = p1 - p0
     if units.lower()=='m3dc1':

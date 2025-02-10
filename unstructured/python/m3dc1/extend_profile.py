@@ -29,6 +29,10 @@ def extend_profile(filename,psimax=1.05,psimatch=-1,fitrange=None,minval=None,ma
     **psimax**
     Value of normalized psi to which the profile will be extended
 
+    **psimatch**
+    Value of psin where the existing profile and the extended profile match,
+    i.e. value of psin, where extension begins.
+
     **fitrange**
     Range of normalized psi that is considered for tanh fit
 
@@ -241,7 +245,8 @@ def extend_profile(filename,psimax=1.05,psimatch=-1,fitrange=None,minval=None,ma
     f2_ax4.set_xlabel(r'$\psi_N$')
     f2_ax4.set_ylabel('profile derivative')
     f2_ax4.set_xlim([fitrange[0],psimax])
-    f2_ax4.set_ylim([np.amin(ynewp)-(np.abs(0.05*np.amin(ynewp))),np.amax(ynewp)+0.05*np.sign(np.amax(ynewp))*np.amin(ynewp)])
+    ymax = np.amax([np.amax(ynewp) + 0.05*np.abs(np.amax(ynewp)),0.05*np.abs(np.amin(ynewp))])#Make sure ymax is always above 0
+    f2_ax4.set_ylim([np.amin(ynewp)-(np.abs(0.05*np.amin(ynewp))),ymax])
     f2_ax4.grid()
     
     fig.suptitle(filename, size=12)

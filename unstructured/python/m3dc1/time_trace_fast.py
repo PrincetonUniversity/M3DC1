@@ -789,15 +789,21 @@ def scan_n(nmin=1,nmax=20,nstep=1,units='m3dc1',filename='C1.h5',time_low_lim=50
     ped_loc = []
     print('Calculating growth rates for n='+str(nmin)+' to n='+str(nmax))
     
+    nmin_not_found = False
+    
     for n in np.arange(nmin,nmax+1,nstep):
-        if n==nmin:
+        if n==nmin or nmin_not_found:
             path = 'n'+str(n).zfill(2)
         else:
             path = '../n'+str(n).zfill(2)
         try:
             os.chdir(path)
+            nmin_not_found = False
         except:
-            raise Exception('Cannot find directory '+path)
+            fpyl.printerr('Cannot find directory '+path)
+            nmin_not_found = True
+            continue
+            #raise Exception('Cannot find directory '+path)
         
         print('----------------------------------------------')
         print('Directory '+os.getcwd().split('/')[-1])
@@ -829,7 +835,24 @@ def scan_n(nmin=1,nmax=20,nstep=1,units='m3dc1',filename='C1.h5',time_low_lim=50
 
 
 
-def create_plot_gamma_n(n_list, gamma_list,norm_dia=False,fignum=None,figsize=None,lw=1,c=None,ls=None,marker=None,ms=36,lbl=None,units='m3dc1',legfs=None,leglblspace=None,leghandlen=None,title=None,export=False,txtname=None):
+def create_plot_gamma_n(n_list, gamma_list,norm_dia=False,fignum=None,figsize=None,lw=1,c=None,ls=None,marker=None,ms=36,lbl=None,units='m3dc1',xtick_step=1,legfs=None,leglblspace=None,leghandlen=None,title=None,export=False,txtname=None,pub=False):
+    
+    # Set font sizes and plot style parameters
+    if pub:
+        axlblfs = 20
+        titlefs = 18
+        ticklblfs = 16
+        linew = 2
+        inplttxtfs = 20
+        if legfs is None:
+            legfs = 16
+    else:
+        axlblfs = None
+        titlefs = None
+        ticklblfs = None
+        linew = 1
+        inplttxtfs = 16
+    
     plt.figure(num=fignum,figsize=figsize)
     if marker in ['s','d','D']:
         ms = int(ms*0.75)
@@ -840,7 +863,7 @@ def create_plot_gamma_n(n_list, gamma_list,norm_dia=False,fignum=None,figsize=No
         lw = lw+1
     temp = plt.plot(n_list,gamma_list,lw=lw,c=c,ls=ls,marker=marker,ms=ms,label=lbl)
     plt.grid(True)
-    plt.xlabel('n',fontsize=14)
+    plt.xlabel('n',fontsize=axlblfs)
     if norm_dia:
         ylbl = r'$\gamma/(\omega_{*i}/2)$'
     else:
@@ -848,13 +871,19 @@ def create_plot_gamma_n(n_list, gamma_list,norm_dia=False,fignum=None,figsize=No
             ylbl = r'$\gamma/\omega_A$'
         else:
             ylbl = r'$\gamma$ $[s^{-1}]$'
-    plt.ylabel(ylbl,fontsize=14)
+    plt.ylabel(ylbl,fontsize=axlblfs)
     ax = plt.gca()
-    ax.xaxis.set_ticks(np.arange(np.amin(n_list), np.amax(n_list)+1, 1))
+    
+    if xtick_step == 1:
+        nmax = np.amax(n_list)+1
+    else:
+        #if np.amin(n_list) + xtick_step <= np.amax(n_list)+1
+        nmax = np.amax(n_list)+1 + xtick_step
+    ax.xaxis.set_ticks(np.arange(np.amin(n_list), nmax, xtick_step))
     #ax.xaxis.set_major_formatter(ticker.FormatStrFormatter('%d'))
-    plt.tick_params(axis='both', which='major', labelsize=12)
+    plt.tick_params(axis='both', which='major', labelsize=ticklblfs)
     if title is not None:
-        plt.title(title,fontsize=12)
+        plt.title(title,fontsize=titlefs)
     if lbl is not None:
         plt.legend(loc=0,fontsize=legfs,labelspacing=leglblspace,handlelength=leghandlen)
     else:
@@ -879,7 +908,7 @@ def create_plot_gamma_n(n_list, gamma_list,norm_dia=False,fignum=None,figsize=No
 
 
 
-def plot_gamma_n(nmin=1,nmax=20,nstep=1,norm_dia=False,units='m3dc1',fignum=None,figsize=None,c=None,lw=None,ls=None,mark='.',plot_crosses=True,lbl=None,slurm=True,plottrace=False,legfs=None,leglblspace=None,leghandlen=None,ylimits=None,title=None,export=False,txtname=None,no_prompt=False):
+def plot_gamma_n(nmin=1,nmax=20,nstep=1,norm_dia=False,units='m3dc1',fignum=None,figsize=None,c=None,lw=None,ls=None,mark='.',plot_crosses=True,xtick_step=1,lbl=None,slurm=True,plottrace=False,legfs=None,leglblspace=None,leghandlen=None,ylimits=None,title=None,export=False,txtname=None,no_prompt=False,pub=False):
     # Plot gamma as a function of n
     # Identify simulations where the growth rate was not calculated reliably. These are highlighted in the plot.
     #print(os.getcwd())
@@ -929,10 +958,11 @@ def plot_gamma_n(nmin=1,nmax=20,nstep=1,norm_dia=False,units='m3dc1',fignum=None
                 gamma_bad.append(results.gamma_list[n_ind])
     
     if len(n_bad)>0 and plot_crosses:
-        cfn = plt.gcf().number #Current figure number
-        create_plot_gamma_n(n_bad, gamma_bad, norm_dia=norm_dia, fignum=cfn, figsize=figsize, lw=0, marker='x', ms=10, c='r', units=units,legfs=None,leglblspace=None,title=title)
+        if fignum is None:
+            fignum = plt.gcf().number #Current figure number
+        create_plot_gamma_n(n_bad, gamma_bad, norm_dia=norm_dia, fignum=fignum, figsize=figsize, lw=0, marker='x', ms=10, c='r', units=units,xtick_step=xtick_step,legfs=None,leglblspace=None,title=title)
     
-    create_plot_gamma_n(n_all, gamma_all, norm_dia=norm_dia, fignum=fignum, figsize=figsize,c=c, lw=lw, ls=ls, marker=mark, ms=10, lbl=lbl, units=units,legfs=legfs,leglblspace=leglblspace,leghandlen=leghandlen,title=title,export=export,txtname=txtname)
+    create_plot_gamma_n(n_all, gamma_all, norm_dia=norm_dia, fignum=fignum, figsize=figsize,c=c, lw=lw, ls=ls, marker=mark, ms=10, lbl=lbl, units=units,xtick_step=xtick_step,legfs=legfs,leglblspace=leglblspace,leghandlen=leghandlen,title=title,export=export,txtname=txtname,pub=pub)
     
     
     cfig = plt.gcf()
@@ -945,7 +975,7 @@ def plot_gamma_n(nmin=1,nmax=20,nstep=1,norm_dia=False,units='m3dc1',fignum=None
 
 
 
-def compare_gamma_n(dirs,nmin=1,nmax=20,nstep=1,norm_dia=False,units='m3dc1',labels=None,plot_crosses=True,col=None,lwid=None,lsty=None,markers=None,fignum=None,figsize=None,legfs=None,leglblspace=None,leghandlen=None,ylimits=None,title=None,export=False,no_prompt=False,quiet=False):
+def compare_gamma_n(dirs,nmin=1,nmax=20,nstep=1,norm_dia=False,units='m3dc1',labels=None,plot_crosses=True,col=None,lwid=None,lsty=None,markers=None,xtick_step=1,fignum=None,figsize=None,legfs=None,leglblspace=None,leghandlen=None,ylimits=None,title=None,export=False,no_prompt=False,quiet=False,pub=False):
     if isinstance(labels, (tuple, list)):
         if len(dirs)!=len(labels):
             fpyl.printerr('ERROR: Number of directories not equal to number of labels.')
@@ -979,7 +1009,7 @@ def compare_gamma_n(dirs,nmin=1,nmax=20,nstep=1,norm_dia=False,units='m3dc1',lab
             mark = markers[i]
         else:
             mark = '.'
-        plot_gamma_n(nmin,nmax,nstep,norm_dia=norm_dia,units=units,fignum=fignum,figsize=figsize,c=c,lw=lw,ls=ls,mark=mark,plot_crosses=plot_crosses,lbl=lbl,slurm=True,plottrace=False,legfs=legfs,leglblspace=leglblspace,leghandlen=leghandlen,ylimits=ylimits,title=title,export=export,txtname='gamma_'+d.replace('/','')+'.txt',no_prompt=no_prompt)
+        plot_gamma_n(nmin,nmax,nstep,norm_dia=norm_dia,units=units,fignum=fignum,figsize=figsize,xtick_step=xtick_step,c=c,lw=lw,ls=ls,mark=mark,plot_crosses=plot_crosses,lbl=lbl,slurm=True,plottrace=False,legfs=legfs,leglblspace=leglblspace,leghandlen=leghandlen,ylimits=ylimits,title=title,export=export,txtname='gamma_'+d.replace('/','')+'.txt',no_prompt=no_prompt,pub=pub)
         os.chdir(pwd)
     
     return
@@ -1007,7 +1037,7 @@ def write_gamma_n(results,ped_param, ipres, psin_ped_top,ped_structure=None,unit
     
     simdir = pathdirs[-1]
     
-    eta = re.search('eta_x(\d*[.]?\d*)', simdir).group(1)
+    eta = re.search(r'eta_x(\d*[.]?\d*)', simdir).group(1)
     
     flmodel = simdir[0:2]
     if flmodel not in ['1f', '2f']:
@@ -1391,7 +1421,8 @@ def eval_growth_n(dirs=['./'],nmin=1,nmax=20,nstep=1,plotef=False,mtype=False,ps
 def create_plot_time_trace_fast(time,scalar,trace,units='mks',millisec=False,sim=None,filename='C1.h5',
                                 growth=False,diff=False,yscale='linear',rescale=False,save=False,in_plot_txt=None,
                                 time_marks=[],ts_marks=[],ts_marks_all=False,savedir=None,title=False,pub=False,
-                                ylbl=None,show_legend=False,leglbl=None,fignum=None,figsize=None,skip_n0=False):
+                                ylbl=None,show_legend=False,leglbl=None,fignum=None,figsize=None,skip_n0=False,
+                                export=False,txtname=None):
 
     if not isinstance(sim,fpy.sim_data):
         sim = fpy.sim_data(filename)
@@ -1453,6 +1484,9 @@ def create_plot_time_trace_fast(time,scalar,trace,units='mks',millisec=False,sim
         else:
             plt.ylabel(ylbl,fontsize=axlblfs)
     
+    if export:
+        plot_data = np.column_stack([time])
+    
     if len(scalar.shape)>1:
         leglabels = ["n={:2}".format(n) for n in range(scalar.shape[1])]
         for i in range(scalar.shape[1]):
@@ -1466,9 +1500,11 @@ def create_plot_time_trace_fast(time,scalar,trace,units='mks',millisec=False,sim
             labelLines(plt.gca().get_lines(), zorder=2.5)
     else:
         plt.plot(time,scalar,lw=linew,label=leglbl)
-    
         if show_legend and leglbl is not None:
             plt.legend(loc=0,fontsize=legfs)
+            
+    if export:
+        plot_data = np.column_stack([plot_data, scalar])
     plt.grid(True)
     #Determine y-axis limits
     if rescale:
@@ -1520,6 +1556,10 @@ def create_plot_time_trace_fast(time,scalar,trace,units='mks',millisec=False,sim
         if savedir is not None:
             tracestr = savedir + tracestr
         plt.savefig(tracestr+'_n'+"{:d}".format(ntor)+'.pdf', format='pdf',bbox_inches='tight')
+        
+    if export:
+        print(plot_data)
+        np.savetxt(txtname,plot_data,delimiter='   ')
     return
 
 
@@ -1627,7 +1667,7 @@ def plot_time_trace_fast(trace,units='mks',millisec=False,sim=None,filename='C1.
                          growth=False,renorm=False,yscale='linear',unitlabel=None,fac=1,
                          show_legend=False,leglbl=None,in_plot_txt=None,time_marks=[],ts_marks=[],
                          ts_marks_all=False,rescale=False,save=False,savedir=None,pub=False,
-                         fignum=None,figsize=None,drop_time_steps=None,skip_n0=False):
+                         fignum=None,figsize=None,drop_time_steps=None,skip_n0=False,export=False,txtname=None):
     """
     Plots a scalar quantity vs. time. All available
     time traces can be found in the M3D-C1 documentation.
@@ -1730,7 +1770,8 @@ def plot_time_trace_fast(trace,units='mks',millisec=False,sim=None,filename='C1.
     filename = sim.filename
     create_plot_time_trace_fast(time,y_axis,trace,units=units,millisec=millisec,sim=sim,filename=filename,growth=growth,diff=diff,show_legend=show_legend,
                                 leglbl=leglbl,yscale=yscale,rescale=rescale,save=save,savedir=savedir,pub=pub,in_plot_txt=in_plot_txt,
-                                time_marks=time_marks,ts_marks=ts_marks,ts_marks_all=ts_marks_all,ylbl=ylbl,fignum=fignum,figsize=figsize,skip_n0=skip_n0)
+                                time_marks=time_marks,ts_marks=ts_marks,ts_marks_all=ts_marks_all,ylbl=ylbl,fignum=fignum,figsize=figsize,skip_n0=skip_n0,
+                                export=export,txtname=txtname)
     return
 
 

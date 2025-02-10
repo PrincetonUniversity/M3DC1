@@ -19,7 +19,7 @@ from m3dc1.plot_coils import plot_coils
 from m3dc1.plot_mag_probes import plot_mag_probes
 
 
-def plot_mesh(elms=None,time=None,filename='C1.h5',sim=None,boundary=False,coils=False,mag_probes=False,ax=None,fignum=None,meshcol='C0',zoom=False,pub=False,quiet=False,phys=False,phi=0.,save=False):
+def plot_mesh(elms=None,time=None,filename='C1.h5',sim=None,boundary=False,coils=False,mag_probes=False,ax=None,fignum=None,meshcol='C0',zoom=False,pub=False,quiet=False,phys=False,phi=0.,save=False,export=False,txtname=None):
     """
     plot_mesh: Creates a plot of the mesh from a M3D-C1 time slice.
     plot_mesh can take the mesh object as input. This is better for large
@@ -253,6 +253,21 @@ def plot_mesh(elms=None,time=None,filename='C1.h5',sim=None,boundary=False,coils
             pltbd = ax.add_collection(LineCollection(np.stack((plot4x,plot4y), axis=2),linewidths=bdlw, colors='c',zorder=5))
         else:
             pltbd = None
+    
+    if export:
+        if len(plot1x) > 0:
+            print(np.asarray(plot1x).shape,len(plot1y),np.stack((plot1x,plot1y), axis=2).shape)
+            np.savetxt('mesh1x_'+txtname,plot1x,delimiter='   ',fmt='%f')
+            np.savetxt('mesh1y_'+txtname,plot1y,delimiter='   ',fmt='%f')
+        if len(plot2x) > 0:
+            np.savetxt('mesh2x_'+txtname,plot2x,delimiter='   ',fmt='%f')
+            np.savetxt('mesh2y_'+txtname,plot2y,delimiter='   ',fmt='%f')
+        if len(plot3x) > 0:
+            np.savetxt('mesh3x_'+txtname,plot3x,delimiter='   ',fmt='%f')
+            np.savetxt('mesh3y_'+txtname,plot3y,delimiter='   ',fmt='%f')
+        if len(plot4x) > 0:
+            np.savetxt('mesh4x_'+txtname,plot4x,delimiter='   ',fmt='%f')
+            np.savetxt('mesh4y_'+txtname,plot4y,delimiter='   ',fmt='%f')
     
     if zoom:
         axins = zoomed_inset_axes(ax, 2, loc=1) # zoom = 6

@@ -36,8 +36,8 @@ module load intel-oneapi-mkl/2023.1.0-intel-oneapi-mpi-2021.9.0-gcc-12.2.0-modul
 
 setenv          M3DC1_VERSION   $version
 setenv          M3DC1_DIR       $root
-setenv		M3DC1_ARCH	mit_intel
+setenv		M3DC1_ARCH	mit
 setenv		M3DC1_MPIRUN	mpirun
 
-prepend-path    PATH             $root/unstructured/_mit_intel/bin
+prepend-path    PATH             $root/unstructured/_mit/bin
 prepend-path    IDL_PATH         $root/unstructured/idl

@@ -15,8 +15,8 @@ import fpy
 import m3dc1.fpylib as fpyl
 from m3dc1.get_field import get_field
 from m3dc1.get_time_of_slice import get_time_of_slice
-#rc('text', usetex=True)
-
+from m3dc1.time_trace_fast import get_timetrace
+from m3dc1.read_h5 import readParameter
 
 
 
@@ -283,7 +283,7 @@ def tpf_vs_t(field, method='sum', coord='scalar', row=1, filename='C1.h5', phi_r
         f = open(outfile, 'w')
         f.close()
     
-    #Calculate TPF for each chosen time slice
+    #Calculate TPF at each chosen time slice
     for ts in ts_list:
         #try:
         sim = fpy.sim_data(filename,time=ts) 
@@ -295,7 +295,7 @@ def tpf_vs_t(field, method='sum', coord='scalar', row=1, filename='C1.h5', phi_r
         tpf_list.append(pf)
         if write_to_file:
             f = open(outfile, 'a')
-            f.write(str(t) + '    ' + str(pf) + '\n')
+            f.write(str(ts) + '    ' + str(t) + '    ' + str(pf) + '\n')
             f.close()
     
     #if write_to_file:
@@ -333,5 +333,86 @@ def tpf_vs_t(field, method='sum', coord='scalar', row=1, filename='C1.h5', phi_r
     ax.set_ylabel(r'TPF ('+field+')',fontsize=axlblfs)
     ax.tick_params(axis='both', which='major', labelsize=ticklblfs)
     plt.grid(True)
+    plt.tight_layout()
+
+    return
+
+
+def multiply_tpf_time_trace(tpf_file,trace,units='mks',millisec=False,fac=1,growth=False,renorm=False,makeplot=True,
+                            fignum=None,figsize=None,leglbl=None,show_legend=False,quiet=False,pub=False,in_plot_txt=None,
+                            export=False,txtname=None):
+
+    #Read file with TPF vs time
+    f = open(tpf_file, 'r')
+    data_str = f.readlines()
+    f.close()
+    tpfdata = np.asarray([line.split() for line in data_str],dtype=float)
     
+    _,time_trace,label,unitlabel = get_timetrace(trace=trace,units=units,growth=growth,renorm=renorm,fac=fac,quiet=quiet)
+    
+    values = []
+    #print(tpfdata)
+    if units=='mks':
+        time = tpfdata[:,1]
+        if millisec:
+            time = time*1000
+    elif units=='m3dc1':
+        time = []
+    
+    for i in range(len(tpfdata)):
+        ts_filename = 'time_'+str(int(tpfdata[i,0])).zfill(3)+'.h5'
+        ts = readParameter('ntimestep',fname=ts_filename)
+        #print(time_trace)
+        #print(ts)
+        values.append(tpfdata[i,2] * time_trace[ts])
+        if units=='m3dc1':
+            time.append(readParameter('time',fname=ts_filename))
+    
+    if makeplot:
+        # Set font sizes and plot style parameters
+        if pub:
+            axlblfs = 18
+            titlefs = 16
+            ticklblfs = 16
+            linew = 2
+            legfs = 12
+            inplttxtfs = 20
+        else:
+            axlblfs = None
+            titlefs = None
+            ticklblfs = None
+            linew = 1
+            legfs = None
+            inplttxtfs = 16
+        
+        plt.figure(num=fignum,figsize=figsize)
+        
+        if units=='mks':
+            #time = unit_conv(time,filename=filename,time=1)
+            if millisec:
+                plt.xlabel(r'time $(ms)$',fontsize=axlblfs)
+            else:
+                plt.xlabel(r'time $(s)$',fontsize=axlblfs)
+        else:
+            plt.xlabel(r'time $(\tau_A)$',fontsize=axlblfs)
+        
+        if trace == 'prad':
+            label = r'$P_{rad}$'
+        ylbl = r'TPF $\cdot$ ' + label+' ('+unitlabel+')'
+        plt.ylabel(ylbl,fontsize=axlblfs)
+        
+        ax = plt.gca()
+        ax.tick_params(axis='both', which='major', labelsize=ticklblfs)
+        
+        if in_plot_txt is not None:
+            plt.text(0.05, 0.95,in_plot_txt, ha='left', va='top', transform=ax.transAxes,fontsize=inplttxtfs)
+        
+        plt.plot(time,values,lw=linew,label=leglbl)
+        plt.grid(True)
+        if show_legend:
+            ax.legend(loc=0,fontsize=legfs)
+        plt.tight_layout()
+    
+    if export:
+        np.savetxt(txtname,np.vstack((time,values)).transpose(),delimiter='   ',fmt='%f')
     return
