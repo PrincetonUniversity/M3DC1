@@ -16,7 +16,9 @@ module newvar_mod
   integer, parameter :: NV_BF_MATRIX = 3
   integer, parameter :: NV_SJ_MATRIX = 4  ! Current density smoother
   integer, parameter :: NV_DP_MATRIX = 7
+#if defined(USECOMPLEX) || defined(USE3D)
   integer, parameter :: NV_IP_MATRIX = 8
+#endif
 
   integer, parameter :: NV_RHS = 0
   integer, parameter :: NV_LHS = 1
@@ -64,7 +66,8 @@ contains
     call set_matrix_index(dp_mat_rhs_bfp%mat,  bfp_mat_rhs_index)
     call set_matrix_index(s10_mat%mat,         s10_mat_index)
     call set_matrix_index(d10_mat%mat,         d10_mat_index)
-   call set_matrix_index(pot2_mat_lhs%mat,      pot2_mat_lhs_index)
+    call set_matrix_index(pot2_mat_lhs%mat,    pot2_mat_lhs_index)
+
   end subroutine set_newvar_indices
 
 
@@ -82,7 +85,12 @@ contains
 
     call create_newvar_matrix(mass_mat_lhs_dc, NV_DCBOUND,NV_I_MATRIX, 1)
     call create_newvar_matrix(mass_mat_lhs,    NV_NOBOUND,NV_I_MATRIX, 1)
-    call create_newvar_matrix(gs_mat_rhs_dc,   NV_DCBOUND,NV_GS_MATRIX, 0)
+    call create_newvar_matrix(gs_mat_rhs_dc,   NV_DCBOUND,NV_GS_MATRIX,0)
+
+#if defined(USE3D) || defined(USECOMPLEX)
+    call create_newvar_matrix(dp_mat_rhs_bfp,  NV_NOBOUND,NV_IP_MATRIX,0)
+#endif
+
 #ifdef CJ_MATRIX_DUMP
     print *, "create_mat newvar mass_mat_lhs_dc", mass_mat_lhs_dc%mat%imatrix
     print *, "create_mat newvar mass_mat_lhs",    mass_mat_lhs%mat%imatrix     
@@ -100,19 +108,11 @@ contains
                NV_DCBOUND, NV_BF_MATRIX, 1)
           call create_newvar_matrix(mass_mat_rhs_bf, NV_DCBOUND, &
                NV_I_MATRIX,  0)
-          if(i3d.eq.1 .and. numvar.ge.2) then
-             call create_newvar_matrix(dp_mat_rhs_bfp, NV_NOBOUND, &
-               NV_IP_MATRIX,  0)
-          endif
        else if(ifbound.eq.2) then 
           call create_newvar_matrix(bf_mat_lhs, &
                NV_NMBOUND, NV_BF_MATRIX, 1)
           call create_newvar_matrix(mass_mat_rhs_bf, NV_NMBOUND, &
                NV_I_MATRIX,  0)
-          if(i3d.eq.1 .and. numvar.ge.2) then
-             call create_newvar_matrix(dp_mat_rhs_bfp, NV_NOBOUND, &
-               NV_IP_MATRIX,  0)
-          endif
        end if
 #ifdef CJ_MATRIX_DUMP
        print *, "create_mat newvar bf_mat_lhs", bf_mat_lhs%mat%imatrix     
@@ -237,9 +237,12 @@ end subroutine apply_bc
      case(NV_I_MATRIX)
         temp(:,:,1,1) = intxx2(mu79(:,:,OP_1),nu79(:,:,OP_1))
         
-#if defined(USECOMPLEX) || defined(USE3D)
+#if defined(USE3D)
      case(NV_IP_MATRIX)
         temp(:,:,1,1) = intxx2(mu79(:,:,OP_1),nu79(:,:,OP_DP))
+#elif defined(USECOMPLEX)
+     case(NV_IP_MATRIX)
+        temp(:,:,1,1) = intxx2(mu79(:,:,OP_1),nu79(:,:,OP_1 ))*rfac
 #endif
 
      case(NV_LP_MATRIX)
@@ -273,7 +276,7 @@ end subroutine apply_bc
         
      case(NV_DP_MATRIX)              
         temp(:,:,1,1) = intxx2(mu79(:,:,OP_DZ),nu79(:,:,OP_DZ)) &
-             +      intxx2(mu79(:,:,OP_DR),nu79(:,:,OP_DR))
+             +          intxx2(mu79(:,:,OP_DR),nu79(:,:,OP_DR))
         
      end select
 
