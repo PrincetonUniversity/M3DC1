@@ -225,7 +225,7 @@ def flux_coordinates(sim=None, filename='C1.h5', time=0, fcoords='', phit=0.0, p
         co = np.cos(-theta[i])
         sn = np.sin(-theta[i])
         dpsin_drho = 0.
-        max_drho = np.sqrt(((R_linspace[-1] - R_linspace[0])*co)**2 + ((Z_linspace[1] - Z_linspace[0])*sn)**2) * 0.1
+        max_drho = np.sqrt(((R_linspace[-1] - R_linspace[0])*co)**2 + ((Z_linspace[-1] - Z_linspace[0])*sn)**2) * 0.1
         
         for j in range(n):
             # do newton iterations to find (R,Z) at (psin, theta)
