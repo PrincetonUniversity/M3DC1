@@ -429,6 +429,9 @@ subroutine set_defaults
   call add_var_int("ra_cyc", ra_cyc, 1, "", model_grp)
   call add_var_double("radiff", radiff, 0., "", model_grp)
   call add_var_double("rjra", rjra, 0., "", model_grp)
+  call add_var_double("iDreicer", iDreicer, 1.0, "", model_grp)
+  call add_var_double("iTritBeta", iTritBeta, 1.0, "", model_grp)
+  call add_var_double("iCompton", iCompton, 1.0, "", model_grp)
   call add_var_int("imp_bf", imp_bf, 0, &
        "1: Include implicit equation for f", model_grp)
   call add_var_int("imp_temp", imp_temp, 0, &

@@ -87,12 +87,17 @@ contains
     real, intent(out) :: re_79,dndt,re_j79,re_epar,Ecrit
     real :: Clog,x,nu,vth,esign,teval,jpar,nrel,a,r,Ed, &
             f,dt_si,tmp,nretmp,Dens1,sd,sa,nra,gamma,tau
+    real :: sbeta, scomp ! RiD: Terms for Tritium and Compton sources
     integer, intent(in) :: mr
     integer :: l, nl
     
     dndt = 0.
-    sd = 0.
-    sa = 0.
+    sd = 0. ! Dreicer
+    sa = 0. ! Avalanche
+    sbeta = 0. ! Tritium Beta
+	scomp = 0. ! Gamma Compton source
+    
+    
     dt_si = dt * t0_norm
     nrel = nre
     nl = 10
@@ -116,7 +121,7 @@ contains
        re_epar = epar! - 1.0*abs(eta*jpar/b1/bz/ri)
        if (Temp.ge.teval .and. mr.eq.0) then
           Clog = 14.78D0-0.5*log(Dens1/1.d20)+log(Temp/1.d3)
-          Ecrit = ec**3*Dens1*Clog/(4*pi*eps0**2*me*c**2) 
+          Ecrit = ec**3*Dens1*Clog/(4*pi*eps0**2*me*c**2) ! RiD: Connor Hastie Field 
           vth = sqrt(2*ec*Temp/me)
           nu = Dens1*ec**4*Clog/(4*pi*eps0**2*me**2*vth**3)
           tau = me*c/ec/Ecrit
@@ -124,11 +129,16 @@ contains
           r = sqrt(1/ri**2+z**2)
           gamma = 1/(1+1.46*sqrt(a/r)+1.72*a/r) 
           x = (abs(re_epar)*ec*Temp)/(Ecrit*me*c**2)
-          Ed = abs(re_epar)/Ecrit
+          Ed = abs(re_epar)/Ecrit ! RiD: Normalized electric field / CH field = E_star
           if(Ed < 1) Ed = 1
           if(abs(re_epar).gt.Ecrit) then
               sd = Dens1*nu*x**(-3.D0*(1.D0+Zeff)/1.6D1) &
-                 *exp(-1.D0/(4*x)-sqrt((1.D0+Zeff)/x))
+                 *exp(-1.D0/(4*x)-sqrt((1.D0+Zeff)/x)) ! Dreicer Source [per cubic m per s]
+              sbeta = 0.5 * Dens1 * beta_source(Ed) ! Tritium beta source [per cubic m per s]
+              scomp = Dens1 * compton_source(Ed) ! Compton Source [per cubic m per s]
+              if (Temp < 2e3) then
+				scomp = 1e-3 * scomp ! RiD: Reduce compton contribution when temp. < 2 keV 
+              endif
               ! avalanche growth only when epar and nre have opposite sign
               if (re_epar*nre<0) then
                  sa = nra/tau/Clog*sqrt(pi*gamma/3/(Zeff+5))*(Ed-1)* &
@@ -136,7 +146,9 @@ contains
               else
                  sa = 0.
               endif
-              dndt = (sd*esign + sa)*cre*ec*va
+              dndt = (iDreicer*sd*esign + &
+					iTritBeta*sbeta*esign + &
+					iCompton*scomp*esign + sa)*cre*ec*va !RiD: iDreicer = multiplier to the Dreicer term
                  nrel = nre + dndt*dt_si
           else
               nrel = nre 
@@ -286,6 +298,72 @@ contains
 
 
   end subroutine
+  
+  ! RiD: Adding Functions Required for Compton and Beta Tritium Sources
+  pure function get_Wc(E_star) result(outval)
+          ! Returns the critical RE energy in [eV]
+          ! E_star = Par. E-field normalized with CH electric field
+          real, intent(in) :: E_star
+          real :: outval
+          real alpha
+          IF (E_star <= 1.0) THEN
+                  alpha = 1.0 + 1.0e-6 ! Set to min. value for calculation
+          ELSE
+                  alpha = 1.0 * E_star
+          ENDIF
+          outval = 9.1093837015e-31 * (3.0e8)**2 * ((1-alpha**(-1))**(-0.5)-1) / 1.602e-19 ! Critical energy in [eV]
+	end
+
+	pure function beta_source(E_star) result(outval)
+			! Returns the beta source rate in per second
+			! Multiply with tritium denisty to get generation rate in per
+			! cubic m
+			! per second
+			real, intent(in) :: E_star  !E-field normalized by Connor-hastie field
+			real :: outval
+			real A, mu, sig ! Fit parameters
+			real Wc ! Critical Runaway energy in keV
+			Wc = get_Wc(E_star) * 1.e-3 ! keV
+			A =2.09023917e-09
+			mu = -3.80424810
+			sig = 6.81315848
+			
+			IF (Wc > 18.6) THEN
+					outval = 0.0
+			ELSEIF (Wc < 0.1) THEN
+					outval = 1.8e-9 ! Maximum Rate
+			ELSE
+					outval = A * exp(-(Wc-mu)**2/(2*sig**2)) 
+			ENDIF
+
+	end
+
+	pure function compton_source(E_star) result(outval)
+			! Returns compton rate in per second
+			! Multiply with total electron denisty to get rate in per cubic
+			! m per
+			! second
+			real, intent(in) :: E_star ! E-field normalized by Connor-hastie field
+			real :: outval
+			real Wc, x
+			real A, x0, L, c, B ! Fitting Parameters
+			
+			Wc = get_Wc(E_star) * 1.0e-3 ! Critical Runaway energy in [keV]
+			x = log(Wc)
+			IF (Wc < 0.1) THEN
+					outval = 4.3e-11 ! MAX rate for SPARC
+			ELSEIF (Wc > 10**4.5) THEN
+					outval = 0.0
+			ELSE
+					! Fit parameters for SPARC
+					A = 6.00578227e-01
+					L = 1.25488546e+00
+					x0 = 4.44639341e+00
+					c = 2.12986727e-11
+					B = -2.17893889e-11
+					outval = B * tanh(A *(x-x0)/L) + c
+			ENDIF
+	end
 
 
 

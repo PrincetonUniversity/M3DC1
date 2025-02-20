@@ -1,0 +1,23 @@
+
+export M3DC1_CODE_DIR=$m3dc1_path
+echo " "
+echo using $M3DC1_CODE_DIR
+echo " "
+module use $M3DC1_CODE_DIR/unstructured/modules/mit
+# #MIT - INTEL
+module load m3dc1/devel-intel
+# #MIT - GCC
+#module load m3dc1/devel-gcc
+
+
+
+# Other mesh utilities
+# check_smb  collapse  make_model  split_smb:
+#PATH=/orcd/nese/psfc/001/software/scorec/gcc12.2.0-openmpi4.1.4/petsc3.19.2/bin/:$PATH
+
+# Other setup
+export SQUEUE_FORMAT="%.9i %18P %30j %.8u %.2t %.12M %.12L %.5C %.7m %.4D %R"
+
+# USEFUL THINGS
+# salloc -p sched_mit_psfc  --nodes 1 --ntasks-per-node=16 -t 01:00:00
+#

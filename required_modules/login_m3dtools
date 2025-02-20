@@ -1,0 +1,52 @@
+# IDL 
+module load engaging/idl/8.5
+module load python/3.8.3
+export IDL_STARTUP="/home/rdatta/idl/.startup"
+#export IDL_PATH="/home/cclauser/idl/my_idl_routines:/home/cclauser/idl/my_idl_routines/EQDSK_reading:/home/cclauser/M3DC1-2/unstructured/idl:<IDL_DEFAULT>"
+export IDL_PATH="/home/rdatta/M3DC1/unstructured/idl:<IDL_DEFAULT>"
+
+# MESH TOOLS
+# mesh generation:
+module load gcc/6.2.0 
+module load openmpi/4.0.4
+PATH=/orcd/nese/psfc/001/software/scorec/rhel7-gcc6.2.0-openmpi4.0.4/sim18.0-230521/bin/:$PATH
+
+# Simmetrix
+
+PATH=/orcd/nese/psfc/001/software/simmetrix/RLMServer-14/:$PATH
+PATH=/orcd/nese/psfc/001/software/simmetrix/SimModeler12.0-230521/:$PATH
+PATH=/orcd/nese/psfc/001/software/simmetrix/SimModSuite18.0-230521/:$PATH
+
+# IF Simmetrix Server is Down
+# check ./rlmutil rlmstat
+#
+# run the server from eofe4
+# ./rlm -c simmetrix.lic
+#
+# split has to be ran from eofe4/10
+#
+
+# # FUSION-IO
+# source /nobackup1/cclauser/utils/login_fusion-io
+
+# #m3dc1 post-processing
+# export M3DC1_CODE_DIR=$HOME/M3DC1
+export PYTHONPATH=$M3DC1_CODE_DIR/unstructured/python:$PYTHONPATH
+
+
+# # #my python stuff
+# export PYTHONPATH=$PYTHONPATH:/home/cclauser/python/geqdsk:/home/cclauser/python/
+
+
+export SQUEUE_FORMAT="%.9i %18P %20j %.8u %.2t %.12M %.12L %.5C %.7m %.4D %R"
+
+#echo USEFUL things
+#echo Partitions you have access:
+#echo "   " groups
+#echo To get node information \(memory,etc\):
+#echo "   " sinfo -o "%20N  %10c  %10m  %25f  %10G " -p sched_mit_psfc_r8
+#echo Interactive mode: 
+#echo "   " salloc -p sched_mit_psfc --nodes 1 --ntasks-per-node=2 --x11 -t 01:00:00
+#echo " "
+
+
