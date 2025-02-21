@@ -132,23 +132,32 @@ contains
           Ed = abs(re_epar)/Ecrit ! RiD: Normalized electric field / CH field = E_star
           if(Ed < 1) Ed = 1
           if(abs(re_epar).gt.Ecrit) then
-              sd = Dens1*nu*x**(-3.D0*(1.D0+Zeff)/1.6D1) &
+			  if (iDreicer.eq.1) then ! Classical Dreicer
+				sd = Dens1*nu*x**(-3.D0*(1.D0+Zeff)/1.6D1) &
                  *exp(-1.D0/(4*x)-sqrt((1.D0+Zeff)/x)) ! Dreicer Source [per cubic m per s]
-              sbeta = 0.5 * Dens1 * beta_source(Ed) ! Tritium beta source [per cubic m per s]
-              scomp = Dens1 * compton_source(Ed) ! Compton Source [per cubic m per s]
-              if (Temp < 2e3) then
-				scomp = 1e-3 * scomp ! RiD: Reduce compton contribution when temp. < 2 keV 
               endif
+              if (iTritBeta.eq.1) then ! Tritium Beta Calculation
+				sbeta = 0.5 * Dens1 * beta_source(Ed) ! Tritium beta source [per cubic m per s]
+              endif
+              if (iCompton.eq.1) then ! COmpton Source for SPARC
+				scomp = Dens1 * compton_source(Ed) ! Compton Source [per cubic m per s]
+				if (Temp < 2e3) then ! Non-Prompt Compton
+					scomp = 1e-3 * scomp ! RiD: Reduce compton contribution when temp. < 2 keV 
+				endif
+			  endif
               ! avalanche growth only when epar and nre have opposite sign
               if (re_epar*nre<0) then
-                 sa = nra/tau/Clog*sqrt(pi*gamma/3/(Zeff+5))*(Ed-1)* &
-                    1/sqrt(1-1/Ed+4*pi*(Zeff+1)**2/3/gamma/(Zeff+5)/(Ed**2+4/gamma**2-1)) 
+				if (iAvalanche.eq.1) then ! Avalanche Term Calculation
+					sa = nra/tau/Clog*sqrt(pi*gamma/3/(Zeff+5))*(Ed-1)* &
+                    1/sqrt(1-1/Ed+4*pi*(Zeff+1)**2/3/gamma/(Zeff+5)&
+                    /(Ed**2+4/gamma**2-1)) 
+                endif
               else
                  sa = 0.
               endif
-              dndt = (iDreicer*sd*esign + &
-					iTritBeta*sbeta*esign + &
-					iCompton*scomp*esign + sa)*cre*ec*va !RiD: iDreicer = multiplier to the Dreicer term
+              dndt = (1.0*sd*esign + &
+					1.0*sbeta*esign + &
+					1.0*scomp*esign + sa)*cre*ec*va ! Combining all sources
                  nrel = nre + dndt*dt_si
           else
               nrel = nre 
