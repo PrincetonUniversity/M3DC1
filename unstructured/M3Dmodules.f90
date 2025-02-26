@@ -298,7 +298,7 @@ module basic
   integer :: ra_cyc      ! runaway subcycle
   real :: radiff         ! runaway diffusion
   real :: rjra           ! jra/j0
-  integer :: iDreicer	 ! Toggles Dreicer RE source
+  integer :: iDreicer	 ! Toggles Dreicer RE source, 1=Classical, 2=Screened
   integer :: iTritBeta	 ! Toggles Tritium RE source
   integer :: iCompton	 ! Toggles Compton RE source
   integer :: iAvalanche	 ! Toggles Avalanche RE term

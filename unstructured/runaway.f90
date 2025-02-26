@@ -70,16 +70,21 @@ contains
   elemental subroutine runaway_current(nre,epar,Temp,Dens,&
                                        Zeff,eta,Ecrit,re_79,&
                                        re_j79,re_epar,dndt,&
-                                       mr,bz,bi,ri,z)
+                                       mr,bz,bi,ri,z,&
+                                       Dens_ion,Dens_imp)
     use math
     use basic
+    use kprad
+	use kprad_m3dc1
 
     implicit none
 
     real, intent(in) :: nre  ! [1/m^3]
     real, intent(in) :: epar,eta
     real, intent(in) :: Temp ! [eV]
-    real, intent(in) :: Dens ! [1/m^3]
+    real, intent(in) :: Dens ! Total Elec. Density [1/m^3]
+    real, intent(in) :: Dens_ion ! Ion Density [1/m^3]
+    real, intent(in) :: Dens_imp ! Impurity Density [1/m^3]
     real, intent(in) :: Zeff ! [1]
     real, intent(in) :: bz
     real, intent(in) :: ri,z
@@ -91,11 +96,16 @@ contains
     integer, intent(in) :: mr
     integer :: l, nl
     
+    ! RiD: Additional variables for partially scrrned Dreicer term
+    real :: ZImp, ZmaxImp
+    
+    
     dndt = 0.
     sd = 0. ! Dreicer
     sa = 0. ! Avalanche
     sbeta = 0. ! Tritium Beta
 	scomp = 0. ! Gamma Compton source
+	
     
     
     dt_si = dt * t0_norm
@@ -104,6 +114,7 @@ contains
     tmp = 0.
     nretmp = 0.
     Dens1 = Dens 
+    
     
     if(mr.ne.0) then 
       re_79 = 0.D0
@@ -122,23 +133,37 @@ contains
        if (Temp.ge.teval .and. mr.eq.0) then
           Clog = 14.78D0-0.5*log(Dens1/1.d20)+log(Temp/1.d3)
           Ecrit = ec**3*Dens1*Clog/(4*pi*eps0**2*me*c**2) ! RiD: Connor Hastie Field 
-          vth = sqrt(2*ec*Temp/me)
+          vth = sqrt(2*ec*Temp/me) ! Thermal Velocity
           nu = Dens1*ec**4*Clog/(4*pi*eps0**2*me**2*vth**3)
           tau = me*c/ec/Ecrit
           a = sqrt((1/ri-xmag)**2+(z-zmag)**2)
           r = sqrt(1/ri**2+z**2)
           gamma = 1/(1+1.46*sqrt(a/r)+1.72*a/r) 
-          x = (abs(re_epar)*ec*Temp)/(Ecrit*me*c**2)
+          x = (abs(re_epar)*ec*Temp)/(Ecrit*me*c**2) ! Epar / ED
           Ed = abs(re_epar)/Ecrit ! RiD: Normalized electric field / CH field = E_star
           if(Ed < 1) Ed = 1
           if(abs(re_epar).gt.Ecrit) then
+			! Dreicer Source 1 = Classical, 2 = Parial Screening, 0 = off
 			  if (iDreicer.eq.1) then ! Classical Dreicer
 				sd = Dens1*nu*x**(-3.D0*(1.D0+Zeff)/1.6D1) &
                  *exp(-1.D0/(4*x)-sqrt((1.D0+Zeff)/x)) ! Dreicer Source [per cubic m per s]
               endif
-              if (iTritBeta.eq.1) then ! Tritium Beta Calculation
-				sbeta = 0.5 * Dens1 * beta_source(Ed) ! Tritium beta source [per cubic m per s]
+              if (iDreicer.eq.2) then ! Partially Screened Dreicer
+				! For Partially Screened Dreicer
+				ZImp = 1.0 ! Impurity Charge [-]
+				ZmaxImp = 1.0 ! Atomic no. of Impurity [-]
+				! Update nI, neI, ZI and ZmaxI if using KPRAD
+				IF(ikprad.ne.0) then
+							ZmaxImp = 1.0 *  kprad_z ! Impurity atomic no.
+							Zimp = (Dens1 - 1.0*Dens_ion)/Dens_imp ! Impurity Ionization
+				END IF
+				sd = getDreicerHesslow(Dens_ion,Dens_imp,ZmaxImp,ZImp,x,Temp) ! [per cubic m per s]
               endif
+              ! Tritium Beta Source
+              if (iTritBeta.eq.1) then ! Tritium Beta Calculation
+				sbeta = 0.5 * Dens_ion * beta_source(Ed) ! Tritium beta source [per cubic m per s]
+              endif
+              ! Compton Source
               if (iCompton.eq.1) then ! COmpton Source for SPARC
 				scomp = Dens1 * compton_source(Ed) ! Compton Source [per cubic m per s]
 				if (Temp < 2e3) then ! Non-Prompt Compton
@@ -183,14 +208,21 @@ contains
     use electric_field
     use diagnostics
     use math
+    use kprad
+	use kprad_m3dc1
+    
     implicit none
 
     integer, intent(in) :: itri,izone
-    vectype, dimension(MAX_PTS) :: epar, te, ne, nre, eta
+    vectype, dimension(MAX_PTS) :: epar, te, ne, nre, eta, &
+									n_ion, kp_den, kp_z
     vectype, dimension(MAX_PTS) :: dndt, re_79, re_j79, &
                                    re_epar, ecrit, bz, bi  
     vectype, dimension(dofs_per_element) :: dofs
     integer, dimension(MAX_PTS) :: mr, tmp
+    
+    ! For Partially Screened Dreicer
+    ! vectype, dimension(MAX_PTS) :: nImp, neImp, ZImp
 
 
     if(irunaway.eq.0 .or. izone.ne.1) return
@@ -205,18 +237,27 @@ contains
     call vector_insert_block(ere_field%vec,itri,1,dofs,VEC_ADD)
     
     ! convert to SI units
-    epar = epar*e0_norm*c*1e-4
-    te = tet79(:,OP_1)*(p0_norm/n0_norm)/1.6022e-12
-    ne = net79(:,OP_1)*n0_norm*1e6
+    epar = epar*e0_norm*c*1e-4 ! Parallel E-field [V/m]
+    te = tet79(:,OP_1)*(p0_norm/n0_norm)/1.6022e-12 ! Elec. Temp [eV]
+    ne = net79(:,OP_1)*n0_norm*1e6 ! tot. electron density [per cubic m]
     nre = nre179(:,OP_1)*j0_norm/(c*1e-3)!n0_norm*1e6
-    eta = eta79(:,OP_1)*e0_norm/j0_norm*c**2*1e-7
+    eta = eta79(:,OP_1)*e0_norm/j0_norm*c**2*1e-7 ! Resitivity [Ohm m]
     call magnetic_region(pst79(:,OP_1),&
          pst79(:,OP_DR),pst79(:,OP_DZ),x_79,Z_79,mr)
     bz = pst79(:,OP_GS)/((c*1e-3)/j0_norm)
     bi = bi79(:,OP_1)
     
+    ! RiD: Adding quantities required for new sources
+    n_ion = nt79(:,OP_1)*n0_norm*1e6 ! Ion density [per cubic m]
+    kp_den = 0.0 * n_ion ! Impurity density [per cubic m]
+    IF(ikprad.ne.0) THEN 
+		kp_den = kprad_fz*nt79(:,OP_1)*n0_norm*1e6
+	END IF
+    
+    ! Call RE subroutine
     call runaway_current(nre,epar,te,ne,z_ion,eta,ecrit,&
-                         re_79,re_j79,re_epar,dndt,mr,bz,bi,ri_79,z_79)
+                         re_79,re_j79,re_epar,dndt,mr,bz,bi,ri_79,z_79,&
+                         n_ion,kp_den) ! RiD: added ion density and impurity density
 
     ! convert back to normalized units
     dndt = dndt*t0_norm/(j0_norm/c/1e-3)
@@ -373,6 +414,89 @@ contains
 					outval = B * tanh(A *(x-x0)/L) + c
 			ENDIF
 	end
+	
+	! RiD: Adding functions required for caluclation of partially screened
+	! Dreicer term
+	
+	pure function getDreicerHesslow(nD,nI,ZmaxI,ZI,EoED,T) result(outval)
+        implicit none
+        include  'NN_params.inc'
+        real, intent(in) :: nD, nI, ZI, EoED, T, ZmaxI
+        real :: outval
+        ! Returns the partially screened Dreicer source term [m^-3/s]
+        ! based on original MATLAB implementation in
+        !https://github.com/unnerfelt/dreicer-nn
+    
+        ! nD = Diuterium denisty [per cubic m]
+        ! nI = Impurity Denisty  [per cubic m]
+        ! ZmaxI = Atomic no. of Impurity [-]
+        ! ZI = Impurity Charge [-]
+        ! EoED = Normalized Electric Field [-]
+        ! T = Temp. [eV]
+        real :: nfree, ntot, Zeff, Zeff0, Z0oZ, ZZ0, lnnfree, nfreeontot,tau
+
+        ! Derived Parameters
+        nfree = nD * 1 + nI * ZI
+        ntot = nD * 1 + nI * ZmaxI ! total electron density
+        Zeff = (nD * 1**2 + nI * ZI**2) / nfree ! effective ioniztaion
+        Zeff0 = (nD * 0 + nI * (ZmaxI**2-ZI**2)) / ntot
+        Z0oZ = (nD * 1 + nI * ZI / ZmaxI) / ntot
+        ZZ0 = (nD * 1 + nI * ZI * ZmaxI) / ntot
+        lnnfree = log(nfree)
+        nfreeontot = nfree / ntot
+
+       ! INPUT
+        X = (/ Zeff, &
+               Zeff0, &
+               Z0oZ, &
+               ZZ0, &
+               lnnfree,&
+               nfreeontot,&
+               EoED,&
+               log(T/510998.946)/)
+
+
+        ! Normalize your Inputs
+        X = (X - input_mean) / input_std
+
+        ! Neural Net Operations
+
+        Y = dot_product(W5, &
+             tanh(matmul(W4, &
+                 tanh(matmul(W3, &
+                     tanh(matmul(W2, &
+                        tanh(matmul(W1, X) + b1)) &
+                     + b2)) &
+                + b3)) &
+             + b4)) &
+        + b5
+
+        ! De-Normalize your output
+        Y = exp(Y * output_std + output_mean)
+        Y = Y * 4 / (3 * sqrt(3.14159265))
+        tau = get_tau_ee(nfree,T) ! El-El collison time [s]
+        outval = nfree * Y / tau ! [per cubic m per s]
+        
+	end function getDreicerHesslow  
+
+	pure function get_tau_ee(density, temp_e) result(outval)
+	  implicit none
+	  real, intent(in) :: density, temp_e
+	  double precision  :: e, eps0, me, lnLambda
+	  double precision :: num, den
+	  real :: outval
+	  ! Constants in double precision
+	  e = 1.602176634D-19      ! Elementary charge [C]
+	  me = 9.1093837015D-31    ! Electron mass [kg]
+	  eps0 = 8.8541878128D-12  ! Vacuum permittivity [F/m]
+
+	  ! Coulomb logarithm
+	  lnLambda = 14.9d0 - 0.5d0 * log(density / 1.0d20) + log(temp_e / 1.0d3)
+	  ! Calculate tau_ee
+	  num = 8D0*sqrt(2.D0)*3.14159265D0*(e*temp_e)**1.5*eps0**2*sqrt(me)
+	  den = lnLambda* e**4 * density   
+	  outval = num/den
+	end function get_tau_ee
 
 
 
