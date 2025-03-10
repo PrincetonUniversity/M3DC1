@@ -145,12 +145,17 @@ pro contour_and_legend_single, z, x, y, nlevels=nlevels, label=label, $
         ct2
     endif else if(ct ge 100) then begin
         set_python_ct, ct 
-    endif else loadct, ct
+    endif else begin
+        loadct,0 ; get white/black axis/font.
+        ncolors=254
+        loadct, ct,bottom=1, ncolors=ncolors
+        ;(color=0 -> black; color=255 -> white)
+    endelse
 
     if(keyword_set(reverse_ct)) then begin
         tvlct, v, /get
         v = reverse(v)
-        !p.color=255
+        ;!p.color=255
         tvlct, v
     end
 

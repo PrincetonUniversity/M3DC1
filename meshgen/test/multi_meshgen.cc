@@ -273,7 +273,6 @@ int main(int argc, char *argv[])
   else
   {
     get_multi_rgn();
-    std::cout << "Use Thick Wall = " << useThickWall << "\n";
     if (useThickWall > 0)
 	createOffsetCurve(wallEdgeId,  wallOutLoopId);
     if (useVacuum > 0)
@@ -906,27 +905,44 @@ void createOffsetCurve (int inEdgeId, int outLoopId)
 	if (thickness < 0)
 		offsetInside = true;
 
+        // If first and last points are same for closed curve, delete the last one for now for consistency
+        if (fabs(wallPoints[0] - wallPoints[(nPts*2)-2]) < 1e-8 && fabs(wallPoints[1] - wallPoints[(nPts*2)-1]) < 1e-8)
+        {
+		wallPoints.pop_back();
+		wallPoints.pop_back();
+		nPts--;
+        }
+
 	// Remove the Points that are on straight Wall
 	vector <double> updatedWall;
-	for(int i=1; i<nPts-1; i++)
+	for(int i=0; i<nPts; i++)
 	{
 		if (i == 0)
                 {
-                        ptPre[0] = wallPoints[(nPts-2)*2];
-                        ptPre[1] = wallPoints[(nPts-2)*2+1];
+                        ptPre[0] = wallPoints[(nPts-1)*2];
+                        ptPre[1] = wallPoints[(nPts-1)*2+1];
                 }
                 else
                 {
                         ptPre[0] = wallPoints[(i-1)*2];
                         ptPre[1] = wallPoints[(i-1)*2+1];
                 }
+
                 ptNow[0] = wallPoints[i*2];
                 ptNow[1] = wallPoints[i*2+1];
-                ptNext[0] = wallPoints[(i+1)*2];
-                ptNext[1] = wallPoints[(i+1)*2+1];
 
+                if (i == nPts-1)
+                {
+			ptNext[0] = wallPoints[0];
+			ptNext[1] = wallPoints[1];
+                }
+                else
+                {
+                	ptNext[0] = wallPoints[(i+1)*2];
+                	ptNext[1] = wallPoints[(i+1)*2+1];
+             	}
 		double angle = checkAngle(ptPre, ptNow, ptNext);
-		if (angle == 180 || angle == 0)
+		if (fabs(angle-180) < 1e-6 || fabs(angle) < 1e-6)
 			continue;
 
 		updatedWall.push_back(ptNow[0]);
@@ -935,22 +951,32 @@ void createOffsetCurve (int inEdgeId, int outLoopId)
 
 	
 	int n_Pts = updatedWall.size()/2;
-	for(int i=0; i<n_Pts-1; i++)
+	for(int i=0; i<n_Pts; i++)
 	{
 		if (i == 0)
 		{
-			ptPre[0] = updatedWall[(n_Pts-2)*2];
-			ptPre[1] = updatedWall[(n_Pts-2)*2+1];
+			ptPre[0] = updatedWall[(n_Pts-1)*2];
+			ptPre[1] = updatedWall[(n_Pts-1)*2+1];
 		}
 		else
 		{
 			ptPre[0] = updatedWall[(i-1)*2];
 			ptPre[1] = updatedWall[(i-1)*2+1];
 		}
+
 		ptNow[0] = updatedWall[i*2];
 		ptNow[1] = updatedWall[i*2+1];
-		ptNext[0] = updatedWall[(i+1)*2];
-		ptNext[1] = updatedWall[(i+1)*2+1];
+
+		if (i == n_Pts-1)
+       		{
+			ptNext[0] = updatedWall[0];
+			ptNext[1] = updatedWall[1];
+		}
+		else
+		{                
+			ptNext[0] = updatedWall[(i+1)*2];
+			ptNext[1] = updatedWall[(i+1)*2+1];
+		}
 
 		double angle = checkAngle(ptPre, ptNow, ptNext);
 		double angleDeg, angleRad;		// Angle in degrees and radians
@@ -959,9 +985,16 @@ void createOffsetCurve (int inEdgeId, int outLoopId)
 
 		unitVector(ptPre, ptNow, unitVec1);
 		unitVector(ptNow, ptNext, unitVec2);
-
+		
 		// We have three situations here (angle < 180, angle == 180, angle > 180)
-		if (angle < 180 && angle > 0)
+		if (fabs(angle-180) < 1e-5 || fabs(angle) < 1e-5) // Already such points are filtered, but just in case the code still finds one
+		{
+			double para=i*increment;
+			double normVec[2];
+			eval_normal(&edgeNum, &para, normVec);
+			offset_point(&(updatedWall.at(2*i)), normVec, &thickness, ptOff);
+		}
+		else if (angle < 180 && angle > 0)
 		{
 			angleDeg = angle/2.0;
 			angleRad = angleDeg * (pi/180);
@@ -969,15 +1002,7 @@ void createOffsetCurve (int inEdgeId, int outLoopId)
 			for (int k =0; k < 2; ++k)	
 				ptOff[k] = ptNow[k]+(dir[k]*(fabs(thickness)/sin(angleRad)));
 		}
-		if (angle == 180 || angle == 0)	// Already such points are filtered, but just in case the code still finds one
-		{
-			double para=i*increment;
-			double normVec[2];
-			eval_normal(&edgeNum, &para, normVec);
-			offset_point(&(updatedWall.at(2*i)), normVec, &thickness, ptOff);
-		}
-
-		if (angle > 180)
+		else if (angle > 180)
 		{
 			angleDeg = (180 - angle)/2.0;
 			angleRad = angleDeg * (pi/180);
@@ -989,14 +1014,17 @@ void createOffsetCurve (int inEdgeId, int outLoopId)
 		}
 		interpolate_points_o.push_back(ptOff[0]);
 		interpolate_points_o.push_back(ptOff[1]);
-				
 	}
+
+	// Push first point to the end of both wall curve and offset 
+	// curve for a closed loop.
+	updatedWall.push_back(updatedWall[0]);
+        updatedWall.push_back(updatedWall[1]);
 	interpolate_points_o.push_back(interpolate_points_o[0]);
 	interpolate_points_o.push_back(interpolate_points_o[1]);
-
+     
         std::vector <double> newOffset = curveOffsetComputation (updatedWall, interpolate_points_o);
-
-	// Follow the old procedure
+	
 	gv1_id++;
         ge1_id++;
         create_vtx(&gv1_id,&(newOffset.at(0)));
@@ -1044,19 +1072,13 @@ std::vector <double> curveOffsetComputation (std::vector <double> parentLoop, st
 	{
 		edge e1;
 		e1.p1 = ptOnParentLoop[i];
-		if (i == ptOnParentLoop.size()-1)
-			e1.p2 = ptOnParentLoop[0];	// Not Needed
-		else
-			e1.p2 = ptOnParentLoop[i+1];
+		e1.p2 = ptOnParentLoop[i+1];
 
 		edgeParentLoop.push_back(e1);
 
 		edge e2;
 		e2.p1 = ptOnOffsetLoop[i];
-		if (i == ptOnParentLoop.size()-1)
-			e2.p2 = ptOnOffsetLoop[0];	// Not Needed
-		else
-			e2.p2 = ptOnOffsetLoop[i+1];
+		e2.p2 = ptOnOffsetLoop[i+1];
 		
 		edgeOffsetLoop.push_back(e2);	
 	}

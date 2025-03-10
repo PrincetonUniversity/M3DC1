@@ -559,6 +559,7 @@ int m3dc1_matrix::setupParaMat()
   CHKERRQ(ierr);
   // set matrix size
   ierr = MatSetSizes(*A, mat_dim, mat_dim, PETSC_DECIDE, PETSC_DECIDE); CHKERRQ(ierr);
+  ierr= MatSetBlockSize(*A, dofPerEnt);
 
   ierr = MatSetType(*A, MATMPIAIJ); CHKERRQ(ierr);
   ierr = MatSetFromOptions(*A); CHKERRQ(ierr);
@@ -583,6 +584,7 @@ int m3dc1_matrix::setupSeqMat()
   CHKERRQ(ierr);
   // set matrix size
   ierr = MatSetSizes(*A, mat_dim, mat_dim, PETSC_DECIDE, PETSC_DECIDE); CHKERRQ(ierr);
+  ierr= MatSetBlockSize(*A, dofPerEnt);
   ierr = MatSetFromOptions(*A); CHKERRQ(ierr);
 //cj  if (!PCU_Comm_Self()) std::cout<<"[M3DC1 INFO] "<<__func__<<": MatCreate A num_local_dof="<<num_dof<<" num_local_ent="<<num_ent<<" dofPerEnt="<<dofPerEnt<<" mat_dim="<<mat_dim<<"\n";
   return M3DC1_SUCCESS;
@@ -1400,7 +1402,7 @@ int matrix_solve:: setBgmgType()
 	ierr= MatSetSizes(mg_interp_mat[level], mg_num_own_ent[level+1]*dofPerEnt, mg_num_own_ent[level]*dofPerEnt, plane_dim*mg_nplanes[level+1], plane_dim*mg_nplanes[level]);
 
 	ierr= MatSetType(mg_interp_mat[level], MATMPIAIJ);
-//	ierr= MatSetBlockSize(mg_interp_mat[level], dofPerEnt);
+	ierr= MatSetBlockSize(mg_interp_mat[level], dofPerEnt);
 	ierr= MatSetFromOptions(mg_interp_mat[level]);
         ierr= MatSetUp(mg_interp_mat[level]);
         ierr= MatZeroEntries(mg_interp_mat[level]);
