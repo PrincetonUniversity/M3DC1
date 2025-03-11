@@ -664,6 +664,93 @@ function read_field, name, x, y, t, slices=slices, mesh=mesh, $
        symbol = '!8M!X'
        d = dimensions(_EXTRA=extra)
 
+   ;===========================================
+   ; ExB drift/velocity
+   ;===========================================
+   endif else if(strcmp('ExB_x', name, /fold_case) eq 1) then begin
+
+       ;Ex = read_field('E_R', x, y, t, slices=time, mesh=mesh, linear=linear, $
+       ;                 filename=filename, points=pts, complex=complex, $
+       ;                 rrange=xrange, zrange=yrange, phi=phi0)
+       Ey = read_field('E_phi', x, y, t, slices=time, mesh=mesh,$
+                        filename=filename, points=pts, $
+                        rrange=xrange, zrange=yrange, phi=phi0)
+       Ez = read_field('E_Z', x, y, t, slices=time, mesh=mesh, $
+                        filename=filename, points=pts, $
+                        rrange=xrange, zrange=yrange, phi=phi0)
+
+       Bx = read_field('Bx', x, y, t, slices=time,$
+                        filename=filename, points=pts, $
+                        rrange=xrange, zrange=yrange, phi=phi0)
+       By = read_field('By', x, y, t, slices=time,$
+                        filename=filename, points=pts, $
+                        rrange=xrange, zrange=yrange, phi=phi0)
+       Bz = read_field('Bz', x, y, t, slices=time, $
+                        filename=filename, points=pts, $
+                        rrange=xrange, zrange=yrange, phi=phi0)
+       
+       B2 = Bx^2 + By^2 + Bz^2
+
+       data = (Ey*Bz - Ez*By)/ B2
+       d = dimensions(/v0)
+       symbol = '!6V!DExB,R!X'
+
+    endif else if(strcmp('ExB_y', name, /fold_case) eq 1) then begin
+
+       Ex = read_field('E_R', x, y, t, slices=time, mesh=mesh, $
+                        filename=filename, points=pts, $
+                        rrange=xrange, zrange=yrange, phi=phi0)
+       ;Ey = read_field('E_phi', x, y, t, slices=time, mesh=mesh,$
+       ;                 filename=filename, points=pts, $
+       ;                 rrange=xrange, zrange=yrange, phi=phi0)
+       Ez = read_field('E_Z', x, y, t, slices=time, mesh=mesh, $
+                        filename=filename, points=pts, $
+                        rrange=xrange, zrange=yrange, phi=phi0)
+
+       Bx = read_field('Bx', x, y, t, slices=time,$
+                        filename=filename, points=pts, $
+                        rrange=xrange, zrange=yrange, phi=phi0)
+       By = read_field('By', x, y, t, slices=time,$
+                        filename=filename, points=pts, $
+                        rrange=xrange, zrange=yrange, phi=phi0)
+       Bz = read_field('Bz', x, y, t, slices=time, $
+                        filename=filename, points=pts, $
+                        rrange=xrange, zrange=yrange, phi=phi0)
+       
+       B2 = Bx^2 + By^2 + Bz^2
+
+       data = (Ez*Bx - Ex*Bz)/ B2
+       d = dimensions(/v0)
+       symbol = '!6V!DExB,!7u!X'
+
+    endif else if(strcmp('ExB_z', name, /fold_case) eq 1) then begin
+
+       Ex = read_field('E_R', x, y, t, slices=time, mesh=mesh, $
+                        filename=filename, points=pts, $
+                        rrange=xrange, zrange=yrange, phi=phi0)
+       Ey = read_field('E_phi', x, y, t, slices=time, mesh=mesh,$
+                        filename=filename, points=pts, $
+                        rrange=xrange, zrange=yrange, phi=phi0)
+       ;Ez = read_field('E_Z', x, y, t, slices=time, mesh=mesh, $
+       ;                 filename=filename, points=pts, $
+       ;                 rrange=xrange, zrange=yrange, phi=phi0)
+
+       Bx = read_field('Bx', x, y, t, slices=time,$
+                        filename=filename, points=pts, $
+                        rrange=xrange, zrange=yrange, phi=phi0)
+       By = read_field('By', x, y, t, slices=time,$
+                        filename=filename, points=pts, $
+                        rrange=xrange, zrange=yrange, phi=phi0)
+       Bz = read_field('Bz', x, y, t, slices=time, $
+                        filename=filename, points=pts, $
+                        rrange=xrange, zrange=yrange, phi=phi0)
+       
+       B2 = Bx^2 + By^2 + Bz^2
+
+       data = (Ex*By - Ey*Bx)/ B2
+       d = dimensions(/v0)
+       symbol = '!6V!DExB,Z!X'
+
 
    ;===========================================
    ; electron density
