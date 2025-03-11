@@ -24,7 +24,7 @@ pro contour_and_legend_single, z, x, y, nlevels=nlevels, label=label, $
                                nolegend=nolegend, color=color, levels=levels, $
                                clevels=clevels, ccolor=ccolor, $
                                reverse_ct=reverse_ct, overplot=overplot, $
-                               cbar_charsize=cbar_charsize, _EXTRA = ex
+                               cbar_charsize=cbar_charsize, saturate=saturate,_EXTRA = ex
 
     zed = reform(z)
    
@@ -151,6 +151,15 @@ pro contour_and_legend_single, z, x, y, nlevels=nlevels, label=label, $
         loadct, ct,bottom=1, ncolors=ncolors
         ;(color=0 -> black; color=255 -> white)
     endelse
+
+    IF(keyword_set(saturate)) THEN BEGIN
+        ;saturate colorbar to avoid black/white colors
+        ;for out of 'range' values when using range=[...]. 
+        idxs = WHERE(zed gt maxval)
+        zed[idxs] = maxval - ABS(0.001*maxval)
+        idxs = WHERE(zed lt minval)
+        zed[idxs] = minval + ABS(0.001*minval)
+    ENDIF
 
     if(keyword_set(reverse_ct)) then begin
         tvlct, v, /get
