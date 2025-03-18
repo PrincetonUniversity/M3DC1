@@ -31,8 +31,9 @@ module bootstrap
     !jbscommon   =  tempD 1/|Bp|^2  1 / <B^2> 1/R F
 
 
-    ! L31,L32,L34,alpha,1/ <B^2> are input as a function of psi
-    !via an external file named ProfileJBSCoeff_Psi_L31_32_34_alpha_B2
+    ! L31,L32,L34,alpha,1/ <B^2>,dtedpsit,G are input as a function of psi or Te
+    !via an external file named ProfileJBSCoeff_Psi_L31_32_34_alpha_B2_dtedpsit_G OR 
+    ! ProfileJBSCoeff_Te_L31_32_34_alpha_B2_dtedpsit_G
     !bootsrap_alpha = amplification factor  
   real :: bootstrap_alpha
 
@@ -1028,23 +1029,11 @@ function bs_b1psifbb(e,f,g,h,i)
         if(itor.eq.1) temp_delmagTe  = temp_delmagTe + tet79(:,OP_DP)*tet79(:,OP_DP)*ri2_79
 #endif
 
-   ! do i = 1, MAX_PTS
-   !!   tempbeta=temp_delmagTe(i)
-   !   if(tempbeta .le. 1)then
-   !     tempvar=dlog10(tempbeta)
-   !     if(tempvar .le. -7.0)then
-   !       chisq(i) = 1e-8
-   !     else
-   !       chisq(i) = 0.01*tempbeta
-   !     endif
-   !   else
-   !     chisq(i)=0.d0
-   !   endif
-   ! enddo
-   ! Adaptive regularization term: grows larger when gradients are small
-   !adaptive_regularization = epsilon / (1.0 + alpha * grad_Te_magnitude)
+
+! Adaptive regularization term: grows larger when gradients are small
+! adaptive_regularization = epsilon / (1.0 + alpha * grad_Te_magnitude)
 ! Compute the regularized expression
-!regularized_expression = (dot(del_p, del_Te)) / (grad_Te_magnitude**2 + adaptive_regularization)
+! regularized_expression = (dot(del_p, del_Te)) / (grad_Te_magnitude**2 + adaptive_regularization)
 
    do i = 1, MAX_PTS
       tempbeta=temp_delmagTe(i)
