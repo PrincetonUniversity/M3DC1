@@ -27,12 +27,7 @@ macro(lapackLibCheck libs isRequired)
 endmacro(lapackLibCheck)
 
 set(LAPACK_LIBS "")
-if (ENABLE_PPPL)
-set(LAPACK_LIB_NAMES
-  lapack #lapack should come first since it references routines in the BLAS library
-  cblas
-)
-elseif (ENABLE_MIT)
+if (ENABLE_MIT)
 set(LAPACK_LIB_NAMES
   mkl_lapack95_lp64 #lapack should come first since it references routines in the BLAS library
   mkl_blas95_lp64
