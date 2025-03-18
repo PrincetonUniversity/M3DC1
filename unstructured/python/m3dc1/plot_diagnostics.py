@@ -35,7 +35,7 @@ def plot_diagnostics(filename='C1.h5',sim=None,units='mks',fignum=None):
     sum = []
     for string in list(timings.diagnostic.keys()):
         if any(timings.diagnostic[string].value) != 0:
-            string_label = string.replace('_', '\_')
+            string_label = string.replace('_', r'\_')
             plt.plot(timings.x_axis, timings.diagnostic[string].value, label='{}'.format(string_label), alpha=0.5)
         if len(sum) == 0:
             sum = timings.diagnostic[string].value

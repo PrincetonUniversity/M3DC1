@@ -634,6 +634,7 @@ contains
     integer, dimension(MAX_PTS) :: izarr
     type(element_data) :: d
     real :: kr_tmin, kr_tmax
+    integer::ipoint
 
     fields = fieldi
 
@@ -1745,7 +1746,7 @@ contains
         if (kinetic_thermal_ion.eq.1) then
            call eval_ops(itri, p_i_par, pipar79, rfac)
            call eval_ops(itri, p_i_perp, piper79, rfac)
-           !call eval_ops(itri, pfi_field, pfi079, rfac)
+           call eval_ops(itri, pfi_field, pfi079, rfac)
 
            call eval_ops(itri, den_i_1, nfi79, rfac)
            call eval_ops(itri, nfi_field, nfi079, rfac)
@@ -1754,14 +1755,18 @@ contains
         else
            pipar79 = 0.
            piper79 = 0.
+           pfi079 = 0.
            nfi79 = 0.
            nfi079 = 0.
            vipar79 = 0.
         endif
         call eval_ops(itri, rho_field, rhof79, rfac)
-
+           ! pipar79 = 0.
+           ! piper79 = 0.
+           ! pfi079 = 0.
+         
         !do ipoint=1,MAX_PTS
-        !      if (real(rhof79(ipoint,OP_1))<0.15) then
+        !      if (real(rhof79(ipoint,OP_1))>0.85) then
         !   pipar79(ipoint,:)=0.
         !   piper79(ipoint,:)=0.
         !   !nfi79(ipoint,:)=0.

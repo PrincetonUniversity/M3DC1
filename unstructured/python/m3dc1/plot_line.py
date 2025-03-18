@@ -92,7 +92,8 @@ def plot_line(field, coord='scalar', angle=0, Zoff=0, dist_from_magax=False, fil
     **pub**
     If True, format figure for publication (larger labels and thicker lines)
     """
-
+    if coord=='vector':
+        fpyl.printerr('ERROR: Please set coord to \'R\', \'phi\', \'Z\', or \'scalar\'.')
     angle = np.radians(angle)
 
     sim, time = fpyl.setup_sims(sim,filename,time,linear,diff)

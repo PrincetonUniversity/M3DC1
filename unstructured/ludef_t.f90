@@ -215,6 +215,19 @@ subroutine vorticity_lin(trialx, lin, ssterm, ddterm, r_bf, q_bf, advfield, &
      if(advfield.eq.1) then
         ddterm(:,p_g) = ddterm(:,p_g) + dt*v1p(trialx,lin)
 
+#ifdef USEPARTICLES
+        if ((particle_couple.eq.1).and.(kinetic.eq.1)) then
+           tempx = -v1pbb1psi(trialx,pfi079+pf079,b2i79(:,OP_1),lin)
+           ddterm(:,psi_g) = ddterm(:,psi_g) + dt*tempx
+
+           if (i3d.eq.1 .and. numvar.ge.2) then
+               tempx = -v1pbb1f(trialx,pfi079+pf079,b2i79(:,OP_1),lin)
+               r_bf = r_bf -     thimp_bf     *dt*tempx
+               q_bf = q_bf + (1.-thimp_bf*bdf)*dt*tempx
+           endif
+        endif
+#endif
+
         ! "Parabolization" terms
         tempx = v1up(trialx,lin,pt79)
         ssterm(:,u_g) = ssterm(:,u_g) - thimp*thimp*dt*dt*tempx
@@ -589,11 +602,11 @@ subroutine vorticity_nolin(trialx, r4term)
   ! ~~~~~~~~~~~~~
   if(kinetic_fast_ion .eq. 1) then
      r4term = r4term + 1.0*dt*(( &
-                 v1pbb(trialx,pfper79,b2i79(:,OP_1)) & !parallel term
+                 (1-particle_couple)*v1pbb(trialx,pfper79,b2i79(:,OP_1)) & !parallel term
                  + v1p(trialx,pfper79) -v1pbb(trialx,pfper79,b2i79(:,OP_1)) &
                  ) &
                  +( &
-                 v1pbb(trialx,pfpar79-pfper79,b2i79(:,OP_1))+0.5*v1pbb(trialx,b2i79,pfpar79(:,OP_1)-pfper79(:,OP_1))    & !parallel term
+                 (1-particle_couple)*v1pbb(trialx,pfpar79-pfper79,b2i79(:,OP_1))+0.5*v1pbb(trialx,b2i79,pfpar79(:,OP_1)-pfper79(:,OP_1))    & !parallel term
                 -0.5*v1p_2(trialx,b2i79,(pfpar79(:,OP_1)-pfper79(:,OP_1))/b2i79(:,OP_1)) &
                 +0.5*v1pbb(trialx,b2i79,pfpar79(:,OP_1)-pfper79(:,OP_1)) &
                 + v1jxb(trialx,(pfpar79(:,OP_1)-pfper79(:,OP_1))*b2i79(:,OP_1)) &
@@ -602,11 +615,11 @@ subroutine vorticity_nolin(trialx, r4term)
     endif
    if(kinetic_thermal_ion .eq. 1) then
      r4term = r4term + 1.0*dt*(( &
-                 v1pbb(trialx,piper79,b2i79(:,OP_1)) & !parallel term
+                 (1-particle_couple)*v1pbb(trialx,piper79,b2i79(:,OP_1)) & !parallel term
                  + v1p(trialx,piper79) -v1pbb(trialx,piper79,b2i79(:,OP_1)) &
                  ) &
                  +( &
-                 v1pbb(trialx,pipar79-piper79,b2i79(:,OP_1))+0.5*v1pbb(trialx,b2i79,pipar79(:,OP_1)-piper79(:,OP_1))    & !parallel term
+                 (1-particle_couple)*v1pbb(trialx,pipar79-piper79,b2i79(:,OP_1))+0.5*v1pbb(trialx,b2i79,pipar79(:,OP_1)-piper79(:,OP_1))    & !parallel term
                 -0.5*v1p_2(trialx,b2i79,(pipar79(:,OP_1)-piper79(:,OP_1))/b2i79(:,OP_1)) &
                 +0.5*v1pbb(trialx,b2i79,pipar79(:,OP_1)-piper79(:,OP_1)) &
                 + v1jxb(trialx,(pipar79(:,OP_1)-piper79(:,OP_1))*b2i79(:,OP_1)) &
@@ -919,6 +932,19 @@ subroutine axial_vel_lin(trialx, lin, ssterm, ddterm, r_bf, q_bf, advfield, &
         ddterm(:,p_g) = ddterm(:,p_g) + dt* &
              v2p(trialx,lin)
 
+#ifdef USEPARTICLES
+        if ((particle_couple.eq.1).and.(kinetic.eq.1)) then
+           tempx = -v2pbb1psi(trialx,pfi079+pf079,b2i79(:,OP_1),lin)
+           ddterm(:,psi_g) = ddterm(:,psi_g) + dt*tempx
+
+           if (i3d.eq.1 .and. numvar.ge.2) then
+               tempx = -v2pbb1f(trialx,pfi079+pf079,b2i79(:,OP_1),lin)
+               r_bf = r_bf -     thimp_bf     *dt*tempx
+               q_bf = q_bf + (1.-thimp_bf*bdf)*dt*tempx
+           endif
+        endif
+#endif
+
         ! parabolization terms
         tempx = v2up(trialx,lin,pt79)
         ssterm(:,u_g) = ssterm(:,u_g) - thimp*thimp*dt*dt*tempx
@@ -1135,11 +1161,11 @@ subroutine axial_vel_nolin(trialx, r4term)
   ! ~~~~~~~~~~~~~
   if(kinetic_fast_ion .eq. 1) then
      r4term = r4term + 1.0*dt*(( &
-                 v2pbb(trialx,pfper79,b2i79(:,OP_1)) & !parallel term
+                 (1-particle_couple)*v2pbb(trialx,pfper79,b2i79(:,OP_1)) & !parallel term
                  + v2p(trialx,pfper79) -v2pbb(trialx,pfper79,b2i79(:,OP_1)) &
                  ) &
                  +( &
-                 v2pbb(trialx,pfpar79-pfper79,b2i79(:,OP_1))+0.5*v2pbb(trialx,b2i79,pfpar79(:,OP_1)-pfper79(:,OP_1))    & !parallel term
+                 (1-particle_couple)*v2pbb(trialx,pfpar79-pfper79,b2i79(:,OP_1))+0.5*v2pbb(trialx,b2i79,pfpar79(:,OP_1)-pfper79(:,OP_1))    & !parallel term
                 -0.5*v2p_2(trialx,b2i79,(pfpar79(:,OP_1)-pfper79(:,OP_1))/b2i79(:,OP_1)) &
                 +0.5*v2pbb(trialx,b2i79,pfpar79(:,OP_1)-pfper79(:,OP_1)) &
                 + v2jxb(trialx,(pfpar79(:,OP_1)-pfper79(:,OP_1))*b2i79(:,OP_1)) &
@@ -1148,11 +1174,11 @@ subroutine axial_vel_nolin(trialx, r4term)
    endif
    if(kinetic_thermal_ion .eq. 1) then
      r4term = r4term + 1.0*dt*(( &
-                 v2pbb(trialx,piper79,b2i79(:,OP_1)) & !parallel term
+                 (1-particle_couple)*v2pbb(trialx,piper79,b2i79(:,OP_1)) & !parallel term
                  + v2p(trialx,piper79) -v2pbb(trialx,piper79,b2i79(:,OP_1)) &
                  ) &
                  +( &
-                 v2pbb(trialx,pipar79-piper79,b2i79(:,OP_1))+0.5*v2pbb(trialx,b2i79,pipar79(:,OP_1)-piper79(:,OP_1))    & !parallel term
+                 (1-particle_couple)*v2pbb(trialx,pipar79-piper79,b2i79(:,OP_1))+0.5*v2pbb(trialx,b2i79,pipar79(:,OP_1)-piper79(:,OP_1))    & !parallel term
                 -0.5*v2p_2(trialx,b2i79,(pipar79(:,OP_1)-piper79(:,OP_1))/b2i79(:,OP_1)) &
                 +0.5*v2pbb(trialx,b2i79,pipar79(:,OP_1)-piper79(:,OP_1)) &
                 + v2jxb(trialx,(pipar79(:,OP_1)-piper79(:,OP_1))*b2i79(:,OP_1)) &
@@ -1374,6 +1400,19 @@ subroutine compression_lin(trialx, lin, ssterm, ddterm, r_bf, q_bf, advfield, &
   if(advfield.eq.1) then
      ddterm(:,p_g) = ddterm(:,p_g) + dt*  &
           v3p(trialx,lin)
+ 
+#ifdef USEPARTICLES
+     if ((particle_couple.eq.1).and.(kinetic.eq.1)) then
+        tempx = -v3pbb1psi(trialx,pfi079+pf079,b2i79(:,OP_1),lin)
+        ddterm(:,psi_g) = ddterm(:,psi_g) + dt*tempx
+
+        if (i3d.eq.1 .and. numvar.ge.2) then
+           tempx = -v3pbb1f(trialx,pfi079+pf079,b2i79(:,OP_1),lin)
+           r_bf = r_bf -     thimp_bf     *dt*tempx
+           q_bf = q_bf + (1.-thimp_bf*bdf)*dt*tempx
+        endif
+     endif
+#endif
 
      ! parabolization terms
      tempx = v3up     (trialx,lin,pt79)
@@ -1734,11 +1773,11 @@ subroutine compression_nolin(trialx, r4term)
   ! ~~~~~~~~~~~~~
   if(kinetic .eq. 1) then
      r4term = r4term + 1.0*dt*(( &
-                 v3pbb(trialx,pfper79,b2i79(:,OP_1)) & !parallel term
+                 (1-particle_couple)*v3pbb(trialx,pfper79,b2i79(:,OP_1)) & !parallel term
                  + v3p(trialx,pfper79) -v3pbb(trialx,pfper79,b2i79(:,OP_1)) &
                  ) &
                  +( &
-                 v3pbb(trialx,pfpar79-pfper79,b2i79(:,OP_1))+0.5*v3pbb(trialx,b2i79,pfpar79(:,OP_1)-pfper79(:,OP_1))    & !parallel term
+                 (1-particle_couple)*v3pbb(trialx,pfpar79-pfper79,b2i79(:,OP_1))+0.5*v3pbb(trialx,b2i79,pfpar79(:,OP_1)-pfper79(:,OP_1))    & !parallel term
                 -0.5*v3p_2(trialx,b2i79,(pfpar79(:,OP_1)-pfper79(:,OP_1))/b2i79(:,OP_1)) &
                 +0.5*v3pbb(trialx,b2i79,pfpar79(:,OP_1)-pfper79(:,OP_1)) &
                 + v3jxb(trialx,(pfpar79(:,OP_1)-pfper79(:,OP_1))*b2i79(:,OP_1)) &
@@ -1747,11 +1786,11 @@ subroutine compression_nolin(trialx, r4term)
    endif
    if(kinetic_thermal_ion .eq. 1) then
      r4term = r4term + 1.0*dt*(( &
-                 v3pbb(trialx,piper79,b2i79(:,OP_1)) & !parallel term
+                 (1-particle_couple)*v3pbb(trialx,piper79,b2i79(:,OP_1)) & !parallel term
                  + v3p(trialx,piper79) -v3pbb(trialx,piper79,b2i79(:,OP_1)) &
                  ) &
                  +( &
-                 v3pbb(trialx,pipar79-piper79,b2i79(:,OP_1))+0.5*v3pbb(trialx,b2i79,pipar79(:,OP_1)-piper79(:,OP_1))    & !parallel term
+                 (1-particle_couple)*v3pbb(trialx,pipar79-piper79,b2i79(:,OP_1))+0.5*v3pbb(trialx,b2i79,pipar79(:,OP_1)-piper79(:,OP_1))    & !parallel term
                 -0.5*v3p_2(trialx,b2i79,(pipar79(:,OP_1)-piper79(:,OP_1))/b2i79(:,OP_1)) &
                 +0.5*v3pbb(trialx,b2i79,pipar79(:,OP_1)-piper79(:,OP_1)) &
                 + v3jxb(trialx,(pipar79(:,OP_1)-piper79(:,OP_1))*b2i79(:,OP_1)) &
@@ -4371,30 +4410,72 @@ subroutine temperature_lin(trialx, lin, ssterm, ddterm, q_ni, r_bf, q_bf,&
     else  ! on linear.eq.0
        ! Assumes no contribution from equilibrium f
 
-        tempx = tepsipsikappar(trialx,lin,ps079,pp079,b2i79,kar79) &
+       tempx = tepsipsikappar(trialx,lin,ps079,pp079,b2i79,kar79) &
             + tepsipsikappar(trialx,ps079,lin,pp079,b2i79,kar79) &
-             + tepsibkapparl  (trialx,lin,bz079,pp079,b2i79,kar79)
-        ssterm(:,psi_g) = ssterm(:,psi_g) -       thimpf     *dt*tempx*fac
-        ddterm(:,psi_g) = ddterm(:,psi_g) + (1. - thimpf*bdf)*dt*tempx*fac
+#ifdef USECOMPLEX
+            + tepsibkapparl  (trialx,lin,bz079,pp079,b2i79,kar79)
+#else
+            + tepsibkappar  (trialx,lin,bz079,pp079,b2i79,kar79)
+#endif
+       ssterm(:,psi_g) = ssterm(:,psi_g) -       thimpf     *dt*tempx*fac
+       ddterm(:,psi_g) = ddterm(:,psi_g) + (1. - thimpf*bdf)*dt*tempx*fac
 
        if(numvar.ge.2) then
+#ifdef USECOMPLEX
           tempx = tepsibkapparl(trialx,ps079,lin,pp079,b2i79,kar79) &
                + tebbkapparl  (trialx,lin,bz079,pp079,b2i79,kar79) &
                + tebbkapparl  (trialx,bz079,lin,pp079,b2i79,kar79)
+#else
+          tempx = tepsibkappar(trialx,ps079,lin,pp079,b2i79,kar79) &
+               + tebbkappar  (trialx,lin,bz079,pp079,b2i79,kar79) &
+               + tebbkappar  (trialx,bz079,lin,pp079,b2i79,kar79)
+#endif
           ssterm(:,bz_g) = ssterm(:,bz_g) -       thimpf     *dt*tempx*fac
           ddterm(:,bz_g) = ddterm(:,bz_g) + (1. - thimpf*bdf)*dt*tempx*fac
        end if
 
-        tempx = tepsipsikappar(trialx,ps079,ps079,lin,b2i79,kar79) &
-             + tepsibkapparl  (trialx,ps079,bz079,lin,b2i79,kar79) &
-             + tebbkapparl    (trialx,bz079,bz079,lin,b2i79,kar79)
-        ssterm(:,pp_g) = ssterm(:,pp_g) -       thimp     *dt*tempx*fac
-        ddterm(:,pp_g) = ddterm(:,pp_g) + (1. - thimp*bdf)*dt*tempx*fac
- !
+       tempx = tepsipsikappar(trialx,ps079,ps079,lin,b2i79,kar79) &
+#ifdef USECOMPLEX
+            + tepsibkapparl  (trialx,ps079,bz079,lin,b2i79,kar79) &
+            + tebbkapparl    (trialx,bz079,bz079,lin,b2i79,kar79)
+#else
+            + tepsibkappar  (trialx,ps079,bz079,lin,b2i79,kar79) &
+            + tebbkappar    (trialx,bz079,bz079,lin,b2i79,kar79)
+#endif
+       ssterm(:,pp_g) = ssterm(:,pp_g) -       thimp     *dt*tempx*fac
+       ddterm(:,pp_g) = ddterm(:,pp_g) + (1. - thimp*bdf)*dt*tempx*fac
 
        if(i3d.eq.1 .and. numvar.ge.2) then
-          tempx = tepsifkappar(trialx,ps079,lin,pp079,b2i79,kar79) &
+          tempx = tepsifkappar(trialx,ps079,bfp079,lin,b2i79,kar79) &
+#ifdef USECOMPLEX
+               + tebfkapparl  (trialx,bz079,bfp079,lin,b2i79,kar79) &
+#else
+               + tebfkappar  (trialx,bz079,bfp079,lin,b2i79,kar79) &
+#endif
+               + teffkappar  (trialx,bfp079,bfp079,lin,b2i79,kar79)
+          ssterm(:,pp_g) = ssterm(:,pp_g) -          thimp     *dt*tempx*fac
+          ddterm(:,pp_g) = ddterm(:,pp_g) + (1.    - thimp*bdf)*dt*tempx*fac
+
+          tempx = tepsifkappar(trialx,lin,bfp079,pp079,b2i79,kar79)
+          ssterm(:,psi_g) = ssterm(:,psi_g) -       thimpf     *dt*tempx*fac
+          ddterm(:,psi_g) = ddterm(:,psi_g) + (1. - thimpf*bdf)*dt*tempx*fac
+
+#ifdef USECOMPLEX
+          tempx = tebfkapparl(trialx,lin,bfp079,pp079,b2i79,kar79)
+#else
+          tempx = tebfkappar(trialx,lin,bfp079,pp079,b2i79,kar79)
+#endif
+          ssterm(:,bz_g) = ssterm(:,bz_g) -       thimpf     *dt*tempx*fac
+          ddterm(:,bz_g) = ddterm(:,bz_g) + (1. - thimpf*bdf)*dt*tempx*fac
+
+          tempx = teffkappar(trialx,lin,bfp079,pp079,b2i79,kar79) &
+               + teffkappar(trialx,bfp079,lin,pp079,b2i79,kar79) &
+               + tepsifkappar(trialx,ps079,lin,pp079,b2i79,kar79) &
+#ifdef USECOMPLEX
                + tebfkapparl (trialx,bz079,lin,pp079,b2i79,kar79)
+#else
+               + tebfkappar (trialx,bz079,lin,pp079,b2i79,kar79)
+#endif
           r_bf = r_bf -       thimp_bf     *dt*tempx*fac
           q_bf = q_bf + (1. - thimp_bf*bdf)*dt*tempx*fac
        endif

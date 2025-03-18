@@ -1446,6 +1446,7 @@ endif
      call create_field(tfi_field)
      call create_field(pfi_field)
      call create_field(psmooth_field)
+     call create_field(vparsmooth_field)
 #endif
 
      call create_auxiliary_fields
@@ -1563,43 +1564,63 @@ subroutine calculate_qdfac(itri, z)
   end where
 end subroutine calculate_qdfac
 
-  subroutine print_normal_curv()
-    use basic
-    use mesh_mod
+subroutine print_normal_curv()
+  use mpi
+  use basic
+  use mesh_mod
+  implicit none
 
-    implicit none
+  integer :: ierr, i, icounter_t, numnodes
+  integer :: izone, izonedim
+  real :: norm(2), curv(3), x, z, phi
+  logical :: is_boundary
+  character(len=255) :: buf
+  character(len=:), allocatable :: local_buffer, remote_buffer
+  integer :: local_length
+  integer :: tag
+  integer :: ifile
+  integer :: source_rank
+  integer :: remote_length
+  integer, dimension(MPI_STATUS_SIZE) :: status
 
-    include "mpif.h"
+  ! Each process builds its own diagnostic output in a local buffer.
+  local_buffer = ""
+  numnodes = owned_nodes()
+  do icounter_t = 1, numnodes
+     i = nodes_owned(icounter_t)
+     call boundary_node(i, is_boundary, izone, izonedim, norm, curv, x, phi, z, BOUND_ANY)
+     if (.not. is_boundary) cycle
+     buf = ""
+     write(buf, '(7F10.5,A)') x, z, norm(1), norm(2), curv(1), curv(2), curv(3), new_line('a')
+     local_buffer = local_buffer // trim(buf)
+  end do
+  local_length = len_trim(local_buffer)
 
-    integer :: i, izone, izonedim, numnodes, icounter_t
-    real :: norm(2), curv(3), x, z, phi
+  tag = 0
+  if (myrank == 0) then
+     ! Rank 0 performs all file I/O.
+     call MPI_File_open(MPI_COMM_SELF, "normcurv", ior(MPI_MODE_WRONLY, MPI_MODE_CREATE), MPI_INFO_NULL, ifile, ierr)
+     if (local_length > 0) then
+        call MPI_File_write(ifile, local_buffer, local_length, MPI_CHARACTER, MPI_STATUS_IGNORE, ierr)
+     end if
 
-    logical :: is_boundary
+     ! Receive output from other ranks one at a time (in rank order).
+     do source_rank = 1, maxrank - 1
+        call MPI_Recv(remote_length, 1, MPI_INTEGER, source_rank, tag, MPI_COMM_WORLD, status, ierr)
+        if (remote_length > 0) then
+           allocate(character(len=remote_length) :: remote_buffer)
+           call MPI_Recv(remote_buffer, remote_length, MPI_CHARACTER, source_rank, tag, MPI_COMM_WORLD, status, ierr)
+           call MPI_File_write(ifile, remote_buffer, remote_length, MPI_CHARACTER, MPI_STATUS_IGNORE, ierr)
+           deallocate(remote_buffer)
+        end if
+     end do
+     call MPI_File_close(ifile, ierr)
+  else
+     ! All nonzero ranks send their buffer length and then the buffer.
+     call MPI_Send(local_length, 1, MPI_INTEGER, 0, tag, MPI_COMM_WORLD, ierr)
+     if (local_length > 0) then
+        call MPI_Send(local_buffer, local_length, MPI_CHARACTER, 0, tag, MPI_COMM_WORLD, ierr)
+     end if
+  end if
 
-    character(len=255) :: buf
-    integer :: ifile, ier
-    integer, dimension(MPI_STATUS_SIZE) :: istat
-
-    call mpi_file_open(MPI_COMM_WORLD, "normcurv", &
-         ior(MPI_MODE_WRONLY, MPI_MODE_CREATE), &
-         MPI_INFO_NULL, ifile, ier)
-
-    numnodes = owned_nodes()
-    do icounter_t=1,numnodes
-       i = nodes_owned(icounter_t)
-
-       call boundary_node(i,is_boundary,izone,izonedim,norm,curv,x,phi,z, &
-            BOUND_ANY)
-       if(.not.is_boundary) cycle
-
-       buf=''
-       write(buf,'(7F10.5,A)') x, z, norm(1), norm(2), curv(1), curv(2), curv(3),&
-            new_line('a')
-
-       call mpi_file_write_shared(ifile, buf, 71, MPI_CHAR, &
-            istat, ier)
-    end do
-
-    call mpi_file_close(ifile, ier)
-
-  end subroutine print_normal_curv
+end subroutine print_normal_curv

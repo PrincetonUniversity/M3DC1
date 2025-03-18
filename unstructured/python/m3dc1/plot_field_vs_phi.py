@@ -24,8 +24,8 @@ from m3dc1.plot_mesh import plot_mesh
 
 def plot_field_vs_phi(field, cutr=None, cutz=None, coord='scalar', row=1, sim=None, filename='C1.h5', time=None, linear=False,
                diff=False, phi_res=100, res=250, mesh=False, bound=False, planes=False, units='mks',cont_levels=100,
-               prange=None, cmap='viridis', cmap_midpt=None, quiet=False,
-               save=False, savedir=None, pub=False, titlestr=None, showtitle=True, shortlbl=False, ntor=None, phys=False):
+               prange=None, cmap='viridis', cmap_midpt=None, quiet=False, save=False, savedir=None, pub=False,
+               titlestr=None, showtitle=True, shortlbl=False, ntor=None, phys=False, export=False,txtname=None,):
     """
     Plots a field as a function of either R or Z and toroidal angle phi.
     
@@ -160,7 +160,7 @@ def plot_field_vs_phi(field, cutr=None, cutz=None, coord='scalar', row=1, sim=No
         axs = np.asarray([axs])
     else:
         fig, axs = plt.subplots(1, 3, sharey=True,figsize=(14,7))
-        comp = ['R','\phi','Z']
+        comp = ['R',r'\phi','Z']
     
     if titlestr is None:
         if coord in ['vector', 'tensor']:
@@ -302,5 +302,16 @@ def plot_field_vs_phi(field, cutr=None, cutz=None, coord='scalar', row=1, sim=No
             nout=ntor
         
         plt.savefig(fieldstr + '_' + timestr + '_n'+"{:d}".format(nout)+'.png', format='png',dpi=900,bbox_inches='tight')
+    
+    if export:
+        #print(phi_ave.shape, Z_ave.shape, field1_ave.shape)
+        if cutr is not None and cutz is None:
+            np.savetxt(txtname+'_phi',np.vstack(phi_ave),delimiter='   ')
+            np.savetxt(txtname+'_Z',np.vstack(Z_ave),delimiter='   ')
+            np.savetxt(txtname+'_field',np.vstack(field1_ave),delimiter='   ')
+        elif cutz is not None and cutr is None:
+            np.savetxt(txtname+'_phi',np.vstack(phi_ave),delimiter='   ')
+            np.savetxt(txtname+'_Z',np.vstack(Z_ave),delimiter='   ')
+            np.savetxt(txtname+'_field',np.vstack(field1_ave),delimiter='   ')
     
     return

@@ -313,6 +313,8 @@ module basic
   integer :: igyroaverage
   integer :: particle_linear
   integer :: particle_substeps
+  integer :: particle_couple
+  integer :: iconst_f0
   real :: fast_ion_mass, fast_ion_z
   integer :: fast_ion_dist
   real :: fast_ion_max_energy
@@ -571,7 +573,7 @@ module arrays
 #endif
 #ifdef USEPARTICLES
   type(field_type) :: rho_field, nf_field, tf_field, pf_field, vfpar0_field
-  type(field_type) :: nfi_field, tfi_field, pfi_field, psmooth_field
+  type(field_type) :: nfi_field, tfi_field, pfi_field, psmooth_field, vparsmooth_field
   type(field_type) :: epar_field, den2_field
 
   type(field_type) :: p_f_par, p_f_perp  !Kinetic pressure tensor components

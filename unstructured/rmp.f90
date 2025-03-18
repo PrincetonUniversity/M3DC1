@@ -52,20 +52,32 @@ subroutine rmp_per(ilin)
         call calculate_external_field_ft(sf(l), ntor)
 #endif
      end do
+
+     ! calculate external fields from non-axisymmetric coils and external field
+     call calculate_external_fields(ilin)
+
+     ! unload data
+     call deallocate_sf
+
   else if(type_ext_field.eq.2) then ! Stellarator/3D vacuum field 
     allocate(sf(iread_ext_field))
     call read_stellarator_field(file_ext_field)
+
+     ! calculate external fields from non-axisymmetric coils and external field
+     call calculate_external_fields(ilin)
+     ! unload data
+     call deallocate_sf
+
+  else if(type_ext_field.eq.3) then
+     ! calculate external fields from currents
+     call calculate_field_from_j(1)
+
   else
     if(myrank.eq.1) print *, &
       'ERROR: RMP fields require type_ext_field < 0 or =2.'
     call safestop(58)
   end if
 
-  ! calculate external fields from non-axisymmetric coils and external field
-  call calculate_external_fields(ilin)
-
-  ! unload data
-  call deallocate_sf
 
 end subroutine rmp_per
 
@@ -839,6 +851,428 @@ subroutine boundary_rmp(rhs, mat)
   end do
 
 end subroutine boundary_rmp
+
+  subroutine calculate_field_from_j(ilin)
+    use basic
+    use math
+    use mesh_mod
+    use sparse
+    use arrays
+    use matrix_mod
+    use m3dc1_nint
+    use newvar_mod
+    use boundary_conditions
+
+    implicit none
+
+    include 'mpif.h'
+
+    type(matrix_type) :: jx_mat
+    type(vector_type) :: psi_vec
+#if defined(USECOMPLEX) || defined(USE3D)
+    type(matrix_type) :: bf_mat
+    type(vector_type) :: bf_vec, temp_vec, temp_vec2
+#endif
+    integer :: itri, nelms, ier, ibound, ipsibound, fbound
+    integer, intent(in), optional :: ilin
+    integer :: il
+
+    vectype, dimension(dofs_per_element,dofs_per_element,2,2) :: temp
+    vectype, dimension(dofs_per_element,2) :: temp2
+    type(field_type) :: psi_f, fx_f
+#if defined(USECOMPLEX) || defined(USE3D)
+    type(field_type) :: f_f
+    vectype, dimension(dofs_per_element,dofs_per_element) :: temp5
+#endif
+
+    if(myrank.eq.0 .and. iprint.ge.2) print *, "Calculating field from J"
+    if(myrank.eq.0 .and. iprint.ge.2) print *, "xmag, zmag = ", xmag, zmag
+
+    if(.not.present(ilin)) then
+       il = 1
+    else
+       il = ilin
+    end if
+
+    call create_vector(psi_vec,2)
+    call associate_field(psi_f,psi_vec,1)
+    call associate_field(fx_f, psi_vec,2)
+
+    call set_matrix_index(jx_mat, br_mat_index)
+    call create_mat(jx_mat, 2, 2, icomplex, 1)
+
+#if defined(USECOMPLEX) || defined(USE3D)
+    call set_matrix_index(bf_mat, bf_mat_index)
+    call create_mat(bf_mat, 1, 1, icomplex, 1)
+#endif
+
+    psi_f = 0.
+    fx_f = 0.
+
+#ifdef CJ_MATRIX_DUMP
+    print *, "create_mat coils jx_mat", jx_mat%imatrix
+#endif
+
+    ! boundary condition on psi
+!    ipsibound = BOUNDARY_NONE
+    ipsibound = BOUNDARY_NEUMANN
+!    ipsibound = BOUNDARY_DIRICHLET
+
+    ! Boundary condition on F*
+    !ibound = BOUNDARY_NEUMANN
+    ibound = BOUNDARY_DIRICHLET
+    !ibound = BOUNDARY_NONE
+
+    fbound = BOUNDARY_NEUMANN
+
+    if(myrank.eq.0 .and. iprint.ge.2) print *, 'calculating field values...'
+    nelms = local_elements()
+
+    do itri=1,nelms
+
+     call define_element_quadrature(itri,int_pts_main,5)
+     call define_fields(itri,0,1,0)
+
+     call read_j(npoints, &
+          x_79, phi_79, z_79, &
+          temp79a, temp79b, temp79c)
+
+     ! J = grad(F*) x grad(phi) - del*(psi) grad(phi) + grad_perp(psi') / R^2
+     ! F* = R^2 del^2(f)
+
+     ! ( R Jphi )                               ( -del*(nu)               0              )
+     ! ( JR     ) = Jx(nu) . ( psi )   Jx(nu) = ( (1/R^2) d^2/dRdPhi(nu) -(1/R) d/dZ(nu) )
+     ! ( JZ     )            ( F*  )            ( (1/R^2) d^2/dZdPhi(nu)  (1/R) d/dR(nu) )
+
+     ! Find least squares solution to above equation:
+     !            ( R Jphi )
+     ! Jx^T(mu) . ( JR     ) = Jx^T(mu) . Jx(nu) . ( psi )
+     !            ( JZ     )                       ( F*  )
+
+
+     ! Populate Jx^T(mu) . Jx(nu)
+     temp(:,:,1,1) = intxx2(mu79(:,:,OP_LP),nu79(:,:,OP_LP))
+     temp(:,:,1,2) = 0.
+     temp(:,:,2,1) = 0.
+     temp(:,:,2,2) = intxx3(mu79(:,:,OP_DZ),nu79(:,:,OP_DZ),ri2_79) &
+          +          intxx3(mu79(:,:,OP_DR),nu79(:,:,OP_DR),ri2_79)
+#if defined(USE3D)
+     temp(:,:,1,1) = temp(:,:,1,1) &
+                   + intxx3(mu79(:,:,OP_DRP),nu79(:,:,OP_DRP),ri4_79) &
+                   + intxx3(mu79(:,:,OP_DZP),nu79(:,:,OP_DZP),ri4_79)
+     temp(:,:,1,2) = temp(:,:,1,2) &
+          + intxx3(mu79(:,:,OP_DZP),nu79(:,:,OP_DR ), ri3_79) &
+          - intxx3(mu79(:,:,OP_DRP),nu79(:,:,OP_DZ ), ri3_79)
+     temp(:,:,2,1) = temp(:,:,2,1) &
+          + intxx3(mu79(:,:,OP_DR ),nu79(:,:,OP_DZP), ri3_79) &
+          - intxx3(mu79(:,:,OP_DZ ),nu79(:,:,OP_DRP), ri3_79)
+#elif defined(USECOMPLEX)
+     temp(:,:,1,1) = temp(:,:,1,1) &
+                   + (intxx3(mu79(:,:,OP_DR),nu79(:,:,OP_DR),ri4_79) &
+                   +  intxx3(mu79(:,:,OP_DZ),nu79(:,:,OP_DZ),ri4_79))*(rfac*conjg(rfac))
+     temp(:,:,1,2) = temp(:,:,1,2) &
+          + (intxx3(mu79(:,:,OP_DZ),nu79(:,:,OP_DR), ri3_79) &
+          -  intxx3(mu79(:,:,OP_DR),nu79(:,:,OP_DZ), ri3_79))*conjg(rfac)
+     temp(:,:,2,1) = temp(:,:,2,1) &
+          + (intxx3(mu79(:,:,OP_DR),nu79(:,:,OP_DZ), ri3_79) &
+          -  intxx3(mu79(:,:,OP_DZ),nu79(:,:,OP_DR), ri3_79))*rfac
+
+#endif
+
+     ! Populate Jx^T(mu) . ( R Jphi, JR, JZ )
+     temp2(:,1) = -intx3(mu79(:,:,OP_LP),temp79b,r_79)
+     temp2(:,2) = &
+          -       intx3(mu79(:,:,OP_DZ ),temp79a,ri_79) &
+          +       intx3(mu79(:,:,OP_DR ),temp79c,ri_79)
+#if defined(USE3D)
+     temp2(:,1) = temp2(:,1) &
+          +       intx3(mu79(:,:,OP_DRP),temp79a,ri2_79) &
+          +       intx3(mu79(:,:,OP_DZP),temp79c,ri2_79)
+#elif defined(USECOMPLEX)
+     temp2(:,1) = temp2(:,1) &
+          +       (intx3(mu79(:,:,OP_DR),temp79a,ri2_79) &
+          +        intx3(mu79(:,:,OP_DZ),temp79c,ri2_79))*conjg(rfac)
+#endif
+
+!!$     ! Solve for f' from F*'
+!!$     ! (F*)' = R^2 Del^2 f'
+!!$#if defined(USE3D)
+!!$     temp5(:,:) = -(intxx3(mu79(:,:,OP_DP),nu79(:,:,OP_LP),r2_79) &
+!!$          +         intxx2(mu79(:,:,OP_DP),nu79(:,:,OP_DPP)))
+!!$#elif defined(USECOMPLEX)
+!!$     temp5(:,:) = intxx3(mu79(:,:,OP_1),nu79(:,:,OP_LP),r2_79)*rfac &
+!!$          +       intxx2(mu79(:,:,OP_1),nu79(:,:,OP_1))*rfac**3
+!!$#endif
+
+     ! Solve for f from F*
+     ! F* = R^2 Del^2 f
+#if defined(USE3D)
+     temp5(:,:) = (intxx3(mu79(:,:,OP_1),nu79(:,:,OP_LP),r2_79) &
+          +        intxx2(mu79(:,:,OP_1),nu79(:,:,OP_DPP)))
+#elif defined(USECOMPLEX)
+     temp5(:,:) = intxx3(mu79(:,:,OP_1),nu79(:,:,OP_LP),r2_79) &
+          +       intxx2(mu79(:,:,OP_1),nu79(:,:,OP_1))*rfac**2
+#endif
+
+     call apply_boundary_mask(itri, ipsibound, temp(:,:,1,1), &
+          tags=BOUND_DOMAIN)
+     call apply_boundary_mask(itri, ipsibound, temp(:,:,1,2), &
+          tags=BOUND_DOMAIN)
+     call apply_boundary_mask(itri, ibound, temp(:,:,2,1), &
+          tags=BOUND_DOMAIN)
+     call apply_boundary_mask(itri, ibound, temp(:,:,2,2), &
+          tags=BOUND_DOMAIN)
+
+     call insert_block(jx_mat, itri, 1, 1, temp(:,:,1,1), MAT_ADD)
+     call insert_block(jx_mat, itri, 1, 2, temp(:,:,1,2), MAT_ADD)
+     call insert_block(jx_mat, itri, 2, 1, temp(:,:,2,1), MAT_ADD)
+     call insert_block(jx_mat, itri, 2, 2, temp(:,:,2,2), MAT_ADD)
+
+     call vector_insert_block(psi_vec, itri, 1, temp2(:,1), MAT_ADD)
+     call vector_insert_block(psi_vec, itri, 2, temp2(:,2), MAT_ADD)
+
+#if defined(USECOMPLEX) || defined(USE3D)
+     call apply_boundary_mask(itri, fbound, temp5(:,:), &
+          tags=BOUND_DOMAIN)
+
+     call insert_block(bf_mat, itri, 1, 1, temp5(:,:), MAT_ADD)
+#endif
+  end do
+
+  if(myrank.eq.0 .and. iprint.ge.2) print *, "Solving for (psi, F*)..."
+  call sum_shared(psi_vec)
+  call boundary_j(psi_vec,jx_mat)
+  call finalize(jx_mat)
+  call newsolve(jx_mat,psi_vec,ier)
+  if(myrank.eq.0 .and. iprint.ge.2) print *, "Solving psi: ier = ", ier
+
+  if(extsubtract.eq.1) then
+     psi_ext = psi_f
+     bz_ext = fx_f
+  else
+     psi_field(il) = psi_f
+     bz_field(il) = fx_f
+  end if
+  
+#if defined(USECOMPLEX) || defined(USE3D)
+  ! Solve (F*)' = R^2 Del^2(f) for f
+
+  !  store F* in temp_vec2
+  call create_vector(temp_vec2, 1)
+  call associate_field(f_f, temp_vec2, 1)
+  f_f = fx_f
+
+  !  have f_f point to solution vector (which will contain f)
+  call create_vector(temp_vec, 1)
+  call associate_field(f_f, temp_vec, 1)
+  f_f = 0.
+
+  ! Solve F* = R^2 del^2(f) for f
+  call matvecmult(mass_mat_rhs%mat, temp_vec2, temp_vec)
+  call boundary_fstar(temp_vec,bf_mat)
+  call finalize(bf_mat)
+  call newsolve(bf_mat,temp_vec,ier)
+
+  if(extsubtract.eq.1) then
+     bf_ext = f_f
+  else
+     bf_field(il) = f_f
+  end if
+
+  ! Solve fp = df/dp
+#ifdef USECOMPLEX
+  if(extsubtract.eq.1) then
+     bfp_ext = bf_ext
+     call mult(bfp_ext, rfac)
+  else
+     bfp_field(il) = bf_field(il)
+     call mult(bfp_field(il), rfac)
+  end if
+#elif defined(USE3D)
+  call safestop(88)
+#endif
+
+  ! Solve F = F* - f''
+#ifdef USECOMPLEX
+  if(extsubtract.eq.1) then
+     f_f = bfp_ext
+     call mult(f_f, -rfac)   
+     call add(bz_ext, f_f)
+  else
+     f_f = bfp_ext
+     call mult(f_f, -rfac)   
+     call add(bz_field(il), f_f)
+  end if
+#elif defined(USE3D)
+    call safestop(89)
+#endif
+  
+  call destroy_vector(temp_vec)
+  call destroy_vector(temp_vec2)
+#endif
+
+  call destroy_vector(psi_vec)
+  call destroy_mat(jx_mat)
+
+#if defined(USECOMPLEX) || defined(USE3D)
+  call destroy_vector(bf_vec)
+  call destroy_mat(bf_mat)
+#endif
+
+  if(myrank.eq.0 .and. iprint.ge.2) print *, "Done calculate_field_from_j"
+end subroutine calculate_field_from_j
+
+
+!=======================================================
+! boundary_j
+! ~~~~~~~~~~
+!
+!=======================================================
+subroutine boundary_j(rhs, mat)
+  use basic
+  use vector_mod
+  use matrix_mod
+  use boundary_conditions
+
+  implicit none
+
+  type(vector_type) :: rhs
+  type(matrix_type), optional :: mat
+
+  integer, parameter :: numvarsm = 2
+  integer :: i, izone, izonedim, i_psi, i_f, numnodes, icounter_t
+  real :: normal(2), curv(3)
+  real :: x, z, phi
+  logical :: is_boundary
+!!$  real, dimension(1) :: xv, phiv, zv
+!!$  vectype, dimension(1) :: br, bphi, bz
+!!$  vectype :: bn
+  vectype, dimension(dofs_per_node) :: temp
+
+  if(iper.eq.1 .and. jper.eq.1) return
+  if(myrank.eq.0 .and. iprint.ge.2) print *, "boundary_j called"
+
+  temp = 0.
+
+  numnodes = owned_nodes()
+  do icounter_t=1,numnodes
+     i = nodes_owned(icounter_t)
+     call boundary_node(i,is_boundary,izone,izonedim,normal,curv,x,phi,z)
+     if(.not.is_boundary) cycle
+
+     i_psi = node_index(rhs, i, 1)
+     i_f = node_index(rhs, i, 2)
+
+!     temp = 0.
+!     call set_dirichlet_bc(i_psi,rhs,temp,normal,curv,izonedim,mat)
+     temp = 0.
+     call set_normal_bc(i_psi,rhs,temp,normal,curv,izonedim,mat)
+
+     call set_dirichlet_bc(i_f, rhs,temp, normal,curv,izonedim,mat)
+  end do
+
+end subroutine boundary_j
+
+!=======================================================
+! boundary_fstar
+! ~~~~~~~~~~~~~~
+!
+!=======================================================
+subroutine boundary_fstar(rhs, mat)
+  use basic
+  use vector_mod
+  use matrix_mod
+  use boundary_conditions
+
+  implicit none
+
+  type(vector_type) :: rhs
+  type(matrix_type), optional :: mat
+
+  integer, parameter :: numvarsm = 2
+  integer :: i, izone, izonedim, i_f, numnodes, icounter_t
+  real :: normal(2), curv(3)
+  real :: x, z, phi
+  logical :: is_boundary
+!!$  real, dimension(1) :: xv, phiv, zv
+!!$  vectype, dimension(1) :: br, bphi, bz
+!!$  vectype :: bn
+  vectype, dimension(dofs_per_node) :: temp
+
+  if(iper.eq.1 .and. jper.eq.1) return
+  if(myrank.eq.0 .and. iprint.ge.2) print *, "boundary_j called"
+
+  temp = 0.
+
+  numnodes = owned_nodes()
+  do icounter_t=1,numnodes
+     i = nodes_owned(icounter_t)
+     call boundary_node(i,is_boundary,izone,izonedim,normal,curv,x,phi,z)
+     if(.not.is_boundary) cycle
+
+     i_f = node_index(rhs, i, 1)
+
+!!$     temp = 0.
+!!$     call set_dirichlet_bc(i_f,rhs,temp,normal,curv,izonedim,mat)
+     temp = 0.
+     call set_normal_bc(i_f,rhs,temp,normal,curv,izonedim,mat)
+
+  end do
+
+end subroutine boundary_fstar
+
+
+  subroutine read_j(n, x, phi, z, jr, jphi, jz)
+    use basic
+
+    implicit none
+
+    integer, intent(in) :: n
+    real, intent(in), dimension(n) :: x, phi, z
+    vectype, intent(out), dimension(n) :: jr, jphi, jz
+
+    real, dimension(n) :: r2, ex
+    real :: b0, x0, z0, s2
+
+    ! Axisymmetric test case with helical current density
+    x0 = xmag
+    z0 = zmag
+    b0 = 0.5
+    s2 = ln**2
+
+    !    r2(:) = (x-xh)**2 + (z-zh)**2
+    r2 = (x-x0)**2 + (z-z0)**2
+    ex = b0*exp(-r2/(2.*s2))
+
+#if defined(USECOMPLEX)
+    jr(:) = ex * &
+         (x-x0) * ( 2.*x**2*((z-z0)**2 - s2) - (ntor*s2)**2) &
+         / (x**2 * s2)
+    jz(:) = ex * &
+         (z-z0) * (-2.*x**2*((x-x0)**2 - s2) + (ntor*s2)**2 + 2.*x*(x-x0)*s2) &
+         / (x**2 * s2)
+    jphi(:) = cmplx(0.,ntor)*ex * &
+         (x*((x-x0)**2 - (z-z0)**2) + (x - x0)*s2) &
+         / x**2
+
+    ! This corresponds to
+    !    BR   = i*ntor*s2*(z-z0)/x  * ex * exp[i ntor phi]
+    !    BZ   = i*ntor*s2*(r-r0)/x  * ex * exp[i ntor phi]
+    !    BPhi = 2*b0*(x - x0)*(z0-z0)*ex * exp[i ntor phi]
+#else
+    jr(:)   = ex*( (z-z0)/s2       )
+    jz(:)   = ex*(-(x-x0)/s2 + 1./x)
+    jphi(:) = ex*(r2/s2 - 1. - x0/x)/x
+
+    ! This corresponds to
+    !    BR   = -(z-z0)/x * ex
+    !    BZ   =  (r-r0)/x * ex
+    !    BPhi =  ex
+#endif
+
+  end subroutine read_j
+
+
 
 end module rmp
 

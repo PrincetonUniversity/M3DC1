@@ -45,6 +45,7 @@ from m3dc1.extend_profile       import extend_profile
 from m3dc1.mesh_size            import mesh_size
 from m3dc1.tpf                  import tpf
 from m3dc1.tpf                  import tpf_vs_t
+from m3dc1.tpf                  import multiply_tpf_time_trace
 from m3dc1                      import read_h5
 from m3dc1.compare_kinetic_profiles         import compare_kinetic_profiles
 from m3dc1.injection_rate       import injection_rate

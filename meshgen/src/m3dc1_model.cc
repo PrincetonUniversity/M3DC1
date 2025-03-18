@@ -514,12 +514,22 @@ void attach_piecewise_linear_curve ( int* edge, int * numPts, double * points)
     knots.at(knotsize-i-1)=1.0;
   }
   double increment=1.0/(*numPts-1);
+  double totalLength = 0.0;
+  std::vector <double> lengthVector;
+  for( int i=1; i<*numPts; i++)
+  {
+    double pt1[2] = {points[2*i-2],points[2*i-1]};
+    double pt2[2] = {points[2*i],points[2*i+1]};
+    double length = getDist2D(pt1,pt2);
+    totalLength = length+totalLength;
+    lengthVector.push_back(totalLength);
+  }
   for (int i=0; i<*numPts-2; i++)
   {
-    //double increment=inter_len.at(i)/len;
-    knots.at(order_p+i)=knots.at(order_p+i-1)+increment;
+    double par = lengthVector[i]/totalLength;
+    knots.at(order_p+i)=par;
+    // knots.at(order_p+i)=knots.at(order_p+i-1)+increment;
   }
-
   for( int i=0; i<*numPts; i++)
   {
     ctrlPointsX.at(i)=points[2*i];
@@ -530,11 +540,10 @@ void attach_piecewise_linear_curve ( int* edge, int * numPts, double * points)
   data[1] = new M3DC1::BSpline(order_p,ctrlPointsY,knots, weight);
   data2Clean.push_back(data);
   int edgePeriodic = 0;
+  if(vtx.first==vtx.second) edgePeriodic=1;
   double edgeRange[2] = {0.0, 1.0};
-  //gmi_add_analytic(m3dc1_model::instance()->model, 1, *edge, edgeFunction, &edgePeriodic, &edgeRange, data);
   gmi_ent* gedge = gmi_add_analytic(m3dc1_model::instance()->model, 1, *edge, edgeFunction, &edgePeriodic, &edgeRange, data);
   make_edge_topo(m3dc1_model::instance()->model,gedge, vtx.first, vtx.second);
-//  if (!PCU_Comm_Self()) std::cout<<"[p"<<PCU_Comm_Self()<<"] "<<__func__<<": new edge "<<*edge<<" vtx("<<vtx.first<<", "<<vtx.second<<")\n";
 }
 
 // **********************************************
