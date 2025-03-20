@@ -157,6 +157,9 @@ contains
 							ZmaxImp = 1.0 *  kprad_z ! Impurity atomic no.
 							Zimp = (Dens1 - 1.0*Dens_ion)/Dens_imp ! Impurity Ionization
 				END IF
+                                IF(x>0.13) THEN ! Upper bound of NN 
+                                        x = 0.13
+                                END IF
 				sd = getDreicerHesslow(Dens_ion,Dens_imp,ZmaxImp,ZImp,x,Temp) ! [per cubic m per s]
               endif
               ! Tritium Beta Source
