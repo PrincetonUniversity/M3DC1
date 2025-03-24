@@ -26,6 +26,7 @@ module auxiliary_fields
   type(field_type) :: mesh_zone
   type(field_type) :: z_effective
   type(field_type) :: kprad_totden
+  type(field_type) :: Jp_BS_r,Jp_BS_z,Jp_BS_phi,JpdotB,JpdotB_dndpsi,JpdotB_dtedpsi,JpdotB_dtidpsi
 
   logical, private :: initialized = .false.
 
@@ -77,6 +78,15 @@ if (ispradapt .eq. 1) then
      call create_field(f3eplot, "f3eplot")
      call create_field(jdbobs, "jdbobs")
    endif
+   if(ibootstrap.ne.0) then
+    call create_field(Jp_BS_r, "Jp_BS_r")
+    call create_field(Jp_BS_z, "Jp_BS_z")
+    call create_field(Jp_BS_phi, "Jp_BS_phi")
+    call create_field(JpdotB, "JpdotB")
+    call create_field(JpdotB, "JpdotB_dndpsi")
+    call create_field(JpdotB, "JpdotB_dtedpsi")
+    call create_field(JpdotB, "JpdotB_dtidpsi")
+   endif
 else
   call create_field(bdotgradp)
   call create_field(bdotgradt)
@@ -116,6 +126,15 @@ else
      call create_field(f3vplot)
      call create_field(f3eplot)
      call create_field(jdbobs)
+  endif
+  if(ibootstrap.ne.0) then
+    call create_field(Jp_BS_r)
+    call create_field(Jp_BS_z)
+    call create_field(Jp_BS_phi)
+    call create_field(JpdotB)
+    call create_field(JpdotB_dndpsi)
+    call create_field(JpdotB_dtedpsi)
+    call create_field(JpdotB_dtidpsi)
   endif
 endif
   initialized = .true.
@@ -165,6 +184,15 @@ subroutine destroy_auxiliary_fields
      call destroy_field(f3vplot)
      call destroy_field(f3eplot)
      call destroy_field(jdbobs)
+  endif
+  if(ibootstrap.ne.0) then
+    call destroy_field(Jp_BS_r)
+    call destroy_field(Jp_BS_z)
+    call destroy_field(Jp_BS_phi)
+    call destroy_field(JpdotB)
+    call destroy_field(JpdotB_dndpsi)
+    call destroy_field(JpdotB_dtidpsi)
+    call destroy_field(JpdotB_dtedpsi)
   endif
 end subroutine destroy_auxiliary_fields
   
@@ -643,6 +671,8 @@ subroutine calculate_auxiliary_fields(ilin)
   use temperature_plots
   use kprad_m3dc1
   use arrays
+  use diagnostics
+  use bootstrap
 
   implicit none
 
@@ -696,6 +726,15 @@ subroutine calculate_auxiliary_fields(ilin)
      jdbobs  = 0.
      pot2_field = 0.
   endif
+  if(ibootstrap.ne.0) then
+    Jp_BS_r = 0.
+    Jp_BS_z = 0.
+    Jp_BS_phi = 0.
+    JpdotB = 0.
+    JpdotB_dndpsi = 0.
+    JpdotB_dtedpsi = 0.
+    JpdotB_dtidpsi = 0.
+  endif
 
   ! specify which fields are to be evalulated
   def_fields = FIELD_N + FIELD_NI + FIELD_P + FIELD_PSI + FIELD_I
@@ -705,6 +744,7 @@ subroutine calculate_auxiliary_fields(ilin)
   if(jadv.eq.0) def_fields = def_fields + FIELD_ES
   if(heat_source .and. itemp_plot.eq.1) def_fields = def_fields + FIELD_Q
   if(rad_source .and. itemp_plot.eq.1) def_fields = def_fields + FIELD_RAD
+  if(ibootstrap.ne.0) def_fields = def_fields + FIELD_JBS
   if (irunaway.ge.1) def_fields = def_fields + FIELD_RE
 
   numelms = local_elements()
@@ -1034,7 +1074,53 @@ subroutine calculate_auxiliary_fields(ilin)
 
         
      end if  ! on itemp_plot.eq.1
+     
+     if(ibootstrap.ne.0) then
+      
+         !temp79a =  <J.B>/<B^2> = jbscommon * bootsrap_alpha =  tempD * 1/<B^2> * bootsrap_alpha
+         !temp79b =  <J.B>                                    =  tempD           * bootsrap_alpha    
+         !temp79c =  dndpsi_term  or dlnpdpsi_term                
+         !temp79d =  dtedpsi_term                       
+         !temp79e =  dtidpsi_term   
 
+      if (ibootstrap.eq.1)then
+         !using da/dpsi:   da/dpsi  = 1/|Bp|^2 1/R [(1/R psi_z + f'_r) a_z     + (1/R psi_r - f'_z) a_r]
+         call calculate_CommonTerm_Lambda(temp79a,temp79b,temp79c,temp79d,temp79e)
+      elseif (ibootstrap.eq.2)then
+         !using dte/dpsit: da/dpsit = da/dTe dTe/dpsit = (del a.del Te)/(|del Te|^2 + chi^2) dTe/dpsit              
+         call calculate_CommonTerm_Lambda_fordtedpsit(temp79a,temp79b,temp79c,temp79d,temp79e)
+         
+       endif
+      
+
+      
+      dofs = -intx4(mu79(:,:,OP_1),ri_79,pst79(:,OP_DZ),temp79a) &
+             -intx3(mu79(:,:,OP_1),bfpt79(:,OP_DR),temp79a)
+      call vector_insert_block(Jp_BS_r%vec,itri,1,dofs,VEC_ADD)
+    
+      
+      dofs = intx4(mu79(:,:,OP_1),ri_79,bzt79(:,OP_1),temp79a) 
+      call vector_insert_block(Jp_BS_phi%vec,itri,1,dofs,VEC_ADD)
+      
+      
+      dofs =  intx4(mu79(:,:,OP_1),ri_79,pst79(:,OP_DR),temp79a) &
+             -intx3(mu79(:,:,OP_1),bfpt79(:,OP_DZ),temp79a)
+      call vector_insert_block(Jp_BS_z%vec,itri,1,dofs,VEC_ADD)
+
+      
+      dofs = intx2(mu79(:,:,OP_1),temp79b) 
+      call vector_insert_block(JpdotB%vec,itri,1,dofs,VEC_ADD)
+
+      dofs = intx2(mu79(:,:,OP_1),temp79c) 
+      call vector_insert_block(JpdotB_dndpsi%vec,itri,1,dofs,VEC_ADD)
+
+      dofs = intx2(mu79(:,:,OP_1),temp79d) 
+      call vector_insert_block(JpdotB_dtedpsi%vec,itri,1,dofs,VEC_ADD)
+
+      dofs = intx2(mu79(:,:,OP_1),temp79e) 
+      call vector_insert_block(JpdotB_dtidpsi%vec,itri,1,dofs,VEC_ADD)
+
+     end if
   end do
 
   if(myrank.eq.0 .and. iprint.ge.1) print *, ' before bdotgradp solve'
@@ -1090,7 +1176,16 @@ subroutine calculate_auxiliary_fields(ilin)
      call newvar_solve(pot2_field%vec, pot2_mat_lhs)
 
   endif
-
+  if(myrank.eq.0 .and. iprint.ge.1) print *, 'before J parallel bootstrap solve'
+   if(ibootstrap.ne.0) then
+    call newvar_solve(Jp_BS_r%vec, mass_mat_lhs)
+    call newvar_solve(Jp_BS_z%vec, mass_mat_lhs)
+    call newvar_solve(Jp_BS_phi%vec, mass_mat_lhs)
+    call newvar_solve(JpdotB%vec, mass_mat_lhs)
+    call newvar_solve(JpdotB_dndpsi%vec, mass_mat_lhs)
+    call newvar_solve(JpdotB_dtedpsi%vec, mass_mat_lhs)
+    call newvar_solve(JpdotB_dtidpsi%vec, mass_mat_lhs)
+   endif
   if(myrank.eq.0 .and. iprint.ge.1) print *, ' Done calculating diagnostic fields'
   
   end subroutine calculate_auxiliary_fields

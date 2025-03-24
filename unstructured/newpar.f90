@@ -1353,6 +1353,14 @@ if (ispradapt .eq. 1) then
      call create_field(bfp_field(0), "bfp0")
      call create_field(bfp_field(1), "bfp1")
      if(ibootstrap.gt.0) call create_field(visc_e_field, "visc_e")
+     !Bootstrap Coeff Fields
+     if(ibootstrap.gt.0) call create_field(Jbs_L31_field, "Jbs_L31")
+     if(ibootstrap.gt.0) call create_field(Jbs_L32_field, "Jbs_L32")
+     if(ibootstrap.gt.0) call create_field(Jbs_L34_field, "Jbs_L34")
+     if(ibootstrap.gt.0) call create_field(Jbs_alpha_field, "Jbs_alpha")
+     if(ibootstrap.gt.0) call create_field(Jbs_fluxavg_iBsq_field, "Jbs_fluxavg_iBsq")
+     if(ibootstrap.gt.0) call create_field(Jbs_fluxavg_G_field, "Jbs_fluxavg_G")
+     if(ibootstrap.eq.2) call create_field(Jbs_dtedpsit_field, "Jbs_dtedpsit")
 
      call create_field(psi_coil_field, "psi_coil")
 
@@ -1399,6 +1407,13 @@ else
      call create_field(bfp_field(0))
      call create_field(bfp_field(1))
      if(ibootstrap.gt.0) call create_field(visc_e_field)
+     if(ibootstrap.gt.0) call create_field(Jbs_L31_field)
+     if(ibootstrap.gt.0) call create_field(Jbs_L32_field)
+     if(ibootstrap.gt.0) call create_field(Jbs_L34_field)
+     if(ibootstrap.gt.0) call create_field(Jbs_alpha_field)
+     if(ibootstrap.gt.0) call create_field(Jbs_fluxavg_iBsq_field)
+     if(ibootstrap.gt.0) call create_field(Jbs_fluxavg_G_field)
+     if(ibootstrap.eq.2) call create_field(Jbs_dtedpsit_field)
 
      call create_field(psi_coil_field)
 

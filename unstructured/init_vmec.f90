@@ -10,9 +10,10 @@ module init_vmec
   use spline 
   implicit none
 
-  type(spline1d), private :: den_spline        ! density
+  type(spline1d), private :: den_spline        ! density 
+  type(spline1d), private :: temper_spline        ! temperature
+  type(spline1d), private :: press_ext_spline        ! pressure
   type(spline1d), private :: presf_spline      ! total pressure
-
 #ifdef USEST
  
 contains
@@ -30,7 +31,8 @@ contains
 
     type(matrix_type) :: br_mat
     type(vector_type) :: fppsi_vec
-    type(field_type) :: psi_f, bf_f, bfp_f, bz_f, den_f, p_f 
+    type(field_type) :: psi_f, bf_f, bfp_f, bz_f, den_f, te_f, pexternal_f
+    type(field_type) :: p_f 
     integer :: itri, numelms, ifpbound, ier, ipsibound, ipsifpbound, i, k, k1
     integer :: inode(nodes_per_element)
     vectype, dimension(dofs_per_element) :: dofs
@@ -70,6 +72,30 @@ contains
       deallocate(xvals, yvals)
     endif
 
+    if(iread_te.eq.21) then 
+      call create_field(te_f)
+      te_f = 0.
+      nvals = 0
+      call read_ascii_column('te_profile', xvals, nvals, icol=1)
+      call read_ascii_column('te_profile', yvals, nvals, icol=2)
+      if(nvals.eq.0) call safestop(5)
+      yvals = yvals * 1.6022e-9 / (b0_norm**2/(4.*pi*n0_norm))
+      call create_spline(temper_spline , nvals, xvals, yvals)
+      deallocate(xvals, yvals)
+    endif
+
+    if(iread_p.eq.21) then 
+      call create_field(pexternal_f)
+      pexternal_f = 0.
+      nvals = 0
+      call read_ascii_column('p_profile', xvals, nvals, icol=1)
+      call read_ascii_column('p_profile', yvals, nvals, icol=2)
+      if(nvals.eq.0) call safestop(5)
+      yvals = yvals * 10. / (b0_norm**2/(4.*pi))
+      call create_spline(press_ext_spline , nvals, xvals, yvals)
+      deallocate(xvals, yvals)
+    endif
+
     call create_vector(fppsi_vec,2)
     call associate_field(bfp_f,fppsi_vec,1)
     call associate_field(psi_f,fppsi_vec,2)
@@ -91,8 +117,10 @@ contains
 
       call define_element_quadrature(itri,int_pts_main,int_pts_tor)
       call define_fields(itri,0,1,0)
+      !vmec_fields(x, phi, z, br, bphi, bz, p, den,temper)
+    
       call vmec_fields(xl_79, phi_79, zl_79, temp79a, temp79b, temp79c, &
-                      temp79d, temp79e)
+                      temp79d, temp79e, temp79f)
 
       ! fp equation
       temp(:,:,1,1) = &
@@ -130,15 +158,27 @@ contains
       call vector_insert_block(fppsi_vec, itri, 1, temp2(:,1), MAT_ADD)
       call vector_insert_block(fppsi_vec, itri, 2, temp2(:,2), MAT_ADD)
 
-      ! pressure p 
-      dofs = intx2(mu79(:,:,OP_1),temp79d)
-      call vector_insert_block(p_f%vec, itri, 1, dofs, VEC_ADD)
+      ! pressure p
+      if(iread_p.eq.21) then 
+        dofs = intx2(mu79(:,:,OP_1),temp79d)
+        call vector_insert_block(pexternal_f%vec, itri, 1, dofs, VEC_ADD)
+      else
+        dofs = intx2(mu79(:,:,OP_1),temp79d)
+        call vector_insert_block(p_f%vec, itri, 1, dofs, VEC_ADD)
+      end if
 
       ! density n 
       if(iread_ne.eq.21) then 
         dofs = intx2(mu79(:,:,OP_1),temp79e)
         call vector_insert_block(den_f%vec, itri, 1, dofs, VEC_ADD)
       end if
+
+      ! temperature te ti 
+      if(iread_te.eq.21) then 
+        dofs = intx2(mu79(:,:,OP_1),temp79f)
+        call vector_insert_block(te_f%vec, itri, 1, dofs, VEC_ADD)
+      end if
+
 
       ! F = R*B_phi 
       dofs = intx3(mu79(:,:,OP_1),temp79b,r_79) 
@@ -148,7 +188,11 @@ contains
 
     if(myrank.eq.0 .and. iprint.ge.2) print *, "Solving fp & psi..."
     call sum_shared(fppsi_vec)
-    call boundary_vmec(fppsi_vec,br_mat,p_f)
+    if(iread_p.eq.21) then 
+        call boundary_vmec(fppsi_vec,br_mat,pexternal_f)
+    else
+        call boundary_vmec(fppsi_vec,br_mat,p_f)
+    end if
     call finalize(br_mat)
     call newsolve(br_mat,fppsi_vec,ier)
     if(myrank.eq.0 .and. iprint.ge.2) print *, "Solving psi: ier = ", ier
@@ -161,10 +205,24 @@ contains
       call newvar_solve(den_f%vec,mass_mat_lhs)
       den_field(0) = den_f 
     end if
-    if(myrank.eq.0 .and. iprint.ge.2) print *, "Solving p..."
-    call newvar_solve(p_f%vec,mass_mat_lhs)
+    if(iread_te.eq.21) then
+      if(myrank.eq.0 .and. iprint.ge.2) print *, "Solving temp..."
+      call newvar_solve(te_f%vec,mass_mat_lhs)
+      te_field(0) = te_f 
+      ti_field(0) = te_f 
+    end if
 
-    p_field(0) = p_f 
+    
+    if(myrank.eq.0 .and. iprint.ge.2) print *, "Solving p & per..."
+    if(iread_p.eq.21) then
+     call newvar_solve(pexternal_f%vec,mass_mat_lhs)
+     p_field(0)=pexternal_f
+    else
+     call newvar_solve(p_f%vec,mass_mat_lhs)
+
+     p_field(0) = p_f 
+    endif
+
     pe_field(0) = p_field(0)
     call mult(pe_field(0),pefac)
     call evaluate_spline(presf_spline, 0., p0)
@@ -185,7 +243,14 @@ contains
       call destroy_field(den_f)
       call destroy_spline(den_spline)
     end if
-    call destroy_spline(presf_spline)
+    if(iread_te.eq.21) then
+      call destroy_field(te_f)
+      call destroy_spline(temper_spline)
+    end if
+    if(iread_p.eq.21) then
+      call destroy_field(pexternal_f)
+      call destroy_spline(press_ext_spline)
+    end if
     call destroy_vector(fppsi_vec)
     call destroy_mat(br_mat)
 
@@ -232,14 +297,14 @@ contains
   end subroutine boundary_vmec
 
   ! Calculate VMEC fields given x, phi, z 
-  elemental subroutine vmec_fields(x, phi, z, br, bphi, bz, p, den)
+  elemental subroutine vmec_fields(x, phi, z, br, bphi, bz, p, den,temper)
     implicit none
 
     real, intent(in) :: x, phi, z
-    real, intent(out) :: p, br, bphi, bz, den
+    real, intent(out) :: p, br, bphi, bz, den,temper
     real :: r, r2n, ds, rout, bu, bv, theta 
     integer :: js, i 
-    real, dimension(mn_mode) :: rstc, zsts, co, sn, rsts, zstc 
+    real, dimension(mn_mode) :: rstc, zsts, co, sn, ls, lc, rsts, zstc 
     real, dimension(mn_mode_nyq) :: co_nyq, sn_nyq, buc, bvc, bus, bvs 
     real :: dr, dz, dr1, dz1, phis
 
@@ -251,8 +316,29 @@ contains
     sn = sin(xmv*theta+xnv*phis)
     co_nyq = cos(xmv_nyq*theta+xnv_nyq*phis)
     sn_nyq = sin(xmv_nyq*theta+xnv_nyq*phis)
-    call evaluate_spline(presf_spline, r**2, p)
-    if(iread_ne.eq.21) call evaluate_spline(den_spline, r**2, den)
+
+    if(iread_p.eq.21) then
+      call evaluate_spline(press_ext_spline, r**2, p)
+    else
+      call evaluate_spline(presf_spline, r**2, p)
+    endif
+   ! if(iread_ne.eq.21) call evaluate_spline(den_spline, r**2, den)
+   ! if(iread_te.eq.21) call evaluate_spline(temper_spline, r**2, temper)
+
+    if(iread_ne.eq.21) then
+      call evaluate_spline(den_spline, r**2, den)
+    else if(iread_te.eq.21) then
+      call evaluate_spline(temper_spline, r**2, temper)
+      if(iread_p.eq.21) then
+        call evaluate_spline(press_ext_spline, r**2, p)
+      else
+        call evaluate_spline(presf_spline, r**2, p)
+      end if
+      den = temper/p
+    else
+      den=den0
+    endif
+
     call zernike_evaluate(r,mn_mode,mb,rmncz,rstc)
     call zernike_evaluate(r,mn_mode,mb,zmnsz,zsts)
     !call zernike_evaluate(r,mn_mode_nyq,mb_nyq,bsupumncz,buc)

@@ -2566,8 +2566,11 @@ subroutine flux_lin(trialx, lin, ssterm, ddterm, q_ni, r_bf, q_bf, izone)
 
   end select
 
-  if(ibootstrap_model.eq.1) then 
+  if((ibootstrap_model.eq.1) .or. (ibootstrap_model.eq.2)) then
      call bootstrap_flux(trialx, lin, ssterm, ddterm, r_bf, q_bf, &
+          thimpf, thimp_bf)
+  elseif((ibootstrap_model.eq.3) .or. (ibootstrap_model.eq.4)  .or. (ibootstrap_model.eq.5) ) then
+     call bootstrap_flux_simplified(trialx, lin, ssterm, ddterm, r_bf, q_bf, &
           thimpf, thimp_bf)
   end if
 
@@ -2921,10 +2924,13 @@ subroutine axial_field_lin(trialx, lin, ssterm, ddterm, q_ni, r_bf, q_bf, &
   end if
 
 
-  if(ibootstrap_model.eq.1) then 
+  if((ibootstrap_model.eq.1) .or. (ibootstrap_model.eq.2)) then
      call bootstrap_axial_field(trialx, lin, ssterm, ddterm, r_bf, q_bf, &
           thimpf, thimp_bf)
-  end if
+  elseif((ibootstrap_model.eq.3) .or. (ibootstrap_model.eq.4) .or. (ibootstrap_model.eq.5)) then
+     call bootstrap_axial_field_simplified(trialx, lin, ssterm, ddterm, &
+          r_bf, q_bf,thimpf, thimp_bf)
+end if
 
 
   select case(itwofluid)
@@ -3924,9 +3930,11 @@ subroutine pressure_lin(trialx, lin, ssterm, ddterm, q_ni, r_bf, q_bf,&
      end if
   end if
 
-  if(ibootstrap_model.eq.1) then
-     call bootstrap_pressure(trialx, lin, ssterm, ddterm, pp_g, thimp)
-  end if
+ ! if((ibootstrap_model.eq.1) .or. (ibootstrap_model.eq.2)) then
+ !    call bootstrap_pressure(trialx, lin, ssterm, ddterm, pp_g, thimp)
+ ! elseif((ibootstrap_model.eq.3) .or. (ibootstrap_model.eq.4) .or. (ibootstrap_model.eq.5) ) then
+ !    call bootstrap_pressure(trialx, lin, ssterm, ddterm, pp_g, thimp)
+ ! end if
 end subroutine pressure_lin
 
 !======================================================================
@@ -4878,6 +4886,10 @@ subroutine ludefall(ivel_def, idens_def, ipres_def, ipressplit_def,  ifield_def)
   if(irunaway.gt.0) then
      def_fields = def_fields + FIELD_RE
   end if
+
+  if(ibootstrap.gt.0) then
+   def_fields = def_fields + FIELD_JBS
+  endif
 
   if(integrator.eq.1 .and. ntime.gt.1) then
      bdf = 2.
