@@ -78,6 +78,40 @@ See the previou section for the format of the PETSc option file options\_bjacobi
 part0.smb part1.smb part2.smb part3.smb part4.smb part5.smb part6.smb part7.smb
 \end{verbatim}
 
+\subsection{Running Jobs with the Bootstrap Model}
+
+\noindent
+To run simulations with the bootstrap model enabled, the following procedure should be followed: 
+\begin{enumerate}
+    \item \textit{Initial Simulation Without Bootstrap Model}:  
+    Run a simulation for a single timestep with the bootstrap model disabled. 
+
+    \item \textit{Generate M3D-C1 output file}:  
+    Using fusion-io, generate the \texttt{neo\_input.nc} file containing the density, temperature, magnetic field, and rotational transform outputs required to calculate the bootstrap coefficients ($L_{31}$, $L_{32}$, $L_{34}$, $\alpha$). These coefficients are necessary to run the bootstrap model.
+
+    \item \textit{Generate Bootstrap Coefficients Input File}:  
+    Execute the MATLAB script located in the fusion-io's \texttt{/util/matlab\_bootstrap} directory. Use the appropriate flags as specified in the script's README file.  
+    This will generate a file named either:
+    \begin{itemize}
+        \item \texttt{ProfileJBSCoeff\_Te\_L31\_32\_34\_alpha\_B2\_dtedpsit\_G} or 
+        \item \texttt{ProfileJBSCoeff\_Psi\_L31\_32\_34\_alpha\_B2\_dtedpsit\_G},
+    \end{itemize}
+    which will serve as input for the bootstrap model in M3D-C1.
+
+    \item \textit{Rerun Simulation with Bootstrap Model Activated}:  
+    Run the simulation again, this time using the file generated in the previous step and setting the appropriate model options. The following settings are recommended for the \texttt{C1input} file to activate the bootstrap model for stellarator configurations:
+    \begin{itemize}
+        \item \texttt{ibootstrap = 2}
+        \item \texttt{ibootstrap\_model = 4}  
+        \item \texttt{bootstrap\_alpha = 1}  
+        \item \texttt{ibootstrap\_map\_te = 1}  
+        \item \texttt{ibootstrap\_regular = 1e-8}  
+        \item \texttt{iwrite\_aux\_vars = 1} \texttt{(This setting is required to generate the bootstrap model outputs in M3D-C1.)}
+    \end{itemize}
+\end{enumerate}
+
+The non-local quantities $L_{31}$, $L_{32}$, $L_{34}$, and $\alpha$ are currently computed outside M3D-C1 using the $n$, $T_e$, and $B$ field outputs from M3D-C1 (via fusion-io). These values are assumed not to change significantly throughout the simulation but can be updated when restarting the simulations.
+
 \subsection{Graphics Files}
 \noindent
 The graphics files are of two types. There is a single file called: C1.h5 that contains all the timedependent scalar information. This must be saved and be present in the directory of a job so that it can be added to.
