@@ -45,7 +45,9 @@
    after compiling, run "make bin"
 
 5. mesh generator
-   /p/swim/jchen/PETSC/core-trunk/spark-20231214/bin
+   module load intel/2023.2.0 openmpi/4.1.6-intel-2023.2.0
+   module load simmodsuite/2025.0-250217-dev
+   /p/tsc/m3dc1/lib/SCORECLib/rhel9/intel2023.2.0-openmpi4.1.6/2025.0-250217-dev/bin/
 
    mesh utility (partioning, merging, etc.)
    /p/swim/jchen/PETSC/core-trunk/spark-20231214/bin

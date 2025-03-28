@@ -44,7 +44,7 @@ set(SIMMODSUITE_LIB_NAMES
   SimModel
   SimPartitionWrapper #-${SIM_MPI}
   SimAdvMeshing
-  #tirpc #for Stellar, MIT Rhel7
+  tirpc #for Stellar, MIT Rhel7, Flux
   #SimField -- not valid for PPPL
 )
 
