@@ -46,7 +46,7 @@ void save_sim_model ();
 char simLic[128]="/home/PPPL/simmetrix/license/simmetrix.lic";
 #endif
 #ifdef PPPL
-char simLic[128]="/usr/pppl/Simmetrix/simmodsuite.lic";
+char simLic[128]="/opt/hpc/software/Simmetrix/simmodsuite.lic";
 #endif
 #ifdef SDUMONT
 char simLic[128]="/scratch/ntm/software/Simmetrix/license/simmodsuite.lic";
