@@ -68,7 +68,7 @@ char simLic[128]="/scratch/ntm/software/Simmetrix/license/simmodsuite.lic";
 
 extern pGVertex GE_insertVertex(pGEdge, double);
 
-int make_sim_model (pGModel& sim_model, vector< vector<int> >& face_bdry);
+void make_sim_model (pGModel& sim_model, vector< vector<int> >& face_bdry);
 
 void messageHandler(int type, const char *msg);
 using namespace std;
@@ -596,7 +596,7 @@ void inner_outer_wall_pts()
     }  // for (int i=0; i<nout_bdryFile; ++i)
 }
 
-int make_sim_model (pGModel& sim_model, vector< vector<int> >& face_bdry)
+void make_sim_model (pGModel& sim_model, vector< vector<int> >& face_bdry)
 {
   std::map< int, std::vector<int> > loopContainer;
   std::map<int, std::pair<int, int> > edgeContainer;
@@ -700,7 +700,7 @@ int make_sim_model (pGModel& sim_model, vector< vector<int> >& face_bdry)
           break;
         default:
           std::cout<<" curve type not support by simmetrix "<<std::endl;
-          throw 1;
+          throw 1; // throws an exception of type int with the value 1
           break;
       }
       GEN_setNativeIntAttribute(pe, it->first, "loopIdOnEdge");

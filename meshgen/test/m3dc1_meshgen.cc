@@ -69,7 +69,7 @@ char simLic[128]="/net/common/meshSim/license/license.txt";
 char meshSizeFnName[]="meshSizeFn";
 double meshSizeFn(const double gpt[3], void* data);
 
-int make_sim_model (pGModel& sim_model);
+void make_sim_model (pGModel& sim_model);
 
 void messageHandler(int type, const char *msg);
 void M_writeFMDB(pMesh theMesh, char *name, int snap);
@@ -779,7 +779,7 @@ int main(int argc, char *argv[])
   MPI_Finalize();
 }
 
-int make_sim_model (pGModel& sim_model)
+void make_sim_model (pGModel& sim_model)
 {
   std::map< int, std::vector<int> > loopContainer;
   std::map<int, std::pair<int, int> > edgeContainer;
@@ -830,7 +830,7 @@ int make_sim_model (pGModel& sim_model)
       if ( startVert== NULL || endVert==NULL)
       {
         std::cout<<" invalid edge vertex not created edge tag "<<edge<<std::endl;
-        throw 1;
+        throw 1; // throws an exception of type int with the value 1
       }
       switch (curvType)
       {
@@ -862,7 +862,7 @@ int make_sim_model (pGModel& sim_model)
           break;
         default:
           std::cout<<" curve type not support by simmetrix "<<std::endl;
-          throw 1;
+          throw 1; // throws an exception of type int with the value 1
           break;
       }
 #ifdef SIM12
