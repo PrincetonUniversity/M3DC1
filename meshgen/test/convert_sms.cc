@@ -32,12 +32,11 @@ char simLic[128]="/usr/pppl/Simmetrix/simmodsuite.lic";
 #ifdef SDUMONT
 char simLic[128]="/scratch/ntm/software/Simmetrix/license/simmodsuite.lic";
 #endif
-#else
 #ifdef MIT
   char simLic[128]="/orcd/nese/psfc/001/software/simmetrix/RLMServer-14/server.lic";
+#endif
 #else // scorec
   char simLic[128]="/net/common/meshSim/license/license.txt";
-#endif
 #endif
 
 int main(int argc, char** argv)

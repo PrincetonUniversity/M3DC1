@@ -48,7 +48,6 @@
 #ifdef LICENSE
 #include <SimLicense.h>
 #ifdef STELLAR
-#include <SimLicense.h>
 char simLic[128]="/home/PPPL/simmetrix/license/simmetrix.lic";
 #endif
 #ifdef PPPL
@@ -58,12 +57,12 @@ char simLic[128]="/opt/hpc/software/Simmetrix/simmodsuite.lic";
 #ifdef SDUMONT
 char simLic[128]="/scratch/ntm/software/Simmetrix/license/simmodsuite.lic";
 #endif
-#else // scorec
 #ifdef MIT
 char simLic[128]="/orcd/nese/psfc/001/software/simmetrix/RLMServer-14/server.lic";
+//"/orcd/nese/psfc/001/software/simmetrix/v2025.0-250318dev/SimModSuite2025.0-250318dev/simmodsuite.lic"
+#endif
 #else // SCOREC
 char simLic[128]="/net/common/meshSim/license/license.txt";
-#endif
 #endif
 
 char meshSizeFnName[]="meshSizeFn";

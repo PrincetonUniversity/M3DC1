@@ -27,7 +27,7 @@ macro(lapackLibCheck libs isRequired)
 endmacro(lapackLibCheck)
 
 set(LAPACK_LIBS "")
-if (ENABLE_MIT)
+if (ENABLE_MKL)
 set(LAPACK_LIB_NAMES
   mkl_lapack95_lp64 #lapack should come first since it references routines in the BLAS library
   mkl_blas95_lp64

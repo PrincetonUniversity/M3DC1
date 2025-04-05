@@ -1,8 +1,6 @@
 1. login: 
 
-   ssh -P eofe4.mit.edu -l [username]
-   ssh -P eofe10.mit.edu -l [username]
-   salloc -p sched_mit_psfc_r8 --nodes 1 --ntasks-per-node=1 01:00:00 --x11
+   ssh username@orcd-login001.mit.edu 
 
 2. code
    git clone git@github.com:PrincetonUniversity/M3DC1.git 
@@ -33,11 +31,12 @@
 5. mesh utility
 
 5.1 mesh generation
-  ssh eofe7.mit.edu
-  module load gcc/6.2.0 openmpi/4.0.4
-  executables are in /orcd/nese/psfc/001/software/scorec/rhel7-gcc6.2.0-openmpi4.0.4/sim18.0-230521/bin
+  executables are in /orcd/nese/psfc/001/scorec/intelmpi2021.9.0-gcc-12.2.0/2025.0-250318dev/bin
+  e.g. salloc -p sched_mit_psfc_r8 --nodes 1 --ntasks-per-node=1 -t 00:10:00
+       srun -n 1 ./m3dc1_meshgen M3DC1/meshgen/test/data/circle-input
+       srun -n 1 ./m3dc1_mfmgen M3DC1/meshgen/test/data/input7
 
-  For more details, see readme and M3DC1 User's Guide (https://m3dc1.pppl.gov/M3DC1.pdf)
+  For more details, see readme and M3DC1 User's Guide (M3DC1/doc/M3DC1.tex)
 
 5.2 mesh partitioning and merging
   see $SCOREC_UTIL_DIR in mit.mk

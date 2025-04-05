@@ -146,7 +146,7 @@ else()
 endif()
 
 include_directories(${SIMMODSUITE_INCLUDE_DIR})
-set(DEP_LIBS ${DEP_LIBS} ${SIMMODSUITE_LIBS} )
+set(DEP_LIBS ${DEP_LIBS} ${SIMMODSUITE_LIBRARIES} )
 set(TARGET_LIB_NAME ${TARGET_LIB_NAME}_simmetrix)
 find_package(Lapack QUIET REQUIRED)
 set(DEP_LIBS ${DEP_LIBS} ${LAPACK_LIBRARIES} )
