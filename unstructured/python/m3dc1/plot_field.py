@@ -6,13 +6,14 @@
 # Chris Smiet    :    csmiet@pppl.gov
 
 import numpy as np
-import sys
 import matplotlib.pyplot as plt
 from matplotlib import colors
 #from matplotlib import path
 from mpl_toolkits.axes_grid1 import make_axes_locatable
 import matplotlib.ticker as ticker
-from distutils.version import StrictVersion
+#from distutils.version import StrictVersion
+from sys import modules as sysmod
+from packaging import version
 import m3dc1.fpylib as fpyl
 from m3dc1.get_field import get_field
 from m3dc1.eval_field import eval_field
@@ -182,7 +183,7 @@ def plot_field(field, coord='scalar', row=1, sim=None, filename='C1.h5', time=No
             species = sim[0].available_fields[field][2]
         except:
             species = None
-            # fpyl.printwarn('WARNING: Field not found in available_fields!')
+            fpyl.printwarn('WARNING: Field not found in available_fields!')
         if species is not None:
             titlestr = titlestr+' - Species: '+str(species)
     # ToDo: Main title does not show up in vector plot
@@ -208,18 +209,19 @@ def plot_field(field, coord='scalar', row=1, sim=None, filename='C1.h5', time=No
             if not np.all(np.diff([vmin,vmid,vmax]) >= 0): #Check if values are in ascending order
                 vmid = vmin + (vmax-vmin)/2
                 fpyl.printwarn('WARNING: cmap_midpt is either too low or too high! Resetting cmap_midpt to vmin + (vmax-vmin)/2.')
-            if StrictVersion(sys.modules[plt.__package__].__version__) < StrictVersion('3.2'):#DivergingNorm became TwoSlopeNorm in matplotlib version >=3.2
+            #if StrictVersion(sys.modules[plt.__package__].__version__) < StrictVersion('3.2'):#DivergingNorm became TwoSlopeNorm in matplotlib version >=3.2
+            if version.parse(sysmod[plt.__package__].__version__) >= version.parse('3.2'):#DivergingNorm became TwoSlopeNorm in matplotlib version >=3.2
                 norm = colors.DivergingNorm(vmin=vmin, vcenter=vmid, vmax=vmax)
             else:
                 norm = colors.TwoSlopeNorm(vmin=vmin, vcenter=vmid, vmax=vmax)
             cont = ax.contourf(R_ave, Z_ave, field1_ave[i],clvl, cmap=cmap,norm=norm)
         else:
             if isinstance(prange,(tuple,list)):
-                #if StrictVersion(sys.modules[plt.__package__].__version__) < StrictVersion('3.2'):#DivergingNorm became TwoSlopeNorm in matplotlib version >=3.2
+                #version.parse(sysmod[plt.__package__].__version__) >= version.parse('3.10.0'):#DivergingNorm became TwoSlopeNorm in matplotlib version >=3.2
                 #    norm = colors.DivergingNorm(vmin=prange[0], vcenter=(prange[1]+prange[0])/2, vmax=prange[1])
                 #else:
                 #    norm = colors.TwoSlopeNorm(vmin=prange[0], vcenter=(prange[1]+prange[0])/2, vmax=prange[1])
-                cont = ax.contourf(R_ave, Z_ave, field1_ave[i],clvl, cmap=cmap,vmin=prange[0], vmax=prange[1])
+                cont = ax.contourf(R_ave, Z_ave, field1_ave[i],np.linspace(prange[0],prange[1],clvl), cmap=cmap,vmin=prange[0], vmax=prange[1])
             else:
                 cont = ax.contourf(R_ave, Z_ave, field1_ave[i],clvl, cmap=cmap)
         # Set and format axes limits and labels
@@ -254,8 +256,11 @@ def plot_field(field, coord='scalar', row=1, sim=None, filename='C1.h5', time=No
         cbar.set_label(cbarlbl,fontsize=cbarlblfs)
         
         # Fix for white lines in contourf plot when exported as PDF
-        for c in cont.collections:
-            c.set_edgecolor("face")
+        if version.parse(sysmod[plt.__package__].__version__) >= version.parse('3.10.0'):#Attribute collections was removed in matplotlib 3.10
+            cont.set_edgecolor("face")
+        else:
+            for c in cont.collections:
+                c.set_edgecolor("face")
 
         ax.set_aspect('equal')
     plt.rcParams["axes.axisbelow"] = False #Allows mesh to be on top of contour plot. This option conflicts with zorder (matplotlib bug).
@@ -271,7 +276,7 @@ def plot_field(field, coord='scalar', row=1, sim=None, filename='C1.h5', time=No
         else:
             lcfs_ts_ind = 0
         print('LCFS time: ' + str(time[lcfs_ts_ind]))
-        psi_lcfs = sim[lcfs_ts_ind].get_time_trace('psi_lcfs').values[0]
+        psi_lcfs = sim[lcfs_ts_ind].get_time_trace('psi_lcfs').values[0] #ToDo: BUG: get values of psi at actual time
         if not quiet:
             print("Psi at LCFS: "+str(psi_lcfs))
         

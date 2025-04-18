@@ -15,7 +15,9 @@ from m3dc1.flux_average import flux_average
 #rc('text', usetex=True)
 
 #ToDo: Add rms
-def plot_flux_average(field, sim=None, coord='scalar', fcoords='pest', deriv=0, points=200, filename='C1.h5', time=0, units='m3dc1', fac=1, phit=0, rms=False,pub=False,c=None,ls='-',xlimits=[None,None],ylimits=[None,None],show_legend=False,leglbl=None, shortlbl=False,fignum=None,figsize=None):
+def plot_flux_average(field, sim=None, coord='scalar', fcoords='pest', deriv=0, points=200, filename='C1.h5', time=0, device=None, units='m3dc1',
+                      fac=1, phit=0, rms=False,pub=False,c=None,ls='-',xlimits=[None,None],ylimits=[None,None],show_legend=False,leglbl=None,
+                      shortlbl=False,fignum=None,figsize=None):
     """
     Plots flux surfaces
     
@@ -81,7 +83,7 @@ def plot_flux_average(field, sim=None, coord='scalar', fcoords='pest', deriv=0, 
     Array with length 2, width and height of figure window, e.g. [4.8,2.4]
     """
     
-    flux, fa = flux_average(field,coord=coord,sim=sim, deriv=deriv, points=points, phit=phit, filename=filename, time=time, fcoords=fcoords, units=units)
+    flux, fa = flux_average(field,coord=coord,sim=sim, deriv=deriv, points=points, phit=phit, filename=filename, time=time, fcoords=fcoords, units=units, device=device)
     
     # Set font sizes and plot style parameters
     if pub:

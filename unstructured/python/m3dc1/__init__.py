@@ -84,6 +84,8 @@ from m3dc1.pedestal_finder      import get_ped_structure
 
 from m3dc1.input_vs_t           import input_vs_t
 
+from m3dc1.convert_meshgen_input import convert_meshgen_input
+
 #Modules in development
 try:
     from m3dc1.plot_vector_field    import plot_vector_field

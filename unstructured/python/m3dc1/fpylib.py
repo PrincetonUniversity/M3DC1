@@ -347,8 +347,8 @@ def get_fieldlabel(units,field,fac=1,shortlbl=False):
               'ti':'ion temperature', 'te':'electron temperature',
               'A':'vector potential', 'gradA':'grad vector potential',
               'E':'electric field', 'alpha':r'ballooning parameter $\alpha$',
-              'eta_spitzer':'resistivity', 'shear':'magnetic shear',
-              'default':field}
+              'eta':'resistivity', 'eta_spitzer':'resistivity',
+              'shear':'magnetic shear', 'psi':'poloidal flux', 'default':field}
     
     short_labels = {'j':'j', 'ni':'$n_{i}$','ne':'$n_{e}$',
               'v':'v', 'B':'B', 'p':'p',
@@ -356,7 +356,8 @@ def get_fieldlabel(units,field,fac=1,shortlbl=False):
               'ti':'$T_{i}$', 'te':'$T_{e}$',
               'A':'A', 'gradA':'$grad A$ ',
               'E':'E', 'alpha':r'$\alpha$',
-              'default':field}
+              'eta':r'$\eta$', 'shear':'s',
+              'psi':r'$\psi$','default':field}
 
     if units.lower()=='m3dc1':
         units = {'eta_spitzer':'a. u.', 'default':'M3DC1 units'}
@@ -365,7 +366,7 @@ def get_fieldlabel(units,field,fac=1,shortlbl=False):
                  'v':'m/s', 'B':'T', 'p':'Pa', 'pi':'Pa', 'pe':'Pa',
                  'ti':'eV', 'te':'eV', 'A':r'T$\cdot$m',
                  'gradA':r'Tesla$\cdot$m / (m or rad)', 'E':'V/m',
-                 'default':'MKS units'}
+                 'eta':r'$\Omega$m', 'psi':'Wb', 'default':'MKS units'}
 
     if field in labels:
         label = short_labels[field] if shortlbl else labels[field]
@@ -441,6 +442,7 @@ def get_tracelabel(units,trace,label=None,unitlabel=None,fac=1):
               'Wall_Force_n0_z_halo':(r'$n=0$ halo force in $Z$ direction','N'),
               'Wall_Force_n1_x':(r'$n=1$ wall force in $R$ direction','N'),
               'Wall_Force_n1_y':(r'$n=1$ wall force in $\phi$ direction','N'),
+              'sideways_force':(r'sideways force','N'),
               'angular_momentum':('Angular momentum',r'kg$\cdot$m$^2$/s'),
               'angular_momentum_p':('Angular momentum in plasma',r'kg$\cdot$m$^2$/s'),
               'area':('Domain area',r'm$^2$'),
@@ -538,7 +540,7 @@ def get_conv_field(units,field,field1_ave,filename='C1.h5',sim=None):
               'B':{'magnetic_field':1}, 'p':{'pressure':1}, 'pi':{'pressure':1},
               'pe':{'pressure':1}, 'ti':{'temperature':1},
               'te':{'temperature':1}, 'A':{'magnetic_field':1,'length':1},
-              'E':{'electric_field':1},
+              'E':{'electric_field':1},'eta':{'resistivity':1},
               }
     if field in fields:
         expns.update(fields[field])

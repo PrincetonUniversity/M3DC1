@@ -18,7 +18,7 @@ from m3dc1.get_shape import get_shape
 
 #ToDo: Implement unit conversion
 #ToDo: Allow for linear option, i.e. flux averaging of a difference between two time slides
-def flux_average(field,coord='scalar',sim=None, fcoords=None, linear=False, deriv=0, points=200, phit=0.0, filename='C1.h5', time=0, psin_range=None, device='nstx', units='m3dc1'):
+def flux_average(field,coord='scalar',sim=None, fcoords=None, linear=False, deriv=0, points=200, phit=0.0, filename='C1.h5', time=0, psin_range=None, device=None, units='m3dc1'):
     """
     Calculates the flux average of a quantity
     
@@ -56,7 +56,7 @@ def flux_average(field,coord='scalar',sim=None, fcoords=None, linear=False, deri
     average will be done from the magnetic axis to the last closed flux surface.
 
     **device**
-    Device (e.g. 'nstx', 'diiid') for which flux coordinates are being calculated.
+    Device ('nstx', 'diiid', 'sparc', 'mast' or 'mastu') for which flux coordinates are being calculated.
     This determines the major radius, which is taken as machine specific quantity.
 
     **units**
@@ -110,7 +110,9 @@ def flux_average(field,coord='scalar',sim=None, fcoords=None, linear=False, deri
         mu0 = 4.0E-7*np.pi
         #R0 = sim.fc.r0
         #R0 is taken as the center of the vacuum vessel, as described in Tom Osborne's notes
-        deviceR0 = {'nstx': 0.85, 'diiid': 1.6955, 'sparc': 1.85}
+        deviceR0 = {'nstx': 0.85, 'diiid': 1.6955, 'sparc': 1.85, 'mast':0.9,'mastu':0.9}
+        if device is None:
+            fpyl.printerr('ERROR: You need to specify a device to calculate jelite!')
         R0=deviceR0[device.lower()]
         s = np.sign(fc.current[-1])
         #print(s)
@@ -222,6 +224,10 @@ def flux_average(field,coord='scalar',sim=None, fcoords=None, linear=False, deri
         torphi = np.zeros_like(fc.rpath)
         field_val = fc.rpath*eval_field('B', fc.rpath, torphi, fc.zpath, coord='phi', sim=sim)
         fa = flux_average_field(field_val,fc.j,fc.n,units,field,sim)
+    elif field=='ffprime':
+        f = flux_average('f', coord='scalar', sim=sim, fcoords=fcoords, points=points, units='mks')[1]
+        fprime = flux_average('f', coord='scalar', sim=sim, deriv=True, fcoords=fcoords, points=points, units='mks')[1]
+        fa = f*fprime
     elif field=='lambda':
         fa = None
     elif field=='beta_pol':

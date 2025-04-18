@@ -412,7 +412,7 @@ def avg_time_trace(trace,units='m3dc1',sim=None,filename='C1.h5',
         start_time = time[start_ind]
     else:
         start_time = start
-        start_ind = int(fpyl.find_nearest(time,start_time))
+        start_ind = int(fpyl.get_ind_near_val(time,start_time))
         print(start_time,start_ind)
     
     
@@ -835,7 +835,7 @@ def scan_n(nmin=1,nmax=20,nstep=1,units='m3dc1',filename='C1.h5',time_low_lim=50
 
 
 
-def create_plot_gamma_n(n_list, gamma_list,norm_dia=False,fignum=None,figsize=None,lw=1,c=None,ls=None,marker=None,ms=36,lbl=None,units='m3dc1',xtick_step=1,legfs=None,leglblspace=None,leghandlen=None,title=None,export=False,txtname=None,pub=False):
+def create_plot_gamma_n(n_list, gamma_list,norm_dia=False,fignum=None,figsize=None,lw=1,c=None,ls=None,marker=None,ms=36,lbl=None,units='m3dc1',xtick_min=None, xtick_step=1,legfs=None,leglblspace=None,leghandlen=None,title=None,export=False,txtname=None,pub=False):
     
     # Set font sizes and plot style parameters
     if pub:
@@ -874,12 +874,17 @@ def create_plot_gamma_n(n_list, gamma_list,norm_dia=False,fignum=None,figsize=No
     plt.ylabel(ylbl,fontsize=axlblfs)
     ax = plt.gca()
     
-    if xtick_step == 1:
-        nmax = np.amax(n_list)+1
-    else:
+    ax.set_xlim([np.amin(n_list)-0.5,np.amax(n_list)+0.5])
+    
+    #if xtick_step == 1:
+    nmax = np.amax(n_list)+1
+    #else:
         #if np.amin(n_list) + xtick_step <= np.amax(n_list)+1
-        nmax = np.amax(n_list)+1 + xtick_step
-    ax.xaxis.set_ticks(np.arange(np.amin(n_list), nmax, xtick_step))
+        #nmax = np.amax(n_list)+1
+    if xtick_min is None: xtick_min = np.amin(n_list)
+    ax.xaxis.set_ticks(np.arange(xtick_min, nmax, xtick_step))
+    if isinstance(xtick_step,(int,float)) and xtick_step>1:
+        ax.xaxis.set_minor_locator(ticker.MultipleLocator(1))
     #ax.xaxis.set_major_formatter(ticker.FormatStrFormatter('%d'))
     plt.tick_params(axis='both', which='major', labelsize=ticklblfs)
     if title is not None:
@@ -908,7 +913,7 @@ def create_plot_gamma_n(n_list, gamma_list,norm_dia=False,fignum=None,figsize=No
 
 
 
-def plot_gamma_n(nmin=1,nmax=20,nstep=1,norm_dia=False,units='m3dc1',fignum=None,figsize=None,c=None,lw=None,ls=None,mark='.',plot_crosses=True,xtick_step=1,lbl=None,slurm=True,plottrace=False,legfs=None,leglblspace=None,leghandlen=None,ylimits=None,title=None,export=False,txtname=None,no_prompt=False,pub=False):
+def plot_gamma_n(nmin=1,nmax=20,nstep=1,norm_dia=False,units='m3dc1',fignum=None,figsize=None,c=None,lw=None,ls=None,mark='.',plot_crosses=True,xtick_min=None,xtick_step=1,lbl=None,slurm=True,plottrace=False,legfs=None,leglblspace=None,leghandlen=None,ylimits=None,title=None,export=False,txtname=None,no_prompt=False,pub=False):
     # Plot gamma as a function of n
     # Identify simulations where the growth rate was not calculated reliably. These are highlighted in the plot.
     #print(os.getcwd())
@@ -960,9 +965,9 @@ def plot_gamma_n(nmin=1,nmax=20,nstep=1,norm_dia=False,units='m3dc1',fignum=None
     if len(n_bad)>0 and plot_crosses:
         if fignum is None:
             fignum = plt.gcf().number #Current figure number
-        create_plot_gamma_n(n_bad, gamma_bad, norm_dia=norm_dia, fignum=fignum, figsize=figsize, lw=0, marker='x', ms=10, c='r', units=units,xtick_step=xtick_step,legfs=None,leglblspace=None,title=title)
+        create_plot_gamma_n(n_bad, gamma_bad, norm_dia=norm_dia, fignum=fignum, figsize=figsize, lw=0, marker='x', ms=10, c='r', units=units,xtick_min=xtick_min,xtick_step=xtick_step,legfs=None,leglblspace=None,title=title)
     
-    create_plot_gamma_n(n_all, gamma_all, norm_dia=norm_dia, fignum=fignum, figsize=figsize,c=c, lw=lw, ls=ls, marker=mark, ms=10, lbl=lbl, units=units,xtick_step=xtick_step,legfs=legfs,leglblspace=leglblspace,leghandlen=leghandlen,title=title,export=export,txtname=txtname,pub=pub)
+    create_plot_gamma_n(n_all, gamma_all, norm_dia=norm_dia, fignum=fignum, figsize=figsize,c=c, lw=lw, ls=ls, marker=mark, ms=10, lbl=lbl, units=units,xtick_min=xtick_min,xtick_step=xtick_step,legfs=legfs,leglblspace=leglblspace,leghandlen=leghandlen,title=title,export=export,txtname=txtname,pub=pub)
     
     
     cfig = plt.gcf()
@@ -975,7 +980,7 @@ def plot_gamma_n(nmin=1,nmax=20,nstep=1,norm_dia=False,units='m3dc1',fignum=None
 
 
 
-def compare_gamma_n(dirs,nmin=1,nmax=20,nstep=1,norm_dia=False,units='m3dc1',labels=None,plot_crosses=True,col=None,lwid=None,lsty=None,markers=None,xtick_step=1,fignum=None,figsize=None,legfs=None,leglblspace=None,leghandlen=None,ylimits=None,title=None,export=False,no_prompt=False,quiet=False,pub=False):
+def compare_gamma_n(dirs,nmin=1,nmax=20,nstep=1,norm_dia=False,units='m3dc1',labels=None,plot_crosses=True,col=None,lwid=None,lsty=None,markers=None,xtick_min=None,xtick_step=1,fignum=None,figsize=None,legfs=None,leglblspace=None,leghandlen=None,ylimits=None,title=None,export=False,no_prompt=False,quiet=False,pub=False,L0=None,R0=None,B0=None):
     if isinstance(labels, (tuple, list)):
         if len(dirs)!=len(labels):
             fpyl.printerr('ERROR: Number of directories not equal to number of labels.')
@@ -1009,7 +1014,7 @@ def compare_gamma_n(dirs,nmin=1,nmax=20,nstep=1,norm_dia=False,units='m3dc1',lab
             mark = markers[i]
         else:
             mark = '.'
-        plot_gamma_n(nmin,nmax,nstep,norm_dia=norm_dia,units=units,fignum=fignum,figsize=figsize,xtick_step=xtick_step,c=c,lw=lw,ls=ls,mark=mark,plot_crosses=plot_crosses,lbl=lbl,slurm=True,plottrace=False,legfs=legfs,leglblspace=leglblspace,leghandlen=leghandlen,ylimits=ylimits,title=title,export=export,txtname='gamma_'+d.replace('/','')+'.txt',no_prompt=no_prompt,pub=pub)
+        plot_gamma_n(nmin,nmax,nstep,norm_dia=norm_dia,units=units,fignum=fignum,figsize=figsize,xtick_min=xtick_min,xtick_step=xtick_step,c=c,lw=lw,ls=ls,mark=mark,plot_crosses=plot_crosses,lbl=lbl,slurm=True,plottrace=False,legfs=legfs,leglblspace=leglblspace,leghandlen=leghandlen,ylimits=ylimits,title=title,export=export,txtname='gamma_'+d.replace('/','')+'.txt',no_prompt=no_prompt,pub=pub)
         os.chdir(pwd)
     
     return
@@ -1068,6 +1073,8 @@ def write_gamma_n(results,ped_param, ipres, psin_ped_top,ped_structure=None,unit
         outfile = 'growth_rates_'+vpnum+'_'+simdir+'.dat'
     if fix:
         outfile = outfile + '_fix'
+    if units == 'mks':
+        outfile = 'mks_'+outfile
     
     try:
         with open(outfile, 'w') as f:
@@ -1079,9 +1086,11 @@ def write_gamma_n(results,ped_param, ipres, psin_ped_top,ped_structure=None,unit
                 f.write(str(ped_structure[0])+'    '+str(ped_structure[1])+'\n') #write pedestal height and width as determined by pedestal finder
                 
             f.write('    n      gamma         sig_gamma     flat     smooth   manu     conv  Fin. GS Err   PB\n')
+            
+            gam_format = "{0:.8f}" if units == 'm3dc1' else "{0:.8e}"
             for i in range(len(results.gamma_list)):
                 wstr = '    ' + "{:d}".format(results.n_list[i]).ljust(2,' ')
-                wstr = wstr + "{0:.8f}".format(results.gamma_list[i]).rjust(15,' ')
+                wstr = wstr + gam_format.format(results.gamma_list[i]).rjust(15,' ')
                 wstr = wstr + "{0:.8f}".format(results.dgamma_list[i]).rjust(14,' ')
                 wstr = wstr + '    ' + "{:d}".format(results.flat_list[i]).ljust(5,' ')
                 wstr = wstr + '    ' + "{:d}".format(results.not_noisy_list[i]).ljust(5,' ')
@@ -1134,7 +1143,7 @@ def omegastari(sim=None,filename='C1.h5',time=None,units='mks',points=400,n=1,pi
 
 
 
-def get_ped_param(sim,filename='C1.h5',time=None,points=400,pion=False,fcoords='pest',psin_ped_top=0.86,psin_var_j=0.85,use_max_j=False,device='nstx'):
+def get_ped_param(sim,filename='C1.h5',time=None,points=400,pion=False,fcoords='pest',psin_ped_top=0.86,psin_var_j=0.85,use_max_j=False,device=None):
     if not isinstance(sim,fpy.sim_data):
         sim = fpy.sim_data(filename=filename)
     #psinedgelim = 0.86 #Min value of psin that is considered edge region
@@ -1229,7 +1238,7 @@ def get_ped_param(sim,filename='C1.h5',time=None,points=400,pion=False,fcoords='
 
 
 
-def eval_growth_n(dirs=['./'],nmin=1,nmax=20,nstep=1,plotef=False,mtype=False,psin_ped_top=0.86,psin_var_j=0.85,use_max_j=False,points=800,units='m3dc1',fcoords='pest',pion=False,nts=2,fix=False,legfs=None,title=None,device='nstx',fit=True,psin_cutoff=0.7,doPlot=False):
+def eval_growth_n(dirs=['./'],nmin=1,nmax=20,nstep=1,plotef=False,mtype=False,psin_ped_top=0.86,psin_var_j=0.85,use_max_j=False,points=800,units='m3dc1',fcoords='pest',pion=False,nts=2,fix=False,legfs=None,title=None,device=None,fit=True,psin_cutoff=0.7,doPlot=False):
     if not isinstance(psin_ped_top, (np.ndarray,list)):
         psin_ped_top = np.repeat(psin_ped_top,len(dirs))
     
@@ -1385,26 +1394,29 @@ def eval_growth_n(dirs=['./'],nmin=1,nmax=20,nstep=1,plotef=False,mtype=False,ps
                 title=None
         
             # Update status on portal. The update is done only if the analysis above has been performed.
-            if os.environ['FIO_ARCH']=='sunfire':
-                update_status(80)
-                os.chdir(pwd)
-            else:
-                if os.path.isfile('../../py_config_portal.dat'):
-                    cwd = os.getcwd()
-                    dir_path = cwd.split('/')
-                    vpnum = dir_path[-2]
-                    basedirs = glob.glob('../base_*'+dir_path[-1]+'*')
-                    if len(basedirs)==1:
-                        basedir = glob.glob('../base_*'+dir_path[-1]+'*')[0]
-                        basedir = basedir.split('/')[-1]
+            if os.path.isfile('../../py_config_portal.dat') or os.path.isfile('../../py_config.dat'):
+                cwd = os.getcwd()
+                dir_path = cwd.split('/')
+                vpnum = dir_path[-2]
+                basedirs = glob.glob('../base_*'+dir_path[-1]+'*')
+                print(basedirs)
+                if len(basedirs)==1:
+                    basedir = glob.glob('../base_*'+dir_path[-1]+'*')[0]
+                    basedir = basedir.split('/')[-1]
+                    if os.environ['FIO_ARCH'] in ['flux','sunfire']:
+                        os.chdir(basedirs[0])
+                        print(os.getcwd())
+                        update_status(80)
                         os.chdir(pwd)
-                        update_remote_status(80,vpnum,basedir)
                     else:
                         os.chdir(pwd)
-                        fpyl.printwarn('WARNING: Cannot determine base directory. Status not updated.')
+                        update_remote_status(80,vpnum,basedir)
                 else:
                     os.chdir(pwd)
-                    fpyl.printwarn('WARNING: No file py_config_portal.dat. Status not updated.')
+                    fpyl.printwarn('WARNING: Cannot determine base directory. Status not updated.')
+            else:
+                os.chdir(pwd)
+                fpyl.printwarn('WARNING: No file py_config_portal.dat. Status not updated.')
         else:
             os.chdir(pwd)
     

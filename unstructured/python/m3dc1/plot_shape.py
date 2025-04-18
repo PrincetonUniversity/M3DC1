@@ -22,7 +22,7 @@ from m3dc1.plot_coils import plot_coils
 
 
 
-def plot_shape(sim=None, filename='C1.h5', gfile=None, time=-1, phi=0, res=250, Nlvl_in=10, Nlvl_out=1,
+def plot_shape(sim=None, filename='C1.h5', gfile=None, time=-1, phi=0, res=250, Nlvl_in=10, Nlvl_out=10,
                mesh=False, bound=False, lcfs=False, coils=False, phys=False, ax=None, pub=False,
                fignum=None, quiet=False, export=False, txtname=None):
     """
@@ -154,10 +154,11 @@ def plot_shape(sim=None, filename='C1.h5', gfile=None, time=-1, phi=0, res=250, 
         
         psifield = eval_field('psi',R, phi_pos, Z, coord='scalar', sim=si, filename=si.filename, time=times[i])
         #print(si.timeslice)
-        levels = (np.arange(Nlvl_in+Nlvl_out+1.)/Nlvl_in)
+        #levels = (np.arange(Nlvl_in+Nlvl_out+1.)/Nlvl_in)
         levels_in = np.arange(Nlvl_in+1.)/Nlvl_in
-        levels_out = 1.01+np.arange(Nlvl_out+1.)/Nlvl_out
-        levels = np.concatenate((levels_in,levels_out))
+        #levels_out = 1.01+np.arange(Nlvl_out+1.)/Nlvl_out
+        levels_out = 1.0+np.arange(Nlvl_out+1.)/Nlvl_out
+        levels = np.concatenate((levels_in,levels_out[1:]))
         #print(levels)
         levels = levels*(psi_lcfs-psi_axis)+psi_axis
         if psi_lcfs < psi_axis:
@@ -202,7 +203,12 @@ def plot_shape(sim=None, filename='C1.h5', gfile=None, time=-1, phi=0, res=250, 
     
     if gfile is not None:
         gfdat = read_gfile(gfile)
-        cont = axs.contour(gfdat.rg,gfdat.zg,gfdat.psirzn,np.linspace(1/Nlvl_in,(Nlvl_in-1)/Nlvl_in,Nlvl_in),linewidths=0.7,colors='k',zorder=10)
+        #cont = axs.contour(gfdat.rg,gfdat.zg,gfdat.psirzn,np.linspace(1/Nlvl_in,(Nlvl_in-1)/Nlvl_in,Nlvl_in),linewidths=0.7,colors='k',zorder=10)
+        levels_gfile = np.concatenate((levels_in,levels_out[1:]))*(gfdat.sibry-gfdat.simag)+gfdat.simag
+        if gfdat.sibry < gfdat.simag:
+            levels_gfile = np.flipud(levels_gfile)
+        #print(levels_gfile)
+        cont = axs.contour(gfdat.rg,gfdat.zg,gfdat.psirz,levels_gfile,linewidths=0.7,colors='k',zorder=10)
         legproxy.append(mlines.Line2D([], [], color='k', linewidth=bdlw, label=gfile))
         axs.plot(gfdat.rmaxis,gfdat.zmaxis,lw=0,marker='+',markersize=10,color='k')
         if lcfs:

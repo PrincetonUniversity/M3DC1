@@ -7,13 +7,15 @@ Created on 11/23/2022
 """
 
 import numpy as np
-import sys
+#import sys
 import matplotlib.pyplot as plt
 from matplotlib import colors
 #from matplotlib import path
 from mpl_toolkits.axes_grid1 import make_axes_locatable
 import matplotlib.ticker as ticker
-from distutils.version import StrictVersion
+#from distutils.version import StrictVersion
+from sys import modules as sysmod
+from packaging import version
 import m3dc1.fpylib as fpyl
 from m3dc1.get_field import get_field_vs_phi
 from m3dc1.plot_mesh import plot_mesh
@@ -272,8 +274,11 @@ def plot_field_vs_phi(field, cutr=None, cutz=None, coord='scalar', row=1, sim=No
         cbar.set_label(cbarlbl,fontsize=cbarlblfs)
         
         # Fix for white lines in contourf plot when exported as PDF
-        for c in cont.collections:
-            c.set_edgecolor("face")
+        if version.parse(sysmod[plt.__package__].__version__) >= version.parse('3.10.0'):#Attribute collections was removed in matplotlib 3.10
+            cont.set_edgecolor("face")
+        else:
+            for c in cont.collections:
+                c.set_edgecolor("face")
 
     plt.rcParams["axes.axisbelow"] = False #Allows mesh to be on top of contour plot. This option conflicts with zorder (matplotlib bug).
     

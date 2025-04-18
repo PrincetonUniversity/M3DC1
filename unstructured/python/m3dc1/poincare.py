@@ -41,8 +41,7 @@ def run_trace(time_slices,dR=0.1, dZ=0.1, pts=51, trans=100):
     # If the directory does not exist, create it
     if not os.path.exists(wd+'/poincare'):
         os.makedirs('poincare', exist_ok=True)
-    
-    os.chdir('poincare')
+        os.chdir('poincare')
     
     time_slices = np.atleast_1d(time_slices)
     
@@ -105,12 +104,13 @@ def plot_poincare(time=None,fignum=None,pub=False,Rlim=[None,None],Zlim=[None,No
     #Change to correct directory if time is specified
     pwd = os.getcwd()
     change_dir=False
-    if not 'poincare/time_' in pwd:
-        change_dir=True
-        if 'poincare' in pwd:
-            os.chdir('time_'+str(time).zfill(3))
-        else:
-            os.chdir('poincare/time_'+str(time).zfill(3))
+    if time is not None:
+        if not 'poincare/time_' in pwd:
+            change_dir=True
+            if 'poincare' in pwd:
+                os.chdir('time_'+str(time).zfill(3))
+            else:
+                os.chdir('poincare/time_'+str(time).zfill(3))
     outfiles = sorted(glob.glob(os.getcwd()+"/out*"))
     
     fig = plt.figure(num=fignum)

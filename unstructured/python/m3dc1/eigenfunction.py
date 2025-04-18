@@ -214,7 +214,7 @@ def eigenfunction(field='p',coord='scalar',sim=None,time=1,phit=0.0,filename='C1
         path = sims[0].filename[:-6]
         paramfile = fpyl.get_input_parameter_file(directory=path)
         #print(slurmfile)
-        n = int(fpyl.get_parameter_from_ascii('ntor',paramfile,quiet=True))
+        n = fpyl.get_parameter_from_ascii('ntor',paramfile,quiet=True)
     
     
     # Plot eigenfunction in R-Z plane
