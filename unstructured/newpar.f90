@@ -1360,7 +1360,12 @@ if (ispradapt .eq. 1) then
      if(ibootstrap.gt.0) call create_field(Jbs_alpha_field, "Jbs_alpha")
      if(ibootstrap.gt.0) call create_field(Jbs_fluxavg_iBsq_field, "Jbs_fluxavg_iBsq")
      if(ibootstrap.gt.0) call create_field(Jbs_fluxavg_G_field, "Jbs_fluxavg_G")
-     if(ibootstrap.eq.2) call create_field(Jbs_dtedpsit_field, "Jbs_dtedpsit")
+     if(ibootstrap.eq.2 .or. ibootstrap.eq.3)  call create_field(Jbs_dtedpsit_field, "Jbs_dtedpsit")
+     
+     if(ibootstrap.eq.3) call create_field(Jbs_ftrap_field,"Jbs_ftrap_field")
+     if(ibootstrap.eq.3) call create_field(Jbs_qR_field,"Jbs_qR_field")
+     if(ibootstrap.eq.3) call create_field(Jbs_invAspectRatio_field,"Jbs_invApsectRatio_field")
+
 
      call create_field(psi_coil_field, "psi_coil")
 
@@ -1413,7 +1418,10 @@ else
      if(ibootstrap.gt.0) call create_field(Jbs_alpha_field)
      if(ibootstrap.gt.0) call create_field(Jbs_fluxavg_iBsq_field)
      if(ibootstrap.gt.0) call create_field(Jbs_fluxavg_G_field)
-     if(ibootstrap.eq.2) call create_field(Jbs_dtedpsit_field)
+     if(ibootstrap.eq.2 .or. ibootstrap.eq.3 ) call create_field(Jbs_dtedpsit_field)
+     if(ibootstrap.eq.3) call create_field(Jbs_ftrap_field)
+     if(ibootstrap.eq.3) call create_field(Jbs_qR_field)
+     if(ibootstrap.eq.3) call create_field(Jbs_invAspectRatio_field)
 
      call create_field(psi_coil_field)
 

@@ -1141,8 +1141,6 @@ function bs_b1psifbb(e,f,g,h,i)
                 call calculate_CommonTerm_Lambda(temp79a,temp79b,temp79c,temp79d,temp79e)
               else if (ibootstrap.eq.2)then
                 call calculate_CommonTerm_Lambda_fordtedpsit(temp79a,temp79b,temp79c,temp79d,temp79e)
-              else if (ibootstrap.eq.3)then
-                call calculate_CommonTerm_Lambda_fordtenormdpsit(temp79a,temp79b,temp79c,temp79d,temp79e)
               endif
              temp = intx5(e(:,:,OP_DRP),ri3_79,h(:,OP_DZ),temp79a,eta79(:,OP_1)) &
                     - intx5(e(:,:,OP_DZP),ri3_79,h(:,OP_DR),temp79a,eta79(:,OP_1))
@@ -1187,8 +1185,6 @@ function bs_b1psifbb(e,f,g,h,i)
             call calculate_CommonTerm_Lambda(temp79a,temp79b,temp79c,temp79d,temp79e)
           else if (ibootstrap.eq.2)then
             call calculate_CommonTerm_Lambda_fordtedpsit(temp79a,temp79b,temp79c,temp79d,temp79e)
-          else if (ibootstrap.eq.3)then
-            call calculate_CommonTerm_Lambda_fordtenormdpsit(temp79a,temp79b,temp79c,temp79d,temp79e)
           endif
            temp = intx4(e(:,:,OP_1),temp79a,h(:,OP_1),eta79(:,OP_1))
    
@@ -1202,8 +1198,6 @@ function bs_b1psifbb(e,f,g,h,i)
             call calculate_CommonTerm_Lambda(temp79a,temp79b,temp79c,temp79d,temp79e)
           else if (ibootstrap.eq.2)then
             call calculate_CommonTerm_Lambda_fordtedpsit(temp79a,temp79b,temp79c,temp79d,temp79e)
-          else if (ibootstrap.eq.3)then
-            call calculate_CommonTerm_Lambda_fordtenormdpsit(temp79a,temp79b,temp79c,temp79d,temp79e)
           endif
            temp = intx5(e(:,:,OP_GS),ri2_79,temp79a,h(:,OP_1),eta79(:,OP_1))
    
@@ -1247,8 +1241,6 @@ function bs_b1psifbb(e,f,g,h,i)
             call calculate_CommonTerm_Lambda(temp79a,temp79b,temp79c,temp79d,temp79e)
           else if (ibootstrap.eq.2)then
             call calculate_CommonTerm_Lambda_fordtedpsit(temp79a,temp79b,temp79c,temp79d,temp79e)
-          else if (ibootstrap.eq.3)then
-            call calculate_CommonTerm_Lambda_fordtenormdpsit(temp79a,temp79b,temp79c,temp79d,temp79e)
           endif
    
          temp = intx5(e(:,:,OP_DRP),ri2_79,temp79a,h(:,OP_DR),eta79(:,OP_1)) &
@@ -1290,8 +1282,6 @@ function bs_b1psifbb(e,f,g,h,i)
       call calculate_CommonTerm_Lambda(temp79a,temp79b,temp79c,temp79d,temp79e)
     else if (ibootstrap.eq.2)then
       call calculate_CommonTerm_Lambda_fordtedpsit(temp79a,temp79b,temp79c,temp79d,temp79e)
-    else if (ibootstrap.eq.3)then
-      call calculate_CommonTerm_Lambda_fordtenormdpsit(temp79a,temp79b,temp79c,temp79d,temp79e)
     endif
    
      temp = intx5(e(:,:,OP_DZ),ri2_79,h(:,OP_DZ),temp79a,eta79(:,OP_1)) &
@@ -1326,8 +1316,6 @@ function bs_b1psifbb(e,f,g,h,i)
     call calculate_CommonTerm_Lambda(temp79a,temp79b,temp79c,temp79d,temp79e)
   else if (ibootstrap.eq.2)then
     call calculate_CommonTerm_Lambda_fordtedpsit(temp79a,temp79b,temp79c,temp79d,temp79e)
-  else if (ibootstrap.eq.3)then
-    call calculate_CommonTerm_Lambda_fordtenormdpsit(temp79a,temp79b,temp79c,temp79d,temp79e)
   endif
    
      temp = intx5(e(:,:,OP_DZ),ri_79,h(:,OP_DR),temp79a,eta79(:,OP_1)) &
@@ -1465,9 +1453,9 @@ function bs_b1psifbb(e,f,g,h,i)
 
 
   !calculating coefficients
-  subroutine calculate_Coefficients_Redl(gen_jbsl3179,gen_jbsl3279,gen_jbsl3479,gen_jbsalpha79)
+  subroutine calculate_Coefficients(gen_jbsl3179,gen_jbsl3279,gen_jbsl3479,gen_jbsalpha79)
      
-    use math
+    
     use basic
     use m3dc1_nint
   
@@ -1477,52 +1465,38 @@ function bs_b1psifbb(e,f,g,h,i)
     vectype, dimension(MAX_PTS) :: gen_jbsl3179,gen_jbsl3279,gen_jbsl3479,gen_jbsalpha79
     vectype, dimension(MAX_PTS) :: ln_lambda_e,ln_lambda_i,nu_e_star,nu_i_star
     vectype, dimension(MAX_PTS) :: f_t31,f_t32_ee,f_t32_ei,f_t33,alpha_0,F32ee,F32ei
-    vectype, dimension(MAX_PTS) :: temp,telec,tion,denelec,denion
+    vectype, dimension(MAX_PTS) :: temp
     integer :: i,Zcharge,Zcharge_eff,Zcharge_i
   
     real(dp):: tempval
 
     ! jbs_ftrap79 ,jbs_qR79,jbs_invAspectRatio79
 
-    Zcharge_eff = 1.
-    Zcharge = 1.
-    Zcharge_i =1.
+    Zcharge_eff = 1
+    Zcharge = 1
+    Zcharge_i =1 
     !--------------------------------------------------------!
     ! Calculate ln_lambda_e and nu_e_star for electrons
     !--------------------------------------------------------!
-    !   do j=1, dofs_per_element
-    !   do i = 1, MAX_PTS
-    !      outarr(i,op) = outarr(i,op) + dofs(j)*nu79(j,i,op)
-    !    end do
-    !   end do
+    ln_lambda_e(:) = 31.3 - log(sqrt(net79(:, OP_1)) / tet79(:, OP_1))
+    
+    temp(:) = 6.921d-18 * Zcharge * net79(:, OP_1) * ln_lambda_e(:) / &
+          tet79(:, OP_1)**2 / jbs_invAspectRatio79(:, OP_1)**(1.5) * jbs_qR79(:, OP_1)
+    
+    nu_e_star(:) = abs(temp)
 
-    do i = 1, MAX_PTS
-      telec(i)=tet79(i,OP_1)*1e3/(1.6022e-9 * (4.*pi*n0_norm)/ (b0_norm**2))
-      tion(i)=tit79(i,OP_1)*1e3/(1.6022e-9 * (4.*pi*n0_norm)/ (b0_norm**2))
-      denelec(i)=net79(i,OP_1)*1e20
-      denion(i)=nt79(i,OP_1)*1e20
+    !--------------------------------------------------------!
+    ! Calculate ln_lambda_i and nu_i_star for ions
+    !--------------------------------------------------------!
+    Zcharge = Zcharge_i  ! Use ion charge state
+    ln_lambda_i(:) = 30.0 - log(Zcharge**3 * sqrt(nt79(:, OP_1)) / &
+                      tit79(:, OP_1)**1.5)
 
+    temp(:) = 4.9d-18 * nt79(:, OP_1) * Zcharge**4 * ln_lambda_i(:) / &
+              tit79(:, OP_1)**2 / jbs_invAspectRatio79(:, OP_1)**1.5 * jbs_qR79(:, OP_1)
 
-      ln_lambda_e(i) = 31.3 - log(sqrt(denelec(i)) / telec(i))
-      
-      temp(i) = 6.921e-18 * Zcharge * (denelec(i)) * ln_lambda_e(i) / &
-            (telec(i))**2 / jbs_invAspectRatio79(i, OP_1)**(1.5) * jbs_qR79(i, OP_1)
-      
-      nu_e_star(i) = abs(temp(i))
-
-      !--------------------------------------------------------!
-      ! Calculate ln_lambda_i and nu_i_star for ions
-      !--------------------------------------------------------!
-      Zcharge = Zcharge_i  ! Use ion charge state
-      ln_lambda_i(i) = 30.0 - log(Zcharge**3 * sqrt(denion(i)) / &
-                        (tion(i))**1.5)
-
-      temp(i) = 4.9e-18 * (denion(i)) * Zcharge**4 * ln_lambda_i(i) / &
-                (tion(i))**2 / jbs_invAspectRatio79(i, OP_1)**1.5 * jbs_qR79(i, OP_1)
-
-      nu_i_star(i) = abs(temp(i))
-    enddo
-
+    nu_i_star(:) = abs(temp)
+    
     !--------------------------------------------------------!
     !--------------------------------------------------------!
     ! Calculating coefficients L31,32,34,alpha
@@ -1537,36 +1511,14 @@ function bs_b1psifbb(e,f,g,h,i)
                 (1.0 + 1.13 * sqrt(Zcharge_eff - 1.0))
       f_t31(i) = jbs_ftrap79(i,OP_1) / temp(i)
 
-      ! Calculate gen_jbsl3179 (L31)
-      !--------------------------------------------------------!
-      gen_jbsl3179(i) = (1.0 + 0.15 / (Zcharge_eff**1.2 - 0.71)) * f_t31(i) - &
-                        0.22 / (Zcharge_eff**1.2 - 0.71) * f_t31(i)**2 + &
-                        0.01 / (Zcharge_eff**1.2 - 0.71) * f_t31(i)**3 + &
-                        0.06 / (Zcharge_eff**1.2 - 0.71) * f_t31(i)**4
-
-      ! Calculate gen_jbsl3479 (L34)
-      !--------------------------------------------------------!
-      gen_jbsl3479(i) = gen_jbsl3179(i)
-
       ! Calculate f_t32_ee
       !--------------------------------------------------------!
-      temp(i) = 1. +&
-               0.23 * (1. - 0.96 * jbs_ftrap79(i,OP_1)) * (nu_e_star(i))**0.5 /Zcharge_eff**0.5 +&
-               0.13 * (1. - 0.38 * jbs_ftrap79(i,OP_1)) * nu_e_star(i) /Zcharge_eff**2 *&
-               ((1. + 2. * (Zcharge_eff - 1)**0.5)**0.5 + &
-               jbs_ftrap79(i,OP_1)**2 * (((0.075 + 0.25 * (Zcharge_eff - 1)**2))* nu_e_star(i))**0.5)
-                
-       
+      temp(i) = 1.0 + &
+                0.23 * (1.0 - 0.96 * jbs_ftrap79(i,OP_1)) * sqrt(nu_e_star(i)) / sqrt(Zcharge_eff*1.) + &
+                0.13 * (1.0 - 0.38 * jbs_ftrap79(i,OP_1)) * nu_e_star(i) / Zcharge_eff**2 * &
+                (sqrt(1.0 + 2.0 * sqrt(Zcharge_eff - 1.0)) + jbs_ftrap79(i,OP_1)**2 * &
+                sqrt(0.075 + 0.25 * (Zcharge_eff - 1.0)**2) * nu_e_star(i))
       f_t32_ee(i) = jbs_ftrap79(i,OP_1) / temp(i)
-
-      ! Calculate F32ee
-      !--------------------------------------------------------!
-      tempval = f_t32_ee(i)
-      F32ee(i) = (0.1 + 0.6 * Zcharge_eff) / (Zcharge_eff * (0.77 + 0.63 * (1 + (Zcharge_eff - 1)**1.1))) * &
-                  (tempval - tempval**4) + &
-                  (0.7) / (1. + 0.2 * Zcharge_eff) * (tempval**2 - tempval**4 - 1.2 * (tempval**3 - tempval**4)) + &
-                   (1.3) / (1. + 0.5 * Zcharge_eff) * tempval**4
-      
 
       ! Calculate f_t32_ei
       !--------------------------------------------------------!
@@ -1577,20 +1529,8 @@ function bs_b1psifbb(e,f,g,h,i)
                 (2.0 + 0.375 * (Zcharge_eff - 1.0))
       f_t32_ei(i) = jbs_ftrap79(i,OP_1) / temp(i)
 
-      ! Calculate F32ei
-      tempval = f_t32_ei(i)
-      F32ei(i) = -(0.4 + 1.93 * Zcharge_eff) / (Zcharge_eff * (0.8 + 0.6 * Zcharge_eff)) * &
-                    (tempval - tempval**4) + &
-                    5.5 / (1.5 + 2.0 * Zcharge_eff) * (tempval**2 - tempval**4 - 0.8 * (tempval**3 - tempval**4)) - &
-                    1.3 / (1.0 + 0.5 * Zcharge_eff) * tempval**4
-
-      ! Calculate gen_jbsl3279 (L32)
-      !--------------------------------------------------------!
-      gen_jbsl3279(i) = F32ee(i) + F32ei(i)
-
-
-
       ! Calculate f_t33
+      !--------------------------------------------------------!
       temp(i) = 1.0 + &
                 0.25 * (1.0 - 0.7 * jbs_ftrap79(i,OP_1)) * sqrt(nu_e_star(i)) * &
                 (1.0 + 0.45 * sqrt(Zcharge_eff - 1.0)) + &
@@ -1604,137 +1544,47 @@ function bs_b1psifbb(e,f,g,h,i)
                 (1.0 - jbs_ftrap79(i,OP_1)) / &
                 (1.0 - (0.31 - 0.065 * (Zcharge_eff - 1.0)) * jbs_ftrap79(i,OP_1) - 0.25 * jbs_ftrap79(i,OP_1)**2)
 
-      gen_jbsalpha79(i) = ((alpha_0(i) + 0.7 * Zcharge_eff * sqrt(jbs_ftrap79(i,OP_1)) * sqrt(nu_i_star(i))) / &
+      gen_jbsalpha79(i) = ((alpha_0(i) + 0.7 * Zcharge_eff * sqrt(jbs_ftrap79(i,OP_1)) * sqrt(nu_e_star(i))) / &
                           (1.0 + 0.18 * sqrt(nu_i_star(i))) - &
                           0.002 * nu_i_star(i)**2 * jbs_ftrap79(i,OP_1)**6) / &
                           (1.0 + 0.004 * nu_i_star(i)**2 * jbs_ftrap79(i,OP_1)**6)
 
-    enddo
+      !--------------------------------------------------------!
+      ! Calculate gen_jbsl3179 (L31)
+      !--------------------------------------------------------!
+      gen_jbsl3179(i) = (1.0 + 0.15 / (Zcharge_eff**1.2 - 0.71)) * f_t31(i) - &
+                        0.22 / (Zcharge_eff**1.2 - 0.71) * f_t31(i)**2 + &
+                        0.01 / (Zcharge_eff**1.2 - 0.71) * f_t31(i)**3 + &
+                        0.06 / (Zcharge_eff**1.2 - 0.71) * f_t31(i)**4
+
+      !--------------------------------------------------------!
+      ! Calculate gen_jbsl3479 (L34)
+      !--------------------------------------------------------!
+      gen_jbsl3479(i) = gen_jbsl3179(i)
+
+      ! Calculate F32ee
+      tempval = f_t32_ee(i)
+      F32ee(i) = (0.1 + 0.6 * Zcharge_eff) / (Zcharge_eff * (0.77 + 0.63 * (1.0 + (Zcharge_eff - 1.0)**1.1))) * &
+                    (tempval - tempval**4) + &
+                    0.7 / (1.0 + 0.2 * Zcharge_eff) * (tempval**2 - tempval**4 - 1.2 * (tempval**3 - tempval**4)) + &
+                    1.3 / (1.0 + 0.5 * Zcharge_eff) * tempval**4
+
+      ! Calculate F32ei
+      tempval = f_t32_ei(i)
+      F32ei(i) = -(0.4 + 1.93 * Zcharge_eff) / (Zcharge_eff * (0.8 + 0.6 * Zcharge_eff)) * &
+                    (tempval - tempval**4) + &
+                    5.5 / (1.5 + 2.0 * Zcharge_eff) * (tempval**2 - tempval**4 - 0.8 * (tempval**3 - tempval**4)) - &
+                    1.3 / (1.0 + 0.5 * Zcharge_eff) * tempval**4
+
+      !--------------------------------------------------------!
+      ! Calculate gen_jbsl3279 (L32)
+      !--------------------------------------------------------!
+      gen_jbsl3279(i) = F32ee(i) + F32ei(i)
+    end do
     
-   end subroutine calculate_Coefficients_Redl
+   end subroutine calculate_Coefficients
 
 
-!calculating bootstrap current
-subroutine calculate_CommonTerm_Lambda_fordtenormdpsit(temp1,temp2,tempAA, tempBB, tempCC)
-  !ibootstrap=3 3: to use tenorm: da/dpsit=da/dte dte/dpsit=-temax da/dte dtenorm/dpsit
-
-   !Redl et al (2021): ibootstrap_model=4:! equivalent to 2 but a simplified version
-    !temp3 = A = -2pi Gbar / (iota - helicity_N) L31        p d lnn  /d psit            =  (ne_s Te_s + ni_s Ti_s)/ne (d lnne / d psit)) = (ne_s Te_s + ni_s Ti_s)/ne (del ne.del Te)/(|del Te|^2 + chi^2) dTe/dpsit
-    !temp4 = B = -2pi Gbar / (iota - helicity_N) (L31+L32) Pe d lnTe /d psit            =  pe/Te  dTe/dpsit 
-    !temp5 = C = -2pi Gbar / (iota - helicity_N) (L31+L34alpha) (p-pe)d lnTi /d psit    =  (p-pe)/Ti (del Ti .del Te)/(|del Te|^2 + chi^2) dTe/dpsit
-    
-    !tempD = <J.B> = [(A) +  (B) +  (C)]
-   
-   
-   !jbscommon   = -  1 / <B^2>   [ (A) +  (B) +  (C) ]
-    !temp1 =  <J.B>/<B^2>  * bootsrap_alpha   =  tempD 1 / <B^2> bootsrap_alpha
-    !temp2 =  <J.B>                           =  tempD           bootsrap_alpha 
-
-   
-   
-     
-    
-    use basic
-    use m3dc1_nint
-    use math
-  
-    implicit none
-  
-    vectype, dimension(MAX_PTS) :: tempDD, tempAA, tempBB, tempCC, temp1, temp2, iBpsq, temp_delmagTe, temp_delTe
-    vectype, dimension(MAX_PTS) :: gen_jbsl3179,gen_jbsl3279,gen_jbsl3479,gen_jbsalpha79
-    vectype, dimension(MAX_PTS) :: chisq,const1,adaptive_regularization
-    integer :: i
-    real(dp):: tempbeta,tempvar,temax3
-
-    temp1 = 0.
-    temp2 = 0.
-
-
-    !(del a.del Te)=dadr dTedr + 1/r^2 dadphi dTedphi + dadz dTedz 
-    !|del Te|^2= dTedr ^2+ 1/r^2 dTedphi^2 +dTedz^2 
-    !(|del Te|^2)
-    temp_delmagTe = tet79(:,OP_DR)*tet79(:,OP_DR)+ tet79(:,OP_DZ)*tet79(:,OP_DZ)
-#if defined(USE3D) || defined(USECOMPLEX)
-        if(itor.eq.1) temp_delmagTe  = temp_delmagTe + tet79(:,OP_DP)*tet79(:,OP_DP)*ri2_79
-#endif
-
-
-! Adaptive regularization term: grows larger when gradients are small
-! adaptive_regularization = epsilon / (1.0 + alpha * grad_Te_magnitude)
-! Compute the regularized expression
-! regularized_expression = (dot(del_p, del_Te)) / (grad_Te_magnitude**2 + adaptive_regularization)
-
-   do i = 1, MAX_PTS
-      tempbeta=temp_delmagTe(i)
-      chisq(i) = ibootstrap_regular / (1.0 + 1e-2 * tempbeta) 
-   enddo
-   
-    tempBB = 1./(tet79(:,OP_1))
-         
-    
-    tempCC=tit79(:,OP_DR)*tet79(:,OP_DR)+ tit79(:,OP_DZ)*tet79(:,OP_DZ)
-#if defined(USE3D) || defined(USECOMPLEX)
-    if(itor.eq.1) tempCC = tempCC + tit79(:,OP_DP)*tet79(:,OP_DP)*ri2_79
-#endif
-    tempCC = tempCC/tit79(:,OP_1)/(temp_delmagTe+chisq)
-     
-  
-    if(ibootstrap_model.eq.1 .or. ibootstrap_model.eq.3)then !Sauter & Angioni (1999) 
-
-     print *, "Can't Use ibootstrap =3 , not setup yet"
-     stop
-
-
-
-    else if (ibootstrap_model.eq.2 .or. ibootstrap_model.eq.4)then !Redl et al (2021) 
-       call calculate_Coefficients_Redl(jbsl3179(:,OP_1),jbsl3279(:,OP_1),jbsl3479(:,OP_1),jbsalpha79(:,OP_1))
-
-       !A = d lnn  /d psi    = p/n (del n.del Te)/(|del Te|^2 + chi^2) dTe/dpsit
-       !A = pe d lnne  /d psi +  pi d lnni  /d psi    = (tene + tini)/ne (del ne.del Te)/(|del Te|^2 + chi^2) dTe/dpsit
-      tempAA=net79(:,OP_DR)*tet79(:,OP_DR)+ net79(:,OP_DZ)*tet79(:,OP_DZ)
-#if defined(USE3D) || defined(USECOMPLEX)
-      if(itor.eq.1) tempAA = tempAA + net79(:,OP_DP)*tet79(:,OP_DP)*ri2_79
-#endif
-
-      tempAA = (net79(:,OP_1)*tet79(:,OP_1)+nt79(:,OP_1)*tit79(:,OP_1))/net79(:,OP_1) * tempAA/(temp_delmagTe+chisq)
-        if(temax .le. 1e-8) then
-          temax3=temax_readin!/(1.6022e-9 * (4.*pi*n0_norm)/ (b0_norm**2))
-        else
-          temax3=temax!/(1.6022e-9 * (4.*pi*n0_norm)/ (b0_norm**2))
-        endif
-        
- !       !dnds_term = -2pi Gbar / (iota - helicity_N)  L31 (ne_s Te_s + ni_s Ti_s)/ne (d lnne / d psit))
-        tempAA = jbsfluxavg_G79(:,OP_1)*jbsl3179(:,OP_1)*(-temax3)*jbs_dtedpsit79(:,OP_1)*(tempAA)
-
- !       !dTeds_term = -2pi Gbar / (iota - helicity_N) (L31 + L32) pe_s (d lnTe / d psit)
-        tempBB = jbsfluxavg_G79(:,OP_1)*(jbsl3179(:,OP_1)+jbsl3279(:,OP_1))*pet79(:,OP_1)&
-                 *(-temax3)*jbs_dtedpsit79(:,OP_1)*(tempBB)
-        
- !       !dTids_term = -2pi Gbar / (iota - helicity_N) (L31 + L34 * alpha) pi_s (d lnTi / d psit)
-        tempCC = jbsfluxavg_G79(:,OP_1)*(jbsl3179(:,OP_1)+jbsl3479(:,OP_1)*&
-                 jbsalpha79(:,OP_1))*(pt79(:,OP_1)-pet79(:,OP_1))*(-temax3)*jbs_dtedpsit79(:,OP_1)*(tempCC)
-
- !       !jdotB = dnds_term + dTeds_term + dTids_term
-        tempDD = (tempAA) + (tempBB) + (tempCC)
-   
-    end if
-   
-    
-
-    if(ibootstrap_model.eq.5)then 
-     temp1=1.0
-     temp2=1.0
-    else !if (ibootstrap_model = 1,2,3,4)
-     temp1=-tempDD*jbsfluxavg_iBsq_B79(:,OP_1)*bootstrap_alpha
-     temp2=-tempDD*bootstrap_alpha
-    endif
-
-    
-    
-    
-    
-  end subroutine calculate_CommonTerm_Lambda_fordtenormdpsit
-   
 end module bootstrap
 
 

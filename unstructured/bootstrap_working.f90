@@ -1609,6 +1609,27 @@ function bs_b1psifbb(e,f,g,h,i)
                           0.002 * nu_i_star(i)**2 * jbs_ftrap79(i,OP_1)**6) / &
                           (1.0 + 0.004 * nu_i_star(i)**2 * jbs_ftrap79(i,OP_1)**6)
 
+
+
+
+      !if(i==1)then
+     !  print*,'iiiiiiiiiiiiii',i
+     !       print*, 'telec',telec(i),tet79(i,OP_1),1e3/(1.6022e-9 * (4.*pi*n0_norm)/ (b0_norm**2))
+     ! print*,'tion',tion(i),tit79(i,OP_1),1e3/(1.6022e-9 * (4.*pi*n0_norm)/ (b0_norm**2))
+     ! print*,'denelec',denelec(i),net79(i,OP_1),1e20
+     ! print*,'denion',denion(i),nt79(i,OP_1),1e20
+  !print*,'ln_lambda_i',ln_lambda_i(i) 
+ ! print*,'ln_lambda_e',ln_lambda_e(i) 
+ !print*,'nu_i_star',nu_i_star(i)
+ ! print*,'nu_e_star',nu_e_star(i)
+  !print*,'jbs_invAspectRatio79(i, OP_1)',jbs_invAspectRatio79(i, OP_1)
+ ! print*,'jbs_qR79(i, OP_1)',jbs_qR79(i, OP_1)
+  !print*,'f_t32_ee(i),f_t32_ei(i),F32ee(i) ,F32ei(i) ',f_t32_ee(i),f_t32_ei(i),F32ee(i) ,F32ei(i) 
+  !print*,'alpha_0(i)',alpha_0(i)
+   !print*,'jbs_ftrap79(i, OP_1)',jbs_ftrap79(i, OP_1)
+     ! print*,'i,gen_jbsl3179(i),gen_jbsl3279(i),gen_jbsl3479(i),gen_jbsalpha79(i)',i,gen_jbsl3179(i),gen_jbsl3279(i),gen_jbsl3479(i),gen_jbsalpha79(i)
+     ! stop
+      !endif
     enddo
     
    end subroutine calculate_Coefficients_Redl
@@ -1688,6 +1709,11 @@ subroutine calculate_CommonTerm_Lambda_fordtenormdpsit(temp1,temp2,tempAA, tempB
 
     else if (ibootstrap_model.eq.2 .or. ibootstrap_model.eq.4)then !Redl et al (2021) 
        call calculate_Coefficients_Redl(jbsl3179(:,OP_1),jbsl3279(:,OP_1),jbsl3479(:,OP_1),jbsalpha79(:,OP_1))
+       ! call calculate_Coefficients_Redl(gen_jbsl3179,gen_jbsl3279,gen_jbsl3479,gen_jbsalpha79)
+       ! jbsl3179(:,OP_1)=gen_jbsl3179(:)
+       ! jbsl3279(:,OP_1)=gen_jbsl3279(:)
+       ! jbsl3479(:,OP_1)=gen_jbsl3479(:)
+       ! jbsalpha79(:,OP_1)=gen_jbsalpha79(:)
 
        !A = d lnn  /d psi    = p/n (del n.del Te)/(|del Te|^2 + chi^2) dTe/dpsit
        !A = pe d lnne  /d psi +  pi d lnni  /d psi    = (tene + tini)/ne (del ne.del Te)/(|del Te|^2 + chi^2) dTe/dpsit
@@ -1705,17 +1731,27 @@ subroutine calculate_CommonTerm_Lambda_fordtenormdpsit(temp1,temp2,tempAA, tempB
         
  !       !dnds_term = -2pi Gbar / (iota - helicity_N)  L31 (ne_s Te_s + ni_s Ti_s)/ne (d lnne / d psit))
         tempAA = jbsfluxavg_G79(:,OP_1)*jbsl3179(:,OP_1)*(-temax3)*jbs_dtedpsit79(:,OP_1)*(tempAA)
+       ! tempAA = jbsfluxavg_G79(:,OP_1)*gen_jbsl3179(:)*(-temax3)*jbs_dtedpsit79(:,OP_1)*(tempAA)
 
  !       !dTeds_term = -2pi Gbar / (iota - helicity_N) (L31 + L32) pe_s (d lnTe / d psit)
         tempBB = jbsfluxavg_G79(:,OP_1)*(jbsl3179(:,OP_1)+jbsl3279(:,OP_1))*pet79(:,OP_1)&
                  *(-temax3)*jbs_dtedpsit79(:,OP_1)*(tempBB)
+       ! tempBB = jbsfluxavg_G79(:,OP_1)*(gen_jbsl3179(:)+gen_jbsl3279(:))*pet79(:,OP_1)&
+        !         *(-temax3)*jbs_dtedpsit79(:,OP_1)*(tempBB)
         
  !       !dTids_term = -2pi Gbar / (iota - helicity_N) (L31 + L34 * alpha) pi_s (d lnTi / d psit)
         tempCC = jbsfluxavg_G79(:,OP_1)*(jbsl3179(:,OP_1)+jbsl3479(:,OP_1)*&
                  jbsalpha79(:,OP_1))*(pt79(:,OP_1)-pet79(:,OP_1))*(-temax3)*jbs_dtedpsit79(:,OP_1)*(tempCC)
+       ! tempCC = jbsfluxavg_G79(:,OP_1)*(gen_jbsl3179(:)+gen_jbsl3479(:)*&
+        !         gen_jbsalpha79(:))*(pt79(:,OP_1)-pet79(:,OP_1))*(-temax3)*jbs_dtedpsit79(:,OP_1)*(tempCC)
 
  !       !jdotB = dnds_term + dTeds_term + dTids_term
         tempDD = (tempAA) + (tempBB) + (tempCC)
+       ! print*,'temax3',temax3
+        !print*,'jbsl3179',jbsl3179(:,OP_1)
+        !print*,'jbsl3279',jbsl3279(:,OP_1)
+        !print*,'jbsl3479',jbsl3479(:,OP_1)
+       !print*,'jbsalpha79',jbsalpha79(:,OP_1)
    
     end if
    
