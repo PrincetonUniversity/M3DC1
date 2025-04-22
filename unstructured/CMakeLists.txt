@@ -275,6 +275,8 @@ find_package(Zoltan)
 #find_package(PARMETIS)
 #find_package(METIS)
 
+find_package(ZLIB)
+message(STATUS "ZLIB found: ${ZLIB_LIBRARIES}")
 find_package(HDF5 REQUIRED COMPONENTS Fortran HL)
 message(STATUS "HDF5 found: ${HDF5_HL_LIBRARIES}")
 if (HDF5_HL_LIBRARIES MATCHES "libhdf5_hl_fortran\.a")
