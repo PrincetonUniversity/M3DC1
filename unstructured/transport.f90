@@ -232,8 +232,7 @@ function bootstrapCoeff_func(col_number)
                else          
                   pso=1. - pet79(j,OP_1)/net79(j,OP_1)/(temax)
                endif
-            endif   
-            print*,'pso',pso     
+            endif    
          endif 
          if(bootstrap_coef_0flag==1)then
             temp79a(j) = 0
