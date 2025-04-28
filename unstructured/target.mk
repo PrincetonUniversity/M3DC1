@@ -44,6 +44,11 @@ all :
 	make a2cc
 	make bin
 
+.PHONY: kinetic
+kinetic : 
+	rm -fr _$(ARCH)-complex*
+	make OPT=1 COM=1 PAR=1 ENABLE_PARTICLE=1
+
 .PHONY: cleanall
 cleanall : 
 	rm -fr _$(ARCH)*

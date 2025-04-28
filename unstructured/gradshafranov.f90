@@ -1423,6 +1423,9 @@ endif
   if(igs_pp_ffp_rescale.ne.0 .and. batemanscale.ne.1.) then
      if(myrank.eq.0) bzero = bzero*batemanscale
      call mpi_bcast(bzero,1,MPI_DOUBLE_PRECISION,0,MPI_COMM_WORLD,ier)
+     if(iprint.ge.1 .and. myrank.eq.0) then 
+        write(*,'(A,2F12.4)') 'With pp,ffp rescale, setting new bzero, rzero = ', bzero, rzero
+     end if 
   endif
 
   ! solve for p and f fields that best approximate gs solution

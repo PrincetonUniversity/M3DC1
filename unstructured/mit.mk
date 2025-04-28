@@ -1,9 +1,12 @@
 FOPTS = -c -fdefault-real-8 -fdefault-double-8 -cpp -DPETSC_VERSION=313 -DUSEBLAS $(OPTS) 
-CCOPTS  = -c -O -DPETSC_VERSION=313 -DDEBUG
+CCOPTS  = -c -O -DPETSC_VERSION=313 #-DDEBUG
 R8OPTS = -fdefault-real-8 -fdefault-double-8
 
+FOPTS  := $(FOPTS) -ffree-line-length-0
+ 
 ifeq ($(OPT), 1)
-  FOPTS  := $(FOPTS) -w -O2 #-qopt-report=5 -qopt-report-phase=vec,loop
+#  FOPTS  := $(FOPTS) -w -O2 #-qopt-report=5 -qopt-report-phase=vec,loop
+  FOPTS  := $(FOPTS) -w -O3 #-qopt-report=5 -qopt-report-phase=vec,loop
   CCOPTS := $(CCOPTS) -O
 else
   FOPTS := $(FOPTS) -g 
@@ -43,7 +46,7 @@ else
   endif
 endif
 
-SCOREC_BASE_DIR=/orcd/nese/psfc/001/scorec/openmpi4.1.4-gcc12.2.0/petsc3.19.2
+SCOREC_BASE_DIR=$(PETSC_DIR)/$(PETSC_ARCH)
 SCOREC_UTIL_DIR=$(SCOREC_BASE_DIR)/bin
 PUMI_DIR=$(SCOREC_BASE_DIR)
 PUMI_LIB = -lpumi -lapf -lapf_zoltan -lcrv -lsam -lspr -lmth -lgmi -lma -lmds -lparma -lpcu -lph -llion
