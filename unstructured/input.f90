@@ -1280,6 +1280,8 @@ subroutine set_defaults
        "Scaling factor of the normalization term in particle phase space integration", particle_grp)
   call add_var_int("ikinetic_vpar", ikinetic_vpar, 0, &
        "1: Synchronize particle parallel flow to MHD", particle_grp)
+  call add_var_double("kinetic_rhomax", kinetic_rhomax, 1., &
+       "Maximum rho for kinetic particle", particle_grp)
   call add_var_double("vpar_reduce", vpar_reduce, 0.5, &
        "Factor of parallel flow reduction for every timestep", particle_grp)
   call add_var_double("smooth_par", smooth_par, 1.e-8, &

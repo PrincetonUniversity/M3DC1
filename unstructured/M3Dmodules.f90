@@ -322,6 +322,7 @@ module basic
   real, dimension(2) :: num_par_scale
   real, dimension(2) :: kinetic_nrmfac_scale
   integer :: ikinetic_vpar
+  real :: kinetic_rhomax
   real :: vpar_reduce
   real :: smooth_par, smooth_pres
 #endif
