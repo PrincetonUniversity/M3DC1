@@ -1855,23 +1855,28 @@ subroutine particle_step(pdt)
 
    real    :: tstart, tend
    integer :: istep, ierr, ipart
+   integer :: isubcycle
 
-   if (kinetic_thermal_ion.eq.1) then
-   call set_parallel_velocity
-   call set_psmooth
-   endif
-   !Advance particle positions
-   call calculate_electric_fields(linear)
-   call get_field_coefs(0)
    call mpi_barrier(mpi_comm_world, ierr)
-   !call MPI_Win_fence(0, win_elfieldcoefs)
+   if (kinetic_thermal_ion.eq.1) then
+      call set_parallel_velocity
+   endif
+   call calculate_electric_fields(linear)
+   do isubcycle=1,particle_subcycles
+      if (kinetic_thermal_ion.eq.1) then
+         call set_psmooth
+      endif
+      !Advance particle positions
+      call get_field_coefs(0)
+      call mpi_barrier(mpi_comm_world, ierr)
+      !call MPI_Win_fence(0, win_elfieldcoefs)
 #ifdef _OPENACC
-   if (hostrank < num_devices) then
+      if (hostrank < num_devices) then
 #else
       if (hostrank < ncols) then
 #endif
          call second_new(tstart)
-         call advance_particles(pdt/particle_substeps)
+         call advance_particles(pdt/particle_substeps/particle_subcycles)
          call second_new(tend)
          write (0, '(A,I7,A,f9.2,A)') 'Particle advance completed', particle_substeps, ' steps in', &
             tend - tstart, ' seconds.'
@@ -1879,7 +1884,7 @@ subroutine particle_step(pdt)
       call mpi_barrier(mpi_comm_world, ierr)
       if (hostrank < 1) then
          call second(tstart)
-         if (mod(ntime - ntime0, ntimepr) == 0) then
+         if ((isubcycle==particle_subcycles).and.(mod(ntime - ntime0, ntimepr) == 0)) then
             call delete_particle(.true.)
          else
             call delete_particle(.false.)
@@ -1894,9 +1899,11 @@ subroutine particle_step(pdt)
       call update_particle_pressure
       call mpi_barrier(mpi_comm_world, ierr)
 
-   if (kinetic_thermal_ion.eq.1) then
-      call set_density
-   endif
+      if (kinetic_thermal_ion.eq.1) then
+         call set_density
+      endif
+      call mpi_barrier(mpi_comm_world, ierr)
+   enddo
 
 end subroutine particle_step
 !---------------------------------------------------------------------------

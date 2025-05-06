@@ -1258,6 +1258,8 @@ subroutine set_defaults
   call add_var_int("particle_linear", particle_linear, linear, &
        "1: Solve linear delta-f equation. 0: Include nonlinear terms in delta-f", particle_grp)
   call add_var_int("particle_substeps", particle_substeps, 40, &
+       "Number of substeps for particle pushing in one subcycle", particle_grp)
+  call add_var_int("particle_subcycles", particle_subcycles, 1, &
        "Number of subcycles for particle pushing in one MHD timestep", particle_grp)
   call add_var_int("particle_couple", particle_couple, 0, &
        "0: Pressure coupling. 1: Current coupling", particle_grp)
@@ -1731,6 +1733,10 @@ subroutine validate_input
      call safestop(1)
 #endif
   endif
+
+#ifdef USEPARTICLES
+  if(kinetic_thermal_ion.eq.0) particle_subcycles=0
+#endif
 
   if(itemp.eq.0 .and. kappai_fac.ne.1.) then
      if(myrank.eq.0) print *, 'Error: kappai_fac must equal 1 when itemp=0.'
