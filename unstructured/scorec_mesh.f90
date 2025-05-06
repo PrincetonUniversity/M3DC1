@@ -958,6 +958,7 @@ contains
     inode2 = inode
     call m3dc1_ent_getadj (2, itri-1, 1, iedge, 3, num_adj_ent)
     iedge = iedge+1
+    iedge2 = iedge
     call m3dc1_ent_getgeomclass(2, itri-1, ifaczonedim, ifaczone)
     do i=1,3
        if(present(tags)) then 
@@ -970,14 +971,13 @@ contains
     end do
 
     is_edge = 0
-    iedge2 = iedge
     do i=1,3
        !call zonedg(iedge(i),izone,izonedim)
-       call m3dc1_ent_getgeomclass(1, iedge(i)-1, izonedim, izone)
+       call m3dc1_ent_getgeomclass(1, iedge2(i)-1, izonedim, izone)
        if(izonedim.gt.1) cycle
 
        !call nodedg(iedge(i), in)
-       call m3dc1_ent_getadj (1, iedge(i)-1, 0, in, 2, num_adj_ent)
+       call m3dc1_ent_getadj (1, iedge2(i)-1, 0, in, 2, num_adj_ent)
        in = in + 1
        ! check nodes to see which one is the first node of iedge(i)
        found_edge = .false.

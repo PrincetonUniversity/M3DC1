@@ -159,7 +159,7 @@ module m3dc1_nint
   vectype, dimension(MAX_PTS) :: qd79
 !$OMP THREADPRIVATE(qd79)
   vectype, dimension(MAX_PTS, OP_NUM) :: jbsl3179,jbsl3279,jbsl3479,jbsalpha79,jbsfluxavg_iBsq_B79,jbsfluxavg_G79,jbs_dtedpsit79
-!$OMP THREADPRIVATE(jbsl3179,jbsl3279,jbsl3479,jbsalpha79,,jbsfluxavg_iBsq_B79,jbsfluxavg_G79,jbs_dtedpsit79)
+!$OMP THREADPRIVATE(jbsl3179,jbsl3279,jbsl3479,jbsalpha79,jbsfluxavg_iBsq_B79,jbsfluxavg_G79,jbs_dtedpsit79)
 
   ! precalculated terms
    real, private :: fterm(MAX_PTS, OP_NUM, coeffs_per_element)
