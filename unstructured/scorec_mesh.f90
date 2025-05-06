@@ -819,7 +819,7 @@ contains
     real :: angler
     real, dimension(3) :: norm
 
-    curv = 0.
+    !curv = 0.
 
     call m3dc1_ent_getgeomclass(0,inode-1,izonedim,izone)
     call get_node_pos(inode,x,phi,z)
