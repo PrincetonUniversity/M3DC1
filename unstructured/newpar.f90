@@ -742,6 +742,7 @@ subroutine derived_quantities(ilin)
   use transport_coefficients
   use auxiliary_fields
   use gradshafranov
+  use bootstrap
 
   implicit none
 
@@ -760,7 +761,11 @@ subroutine derived_quantities(ilin)
      if(linear.eq.1) then 
         if(ntime.eq.ntime0) then
           if(ifixed_temax .eq. 0) then
-            call te_max(xmag,zmag,te_field(0),temax,0,ier)
+            if(ibootstrap.eq.3) then
+               call te_max3(xmag,zmag,te_field(0),temax,0,ier)
+            else
+               call te_max(xmag,zmag,te_field(0),temax,0,ier)
+            endif
           else
             call te_max2(xmag0,zmag0,te_field(0),temax,0,ier)
           endif
@@ -774,7 +779,11 @@ endif
         te_temp = te_field(0)
         call add_field_to_field(te_temp, te_field(1))
         if(ifixed_temax .eq. 0) then
-           call te_max(xmag,zmag,te_temp,temax,0,ier)
+            if(ibootstrap.eq.3) then
+               call te_max3(xmag,zmag,te_temp,temax,0,ier)
+            else
+               call te_max(xmag,zmag,te_temp,temax,0,ier)
+            endif  
         else
            call te_max2(xmag0,zmag0,te_temp,temax,0,ier)
         endif
@@ -782,7 +791,11 @@ endif
      endif
   else
      if(ifixed_temax .eq. 0) then
-       call te_max(xmag,zmag,te_field(1),temax,0,ier)
+      if(ibootstrap.eq.3) then
+         call te_max3(xmag,zmag,te_field(1),temax,0,ier)
+      else
+         call te_max(xmag,zmag,te_field(1),temax,0,ier)
+      endif 
      else
        call te_max2(xmag0,zmag0,te_field(1),temax,0,ier)
      endif
