@@ -149,18 +149,28 @@ contains
                  *exp(-1.D0/(4*x)-sqrt((1.D0+Zeff)/x)) ! Dreicer Source [per cubic m per s]
               endif
               if (iDreicer.eq.2) then ! Partially Screened Dreicer
-				! For Partially Screened Dreicer
-				ZImp = 1.0 ! Impurity Charge [-]
-				ZmaxImp = 1.0 ! Atomic no. of Impurity [-]
-				! Update nI, neI, ZI and ZmaxI if using KPRAD
-				IF(ikprad.ne.0) then
-							ZmaxImp = 1.0 *  kprad_z ! Impurity atomic no.
-							Zimp = (Dens1 - 1.0*Dens_ion)/Dens_imp ! Impurity Ionization
-				END IF
-                                IF(x>0.13) THEN ! Upper bound of NN 
-                                        x = 0.13
-                                END IF
-				sd = getDreicerHesslow(Dens_ion,Dens_imp,ZmaxImp,ZImp,x,Temp) ! [per cubic m per s]
+                    if ((x < 0.01) .or. (Dens_ion<1.D16)) then ! Lower Limit of Neural Network is x = 0.01
+                              sd = 0.0
+                     else
+						! For Partially Screened Dreicer
+						ZImp = 1.0 ! Impurity Charge [-]
+						ZmaxImp = 1.0 ! Atomic no. of Impurity [-]
+						! Update nI, neI, ZI and ZmaxI if using KPRAD
+						IF(ikprad.ne.0) then
+									ZmaxImp = 1.0 *  kprad_z ! Impurity atomic no.
+									Zimp = (Dens1 - &
+											1.0*Dens_ion)/Dens_imp ! Impurity Ionization
+									Zimp = min(ZmaxImp,Zimp) ! Maximum Impurity Ionization = ZmaxImp
+						END IF
+						if (x > 0.13) then ! Bound of the Neural Network
+								x = 0.13
+						endif
+						sd = getDreicerHesslow(Dens_ion,Dens_imp,&
+												ZmaxImp,ZImp,x,Temp) ! [per cubic m per s]
+                                !IF (sd*cre*ec*va*dt_si>abs(epar)/eta) THEN ! Cannot produce negative E-field 
+                               !         sd = 1e-1 * abs(epar)/eta  / (cre * ec * va * dt_si) 
+                               ! END IF
+					endif
               endif
               ! Tritium Beta Source
               if (iTritBeta.eq.1) then ! Tritium Beta Calculation
@@ -168,7 +178,12 @@ contains
               endif
               ! Compton Source
               if (iCompton.eq.1) then ! COmpton Source for SPARC
-				scomp = Dens1 * compton_source(Ed) ! Compton Source [per cubic m per s]
+                                if (ikprad.ne.0) then
+                                       scomp = (kprad_z * Dens_imp &
+                                       + Dens_ion) * compton_source(Ed) 
+                                else 
+				       scomp = Dens1 * compton_source(Ed) ! Compton Source [per cubic m per s]
+                                endif
 				if (Temp < 2e3) then ! Non-Prompt Compton
 					scomp = 1e-3 * scomp ! RiD: Reduce compton contribution when temp. < 2 keV 
 				endif
@@ -181,7 +196,7 @@ contains
                     /(Ed**2+4/gamma**2-1)) 
                 endif
               else
-                 sa = 0.
+                      sa = 0.
               endif
               dndt = (1.0*sd*esign + &
 					1.0*sbeta*esign + &
@@ -494,7 +509,8 @@ contains
 	  eps0 = 8.8541878128D-12  ! Vacuum permittivity [F/m]
 
 	  ! Coulomb logarithm
-	  lnLambda = 14.9d0 - 0.5d0 * log(density / 1.0d20) + log(temp_e / 1.0d3)
+	  lnLambda = 14.9d0 - 0.5d0 * log(density / 1.0d20) &
+				+ log(temp_e / 1.0d3)
 	  ! Calculate tau_ee
 	  num = 8D0*sqrt(2.D0)*3.14159265D0*(e*temp_e)**1.5*eps0**2*sqrt(me)
 	  den = lnLambda* e**4 * density   

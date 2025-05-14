@@ -433,6 +433,8 @@ subroutine set_defaults
   call add_var_int("iTritBeta", iTritBeta, 0, "", model_grp)
   call add_var_int("iCompton", iCompton, 0, "", model_grp)
   call add_var_int("iAvalanche", iAvalanche, 1, "", model_grp)
+  call add_var_int("iScaleRmpWithCurrent", iScaleRmpWithCurrent, 0, "", model_grp)
+  call add_var_double("init_current", init_current, 1., "", model_grp)
   call add_var_int("imp_bf", imp_bf, 0, &
        "1: Include implicit equation for f", model_grp)
   call add_var_int("imp_temp", imp_temp, 0, &

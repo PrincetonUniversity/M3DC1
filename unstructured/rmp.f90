@@ -2,6 +2,7 @@ module rmp
 
   use coils
   use read_schaffer_field
+  use diagnostics ! RiD: required for totcur (plasma current) for iScaleRmpWithCurrent = 1
 
   implicit none
 
@@ -195,6 +196,7 @@ subroutine rmp_field(n, nt, np, x, phi, z, br, bphi, bz, p)
   complex, dimension(n) :: fr, fphi, fz
   complex, dimension(n) :: brv, bthetav, bzv, phase
   real, dimension(n) :: r, theta, arg, fac, atten
+  real :: rmp_scale_fac, curr_plasma, curr_plasma0 ! RiD: New variables for iScaleRmpWithCurrent = 1 
 #ifdef USE3D
   real, dimension(n) :: gr, gphi, gz, q
 #endif
@@ -225,9 +227,23 @@ subroutine rmp_field(n, nt, np, x, phi, z, br, bphi, bz, p)
      fphi = 0.    ! B_phi
      fz   = 0.    ! B_Z
      
+     ! RiD: Variables required for iScaleRmpWithCurrent = 1 
+	 rmp_scale_fac = 1.0
+	 curr_plasma = 0.0
+	 curr_plasma0 = 1.0
+
+     
      do i=1, nc_na, 2
-        call pane(ic_na(i),xc_na(i),xc_na(i+1),zc_na(i),zc_na(i+1), &
-             np,x,z,ntor,fr,fphi,fz)
+		IF (iScaleRmpWithCurrent.eq.1) THEN
+				curr_plasma = 1.0 * totcur
+				curr_plasma0 = init_current * 1.0/j0_norm !RiD: convert from Ampere to M3DC1 units
+				rmp_scale_fac = 1.0 - abs(curr_plasma)/curr_plasma0
+		ENDIF
+		!RiD: window pane model to calculate coil magnetic field contribution
+		call pane(rmp_scale_fac*ic_na(i),xc_na(i),xc_na(i+1),zc_na(i),zc_na(i+1), & 
+             np,x,z,ntor,fr,fphi,fz) 
+!~         call pane(ic_na(i),xc_na(i),xc_na(i+1),zc_na(i),zc_na(i+1), & 
+!~              np,x,z,ntor,fr,fphi,fz) 
      end do
      
 #ifdef USECOMPLEX
@@ -433,7 +449,7 @@ subroutine calculate_external_fields(ilin)
      il = ilin
   end if
 
-  if(irmp.eq.1) then
+  if(irmp.eq.1) then ! RiD: Here, the rmp coil data is read; coil current stored in ic_na
      call load_coils(xc_na, zc_na, ic_na, nc_na, &
           'rmp_coil.dat', 'rmp_current.dat')
   end if

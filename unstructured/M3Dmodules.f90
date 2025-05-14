@@ -302,6 +302,8 @@ module basic
   integer :: iTritBeta	 ! Toggles Tritium RE source
   integer :: iCompton	 ! Toggles Compton RE source
   integer :: iAvalanche	 ! Toggles Avalanche RE term
+  integer :: iScaleRmpWithCurrent ! Toggles ability to scale RMP current with total Plasma current
+  real :: init_current   ! inital current in Ampere for iScaleRmpWithCurrent = 1
   integer :: iflip       ! 1 = flip handedness
   integer :: iflip_b     ! 1 = flip equilibrium toroidal field
   integer :: iflip_j     ! 1 = flip equilibrium toroidal current density
