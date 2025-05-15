@@ -83,9 +83,9 @@ if (ispradapt .eq. 1) then
     call create_field(Jp_BS_z, "Jp_BS_z")
     call create_field(Jp_BS_phi, "Jp_BS_phi")
     call create_field(JpdotB, "JpdotB")
-    call create_field(JpdotB, "JpdotB_dndpsi")
-    call create_field(JpdotB, "JpdotB_dtedpsi")
-    call create_field(JpdotB, "JpdotB_dtidpsi")
+    call create_field(JpdotB_dndpsi, "JpdotB_dndpsi")
+    call create_field(JpdotB_dtedpsi, "JpdotB_dtedpsi")
+    call create_field(JpdotB_dtidpsi, "JpdotB_dtidpsi")
    endif
 else
   call create_field(bdotgradp)
