@@ -236,7 +236,7 @@ subroutine rmp_field(n, nt, np, x, phi, z, br, bphi, bz, p)
      do i=1, nc_na, 2
 		IF (iScaleRmpWithCurrent.eq.1) THEN
 				curr_plasma = 1.0 * totcur
-				curr_plasma0 = init_current * 1.0/j0_norm !RiD: convert from Ampere to M3DC1 units
+				curr_plasma0 = init_current * 1.0/795217.0 !RiD: convert from Ampere to M3DC1 units
 				rmp_scale_fac = 1.0 - abs(curr_plasma)/curr_plasma0
 		ENDIF
 		!RiD: window pane model to calculate coil magnetic field contribution
