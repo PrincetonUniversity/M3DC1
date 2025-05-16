@@ -298,6 +298,7 @@ module basic
   integer :: ra_cyc      ! runaway subcycle
   real :: radiff         ! runaway diffusion
   real :: rjra           ! jra/j0
+  integer :: runaway_characteristics           ! use method of characteristics
   integer :: iflip       ! 1 = flip handedness
   integer :: iflip_b     ! 1 = flip equilibrium toroidal field
   integer :: iflip_j     ! 1 = flip equilibrium toroidal current density
