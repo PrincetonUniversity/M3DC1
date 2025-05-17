@@ -120,6 +120,7 @@ set(SOURCES
     init_vmec.f90
     transport.f90
     auxiliary_fields.f90
+    runaway_advection.f90
     time_step_split.f90
     time_step_unsplit.f90
     hdf5_output.f90

@@ -732,7 +732,7 @@ subroutine rk4(part, dt, last_step, ierr)
       call get_geom_terms(part%x, itri, geomterms, .false., ierr)
       if (ierr.eq.1) return
       part%f0=dot_product(geomterms%g, elfieldcoefs(itri)%jrev1)
-      if (.not.linear_particle) part%f0=part%f0+dot_product(geomterms%g, elfieldcoefs(itri)%jrev0)
+      if (linear_particle.eq.0) part%f0=part%f0+dot_product(geomterms%g, elfieldcoefs(itri)%jrev0)
       part%jel = itri
    endif
 end subroutine rk4
@@ -1938,7 +1938,7 @@ end subroutine getEcyl
 #endif
        enddo !ipart
 #ifndef USECOMPLEX
-       if (.not.linear_particle) nre179(:,OP_1)=nre179(:,OP_1)-nre079(:,OP_1)
+       if (linear_particle.eq.0) nre179(:,OP_1)=nre179(:,OP_1)-nre079(:,OP_1)
 #endif
           dofspa = intx2(mu79(:,:,OP_1),nre179(:,OP_1))
        !PRINT *,'DB',myrank,ielm,pdata(ielm)%np,ibp,iwe,iok
