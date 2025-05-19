@@ -1613,7 +1613,6 @@ function bs_b1psifbb(e,f,g,h,i)
     
    end subroutine calculate_Coefficients_Redl
 
-
 !calculating bootstrap current
 subroutine calculate_CommonTerm_Lambda_fordtenormdpsit(temp1,temp2,tempAA, tempBB, tempCC)
   !ibootstrap=3 3: to use tenorm: da/dpsit=da/dte dte/dpsit=-temax da/dte dtenorm/dpsit
@@ -1643,8 +1642,8 @@ subroutine calculate_CommonTerm_Lambda_fordtenormdpsit(temp1,temp2,tempAA, tempB
     vectype, dimension(MAX_PTS) :: tempDD, tempAA, tempBB, tempCC, temp1, temp2, iBpsq, temp_delmagTe, temp_delTe
     vectype, dimension(MAX_PTS) :: gen_jbsl3179,gen_jbsl3279,gen_jbsl3479,gen_jbsalpha79
     vectype, dimension(MAX_PTS) :: chisq,const1,adaptive_regularization
-    integer :: i
-    real(dp):: tempbeta,tempvar,temax3
+    integer :: i,j
+    real(dp):: tempbeta,tempvar,temax3, pso
 
     temp1 = 0.
     temp2 = 0.
@@ -1697,26 +1696,43 @@ subroutine calculate_CommonTerm_Lambda_fordtenormdpsit(temp1,temp2,tempAA, tempB
 #endif
 
       tempAA = (net79(:,OP_1)*tet79(:,OP_1)+nt79(:,OP_1)*tit79(:,OP_1))/net79(:,OP_1) * tempAA/(temp_delmagTe+chisq)
-        if(temax .le. 1e-8) then
-          temax3=temax_readin!/(1.6022e-9 * (4.*pi*n0_norm)/ (b0_norm**2))
-        else
-          temax3=temax!/(1.6022e-9 * (4.*pi*n0_norm)/ (b0_norm**2))
-        endif
+      do j = 1, MAX_PTS
         
+          if(temax .le. 1e-8) then
+           ! pso = 1. - pet79(j,OP_1)/net79(j,OP_1)/temax_readin
+            pso = 1. - real(tet79(j,OP_1))/temax_readin
+            temax3=temax_readin   !/(1.6022e-9 * (4.*pi*n0_norm)/ (b0_norm**2))
+          else          
+            !pso=1. - pet79(j,OP_1)/net79(j,OP_1)/(temax)
+            pso = 1. - real(tet79(j,OP_1))/(temax)
+            temax3=temax         !/(1.6022e-9 * (4.*pi*n0_norm)/ (b0_norm**2))
+          endif
+         
+        
+
+        if (pso > 1.0) then
+          !outside -- j.b=0
+          !print*,'here,pso>0,,pso,temax3,temax,temax_readin,tet79(j,OP_1)',pso,temax3,temax,temax_readin,real(tet79(j,OP_1))
+          tempAA(j)=0.
+          tempBB(j)=0.
+          tempCC(j)=0.
+          tempDD(j)=0.
+        else 
  !       !dnds_term = -2pi Gbar / (iota - helicity_N)  L31 (ne_s Te_s + ni_s Ti_s)/ne (d lnne / d psit))
-        tempAA = jbsfluxavg_G79(:,OP_1)*jbsl3179(:,OP_1)*(-temax3)*jbs_dtedpsit79(:,OP_1)*(tempAA)
+        tempAA(j) = jbsfluxavg_G79(j,OP_1)*jbsl3179(j,OP_1)*(-temax3)*jbs_dtedpsit79(j,OP_1)*(tempAA(j))
 
  !       !dTeds_term = -2pi Gbar / (iota - helicity_N) (L31 + L32) pe_s (d lnTe / d psit)
-        tempBB = jbsfluxavg_G79(:,OP_1)*(jbsl3179(:,OP_1)+jbsl3279(:,OP_1))*pet79(:,OP_1)&
-                 *(-temax3)*jbs_dtedpsit79(:,OP_1)*(tempBB)
+        tempBB(j) = jbsfluxavg_G79(j,OP_1)*(jbsl3179(j,OP_1)+jbsl3279(j,OP_1))*pet79(j,OP_1)&
+                 *(-temax3)*jbs_dtedpsit79(j,OP_1)*(tempBB(j))
         
  !       !dTids_term = -2pi Gbar / (iota - helicity_N) (L31 + L34 * alpha) pi_s (d lnTi / d psit)
-        tempCC = jbsfluxavg_G79(:,OP_1)*(jbsl3179(:,OP_1)+jbsl3479(:,OP_1)*&
-                 jbsalpha79(:,OP_1))*(pt79(:,OP_1)-pet79(:,OP_1))*(-temax3)*jbs_dtedpsit79(:,OP_1)*(tempCC)
+        tempCC(j) = jbsfluxavg_G79(j,OP_1)*(jbsl3179(j,OP_1)+jbsl3479(j,OP_1)*&
+                 jbsalpha79(j,OP_1))*(pt79(j,OP_1)-pet79(j,OP_1))*(-temax3)*jbs_dtedpsit79(j,OP_1)*(tempCC(j))
 
  !       !jdotB = dnds_term + dTeds_term + dTids_term
-        tempDD = (tempAA) + (tempBB) + (tempCC)
-   
+         tempDD(j) = (tempAA(j)) + (tempBB(j)) + (tempCC(j))
+        endif
+      enddo
     end if
    
     
@@ -1734,7 +1750,7 @@ subroutine calculate_CommonTerm_Lambda_fordtenormdpsit(temp1,temp2,tempAA, tempB
     
     
   end subroutine calculate_CommonTerm_Lambda_fordtenormdpsit
-   
+
 end module bootstrap
 
 

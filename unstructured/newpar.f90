@@ -762,7 +762,8 @@ subroutine derived_quantities(ilin)
         if(ntime.eq.ntime0) then
           if(ifixed_temax .eq. 0) then
             if(ibootstrap.eq.3) then
-               call te_max3(xmag,zmag,te_field(0),temax,0,ier)
+               !call te_max3(xmag,zmag,te_field(0),temax,0,ier)
+               call te_max4(te_field(0),temax,ier)
             else
                call te_max(xmag,zmag,te_field(0),temax,0,ier)
             endif
@@ -780,7 +781,8 @@ endif
         call add_field_to_field(te_temp, te_field(1))
         if(ifixed_temax .eq. 0) then
             if(ibootstrap.eq.3) then
-               call te_max3(xmag,zmag,te_temp,temax,0,ier)
+               !call te_max3(xmag,zmag,te_temp,temax,0,ier)
+               call te_max4(te_temp,temax,ier)
             else
                call te_max(xmag,zmag,te_temp,temax,0,ier)
             endif  
@@ -792,7 +794,8 @@ endif
   else
      if(ifixed_temax .eq. 0) then
       if(ibootstrap.eq.3) then
-         call te_max3(xmag,zmag,te_field(1),temax,0,ier)
+         !call te_max3(xmag,zmag,te_field(1),temax,0,ier)
+         call te_max4(te_field(1),temax,ier)
       else
          call te_max(xmag,zmag,te_field(1),temax,0,ier)
       endif 

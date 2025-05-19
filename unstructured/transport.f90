@@ -220,23 +220,17 @@ function bootstrapCoeff_func(col_number)
             pso=pso * (p0_norm / n0_norm) / 1.6022e-12
          else if (ibootstrap == 3) then
          !using normalized temperature That = 1 - Te/Temax
-            if(itemp == 1) then   
-               if(temax .le. 1e-8) then
-                  pso = 1. - real(tet79(j,OP_1))/temax_readin
-               else          
-                  pso = 1. - real(tet79(j,OP_1))/(temax)
-               endif
-            else
+            if(real(net79(j,OP_1)).gt.0.)then  
                if(temax .le. 1e-8) then
                   pso = 1. - pet79(j,OP_1)/net79(j,OP_1)/temax_readin
                else          
                   pso=1. - pet79(j,OP_1)/net79(j,OP_1)/(temax)
                endif
+            else
+               pso=1.
             endif    
          endif 
-         if(bootstrap_coef_0flag==1)then
-            temp79a(j) = 0
-         else
+         
             if(col_number==2)then  
                call evaluate_spline(coef_spline_L31,pso,val,valp,valpp,extrapolate=1)
             elseif(col_number==3)then  
@@ -268,7 +262,7 @@ function bootstrapCoeff_func(col_number)
 
             temp79a(j) = val
             !if(myrank.eq.0) print *,'pso,val', pso, val
-         endif
+         
       end do
                  
             

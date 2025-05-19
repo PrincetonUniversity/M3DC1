@@ -1823,7 +1823,7 @@ subroutine te_max2(xguess,zguess,te,tem,imethod,ier)
 end subroutine te_max2
 
 
-! te_max
+! te_max3
 ! ~~~~~~~
 ! searches each cell for the extreemum in te and the value of te there
 !  finds the local global maximum of te
@@ -1955,6 +1955,68 @@ subroutine te_max3(xguess,zguess,te,tem,imethod,ier)
        write(*,'(A,E12.4)') '  te_max3:', summax
   
 end subroutine te_max3
+
+
+
+! te_max4
+! ~~~~~~~
+! searches each cell for the extreemum in te and the value of te there
+!  finds the local global maximum of te
+!=====================================================
+subroutine te_max4(te,tem,ier)
+  use basic
+  use mesh_mod
+  use m3dc1_nint
+  use field
+
+  implicit none
+
+  include 'mpif.h'
+
+  type(field_type), intent(in) :: te
+  real, intent(out) :: tem
+  integer :: i, ier
+  integer :: itri,  numelms
+  real :: max_val_local, tempval,temp1, temp2, summax
+  real, dimension(MAX_PTS) :: tet
+
+  ! Initialize local max
+  max_val_local = -1.0e30
+
+! search over all triangles local to this processor
+!
+  numelms = local_elements()
+  
+  tempval = 0.
+  summax = 0.
+ 
+  do itri = 1,numelms
+   call define_element_quadrature(itri, int_pts_main, 5)
+   call eval_ops(itri, te, tet79)  
+  
+   tet=tet79(:,OP_1)
+   tempval=maxval(tet)
+
+   if (tempval > max_val_local) then
+      max_val_local = tempval
+   end if
+  end do 
+
+  !select maximum over all processors
+  if(maxrank.gt.1) then
+     temp1 = max_val_local 
+     call mpi_allreduce(temp1, temp2, 1, &
+          MPI_DOUBLE_PRECISION, MPI_MAX, MPI_COMM_WORLD, ier)
+     summax   = temp2
+  endif
+
+  tem = summax
+  ier = 0
+
+  if(myrank.eq.0 .and. iprint.ge.2) &
+       write(*,'(A,E12.4)') '  te_max4:', summax
+  
+end subroutine te_max4
 
 !=====================================================
 ! lcfs
