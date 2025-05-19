@@ -45,8 +45,8 @@ module runaway_advection
       sequence
       real, dimension(3)       :: x           !Position in cylindrical coords
       real, dimension(vspdims) :: v           !Velocity
-      real                  :: wt    !Particle weighting in delta-f scheme
-      real                  :: f0
+      vectype                  :: wt    !Particle weighting in delta-f scheme
+      vectype                  :: f0
       integer                  :: gid         !Unique global particle index
       integer                  :: jel         !Predicted element of residence
       logical                  :: deleted, deleted2
@@ -686,7 +686,8 @@ subroutine rk4(part, dt, last_step, ierr)
    real, parameter :: onethird = 1.0/3.0
    real, dimension(3) :: k1, k2, k3, k4, y1, x2, lr, lr2
    real, dimension(vspdims) :: l1, l2, l3, l4, z1
-   real :: hh, m1, m2, m3, m4, w1, n1, n2, n3, n4
+   real :: hh, n1, n2, n3, n4
+   vectype :: m1, m2, m3, m4, w1
    real :: B0, B0inv
    real, dimension(3) :: B_cyl, deltaB, bhat, gradB0, gradB1, xtemp
    real, dimension(vspdims) :: vtemp
@@ -747,8 +748,8 @@ subroutine fdot(x, v, w, dxdt, dvdt, dwdt, dEpdt, itri, ierr)
    real, dimension(3), intent(out)                            :: dxdt
    real, dimension(vspdims), intent(in)                       :: v
    real, dimension(vspdims), intent(out)                      :: dvdt
-   real, intent(in)                                           :: w
-   real, intent(out)                                          :: dwdt
+   vectype, intent(in)                                           :: w
+   vectype, intent(out)                                          :: dwdt
    real, intent(out)                                          :: dEpdt
    !type(elfield), dimension(nneighbors+1), target, intent(in) :: fh
    integer, intent(inout)                                     :: itri

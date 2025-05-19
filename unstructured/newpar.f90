@@ -360,7 +360,7 @@ Program Reducedquintic
   if(myrank.eq.0 .and. iprint.ge.1) print *, ' Initializing timestep'
   call initialize_timestep
 
-  if (runaway_characteristics.eq.1) call runaway_advection_initialize
+  if ((irunaway.ge.1).and.(runaway_characteristics.eq.1)) call runaway_advection_initialize
 
   ! main time loop
   ! ~~~~~~~~~~~~~~
