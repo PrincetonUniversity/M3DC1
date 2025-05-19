@@ -45,8 +45,8 @@ module runaway_advection
       sequence
       real, dimension(3)       :: x           !Position in cylindrical coords
       real, dimension(vspdims) :: v           !Velocity
-      vectype                  :: wt    !Particle weighting in delta-f scheme
-      vectype                  :: f0
+      real                  :: wt    !Particle weighting in delta-f scheme
+      real                  :: f0
       integer                  :: gid         !Unique global particle index
       integer                  :: jel         !Predicted element of residence
       logical                  :: deleted, deleted2
