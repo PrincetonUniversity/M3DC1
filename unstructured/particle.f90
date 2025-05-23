@@ -10,7 +10,8 @@ module particles
    implicit none
    private
 #ifdef USEPARTICLES
-   public :: particle_test, particle_step, particle_scaleback, finalize_particles, hdf5_read_particles, hdf5_write_particles
+   public :: particle_test, particle_step, particle_scaleback, finalize_particles, hdf5_read_particles, hdf5_write_particles, &
+             hdf5_write_particles_scalar
    public :: set_parallel_velocity
 #endif
 
@@ -3817,6 +3818,355 @@ subroutine hdf5_read_particles(filename, ierr)
    end if
 
 end subroutine hdf5_read_particles
+
+!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+! write particle data for time history using parallel HDF5.
+subroutine hdf5_write_particles_scalar(ierr)
+   use basic
+   use hdf5_output
+   implicit none
+
+   include 'mpif.h'
+
+   integer, intent(out) :: ierr
+
+   real, dimension(:, :), allocatable :: values
+   integer, parameter :: pdims = vspdims + 12
+   integer(HID_T) :: filespace, dset_id
+   integer(HID_T) :: part_root_id, scalar_group_id
+   integer(HSIZE_T), dimension(2) :: global_dims
+   integer pindex, i
+!!! for test only:
+   integer, parameter :: npart_trace = 256
+   integer, dimension(npart_trace) :: pdata_trace_id
+   integer(HSSIZE_T), dimension(2) :: off_h5
+   integer poffset, itmp, np, size, numelms
+!!! 
+
+!    character(LEN=32) :: part_file_name
+!    real, dimension(:, :), allocatable :: values
+!    integer, parameter :: pdims = vspdims + 12
+!    integer(HID_T) :: plist_id, part_file_id, part_root_id, group_id
+!    integer(HID_T) :: filespace, memspace, dset_id
+!    integer(HSIZE_T), dimension(2) :: local_dims, global_dims
+!    integer(HSSIZE_T), dimension(2) :: off_h5
+!    integer :: info
+!    integer ielm, poffset, pindex, np, ipart, size
+ 
+
+   !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+   !Calculate data size
+   call MPI_Bcast(nparticles, 1, MPI_INTEGER, 0, MPI_COMM_WORLD, ierr)
+
+!    !Calculate offset of current process
+!    if (hostrank == 0) then
+!       call delete_particle(.true.)
+!    end if
+
+!    call MPI_Bcast(ipart_begin, 1, MPI_INTEGER, 0, hostcomm, ierr)
+!    call MPI_Bcast(ipart_end, 1, MPI_INTEGER, 0, hostcomm, ierr)
+!    call MPI_Bcast(nparticles, 1, mpi_integer, 0, MPI_COMM_WORLD, ierr)
+!    call mpi_barrier(mpi_comm_world, ierr)
+!    call MPI_Comm_size(MPI_COMM_WORLD, size, ierr)
+!    np = int(nparticles/size) + 1
+!    !call mpi_scan(locparts, poffset, 1, MPI_INTEGER, MPI_SUM, MPI_COMM_WORLD, ierr)
+!    !poffset = poffset - locparts
+!    poffset = np*myrank
+!    if (poffset + np > nparticles) np = nparticles - poffset
+
+
+!!! for test only:
+   
+   !Calculate data size
+   ! call MPI_Bcast(nparticles, 1, MPI_INTEGER, 0, MPI_COMM_WORLD, ierr)
+!    if(ntime==0)then
+      if(myrank==0)then   
+         write(400,*)"nelms_global = ",nelms_global
+         pindex = floor(nelms_global/(npart_trace-1.0))
+         write(400,*)"nelms_global_interval = ",pindex
+!          numelms = local_elements() 
+!          write(400,*)"numelms = ",numelms
+!          pindex = floor(numelms/(npart_trace-1.0))
+!          write(400,*)"numelms_interval = ",pindex
+         call flush(400)
+
+         do i = 1,npart_trace
+            itmp = max(1, min((i-1)*pindex+1,nelms_global) )
+!             itmp = (i-1)*40
+            pdata_trace_id(i) = itmp*10000+13
+         enddo
+
+         write(400,*)"ntime= ",ntime,"pdata_trace_id"
+         write(400,"(I20)")pdata_trace_id
+         call flush(400)
+
+      endif
+!       pdata_trace_id(13) = pdata(np+13)%gid
+   
+      call MPI_Bcast(pdata_trace_id, npart_trace, MPI_REAL, 0, MPI_COMM_WORLD, ierr)
+
+!    endif
+
+   
+! !!! output first 256 particles.
+!    pdata_trace_id(1:npart_trace) = pdata(1:npart_trace)%gid
+!    if(myrank==0)then
+!        write(414,*)"ntime= ",ntime,"pdata_trace_id"
+!        write(414,"(I20)")pdata_trace_id
+!        call flush(414)
+!        write(415,*)"ntime= ",ntime,"pdata%gid"
+!        write(415,"(I20)")pdata(1:npart_trace)%gid
+!        call flush(415)
+!    endif
+!!!
+
+   if(myrank.eq.0 .and. iprint.ge.1) &
+       print *, " Writing time history for particles"
+
+   call h5gopen_f(file_id, "/", part_root_id, ierr)
+
+   if(ntime.eq.0 .and. irestart.eq.0) then
+      call h5gcreate_f(part_root_id, "particle_tracing", scalar_group_id, ierr)
+      call write_int_attr(scalar_group_id, "ntimestep", ntime, ierr)
+   else
+      call h5gopen_f(part_root_id, "particle_tracing", scalar_group_id, ierr)
+      call update_int_attr(scalar_group_id, "ntimestep", ntime, ierr)
+   endif
+
+   ! State Variables (needed for restart)
+   ! ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+   ! Time step
+   call output_scalar(scalar_group_id, "time" , time, ntime, ierr)
+   call output_scalar(scalar_group_id, "dt" ,     dt, ntime, ierr)
+
+
+!    !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+!    !Calculate data size
+!    call MPI_Bcast(nparticles, 1, MPI_INTEGER, 0, MPI_COMM_WORLD, ierr)
+! 
+!    !Calculate offset of current process
+!    if (hostrank == 0) then
+!       call delete_particle(.true.)
+!    end if
+!    call MPI_Bcast(ipart_begin, 1, MPI_INTEGER, 0, hostcomm, ierr)
+!    call MPI_Bcast(ipart_end, 1, MPI_INTEGER, 0, hostcomm, ierr)
+!    call MPI_Bcast(nparticles, 1, mpi_integer, 0, MPI_COMM_WORLD, ierr)
+!    call mpi_barrier(mpi_comm_world, ierr)
+!    call MPI_Comm_size(MPI_COMM_WORLD, size, ierr)
+!    np = int(nparticles/size) + 1
+!    !call mpi_scan(locparts, poffset, 1, MPI_INTEGER, MPI_SUM, MPI_COMM_WORLD, ierr)
+!    !poffset = poffset - locparts
+!    poffset = np*myrank
+!    if (poffset + np > nparticles) np = nparticles - poffset
+
+   !Allocate buffer for element particle data
+   allocate (values(pdims, npart_trace))
+   values(:,:) = 0.0
+
+!    !Create global dataset
+!    call h5gcreate_f(part_root_id, "particles", scalar_group_id, ierr)
+
+   global_dims(1) = pdims
+   global_dims(2) = npart_trace
+   ! Create dataspace for the dataset
+   call h5screate_simple_f(2, global_dims, filespace, ierr)
+   if (ierr .ne. 0) then
+      print *, myrank, ': error', ierr, ' after h5screate_simple_f'
+      call safestop(101)
+   end if
+
+   ! Create the dataset ("/data") in the file
+   if(ntime.eq.0 .and. irestart.eq.0) then
+      if (idouble_out .eq. 1) then
+         call h5dcreate_f(scalar_group_id, "pdata", H5T_NATIVE_DOUBLE, filespace, dset_id, ierr)
+      else
+         call h5dcreate_f(scalar_group_id, "pdata", H5T_NATIVE_REAL, filespace, dset_id, ierr)
+      end if
+   else
+      call h5dopen_f(scalar_group_id, "pdata", dset_id, ierr)
+   endif
+!    if (idouble_out .eq. 1) then
+!       call h5dcreate_f(scalar_group_id, "data", H5T_NATIVE_DOUBLE, filespace, dset_id, ierr)
+!    else
+!       call h5dcreate_f(scalar_group_id, "data", H5T_NATIVE_REAL, filespace, dset_id, ierr)
+!    end if
+   if (ierr .ne. 0) then
+      print *, myrank, ': error', ierr, ' after h5dcreate_f'
+      call safestop(101)
+   end if
+!   call h5sclose_f(filespace, ierr)
+
+
+   if (nparticles .gt. 0) then
+
+!       call h5dget_space_f(dset_id, filespace, ierr)
+!       if (ierr .ne. 0) then
+!          print *, myrank, ': error', ierr, ' after h5dget_space_f'
+!          call safestop(102)
+!       end if
+
+      !Copy data to buffer
+      do i = 1, npart_trace
+         do pindex = 1, nparticles
+            if (pdata(pindex)%gid == pdata_trace_id(i)) then
+               values(1, i) = pdata(pindex)%gid
+               values(2, i) = pdata(pindex)%x(1)
+               values(3, i) = pdata(pindex)%x(2)
+               values(4, i) = pdata(pindex)%x(3)
+               values(5, i) = pdata(pindex)%wt
+               values(6, i) = pdata(pindex)%sps
+               values(7, i) = pdata(pindex)%v(1)
+               values(8, i) = pdata(pindex)%v(2)
+               if (vspdims == 5) then
+                  values(9, i) = pdata(pindex)%v(3)
+                  values(10, i) = pdata(pindex)%v(4)
+               end if
+               ! values(pdims, ipart) = pdata(pindex)%v(vspdims)
+               values(9, i) = pdata(pindex)%f0
+               values(10, i) = pdata(pindex)%x0(1)
+               values(11, i) = pdata(pindex)%x0(2)
+               values(12, i) = pdata(pindex)%x0(3)
+               values(13, i) = pdata(pindex)%v0(1)
+               values(14, i) = pdata(pindex)%v0(2)
+            endif
+         enddo !pindex
+      enddo !i
+
+!!! for test only:
+      if(myrank==0)then
+          pindex = 113
+          if(ntime==0) write(416,*)"myrank = ",myrank
+          if(ntime==0) write(416,*)"ntime      dt      gid      x1      x2      x3"
+          ! write(416,"(3E20.8)")values(2:4,pindex)
+          write(416,"(I7,E14.6,I12,3E17.8)")ntime,dt,int(values(1,pindex)),values(2:4,pindex)
+          call flush(416)
+      endif
+!!!
+
+! !!! for test only:
+!       if(myrank==1)then
+!           pindex = 113
+!           if(ntime==0) write(417,*)"myrank = ",myrank
+!           if(ntime==0) write(417,*)"ntime      dt      gid      x1      x2      x3"
+!           ! write(416,"(3E20.8)")values(2:4,pindex)
+!           write(417,"(I7,E14.6,I12,3E17.8)")ntime,dt,int(values(1,pindex)),values(2:4,pindex)
+!           call flush(417)
+!       endif
+! !!!
+
+
+      !!! output a single particle info by calling the default function
+      pindex = 113
+!       call output_scalar(scalar_group_id, "reck_rad"        , reckrad, ntime, ierr)
+      call output_1dextendarr(scalar_group_id, "test_particle", values(1:pdims,pindex), pdims, ntime, ierr)
+
+
+!!! for test only:
+if(myrank.eq.0) then
+!!!
+      !!! output all traced particle information
+      ! Write the data to the dataset
+      call h5dwrite_f(dset_id, H5T_NATIVE_DOUBLE, values, global_dims, ierr)
+!       call h5dwrite_f(dset_id, H5T_NATIVE_DOUBLE, values, global_dims, ierr, &
+!                       file_space_id=filespace, mem_space_id=memspace)
+
+      if (ierr .ne. 0) then
+         print *, myrank, ': error', ierr, ' after h5dwrite_f'
+         call safestop(103)
+      end if
+!!! for test only:
+endif ! myrank==0
+!!!
+
+!       call h5sclose_f(filespace, ierr)
+!       call h5sclose_f(memspace, ierr)
+
+      !poffset = poffset + np
+   end if
+   !enddo !ielm
+   call h5sclose_f(filespace, ierr)
+
+!    !Output the particle data
+!    off_h5(1) = 0
+!    !nelms = size(pdata)
+!    !do ipart=1,nparticles
+!    !np = pdata(ielm)%np
+!    if (np .gt. 0) then
+! 
+!       !Select local hyperslab within dataset
+!       local_dims(2) = 1 !np
+!       call h5screate_simple_f(2, local_dims, memspace, ierr)
+!       if (ierr .ne. 0) then
+!          print *, myrank, ': error', ierr, ' after h5screate_simple_f'
+!          call safestop(102)
+!       end if
+!       call h5dget_space_f(dset_id, filespace, ierr)
+!       if (ierr .ne. 0) then
+!          print *, myrank, ': error', ierr, ' after h5dget_space_f'
+!          call safestop(102)
+!       end if
+!       off_h5(2) = myrank !poffset
+!       call h5sselect_hyperslab_f(filespace, H5S_SELECT_SET_F, off_h5, &
+!                                  local_dims, ierr)
+!       if (ierr .ne. 0) then
+!          print *, myrank, ': error', ierr, ' after h5sselect_hyperslab_f'
+!          call safestop(102)
+!       end if
+! 
+!       !Copy data to buffer
+!       do ipart = 1, 1 !np
+!          pindex = poffset + ipart
+!          values(1, ipart) = pdata(pindex)%gid
+!          values(2, ipart) = pdata(pindex)%x(1)
+!          values(3, ipart) = pdata(pindex)%x(2)
+!          values(4, ipart) = pdata(pindex)%x(3)
+!          values(5, ipart) = pdata(pindex)%wt
+!          values(6, ipart) = pdata(pindex)%sps
+!          values(7, ipart) = pdata(pindex)%v(1)
+!          values(8, ipart) = pdata(pindex)%v(2)
+!          if (vspdims == 5) then
+!             values(9, ipart) = pdata(pindex)%v(3)
+!             values(10, ipart) = pdata(pindex)%v(4)
+!          end if
+!          ! values(pdims, ipart) = pdata(pindex)%v(vspdims)
+!          values(9, ipart) = pdata(pindex)%f0
+!          values(10, ipart) = pdata(pindex)%x0(1)
+!          values(11, ipart) = pdata(pindex)%x0(2)
+!          values(12, ipart) = pdata(pindex)%x0(3)
+!          values(13, ipart) = pdata(pindex)%v0(1)
+!          values(14, ipart) = pdata(pindex)%v0(2)
+!       end do !ipart
+! 
+!       !Write the dataset
+!       call h5dwrite_f(dset_id, H5T_NATIVE_DOUBLE, values, global_dims, ierr, &
+!                       file_space_id=filespace, mem_space_id=memspace)
+!       if (ierr .ne. 0) then
+!          print *, myrank, ': error', ierr, ' after h5dwrite_f'
+!          call safestop(103)
+!       end if
+! 
+!       call h5sclose_f(filespace, ierr)
+!       call h5sclose_f(memspace, ierr)
+! 
+!       !poffset = poffset + np
+!    end if
+!    !enddo !ielm
+
+   !Free the buffer
+   deallocate (values)
+
+   !Close the particle dataset and group
+   call h5dclose_f(dset_id, ierr)
+   call h5gclose_f(scalar_group_id, ierr)
+
+   !Close the file
+   call h5gclose_f(part_root_id, ierr)
+
+   if(myrank.eq.0 .and. iprint.ge.1) print *, 'Done writing time history for particles'
+
+end subroutine hdf5_write_particles_scalar
+
 
 subroutine set_parallel_velocity
 
