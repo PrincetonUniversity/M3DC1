@@ -17,12 +17,13 @@ function read_pscalars, filename=filename
 
    file_id = h5f_open(filename)
 
-   root_id = h5g_open(file_id, "/")
-   pscalars = h5_parse(root_id, "particle_tracing", /read_data)
-   h5g_close, root_id
-;    ptrace_id = h5g_open(file_id, "particle_tracing")
-;    pscalars = h5_parse(ptrace_id, "particle_tracing_data", /read_data)
-;    h5g_close, ptrace_id
+;    root_id = h5g_open(file_id, "/")
+;    pscalars = h5_parse(root_id, "particle_tracing", /read_data)
+;    h5g_close, root_id
+
+   ptrace_id = h5g_open(file_id, "particle_tracing")
+   pscalars = h5_parse(ptrace_id, "particle_tracing_data", /read_data)
+   h5g_close, ptrace_id
    
    h5f_close, file_id
 
