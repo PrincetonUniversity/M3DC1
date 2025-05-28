@@ -220,15 +220,15 @@ function bootstrapCoeff_func(col_number)
             pso=pso * (p0_norm / n0_norm) / 1.6022e-12
          else if (ibootstrap == 3) then
          !using normalized temperature That = 1 - Te/Temax
-            if(real(net79(j,OP_1)).gt.0.)then  
+           ! if(real(net79(j,OP_1)).gt.0.)then  
                if(temax .le. 1e-8) then
                   pso = 1. - pet79(j,OP_1)/net79(j,OP_1)/temax_readin
                else          
                   pso=1. - pet79(j,OP_1)/net79(j,OP_1)/(temax)
                endif
-            else
-               pso=1.
-            endif    
+           ! else
+           !    pso=1.
+           ! endif    
          endif 
          
             if(col_number==2)then  
