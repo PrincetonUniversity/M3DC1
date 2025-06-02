@@ -1963,7 +1963,7 @@ end subroutine te_max3
 ! searches each cell for the extreemum in te and the value of te there
 !  finds the local global maximum of te
 !=====================================================
-subroutine te_max4(te,tem,ier)
+subroutine te_max4(te,tem,ilin,ier)
   use basic
   use mesh_mod
   use m3dc1_nint
@@ -1974,6 +1974,7 @@ subroutine te_max4(te,tem,ier)
   include 'mpif.h'
 
   type(field_type), intent(in) :: te
+  integer, intent(in) :: ilin
   real, intent(out) :: tem
   integer :: i, ier
   integer :: itri,  numelms
@@ -1991,7 +1992,9 @@ subroutine te_max4(te,tem,ier)
   summax = 0.
  
   do itri = 1,numelms
-   call define_element_quadrature(itri, int_pts_main, 5)
+  tet79=0
+   call define_element_quadrature(itri, int_pts_aux, 5)
+   call define_fields(itri, 0, 1, ilin)
    call eval_ops(itri, te, tet79)  
   
    tet=tet79(:,OP_1)
@@ -2008,6 +2011,8 @@ subroutine te_max4(te,tem,ier)
      call mpi_allreduce(temp1, temp2, 1, &
           MPI_DOUBLE_PRECISION, MPI_MAX, MPI_COMM_WORLD, ier)
      summax   = temp2
+  else
+     summax = max_val_local
   endif
 
   tem = summax
