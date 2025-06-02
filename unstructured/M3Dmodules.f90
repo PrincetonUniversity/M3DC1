@@ -298,6 +298,7 @@ module basic
   integer :: ra_cyc      ! runaway subcycle
   real :: radiff         ! runaway diffusion
   real :: rjra           ! jra/j0
+  integer :: runaway_characteristics           ! use method of characteristics
   integer :: iflip       ! 1 = flip handedness
   integer :: iflip_b     ! 1 = flip equilibrium toroidal field
   integer :: iflip_j     ! 1 = flip equilibrium toroidal current density
@@ -313,6 +314,7 @@ module basic
   integer :: igyroaverage
   integer :: particle_linear
   integer :: particle_substeps
+  integer :: particle_subcycles
   integer :: particle_couple
   integer :: iconst_f0
   real :: fast_ion_mass, fast_ion_z
@@ -322,6 +324,7 @@ module basic
   real, dimension(2) :: num_par_scale
   real, dimension(2) :: kinetic_nrmfac_scale
   integer :: ikinetic_vpar
+  real :: kinetic_rhomax
   real :: vpar_reduce
   real :: smooth_par, smooth_pres
 #endif

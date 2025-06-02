@@ -676,6 +676,7 @@ subroutine import_time_advance_vectors_split
   use basic
   use arrays
   use runaway_mod
+  use runaway_advection
 
   implicit none
 
@@ -716,6 +717,7 @@ subroutine import_time_advance_vectors_split
   den_v = den_field(1)
   ne_v = ne_field(1)
   if(irunaway .eq. 2) call runaway_advance
+  if((irunaway .ge. 1).and.(runaway_characteristics.eq.1)) call runaway_advection_step(dt*t0_norm)
   if(irunaway .gt. 0) nre_v = nre_field(1)
   if(imp_bf.eq.1) bfp_v = bfp_field(1)
   if((jadv.eq.0) .or. (jadv.eq.1 .and. imp_hyper.ge.1)) e_v = e_field(1)

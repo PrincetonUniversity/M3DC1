@@ -235,11 +235,20 @@ subroutine den_eq
   use m3dc1_nint
   use newvar_mod
   use pellet
+  use read_ascii
+  use spline
 
   implicit none
 
   type(field_type) :: den_vec
   integer :: itri, numelms, def_fields
+#ifdef USEPARTICLES
+  integer :: nvals, j
+  real, allocatable :: xvals(:), yvals(:)
+  real :: val, val2
+  type(spline1d) :: nf_spline      ! Ion density
+  type(spline1d) :: tf_spline      ! Ion density
+#endif
   real :: rate
   vectype, dimension(dofs_per_element) :: dofs
   real, dimension(MAX_PTS) :: n, p
@@ -323,75 +332,106 @@ subroutine den_eq
   call newvar_solve(den_vec%vec,mass_mat_lhs)
   den_field(0) = den_vec
 
-#ifdef USEPARTICLES
-  den_vec=0.
-  do itri=1,numelms
-     call define_element_quadrature(itri,int_pts_main,int_pts_tor)
-     call define_fields(itri,def_fields,1,0)
-     call get_zone(itri, izone)
-#ifdef USEST
-           if(igeometry.eq.1) then
-              temp79b = (xl_79-xcenter)**2 + (zl_79-zcenter)**2
-              !n079(:,OP_1) = exp(-(temp79b/0.4**2))
-              n079(:,OP_1) = 2.0
-           else
-              if(myrank.eq.0) print *, 'idenfunc = 21 requires igeometry = 1'
-           end if
+#if defined(USEST) && defined(USEPARTICLES)
+  if ((kinetic.eq.1).and.(kinetic_fast_ion.eq.1)) then
+     nvals = 0
+     call read_ascii_column('nf_profile', xvals, nvals, icol=1)
+     call read_ascii_column('nf_profile', yvals, nvals, icol=2)
+     if(nvals.eq.0) call safestop(5)
+     yvals = yvals / 1e6 / n0_norm !rsae
+     xvals = xvals / xvals(nvals) ! normalize rho
+     if(allocated(yvals)) then
+        call create_spline(nf_spline, nvals, xvals, yvals)
+        deallocate(xvals, yvals)
+     end if
+     den_vec=0.
+     do itri=1,numelms
+        call define_element_quadrature(itri,int_pts_main,int_pts_tor)
+        call define_fields(itri,def_fields,1,0)
+        call get_zone(itri, izone)
+        temp79b = (xl_79-xcenter)**2 + (zl_79-zcenter)**2
+        do j=1, npoints
+              call evaluate_spline(nf_spline,temp79b(j),val)
+              n079(j,OP_1) = val
+        end do
+        dofs = intx2(mu79(:,:,OP_1),n079(:,OP_1))
+        call vector_insert_block(den_vec%vec,itri,1,dofs,VEC_ADD)
+     end do
+     call newvar_solve(den_vec%vec,mass_mat_lhs)
+     nf_field = den_vec
+
+     nvals = 0
+     call read_ascii_column('tf_profile', xvals, nvals, icol=1)
+     call read_ascii_column('tf_profile', yvals, nvals, icol=2)
+     if(nvals.eq.0) call safestop(5)
+     !yvals = yvals / n0_norm !rsae
+     xvals = xvals / xvals(nvals) ! normalize rho
+     if(allocated(yvals)) then
+        call create_spline(tf_spline, nvals, xvals, yvals)
+        deallocate(xvals, yvals)
+     end if
+     den_vec=0.
+     do itri=1,numelms
+        call define_element_quadrature(itri,int_pts_main,int_pts_tor)
+        call define_fields(itri,def_fields,1,0)
+        call get_zone(itri, izone)
+        temp79b = (xl_79-xcenter)**2 + (zl_79-zcenter)**2
+        do j=1, npoints
+              call evaluate_spline(tf_spline,temp79b(j),val)
+              n079(j,OP_1) = val
+        end do
+        dofs = intx2(mu79(:,:,OP_1),n079(:,OP_1))
+        call vector_insert_block(den_vec%vec,itri,1,dofs,VEC_ADD)
+     end do
+     call newvar_solve(den_vec%vec,mass_mat_lhs)
+     tf_field = den_vec
+
+     den_vec=0.
+     do itri=1,numelms
+        call define_element_quadrature(itri,int_pts_main,int_pts_tor)
+        call define_fields(itri,def_fields,1,0)
+        call get_zone(itri, izone)
+        temp79b = (xl_79-xcenter)**2 + (zl_79-zcenter)**2
+        do j=1, npoints
+          call evaluate_spline(nf_spline,temp79b(j),val)
+          call evaluate_spline(tf_spline,temp79b(j),val2)
+          if (fast_ion_dist==1) then
+            n079(j,OP_1) = val*val2* 1.6022e-12 / (b0_norm**2/(4.*pi*n0_norm))!rsae
+          endif
+        end do
+        dofs = intx2(mu79(:,:,OP_1),n079(:,OP_1))
+        call vector_insert_block(den_vec%vec,itri,1,dofs,VEC_ADD)
+     end do
+     call newvar_solve(den_vec%vec,mass_mat_lhs)
+     pf_field = den_vec
+  endif
+
+  if (kinetic.eq.1) then
+     den_vec=0.
+     do itri=1,numelms
+        call define_element_quadrature(itri,int_pts_main,int_pts_tor)
+        call define_fields(itri,def_fields,1,0)
+        call get_zone(itri, izone)
+        if(igeometry.eq.1) then
+           temp79b = sqrt((xl_79-xcenter)**2 + (zl_79-zcenter)**2+1e-8)
+           n079(:,OP_1) = temp79b
+        else
+           if(myrank.eq.0) print *, 'idenfunc = 21 requires igeometry = 1'
+        end if
+        dofs = intx2(mu79(:,:,OP_1),n079(:,OP_1))
+        call vector_insert_block(den_vec%vec,itri,1,dofs,VEC_ADD)
+     end do
+
+     call newvar_solve(den_vec%vec,mass_mat_lhs)
+     rho_field = den_vec
+  endif
 #endif     
-     dofs = intx2(mu79(:,:,OP_1),n079(:,OP_1))
-     call vector_insert_block(den_vec%vec,itri,1,dofs,VEC_ADD)
-  end do
 
-  call newvar_solve(den_vec%vec,mass_mat_lhs)
-  nf_field = den_vec
-  nfi_field = nf_field
-
-  den_vec=0.
-  do itri=1,numelms
-     call define_element_quadrature(itri,int_pts_main,int_pts_tor)
-     call define_fields(itri,def_fields,1,0)
-     call get_zone(itri, izone)
-#ifdef USEST
-           if(igeometry.eq.1) then
-              temp79b = sqrt((xl_79-xcenter)**2 + (zl_79-zcenter)**2+1e-8)
-              n079(:,OP_1) = temp79b
-           else
-              if(myrank.eq.0) print *, 'idenfunc = 21 requires igeometry = 1'
-           end if
-#endif     
-     dofs = intx2(mu79(:,:,OP_1),n079(:,OP_1))
-     call vector_insert_block(den_vec%vec,itri,1,dofs,VEC_ADD)
-  end do
-
-  call newvar_solve(den_vec%vec,mass_mat_lhs)
-  rho_field = den_vec
-
-  den_vec=0.
-  do itri=1,numelms
-     call define_element_quadrature(itri,int_pts_main,int_pts_tor)
-     call define_fields(itri,def_fields,1,0)
-     call get_zone(itri, izone)
-#ifdef USEST
-           if(igeometry.eq.1) then
-              temp79b = sqrt((xl_79-xcenter)**2 + (zl_79-zcenter)**2+1e-8)
-              n079(:,OP_1) = p079(:,OP_1)/n079(:,OP_1)*0.5/(1.6022e-12 / (b0_norm**2/(4.*pi*n0_norm)))
-           else
-              if(myrank.eq.0) print *, 'idenfunc = 21 requires igeometry = 1'
-           end if
-#endif     
-     dofs = intx2(mu79(:,:,OP_1),n079(:,OP_1))
-     call vector_insert_block(den_vec%vec,itri,1,dofs,VEC_ADD)
-  end do
-
-  call newvar_solve(den_vec%vec,mass_mat_lhs)
-  tf_field = den_vec
-  tfi_field = tf_field
-  call mult(ti_field(0), 0.5)
-  call mult(te_field(0), 0.5)
-  call mult(p_field(0), 0.5)
-  call mult(pe_field(0), 0.5)
-  pfi_field = p_field(0)
-#endif
+  !call mult(ti_field(0), 0.5)
+  !call mult(te_field(0), 0.5)
+  !call mult(p_field(0), 0.5)
+  !call mult(pe_field(0), 0.5)
+  !pfi_field = p_field(0)
 
   call destroy_field(den_vec)
 

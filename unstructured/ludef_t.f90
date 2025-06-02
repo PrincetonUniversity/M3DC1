@@ -6049,6 +6049,8 @@ subroutine ludefnre_n(itri)
      ssterm(:,j) = ssterm(:,j) -     thimp2     *dt*tempx
      ddterm(:,j) = ddterm(:,j) + (1.-thimp2*bdf)*dt*tempx
 
+     if (runaway_characteristics.eq.1) cycle
+
      tempx = nre1nrepsi(mu79,nu79(j,:,:),bi79,pst79)/ncycles
      ssterm(:,j) = ssterm(:,j) -     thimp2     *dt*tempx
      ddterm(:,j) = ddterm(:,j) + (1.-thimp2*bdf)*dt*tempx

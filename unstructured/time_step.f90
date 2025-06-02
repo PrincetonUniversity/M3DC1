@@ -203,11 +203,11 @@ subroutine onestep
   !   call smooth_runaway
   !endif
 
-#ifdef USEPARTICLES
-  if(kinetic.eq.0) then
-     call set_parallel_velocity
-  endif
-#endif
+!#ifdef USEPARTICLES
+!  if(kinetic.eq.0) then
+!     call set_parallel_velocity
+!  endif
+!#endif
 
 #ifdef USEPARTICLES
   if(myrank.eq.0 .and. itimer.eq.1) call second(tstart)

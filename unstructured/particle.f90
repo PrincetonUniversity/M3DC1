@@ -120,8 +120,8 @@ module particles
 !$acc declare create(psi_axis, nf_axis, nfi_axis, toroidal_period_particle)
    integer :: gyroaverage_particle, fast_ion_dist_particle
 !$acc declare create(gyroaverage_particle,fast_ion_dist_particle)
-   real :: fast_ion_max_energy_particle
-!$acc declare create(fast_ion_max_energy_particle)
+   real :: fast_ion_max_energy_particle, kinetic_rhomax_particle
+!$acc declare create(fast_ion_max_energy_particle,kinetic_rhomax_particle)
    integer :: num_energy, num_pitch, num_r
 !$acc declare create(num_energy,num_pitch,num_r)
    real, dimension(:), allocatable :: energy_array, pitch_array, r_array
@@ -335,8 +335,8 @@ subroutine particle_test
          endif
       endif
       call mpi_allreduce(nrmfac_temp, nrmfac, 2, MPI_DOUBLE_PRECISION, MPI_SUM, MPI_COMM_WORLD, ierr)
-      nrmfac = nrmfac*kinetic_nrmfac_scale
    endif
+   nrmfac = nrmfac*kinetic_nrmfac_scale
    call update_particle_pressure
 
    call MPI_Barrier(MPI_COMM_WORLD, ierr)
@@ -616,6 +616,7 @@ subroutine init_particles(lrestart, ierr)
    kinetic_thermal_ion_particle=kinetic_thermal_ion
    fast_ion_dist_particle = fast_ion_dist
    fast_ion_max_energy_particle = fast_ion_max_energy
+   kinetic_rhomax_particle = kinetic_rhomax
    dpar%x(1) = xmag
    dpar%x(3) = zmag
    dpar%x(2) = 0.
@@ -985,7 +986,7 @@ subroutine init_particles(lrestart, ierr)
 !$acc update device(m_ion,q_ion,qm_ion)
 !$acc update device(dt_particle,t0_norm_particle,v0_norm_particle,b0_norm_particle,rfac_particle)
 !$acc update device(particle_linear_particle,psi_axis,nf_axis,nfi_axis,toroidal_period_particle)
-!$acc update device(gyroaverage_particle,psubsteps_particle,iconst_f0_particle)
+!$acc update device(gyroaverage_particle,psubsteps_particle,iconst_f0_particle,kinetic_rhomax_particle)
 !$acc update device(kinetic_thermal_ion_particle,fast_ion_dist_particle,fast_ion_max_energy_particle)
 #ifdef USEST
 !!$acc update device(num_energy,num_pitch,num_r) async(blocky)
@@ -1199,7 +1200,7 @@ subroutine rk4(part, dt, last_step, ierr)
    bhat = B_cyl*B0inv                         !Unit vector in b direction
    !write(0,*) part%gid
    !if (part%gid==2117425261) then
-   ! if (abs(dot_product(elfieldcoefs(itri)%rho, geomterms%g))>0.9) part%wt=0.
+   !if (abs(dot_product(elfieldcoefs(itri)%rho, geomterms%g))>kinetic_rhomax_particle) part%wt=0.
    ! write(0,*) (abs(dot_product(elfieldcoefs(itri)%rho, geomterms%g)))
    !write(0,*) part%v(1)**2+2.*qm_ion*part%v(2)/B0inv, 1./B0inv, part%v(1), itri
    !if (part%x(2)<0) write(0,*) 'cc',dot_product(geomterms%g,elfieldcoefs(itri)%rst),dot_product(geomterms%g,elfieldcoefs(itri)%zst)
@@ -1854,23 +1855,28 @@ subroutine particle_step(pdt)
 
    real    :: tstart, tend
    integer :: istep, ierr, ipart
+   integer :: isubcycle
 
-   if (kinetic_thermal_ion.eq.1) then
-   call set_parallel_velocity
-   call set_psmooth
-   endif
-   !Advance particle positions
-   call calculate_electric_fields(linear)
-   call get_field_coefs(0)
    call mpi_barrier(mpi_comm_world, ierr)
-   !call MPI_Win_fence(0, win_elfieldcoefs)
+   if (kinetic_thermal_ion.eq.1) then
+      call set_parallel_velocity
+   endif
+   call calculate_electric_fields(linear)
+   do isubcycle=1,particle_subcycles
+      if (kinetic_thermal_ion.eq.1) then
+         call set_psmooth
+      endif
+      !Advance particle positions
+      call get_field_coefs(0)
+      call mpi_barrier(mpi_comm_world, ierr)
+      !call MPI_Win_fence(0, win_elfieldcoefs)
 #ifdef _OPENACC
-   if (hostrank < num_devices) then
+      if (hostrank < num_devices) then
 #else
       if (hostrank < ncols) then
 #endif
          call second_new(tstart)
-         call advance_particles(pdt/particle_substeps)
+         call advance_particles(pdt/particle_substeps/particle_subcycles)
          call second_new(tend)
          write (0, '(A,I7,A,f9.2,A)') 'Particle advance completed', particle_substeps, ' steps in', &
             tend - tstart, ' seconds.'
@@ -1878,7 +1884,7 @@ subroutine particle_step(pdt)
       call mpi_barrier(mpi_comm_world, ierr)
       if (hostrank < 1) then
          call second(tstart)
-         if (mod(ntime - ntime0, ntimepr) == 0) then
+         if ((isubcycle==particle_subcycles).and.(mod(ntime - ntime0, ntimepr) == 0)) then
             call delete_particle(.true.)
          else
             call delete_particle(.false.)
@@ -1893,9 +1899,11 @@ subroutine particle_step(pdt)
       call update_particle_pressure
       call mpi_barrier(mpi_comm_world, ierr)
 
-   if (kinetic_thermal_ion.eq.1) then
-      call set_density
-   endif
+      if (kinetic_thermal_ion.eq.1) then
+         call set_density
+      endif
+      call mpi_barrier(mpi_comm_world, ierr)
+   enddo
 
 end subroutine particle_step
 !---------------------------------------------------------------------------
@@ -2937,7 +2945,7 @@ subroutine evalf0(x, vpar, vperp, fh, gh, sps, f0, gradcoef, df0de, df0dxi)
          f0=f0*T0**(-1.5)*exp(-m_ion(sps)*spd**2/(2*T0*1.6e-19))
          df0de = -1./(T0*1.6e-19)
          df0dxi = 0.
-         if (real(dot_product(fh%rho, gh%g))>0.8) then
+         if (real(dot_product(fh%rho, gh%g))>kinetic_rhomax_particle) then
             gradf=0.
             df0de=0.
             df0dxi=0.
@@ -3445,7 +3453,7 @@ subroutine hdf5_write_particles(ierr)
    !Write attributes
    call write_real_attr(part_root_id, "time", time, ierr)
    call write_int_attr(part_root_id, "velocity space dims", vspdims, ierr)
-   call write_vec_attr(part_root_id, "particle nrmfac", nrmfac, 2, ierr)
+   call write_vec_attr(part_root_id, "particle nrmfac", nrmfac/kinetic_nrmfac_scale, 2, ierr)
    !call write_real_attr(part_root_id, "particle delta-t", dt_ion, ierr)
 
    !Create global dataset

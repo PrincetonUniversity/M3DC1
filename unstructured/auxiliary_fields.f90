@@ -1207,7 +1207,6 @@ subroutine calculate_auxiliary_fields(ilin)
   
   end subroutine calculate_auxiliary_fields
 
-#ifdef USEPARTICLES
   subroutine calculate_electric_fields(ilin)
   use math
   use basic
@@ -1272,6 +1271,5 @@ subroutine calculate_auxiliary_fields(ilin)
   if(myrank.eq.0 .and. iprint.ge.1) print *, ' Done calculating electric fields'
   
   end subroutine calculate_electric_fields
-#endif
 
 end module auxiliary_fields

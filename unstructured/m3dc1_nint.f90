@@ -162,6 +162,7 @@ module m3dc1_nint
 !$OMP THREADPRIVATE(jbsl3179,jbsl3279,jbsl3479,jbsalpha79,jbsfluxavg_iBsq_B79,jbsfluxavg_G79,jbs_dtedpsit79)
   vectype, dimension(MAX_PTS, OP_NUM) :: jbs_ftrap79,jbs_qR79,jbs_invAspectRatio79
 !$OMP THREADPRIVATE(jbs_ftrap79,jbs_qR79,jbs_invAspectRatio79)
+
   ! precalculated terms
    real, private :: fterm(MAX_PTS, OP_NUM, coeffs_per_element)
 !$OMP THREADPRIVATE(fterm)

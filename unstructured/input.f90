@@ -429,6 +429,8 @@ subroutine set_defaults
   call add_var_int("ra_cyc", ra_cyc, 1, "", model_grp)
   call add_var_double("radiff", radiff, 0., "", model_grp)
   call add_var_double("rjra", rjra, 0., "", model_grp)
+  call add_var_int("runaway_characteristics", runaway_characteristics, 0, &
+       "1: Use the method of characteristics to advance the RE advection equation", model_grp)
   call add_var_int("imp_bf", imp_bf, 0, &
        "1: Include implicit equation for f", model_grp)
   call add_var_int("imp_temp", imp_temp, 0, &
@@ -1256,6 +1258,8 @@ subroutine set_defaults
   call add_var_int("particle_linear", particle_linear, linear, &
        "1: Solve linear delta-f equation. 0: Include nonlinear terms in delta-f", particle_grp)
   call add_var_int("particle_substeps", particle_substeps, 40, &
+       "Number of substeps for particle pushing in one subcycle", particle_grp)
+  call add_var_int("particle_subcycles", particle_subcycles, 1, &
        "Number of subcycles for particle pushing in one MHD timestep", particle_grp)
   call add_var_int("particle_couple", particle_couple, 0, &
        "0: Pressure coupling. 1: Current coupling", particle_grp)
@@ -1278,6 +1282,8 @@ subroutine set_defaults
        "Scaling factor of the normalization term in particle phase space integration", particle_grp)
   call add_var_int("ikinetic_vpar", ikinetic_vpar, 0, &
        "1: Synchronize particle parallel flow to MHD", particle_grp)
+  call add_var_double("kinetic_rhomax", kinetic_rhomax, 1., &
+       "Maximum rho for kinetic particle", particle_grp)
   call add_var_double("vpar_reduce", vpar_reduce, 0.5, &
        "Factor of parallel flow reduction for every timestep", particle_grp)
   call add_var_double("smooth_par", smooth_par, 1.e-8, &
@@ -1727,6 +1733,10 @@ subroutine validate_input
      call safestop(1)
 #endif
   endif
+
+#ifdef USEPARTICLES
+  if(kinetic_thermal_ion.eq.0) particle_subcycles=0
+#endif
 
   if(itemp.eq.0 .and. kappai_fac.ne.1.) then
      if(myrank.eq.0) print *, 'Error: kappai_fac must equal 1 when itemp=0.'
