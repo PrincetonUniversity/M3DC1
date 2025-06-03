@@ -540,7 +540,8 @@ module arrays
   type(field_type) :: sigma_field, Fphi_field, Q_field, cd_field
   type(field_type) :: Totrad_field, Linerad_field, Bremrad_field, Ionrad_field, Reckrad_field, Recprad_field
   type(field_type) :: visc_field, visc_c_field, visc_e_field, pforce_field, pmach_field
-  type(field_type) :: Jbs_L31_field, Jbs_L32_field, Jbs_L34_field, Jbs_alpha_field, Jbs_fluxavg_iBsq_field, Jbs_fluxavg_G_field, Jbs_dtedpsit_field
+  type(field_type) :: Jbs_L31_field, Jbs_L32_field, Jbs_L34_field, Jbs_alpha_field, Jbs_fluxavg_iBsq_field, &
+          Jbs_fluxavg_G_field, Jbs_dtedpsit_field
   
   type(field_type) :: temporary_field
   

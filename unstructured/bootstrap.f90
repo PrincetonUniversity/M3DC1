@@ -960,7 +960,8 @@ function bs_b1psifbb(e,f,g,h,i)
         tempBB = iBpsq(:)*ri_79*bzt79(:,OP_1)*(jbsl3179(:,OP_1)+jbsl3279(:,OP_1))*pet79(:,OP_1)*(tempBB)
 
         !temp5 = C = -F (L31+L34alpha) (p-pe)d lnTi /d psi
-        tempCC = iBpsq(:)*ri_79*bzt79(:,OP_1)*(jbsl3179(:,OP_1)+jbsl3479(:,OP_1)*jbsalpha79(:,OP_1))*(pt79(:,OP_1)-pet79(:,OP_1))*(tempCC)
+        tempCC = iBpsq(:)*ri_79*bzt79(:,OP_1)*(jbsl3179(:,OP_1)+jbsl3479(:,OP_1)*jbsalpha79(:,OP_1))* &
+                (pt79(:,OP_1)-pet79(:,OP_1))*(tempCC)
         
         tempDD = (tempAA) + (tempBB) +(tempCC)
      end if
@@ -1066,7 +1067,8 @@ function bs_b1psifbb(e,f,g,h,i)
        tempBB = jbsfluxavg_G79(:,OP_1)*jbsl3279(:,OP_1)*pet79(:,OP_1)*jbs_dtedpsit79(:,OP_1)*(tempBB)
 
        !dTids_term = -2piq G L34 (pe dlnTi / dpsit) 
-       tempCC = jbsfluxavg_G79(:,OP_1)*jbsl3479(:,OP_1)*jbsalpha79(:,OP_1)*(pt79(:,OP_1)-pet79(:,OP_1))*jbs_dtedpsit79(:,OP_1)*(tempCC)
+       tempCC = jbsfluxavg_G79(:,OP_1)*jbsl3479(:,OP_1)*jbsalpha79(:,OP_1)*(pt79(:,OP_1)-pet79(:,OP_1))* &
+               jbs_dtedpsit79(:,OP_1)*(tempCC)
        
        !jdotB = dnds_term + dTeds_term + dTids_term
        tempDD = (tempAA) + (tempBB) + (tempCC)
@@ -1091,7 +1093,8 @@ function bs_b1psifbb(e,f,g,h,i)
         tempBB = jbsfluxavg_G79(:,OP_1)*(jbsl3179(:,OP_1)+jbsl3279(:,OP_1))*pet79(:,OP_1)*jbs_dtedpsit79(:,OP_1)*(tempBB)
         
  !       !dTids_term = -2pi Gbar / (iota - helicity_N) (L31 + L34 * alpha) pi_s (d lnTi / d psit)
-        tempCC = jbsfluxavg_G79(:,OP_1)*(jbsl3179(:,OP_1)+jbsl3479(:,OP_1)*jbsalpha79(:,OP_1))*(pt79(:,OP_1)-pet79(:,OP_1))*jbs_dtedpsit79(:,OP_1)*(tempCC)
+        tempCC = jbsfluxavg_G79(:,OP_1)*(jbsl3179(:,OP_1)+jbsl3479(:,OP_1)*jbsalpha79(:,OP_1))*(pt79(:,OP_1)-pet79(:,OP_1))* &
+                jbs_dtedpsit79(:,OP_1)*(tempCC)
 
  !       !jdotB = dnds_term + dTeds_term + dTids_term
         tempDD = (tempAA) + (tempBB) + (tempCC)
