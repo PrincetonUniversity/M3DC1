@@ -47,7 +47,7 @@ public:
   void printInfo();
   PetscInt mymatrix_id;
   // PETSc data structures
-  Mat* A;
+  Mat _A;
   int fieldOrdering; // the field that provide numbering
   apf::Mesh2* mesh;
 protected:
@@ -72,7 +72,7 @@ public:
   void set_mat_local(bool flag) {localMat=flag;}
   int is_mat_local() {return localMat;}
   int multiply(FieldID in_field, FieldID out_field);
-  int reset_values() { MatZeroEntries(*A); mat_status=M3DC1_NOT_FIXED; return M3DC1_SUCCESS; };
+  int reset_values() { MatZeroEntries(_A); mat_status=M3DC1_NOT_FIXED; return M3DC1_SUCCESS; };
   virtual int get_type() const { return 0; } //M3DC1_MULTIPLY; }
   virtual int assemble();
   virtual int setupMat();
@@ -102,7 +102,7 @@ private:
   int setUpRemoteAStruct();
   int setKspType(); 
   int kspSet;
-  KSP* ksp; 
+  KSP _ksp; 
   Mat remoteA;
 
   //block mg in toroidal direction

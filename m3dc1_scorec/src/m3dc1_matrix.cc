@@ -48,6 +48,7 @@ int copyField2PetscVec(FieldID field_id, Vec& petscVec, int scalar_type)
 
 /*int ierr = VecCreateMPI(MPI_COMM_WORLD, num_own_dof, PETSC_DECIDE, &petscVec); */
   int ierr = VecCreate(MPI_COMM_WORLD, &petscVec); CHKERRQ(ierr);
+  ierr = VecSetBlockSize(petscVec, dofPerEnt); // the blocksize=dofPerEnt, but the stridesize=dofPerEnt/3
   ierr = VecSetSizes(petscVec, num_own_dof, PETSC_DECIDE); CHKERRQ(ierr);
   ierr = VecSetFromOptions(petscVec);CHKERRQ(ierr);
   VecAssemblyBegin(petscVec);
@@ -202,12 +203,12 @@ m3dc1_matrix::m3dc1_matrix(int i, int s, FieldID f)
 : mesh(m3dc1_mesh::instance()->mesh), id(i), scalar_type(s), fieldOrdering(f)
 {
   mat_status = M3DC1_NOT_FIXED;
-  A=new Mat;
+  //A=new Mat;
 }
 
 int m3dc1_matrix::destroy()
 {
-  PetscErrorCode ierr = MatDestroy(A);
+  PetscErrorCode ierr = MatDestroy(&_A);
   CHKERRQ(ierr);    
   return M3DC1_SUCCESS;
 }
@@ -215,7 +216,7 @@ int m3dc1_matrix::destroy()
 m3dc1_matrix::~m3dc1_matrix()
 {
   destroy();
-  delete A;
+  //delete A;
 } 
 
 int m3dc1_matrix::get_values(vector<PetscInt>& rows, vector<int>& n_columns,
@@ -238,11 +239,11 @@ int m3dc1_matrix::get_values(vector<PetscInt>& rows, vector<int>& n_columns,
   const PetscInt *cols;
   const PetscScalar *vals;
 
-  ierr = MatGetOwnershipRange(*A, &rstart, &rend);
+  ierr = MatGetOwnershipRange(_A, &rstart, &rend);
   CHKERRQ(ierr);
   for (PetscInt row=rstart; row<rend; ++row)
   { 
-    ierr = MatGetRow(*A, row, &ncols, &cols, &vals);
+    ierr = MatGetRow(_A, row, &ncols, &cols, &vals);
     CHKERRQ(ierr);
     rows.push_back(row);
     n_columns.push_back(ncols);
@@ -251,7 +252,7 @@ int m3dc1_matrix::get_values(vector<PetscInt>& rows, vector<int>& n_columns,
       columns.push_back(cols[i]);
       values.push_back(vals[i]);
     }
-    ierr = MatRestoreRow(*A, row, &ncols, &cols, &vals);
+    ierr = MatRestoreRow(_A, row, &ncols, &cols, &vals);
     CHKERRQ(ierr);
   }
   assert(rows.size()==rend-rstart);
@@ -273,18 +274,18 @@ int m3dc1_matrix::set_value(int row, int col, int operation, double real_val, do
   if (scalar_type==M3DC1_REAL) // real
   {
     if (operation)
-      ierr = MatSetValue(*A, row, col, real_val, ADD_VALUES);
+      ierr = MatSetValue(_A, row, col, real_val, ADD_VALUES);
     else
-      ierr = MatSetValue(*A, row, col, real_val, INSERT_VALUES);
+      ierr = MatSetValue(_A, row, col, real_val, INSERT_VALUES);
   }
   else // complex
   {
 #ifdef PETSC_USE_COMPLEX
     PetscScalar value = complex<double>(real_val,imag_val);
     if (operation)
-      ierr = MatSetValue(*A, row, col, value, ADD_VALUES);
+      ierr = MatSetValue(_A, row, col, value, ADD_VALUES);
     else
-      ierr = MatSetValue(*A, row, col, value, INSERT_VALUES);
+      ierr = MatSetValue(_A, row, col, value, INSERT_VALUES);
 #else
     if (!PCU_Comm_Self())
       std::cout<<"[M3DC1 ERROR] "<<__func__<<": PETSc is not configured with --with-scalar-type=complex\n";
@@ -325,9 +326,9 @@ int m3dc1_matrix::add_values(int rsize, PetscInt* rows, int csize, PetscInt* col
     }
   }
 
-  ierr = MatSetValues(*A, rsize, rows, csize, columns, &petscValues[0], ADD_VALUES);
+  ierr = MatSetValues(_A, rsize, rows, csize, columns, &petscValues[0], ADD_VALUES);
 #else
-  ierr = MatSetValues(*A, rsize, rows, csize, columns, (PetscScalar*)values, ADD_VALUES);
+  ierr = MatSetValues(_A, rsize, rows, csize, columns, (PetscScalar*)values, ADD_VALUES);
 #endif
   CHKERRQ(ierr);
   return M3DC1_SUCCESS;
@@ -352,7 +353,7 @@ int m3dc1_matrix::preAllocateParaMat()
 {
   int bs=1;
   MatType type;
-  MatGetType(*A, &type);
+  MatGetType(_A, &type);
 
   int num_own_ent=m3dc1_mesh::instance()->num_own_ent[0],num_own_dof=0, vertex_type=0;
   m3dc1_field_getnumowndof(&fieldOrdering, &num_own_dof);
@@ -417,9 +418,9 @@ int m3dc1_matrix::preAllocateParaMat()
   mesh->end(ent_it);
 
   if (bs==1) 
-    MatMPIAIJSetPreallocation(*A, 0, &dnnz[0], 0, &onnz[0]);
+    MatMPIAIJSetPreallocation(_A, 0, &dnnz[0], 0, &onnz[0]);
   else  
-    MatMPIBAIJSetPreallocation(*A, bs, 0, &dnnz[0], 0, &onnz[0]);
+    MatMPIBAIJSetPreallocation(_A, bs, 0, &dnnz[0], 0, &onnz[0]);
   return M3DC1_SUCCESS;
 } 
 
@@ -491,7 +492,7 @@ int m3dc1_matrix::preAllocateSeqMat()
 {
   int bs=1, vertex_type=0;
   MatType type;
-  MatGetType(*A, &type);
+  MatGetType(_A, &type);
 
   int num_vtx=m3dc1_mesh::instance()->num_local_ent[0];
   m3dc1_field * mf = (*(m3dc1_mesh::instance()->field_container))[fieldOrdering];
@@ -540,9 +541,9 @@ int m3dc1_matrix::preAllocateSeqMat()
   mesh->end(ent_it);
 
   if (bs==1) 
-    MatSeqAIJSetPreallocation(*A, 0, &nnz[0]);
+    MatSeqAIJSetPreallocation(_A, 0, &nnz[0]);
   else  
-    MatSeqBAIJSetPreallocation(*A, bs, 0, &nnz[0]);
+    MatSeqBAIJSetPreallocation(_A, bs, 0, &nnz[0]);
   return M3DC1_SUCCESS;
 } 
 
@@ -555,14 +556,14 @@ int m3dc1_matrix::setupParaMat()
   PetscInt mat_dim = num_own_dof;
 
   // create matrix
-  PetscErrorCode ierr = MatCreate(MPI_COMM_WORLD, A);
+  PetscErrorCode ierr = MatCreate(MPI_COMM_WORLD, &_A);
   CHKERRQ(ierr);
   // set matrix size
-  ierr = MatSetSizes(*A, mat_dim, mat_dim, PETSC_DECIDE, PETSC_DECIDE); CHKERRQ(ierr);
-  ierr= MatSetBlockSize(*A, dofPerEnt);
+  ierr = MatSetSizes(_A, mat_dim, mat_dim, PETSC_DECIDE, PETSC_DECIDE); CHKERRQ(ierr);
+  ierr= MatSetBlockSize(_A, dofPerEnt);
 
-  ierr = MatSetType(*A, MATMPIAIJ); CHKERRQ(ierr);
-  ierr = MatSetFromOptions(*A); CHKERRQ(ierr);
+  ierr = MatSetType(_A, MATMPIAIJ); CHKERRQ(ierr);
+  ierr = MatSetFromOptions(_A); CHKERRQ(ierr);
 //cj  if (!PCU_Comm_Self()) std::cout<<"[M3DC1 INFO] "<<__func__<<": MatCreate A num_own_dof="<<num_own_dof<<" num_own_ent="<<num_own_ent<<" dofPerEnt="<<dofPerEnt<<" mat_dim="<<mat_dim<<"\n";
   return M3DC1_SUCCESS;
 }
@@ -580,12 +581,12 @@ int m3dc1_matrix::setupSeqMat()
   PetscInt mat_dim = num_dof;
 
   // create matrix
-  PetscErrorCode ierr = MatCreate(PETSC_COMM_SELF, A);
+  PetscErrorCode ierr = MatCreate(PETSC_COMM_SELF, &_A);
   CHKERRQ(ierr);
   // set matrix size
-  ierr = MatSetSizes(*A, mat_dim, mat_dim, PETSC_DECIDE, PETSC_DECIDE); CHKERRQ(ierr);
-  ierr= MatSetBlockSize(*A, dofPerEnt);
-  ierr = MatSetFromOptions(*A); CHKERRQ(ierr);
+  ierr = MatSetSizes(_A, mat_dim, mat_dim, PETSC_DECIDE, PETSC_DECIDE); CHKERRQ(ierr);
+  ierr= MatSetBlockSize(_A, dofPerEnt);
+  ierr = MatSetFromOptions(_A); CHKERRQ(ierr);
 //cj  if (!PCU_Comm_Self()) std::cout<<"[M3DC1 INFO] "<<__func__<<": MatCreate A num_local_dof="<<num_dof<<" num_local_ent="<<num_ent<<" dofPerEnt="<<dofPerEnt<<" mat_dim="<<mat_dim<<"\n";
   return M3DC1_SUCCESS;
 }
@@ -605,7 +606,7 @@ int m3dc1_matrix::write (const char* file_name)
     ierr = PetscViewerASCIIOpen(MPI_COMM_WORLD, file_name, &lab); CHKERRQ(ierr);
   }
   ierr = PetscViewerPushFormat(lab, PETSC_VIEWER_ASCII_MATLAB); CHKERRQ(ierr);
-  ierr = MatView(*A, lab); CHKERRQ(ierr);
+  ierr = MatView(_A, lab); CHKERRQ(ierr);
   ierr = PetscViewerDestroy(&lab); CHKERRQ(ierr);
   return M3DC1_SUCCESS;
 }
@@ -613,12 +614,12 @@ int m3dc1_matrix::write (const char* file_name)
 void m3dc1_matrix::printInfo()
 {
   MatInfo info;
-  MatGetInfo(*A, MAT_LOCAL,&info);
+  MatGetInfo(_A, MAT_LOCAL,&info);
   std::cout<<"Matrix "<<id<<" info "<<std::endl;
   std::cout<<"\t nz_allocated,nz_used,nz_unneeded "<<info.nz_allocated<<" "<<info.nz_used<<" "<<info.nz_unneeded<<std::endl;
   std::cout<<"\t memory mallocs "<<info.memory<<" "<<info.mallocs<<std::endl; 
   PetscInt nstash, reallocs, bnstash, breallocs;
-  MatStashGetInfo(*A,&nstash,&reallocs,&bnstash,&breallocs);
+  MatStashGetInfo(_A,&nstash,&reallocs,&bnstash,&breallocs);
   std::cout<<"\t nstash, reallocs, bnstash, breallocs "<<nstash<<" "<<reallocs<<" "<<bnstash<<" "<<breallocs<<std::endl;
 }
 // ***********************************
@@ -635,19 +636,19 @@ int matrix_mult::initialize()
   // initialize matrix
   setupMat();
   preAllocate();
-  int ierr = MatSetUp (*A); // "MatSetUp" sets up internal matrix data structure for the later use
+  int ierr = MatSetUp (_A); // "MatSetUp" sets up internal matrix data structure for the later use
   //disable error when preallocate not enough
-  ierr = MatSetOption(*A,MAT_NEW_NONZERO_ALLOCATION_ERR,PETSC_FALSE); CHKERRQ(ierr);
-  ierr = MatSetOption(*A,MAT_IGNORE_ZERO_ENTRIES,PETSC_TRUE); CHKERRQ(ierr);
+  ierr = MatSetOption(_A,MAT_NEW_NONZERO_ALLOCATION_ERR,PETSC_FALSE); CHKERRQ(ierr);
+  ierr = MatSetOption(_A,MAT_IGNORE_ZERO_ENTRIES,PETSC_TRUE); CHKERRQ(ierr);
   return M3DC1_SUCCESS;
 }
 
 int matrix_mult::assemble()
 {
   PetscErrorCode ierr;
-  ierr = MatAssemblyBegin(*A, MAT_FINAL_ASSEMBLY); 
+  ierr = MatAssemblyBegin(_A, MAT_FINAL_ASSEMBLY); 
   CHKERRQ(ierr);
-  ierr = MatAssemblyEnd(*A, MAT_FINAL_ASSEMBLY);
+  ierr = MatAssemblyEnd(_A, MAT_FINAL_ASSEMBLY);
   CHKERRQ(ierr);
   mat_status = M3DC1_FIXED;
   return M3DC1_SUCCESS;
@@ -660,7 +661,7 @@ int matrix_mult::multiply(FieldID in_field, FieldID out_field)
     Vec b, c;
     copyField2PetscVec(in_field, b, get_scalar_type());
     int ierr = VecDuplicate(b, &c); CHKERRQ(ierr);
-    MatMult(*A, b, c);
+    MatMult(_A, b, c);
     copyPetscVec2Field(c, out_field, get_scalar_type());
     ierr = VecDestroy(&b); CHKERRQ(ierr);
     ierr = VecDestroy(&c); CHKERRQ(ierr);
@@ -679,7 +680,7 @@ int matrix_mult::multiply(FieldID in_field, FieldID out_field)
 #endif
     PetscInt bs;
     int ierr;
-    MatGetBlockSize(*A, &bs);
+    MatGetBlockSize(_A, &bs);
     PetscScalar * array[2];
     m3dc1_field_getdataptr(&in_field, (double**)array);
 #ifdef PETSC_USE_COMPLEX
@@ -707,7 +708,7 @@ int matrix_mult::multiply(FieldID in_field, FieldID out_field)
     ierr=VecAssemblyEnd(b);  CHKERRQ(ierr);
     ierr=VecAssemblyBegin(c);  CHKERRQ(ierr);
     ierr=VecAssemblyEnd(c);  CHKERRQ(ierr);
-    MatMult(*A, b, c);
+    MatMult(_A, b, c);
     ierr = VecDestroy(&b); CHKERRQ(ierr);
     ierr = VecDestroy(&c); CHKERRQ(ierr);
 #ifdef PETSC_USE_COMPLEX
@@ -732,7 +733,7 @@ int matrix_mult::multiply(FieldID in_field, FieldID out_field)
 
 matrix_solve::matrix_solve(int i, int s, FieldID f): m3dc1_matrix(i,s,f) 
 {  
-  ksp = new KSP;
+//ksp = new KSP;
 //pc = new PC;
   BgmgSet=0;
   kspSet=0;
@@ -761,8 +762,8 @@ matrix_solve::~matrix_solve()
   }
 
   if (kspSet)
-    KSPDestroy(ksp);
-  delete ksp;
+    KSPDestroy(&_ksp);
+//  delete ksp;
 
   MatDestroy(&remoteA);
 }
@@ -773,12 +774,12 @@ int matrix_solve::initialize()
   setupMat();
   preAllocate();
   if (!m3dc1_solver::instance()->assembleOption) setUpRemoteAStruct();
-  int ierr = MatSetUp (*A); // "MatSetUp" sets up internal matrix data structure for the later use
+  int ierr = MatSetUp (_A); // "MatSetUp" sets up internal matrix data structure for the later use
   //disable error when preallocate not enough 
-  ierr = MatSetOption(*A,MAT_NEW_NONZERO_ALLOCATION_ERR,PETSC_FALSE); CHKERRQ(ierr);
+  ierr = MatSetOption(_A,MAT_NEW_NONZERO_ALLOCATION_ERR,PETSC_FALSE); CHKERRQ(ierr);
   //commented per Jin's request on Nov 9, 2017
-  //ierr = MatSetOption(*A,MAT_NEW_NONZERO_ALLOCATION_ERR,PETSC_TRUE); CHKERRQ(ierr);
-  ierr = MatSetOption(*A,MAT_IGNORE_ZERO_ENTRIES,PETSC_TRUE); CHKERRQ(ierr); 
+  //ierr = MatSetOption(_A,MAT_NEW_NONZERO_ALLOCATION_ERR,PETSC_TRUE); CHKERRQ(ierr);
+  ierr = MatSetOption(_A,MAT_IGNORE_ZERO_ENTRIES,PETSC_TRUE); CHKERRQ(ierr); 
   CHKERRQ(ierr);
   return M3DC1_SUCCESS;
 }
@@ -797,7 +798,7 @@ int matrix_solve::preAllocate ()
 
 int matrix_solve::reset_values() 
 { 
-  int ierr = MatZeroEntries(*A); 
+  int ierr = MatZeroEntries(_A); 
   //MatZeroEntries(remoteA); 
     delete remotePidOwned;
     delete remoteNodeRow;
@@ -813,7 +814,7 @@ int matrix_solve::reset_values()
     // Set operators, keeping the identical preconditioner matrix for
     // all linear solves.  This approach is often effective when the
     // linear systems do not change very much between successive steps.
-    ierr= KSPSetReusePreconditioner(*ksp,PETSC_TRUE); CHKERRQ(ierr);
+    ierr= KSPSetReusePreconditioner(_ksp,PETSC_TRUE); CHKERRQ(ierr);
   }
   
   if (!PCU_Comm_Self())
@@ -823,16 +824,16 @@ int matrix_solve::reset_values()
   const PetscInt *cols;
   const PetscScalar *vals;
 
-  //MatGetSize(*A, &n, NULL); -- this returns global matrix size
-  MatGetOwnershipRange(*A, &rstart, &rend);
+  //MatGetSize(_A, &n, NULL); -- this returns global matrix size
+  MatGetOwnershipRange(_A, &rstart, &rend);
   MatGetOwnershipRange(remoteA, &r_rstart, &r_rend);
 
   for (PetscInt row=rstart; row<rend; ++row)
   { 
-    MatGetRow(*A, row, &ncols, &cols, &vals);
+    MatGetRow(_A, row, &ncols, &cols, &vals);
     for (int i=0; i<ncols; ++i)
       assert(m3dc1_double_isequal(vals[i],0.0));
-    MatRestoreRow(*A, row, &ncols, &cols, &vals); // prevent memory leak
+    MatRestoreRow(_A, row, &ncols, &cols, &vals); // prevent memory leak
   }
 
   for (PetscInt row=r_rstart; row<r_rend; ++row)
@@ -897,7 +898,7 @@ int matrix_solve::assemble()
  
     int num_vtx = m3dc1_mesh::instance()->num_local_ent[0];
     PetscInt firstRow, lastRowPlusOne;
-    ierr = MatGetOwnershipRange(*A, &firstRow, &lastRowPlusOne);
+    ierr = MatGetOwnershipRange(_A, &firstRow, &lastRowPlusOne);
 
     std::map<int, std::vector<int> >* idxSendBuff = new  std::map<int, std::vector<int> >;
     std::map<int, std::vector<int> >* idxRecvBuff = new  std::map<int, std::vector<int> >;
@@ -1042,7 +1043,7 @@ int matrix_solve::assemble()
           for (int j=0; j<total_num_dof; ++j)
             columns.at(offset++)=idx.at(idxOffset)+j;
 
-        ierr = MatSetValues(*A, total_num_dof, &columns.at(total_num_dof*(numAdj-1)), 
+        ierr = MatSetValues(_A, total_num_dof, &columns.at(total_num_dof*(numAdj-1)), 
                total_num_dof*numAdj, &columns[0], &values.at(valueOffset),ADD_VALUES);
 
         valueOffset+=blockMatSize*numAdj;
@@ -1056,9 +1057,9 @@ int matrix_solve::assemble()
     idxRecvBuff=NULL;
   }
 
-  ierr = MatAssemblyBegin(*A, MAT_FINAL_ASSEMBLY); 
+  ierr = MatAssemblyBegin(_A, MAT_FINAL_ASSEMBLY); 
   CHKERRQ(ierr);
-  ierr = MatAssemblyEnd(*A, MAT_FINAL_ASSEMBLY); CHKERRQ(ierr);
+  ierr = MatAssemblyEnd(_A, MAT_FINAL_ASSEMBLY); CHKERRQ(ierr);
 
   // clean up auxiliary data
   remotePidOwned->clear();
@@ -1077,10 +1078,10 @@ int matrix_solve::set_bc(int row)
 {
 #ifdef DEBUG
   PetscInt firstRow, lastRowPlusOne;
-  int ierr = MatGetOwnershipRange(*A, &firstRow, &lastRowPlusOne);
+  int ierr = MatGetOwnershipRange(_A, &firstRow, &lastRowPlusOne);
   assert (row>=firstRow && row<lastRowPlusOne);
 #endif
-  MatSetValue(*A, row, row, 1.0, ADD_VALUES);
+  MatSetValue(_A, row, row, 1.0, ADD_VALUES);
   return M3DC1_SUCCESS;
 }
 
@@ -1088,7 +1089,7 @@ int matrix_solve::set_row(int row, int numVals, int* columns, double * vals)
 {
 #ifdef DEBUG
   PetscInt firstRow, lastRowPlusOne;
-  int ierr = MatGetOwnershipRange(*A, &firstRow, &lastRowPlusOne);
+  int ierr = MatGetOwnershipRange(_A, &firstRow, &lastRowPlusOne);
   assert (row>=firstRow && row<lastRowPlusOne);
 #endif
   for (int i=0; i<numVals; ++i)
@@ -1107,23 +1108,23 @@ int matrix_solve::solve(FieldID field_id)
 
   if(!kspSet) setKspType();
   if(kspSet==2) {
-         ierr= KSPSetOperators(*ksp,*A,*A); CHKERRQ(ierr);
+         ierr= KSPSetOperators(_ksp,_A,_A); CHKERRQ(ierr);
          if (!PCU_Comm_Self())
            std::cout <<"\t-- Update A, Reuse Preconditioner" << std::endl;
   }
 
-  //KSPSetUp(*ksp);
- // KSPSetUpOnBlocks(*ksp); CHKERRQ(ierr);
+  //KSPSetUp(_ksp);
+ // KSPSetUpOnBlocks(_ksp); CHKERRQ(ierr);
 
-  ierr = KSPSolve(*ksp, b, x); 
+  ierr = KSPSolve(_ksp, b, x); 
   CHKERRQ(ierr);
 //  PetscInt its;
-  ierr = KSPGetIterationNumber(*ksp, &its);
+  ierr = KSPGetIterationNumber(_ksp, &its);
   CHKERRQ(ierr);
 
           if(BgmgSet==-1) {
       PC pc;
-      ierr = KSPGetPC(*ksp,&pc); CHKERRQ(ierr);
+      ierr = KSPGetPC(_ksp,&pc); CHKERRQ(ierr);
       KSP coarse_ksp;
       Mat coarse_mat;
       ierr = PCMGGetCoarseSolve(pc,&coarse_ksp); CHKERRQ(ierr);
@@ -1163,24 +1164,24 @@ int matrix_solve::solve_with_guess(FieldID field_id, FieldID xVec_guess)
 
   if(!kspSet) setKspType();
   if(kspSet==2) {
-         ierr= KSPSetOperators(*ksp,*A,*A); CHKERRQ(ierr);
+         ierr= KSPSetOperators(_ksp,_A,_A); CHKERRQ(ierr);
          if (!PCU_Comm_Self())
            std::cout <<"\t-- Update A, Reuse Preconditioner" << std::endl;
 
   }
 
-  ierr = KSPGetType(*ksp, &ksptype); CHKERRQ(ierr);
+  ierr = KSPGetType(_ksp, &ksptype); CHKERRQ(ierr);
   if( strcmp(ksptype,"preonly")==0 ){
-    ierr = KSPSetInitialGuessNonzero(*ksp, PETSC_FALSE); CHKERRQ(ierr);
+    ierr = KSPSetInitialGuessNonzero(_ksp, PETSC_FALSE); CHKERRQ(ierr);
     if (PCU_Comm_Self() == 0)
       std::cout <<"\t Due to ksptype=\"preonly\", the initial guess is set to be Zero."<< std::endl; 
   }
   else{
-    ierr = KSPSetInitialGuessNonzero(*ksp, PETSC_TRUE); CHKERRQ(ierr);
+    ierr = KSPSetInitialGuessNonzero(_ksp, PETSC_TRUE); CHKERRQ(ierr);
   }
-  ierr = KSPSolve(*ksp, b, x); 
+  ierr = KSPSolve(_ksp, b, x); 
   CHKERRQ(ierr);
-  ierr = KSPGetIterationNumber(*ksp, &its);
+  ierr = KSPGetIterationNumber(_ksp, &its);
   CHKERRQ(ierr);
 
   if (PCU_Comm_Self() == 0)
@@ -1197,7 +1198,7 @@ int matrix_solve::solve_with_guess(FieldID field_id, FieldID xVec_guess)
 int matrix_solve:: setKspType()
 {
   PetscErrorCode ierr;
-  ierr = KSPCreate(MPI_COMM_WORLD, ksp);
+  ierr = KSPCreate(MPI_COMM_WORLD, &_ksp);
   CHKERRQ(ierr);
 
   //mgsolve is turned on only if the solve is 5 or 17
@@ -1212,12 +1213,12 @@ int matrix_solve:: setKspType()
          // Set operators, keeping the identical preconditioner matrix for
          // all linear solves.  This approach is often effective when the
          // linear systems do not change very much between successive steps.
-         //ierr= KSPSetReusePreconditioner(*ksp,PETSC_TRUE); CHKERRQ(ierr);
+         //ierr= KSPSetReusePreconditioner(_ksp,PETSC_TRUE); CHKERRQ(ierr);
          //if (!PCU_Comm_Self())
          //  std::cout <<"\t-- Reuse Preconditioner" << std::endl;
-  ierr = KSPSetOperators(*ksp, *A, *A /*, SAME_PRECONDITIONER DIFFERENT_NONZERO_PATTERN*/); 
+  ierr = KSPSetOperators(_ksp, _A, _A /*, SAME_PRECONDITIONER DIFFERENT_NONZERO_PATTERN*/); 
   CHKERRQ(ierr);
-  ierr = KSPSetTolerances(*ksp, .000001, .000000001, PETSC_DEFAULT, 1000);
+  ierr = KSPSetTolerances(_ksp, .000001, .000000001, PETSC_DEFAULT, 1000);
   CHKERRQ(ierr);
 
   int num_values, value_type, total_num_dof;
@@ -1228,16 +1229,16 @@ int matrix_solve:: setKspType()
   // if 2D problem use superlu
   if (mesh->getDimension()==2)
   {
-    ierr=KSPSetType(*ksp, KSPPREONLY); CHKERRQ(ierr);
+    ierr=KSPSetType(_ksp, KSPPREONLY); CHKERRQ(ierr);
     PC pc;
-    ierr=KSPGetPC(*ksp, &pc); CHKERRQ(ierr);
+    ierr=KSPGetPC(_ksp, &pc); CHKERRQ(ierr);
     ierr=PCSetType(pc,PCLU); CHKERRQ(ierr);
     ierr=PCFactorSetMatSolverType(pc,MATSOLVERSUPERLU_DIST);
     CHKERRQ(ierr);
   } else {/* conflict with mg settings, to be fixed later
-	  ierr= KSPSetType(*ksp,KSPFGMRES);
+	  ierr= KSPSetType(_ksp,KSPFGMRES);
 	  PC pc;
-	  ierr= KSPGetPC(*ksp,&pc);
+	  ierr= KSPGetPC(_ksp,&pc);
 	  ierr= PCSetType(pc,PCBJACOBI);
 
 	  int nplane, *blks;
@@ -1253,10 +1254,10 @@ int matrix_solve:: setKspType()
 	  ierr=PCBJacobiSetTotalBlocks(pc, nplane, blks);
 	  ierr=PetscFree(blks);
 	  */
-	  if(mymatrix_id==5) ierr = KSPAppendOptionsPrefix(*ksp,"hard_");
+	  if(mymatrix_id==5) ierr = KSPSetOptionsPrefix(_ksp,"hard_");
   }
 
-  ierr = KSPSetFromOptions(*ksp); CHKERRQ(ierr);
+  ierr = KSPSetFromOptions(_ksp); CHKERRQ(ierr);
   kspSet=1;
   return M3DC1_SUCCESS;
 }
@@ -1320,8 +1321,8 @@ int matrix_solve:: setBgmgType()
 
     PC pc;
 //    ierr= KSPCreate(PETSC_COMM_WORLD,&ksp);
-      ierr= KSPAppendOptionsPrefix(*ksp,"hard_");
-      ierr= KSPGetPC(*ksp,&pc);
+      ierr= KSPSetOptionsPrefix(_ksp,"hard_");
+      ierr= KSPGetPC(_ksp,&pc);
       ierr= PCSetType(pc,PCMG);
       ierr= PCMGSetLevels(pc,mg_nlevels,NULL);
       ierr= PCMGSetType(pc,PC_MG_MULTIPLICATIVE);
@@ -1335,9 +1336,9 @@ int matrix_solve:: setBgmgType()
    PetscInt       Istart,Iend;
    PetscInt       Istartc,Iendc;
     PetscInt       mglobal, nglobal;
-   ierr= MatGetOwnershipRange(*A,&Istart,&Iend);
-   ierr= MatGetOwnershipRangeColumn(*A,&Istartc,&Iendc);
-   //debug ierr= MatGetSize(*A, &mglobal, &nglobal);
+   ierr= MatGetOwnershipRange(_A,&Istart,&Iend);
+   ierr= MatGetOwnershipRangeColumn(_A,&Istartc,&Iendc);
+   //debug ierr= MatGetSize(_A, &mglobal, &nglobal);
    //num_own_ent is the number of vertices owned by each process
   int num_own_ent=m3dc1_mesh::instance()->num_own_ent[0], num_own_dof;
       m3dc1_field_getnumowndof(&fieldOrdering, &num_own_dof);
@@ -1449,7 +1450,7 @@ int matrix_solve:: setBgmgType()
         //   -A_view binary[:[filename][:[ascii_info][:append]]]
         //   -A_view binary[:[filename][:[ascii_info_detail][:append]]]
         //   -A_view binary[:[filename][:[ascii_matlab][:append]]]
-        ierr=MatViewFromOptions(*A, NULL, "-A_view");
+        ierr=MatViewFromOptions(_A, NULL, "-A_view");
         if(level==0) ierr=MatViewFromOptions(mg_interp_mat[level], NULL, "-I0_view");
         if(level==1) ierr=MatViewFromOptions(mg_interp_mat[level], NULL, "-I1_view");
 
