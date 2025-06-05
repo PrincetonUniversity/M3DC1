@@ -1172,9 +1172,6 @@ endif
 
   call set_matrix_index(gs_matrix, gsmatrix_sm)
   call create_mat(gs_matrix, numvargs, numvargs, icomplex, 1)
-#ifdef CJ_MATRIX_DUMP
-  print *, "create_mat gradshafranov gs_matrix", gs_matrix%imatrix     
-#endif 
 
   if(int_tor.eq.0) then
      ibound = BOUNDARY_DIRICHLET + BOUNDARY_AXISYMMETRIC
@@ -1288,22 +1285,9 @@ endif
         ! perform LU backsubstitution to get psi solution
         if(myrank.eq.0 .and. iprint.ge.2) print *, '  solving'
 
-#ifdef CJ_MATRIX_DUMP
-        if(itnum.le.1) then 
-           call write_matrix(gs_matrix,'gs_matrix')
-           call write_vector(b1vecini_vec%vec, 'gs_matrix_rhs.out')
-        endif
-#endif 
         if(myrank.eq.0 .and. iprint.ge.1) print *, 'before solve'
         call newsolve(gs_matrix,b1vecini_vec%vec,ier)
         if(myrank.eq.0 .and. iprint.ge.1) print *, ' after solve'
-
-
-#ifdef CJ_MATRIX_DUMP
-        if(itnum.le.1) then 
-           call write_vector(b1vecini_vec%vec, 'gs_matrix_sol.out')
-        endif
-#endif 
 
         if(ier.ne.0) then
            if(myrank.eq.0) print *, 'Error in GS solve'

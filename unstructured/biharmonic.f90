@@ -87,9 +87,6 @@ contains
 
     call set_matrix_index(biharmonic_mat, biharmonic_mat_index)
     call create_mat(biharmonic_mat, 1, 1, icomplex, 1)
-#ifdef CJ_MATRIX_DUMP
-    print *, "create_mat biharmonic biharmonic_mat", biharmonic_mat%imatrix 
-#endif
 
     numelms = local_elements()
 
@@ -194,21 +191,8 @@ contains
     print *, 'solving'
     call finalize(biharmonic_mat)
 
-#ifdef CJ_MATRIX_DUMP
-     if(ntime.eq.ntimemax) then 
-     call write_matrix(biharmonic_mat,'biharmonic_mat')
-     call write_vector(rhs%vec, 'biharmonic_mat_rhs.out')
-     endif
-#endif 
-
     call newsolve(biharmonic_mat, rhs%vec, ier)
    
-#ifdef CJ_MATRIX_DUMP
-     if(ntime.eq.ntimemax) then
-     call write_vector(rhs%vec, 'biharmonic_mat_sol.out')
-     endif
-#endif 
-
     ! calculate error
     sum = 0.
     sum2 = 0.
