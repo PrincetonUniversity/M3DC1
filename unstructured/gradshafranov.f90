@@ -3245,7 +3245,7 @@ subroutine calc_fidensity(ps0, dens, x, z, izone)
   integer :: mr
 
   if(izone.gt.2) then
-     dens = nf_spline%y(nf_spline%n)
+     dens = nfi_spline%y(nfi_spline%n)
      return
   end if
 
@@ -3281,7 +3281,7 @@ subroutine calc_fitemp(ps0, tf, x, z, izone)
   if(allocated(tfi_spline%y)) then
 !     if(izone.ne.1) then 
      if(izone.ne.ZONE_PLASMA) then 
-        tf0 = tfi_spline%y(tf_spline%n)
+        tf0 = tfi_spline%y(tfi_spline%n)
      else
         psii = (real(ps0(1)) - psimin)/(psibound - psimin)
         call magnetic_region(ps0(1),ps0(2),ps0(3),x,z,mr,psinb)
