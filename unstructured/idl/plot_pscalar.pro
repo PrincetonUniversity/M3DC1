@@ -54,13 +54,14 @@ function read_pscalar, scalarname, filename=filename, title=title, $
        return, data
    endif
 
-   s = read_scalars(filename=filename)
-   n = tag_names(s)
-   smatch = where(strcmp(n, scalarname, /fold_case) eq 1,scount)
-   print, 'tag_names = ', n
-   print,"e_kp_size = ",size(s.E_KP._data)
-   print,"times_size = ",size(s.time._data)
-   print,"time = ",s.time._data
+; ;;; C1.h5 read test
+;    s = read_scalars(filename=filename)
+;    n = tag_names(s)
+;    smatch = where(strcmp(n, scalarname, /fold_case) eq 1,scount)
+;    print, 'tag_names = ', n
+;    print,"e_kp_size = ",size(s.E_KP._data)
+;    print,"times_size = ",size(s.time._data)
+;    print,"time = ",s.time._data
 
    s = read_pscalars(filename=filename)
    n = tag_names(s)
@@ -68,31 +69,71 @@ function read_pscalar, scalarname, filename=filename, title=title, $
    print, 'tag_names = ', n
 
    time = s.time._data
-   print,"times_size = ",size(time,/DIMENSIONS)
-   print,"time = ",time
-  
-   pdata = s.pdata._data
-   print, "pdata_size = ", SIZE(pdata,/DIMENSIONS)
-   print,"pdata1 = ",pdata[*,0]
-   ;print,"pdata13 = ",pdata[*,12]
+   ; print,"times_size = ",size(time,/DIMENSIONS)
+   ; print,"time = ",time
+   dims = size(time,/DIMENSIONS)
+   ntimemax = dims[0]
+   print,"ntimemax = ",ntimemax
 
-   test_particle_data = s.test_particle._data
-   print,"test_particle_size = ",SIZE(test_particle_data,/DIMENSIONS)
-   ntimemax = N_ELEMENTS(time)
-   ;print,"time count: ",ntimemax
-   npt = min([10,ntimemax])-1
-   ;print,"npt=",npt
-   print,"test_particle[0:3,0:10] = ",test_particle_data[0:3,0:npt]
 
-   gid_test = test_particle_data[0,0]
-   rdata = test_particle_data[1,*]
-   tdata = test_particle_data[2,*]
-   zdata = test_particle_data[3,*]
-   print,"rdata = ",rdata
+; ;;; test output in time slice format  
+;    pdata = s.pdata._data
+;    print, "pdata_size = ", SIZE(pdata,/DIMENSIONS)
+;    print,"pdata1 = ",pdata[*,0]
+;    ;print,"pdata13 = ",pdata[*,12]
 
-   title_str = 'RZ trajectory of test particle, id = '+STRTRIM(STRING(floor(gid_test)),2)
+
+;;; output all traced particle information
+   all_traced_particle_data = s.all_traced_particle._data
+   npart_trace = s.npart_trace._data
+   pdims_trace = s.pdims_trace._data
+   pdata_trace_id = s.pdata_trace_id._data
+   ;print, "all_traced_particle_size = ", SIZE(all_traced_particle_data,/DIMENSIONS)
+   print, "traced particle total number = ",npart_trace
+
+   dims = SIZE(all_traced_particle_data,/DIMENSIONS)
+   ;ntimemax = dims[1]
+   ;print,"ntimemax = ",ntimemax
+   pdims = dims[0]/npart_trace
+   print,"traced particle data dims = ",pdims
+   pdata = fltarr(pdims,npart_trace,ntimemax)
+   FOR k = 0, ntimemax-1, 1 DO BEGIN
+       pdata[*,*,k] = REFORM(all_traced_particle_data[*,k],[pdims,npart_trace])
+   ENDFOR
+
+
+   plot_id = 3 ; id-1
+   ; use reform to remove all dims of size 1
+   rdata = reform(pdata[0,plot_id,*])
+   tdata = reform(pdata[1,plot_id,*])
+   zdata = reform(pdata[2,plot_id,*])
+   ;print,"rdata_size",size(rdata,/DIMENSIONS)
+   ;print,"rdata = ",rdata
+
+   print,"plot RZ trajectory of traced particle, #",plot_id
+   title_str = 'RZ trajectory of traced particle, #'+STRTRIM(STRING(floor(plot_id+1)),2)
    ; PSYM sets marker style, COLOR sets marker color
    PLOT, rdata, zdata, TITLE=title_str, XTITLE='R axis', YTITLE='Z axis';, PSYM=4, COLOR="red"; , LINESTYLE=1
+ 
+
+; ;;; test output in time history format
+;    test_particle_data = s.test_particle._data
+;    print,"test_particle_size = ",SIZE(test_particle_data,/DIMENSIONS)
+;    ntimemax = N_ELEMENTS(time)
+;    ;print,"time count: ",ntimemax
+;    npt = min([10,ntimemax])-1
+;    ;print,"npt=",npt
+;    print,"test_particle[0:3,0:10] = ",test_particle_data[0:3,0:npt]
+; 
+;    gid_test = test_particle_data[0,0]
+;    rdata = test_particle_data[1,*]
+;    tdata = test_particle_data[2,*]
+;    zdata = test_particle_data[3,*]
+;    print,"rdata = ",rdata
+; 
+;    title_str = 'RZ trajectory of test particle, id = '+STRTRIM(STRING(floor(gid_test)),2)
+;    ; PSYM sets marker style, COLOR sets marker color
+;    PLOT, rdata, zdata, TITLE=title_str, XTITLE='R axis', YTITLE='Z axis';, PSYM=4, COLOR="red"; , LINESTYLE=1
  
 end
 

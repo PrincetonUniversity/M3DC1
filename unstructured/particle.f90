@@ -133,7 +133,7 @@ module particles
 !!! for particle trace test only:
    integer :: npart_trace
    integer, dimension(:), allocatable :: pdata_trace_id
-   integer :: pdims_readin
+   integer :: pdims_readin, pdims_trace
    real, dimension(:,:), allocatable :: pdata_trace_readin
 !!!
 contains
@@ -1066,7 +1066,7 @@ subroutine init_tracing_particles_local(pdata_local, locparts)
    type(particle),dimension(:) :: pdata_local
    integer :: locparts
 
-   integer :: i, ielm, itri, itmp, ipar, ipoint
+   integer :: i, ielm, itri, itmp, ipar, ipoint, icount
    real, dimension(:,:), allocatable :: x_in,v_in
    integer, dimension(:), allocatable :: sps_in
    real :: xr,zr
@@ -1081,26 +1081,37 @@ subroutine init_tracing_particles_local(pdata_local, locparts)
 
    !!! initialize particle tracing id array
    allocate(pdata_trace_id(npart_trace),pdata_trace_id_tmp(npart_trace))
+
+
+!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+!!! Sampling Method 1: 
+!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+
+
    if(myrank==0)then   
-!!! for particle tracing only:
-      write(400,*)"nelms_global = ",nelms_global
-      ipar = floor(nelms_global/(npart_trace-1.0))
-      write(400,*)"nelms_global_interval = ",ipar
-      call flush(400)
-!!! 
+! !!! for particle tracing only:
+!       write(400,*)"nelms_global = ",nelms_global
+!       ipar = floor(nelms_global/(npart_trace-1.0))
+!       write(400,*)"nelms_global_interval = ",ipar
+!       call flush(400)
+! !!! 
 
       do i = 1,npart_trace
          itmp = max(1, min((i-1)*ipar+1,nelms_global) )
          pdata_trace_id(i) = itmp*10000+13
       enddo
-!!! for particle tracing test only:
-      write(400,*)"ntime= ",ntime,"pdata_trace_id"
-      write(400,"(I20)")pdata_trace_id
-      call flush(400)
-!!!
+! !!! for particle tracing test only:
+!       write(400,*)"ntime= ",ntime,"pdata_trace_id"
+!       write(400,"(I20)")pdata_trace_id
+!       call flush(400)
+! !!!
     endif   
     call MPI_Bcast(npart_trace, 1, MPI_INTEGER, 0, MPI_COMM_WORLD, ierr)
     call MPI_Bcast(pdata_trace_id, npart_trace, MPI_INTEGER, 0, MPI_COMM_WORLD, ierr)
+
+!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+!!! Sampling Method 2: 
+!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 
 !!! for particle tracing test only:
    !!! use the input particle information
@@ -1139,6 +1150,7 @@ subroutine init_tracing_particles_local(pdata_local, locparts)
    !!! create tracing particles at the end of pdata_local.
    pdata_trace_id(:) = 0
    pdata_trace_id_tmp(:) = 0
+   icount=0
    do i = 1,npart_trace
       call whattri(x_in(1,i), x_in(2,i), x_in(3,i), ielm, xr, zr)  ! return ielm=-1 if not on myrank, local elem. id if found
       if(ielm>0)then
@@ -1176,38 +1188,45 @@ subroutine init_tracing_particles_local(pdata_local, locparts)
          locparts = locparts+1
          pdata_trace_id_tmp(i) = dpar%gid
 
-         !!! for particle tracing test only:
-!          write(500,*)"trace id = ",i,"myrank = ",myrank,"itri = ",itri,"pdata_trace_id = ",pdata_trace_id_tmp(i)
-!          call flush(500)
-         write(myrank+3000,*)"pdata_trace_id(:)"
-         write(myrank+3000,*)pdata_trace_id_tmp(:)
-         call flush(myrank+3000)
-         !!!
+!          !!! for particle tracing test only:
+! !          write(500,*)"trace id = ",i,"myrank = ",myrank,"itri = ",itri,"pdata_trace_id = ",pdata_trace_id_tmp(i)
+! !          call flush(500)
+!          write(myrank+3000,*)"pdata_trace_id(:)"
+!          write(myrank+3000,*)pdata_trace_id_tmp(:)
+!          call flush(myrank+3000)
+! !          !!!
+! !          call MPI_Barrier(MPI_COMM_WORLD, ierr)
+         icount = icount +1
       endif
    enddo
 
-!    write(myrank+1000,*)"pdata_trace_id(:)"
-!    write(myrank+1000,*)pdata_trace_id_tmp(:)
-!    call flush(myrank+1000)
-
-   call mpi_barrier(mpi_comm_world, ierr)
+   if(icount .ne. 0)then
+      print *, 'finish particle allocation on MPI rank #',myrank,", loaded ",icount," particles"
+      call flush(unit=6)  ! refer to the standard output
+      
+      write(myrank+3000,*)"pdata_trace_id(:)"
+      write(myrank+3000,*)pdata_trace_id_tmp(:)
+      call flush(myrank+3000)
+   endif
+  
+   call MPI_Barrier(MPI_COMM_WORLD, ierr)
+   
    ! part_trace_id is only non-zero for particles assigned on specific MPI, if not a shared memory for all MPI, so we need to gather information
 !    call MPI_ALLREDUCE(pdata_trace_id_tmp, pdata_trace_id, npart_trace, MPI_INTEGER, MPI_SUM, MPI_COMM_WORLD, ierr)
    call MPI_ALLREDUCE(pdata_trace_id_tmp, pdata_trace_id, npart_trace, MPI_INTEGER, MPI_MAX, MPI_COMM_WORLD, ierr)
-   
    call MPI_Bcast(npart_trace, 1, MPI_INTEGER, 0, MPI_COMM_WORLD, ierr)
-!    call MPI_Bcast(pdata_trace_id, npart_trace, MPI_INTEGER, 0, MPI_COMM_WORLD, ierr)
+   ! call MPI_Bcast(pdata_trace_id, npart_trace, MPI_INTEGER, 0, MPI_COMM_WORLD, ierr)
 
    deallocate(pdata_trace_id_tmp)
 
-   if(myrank==0)then
-!!! for particle tracing test only:
-      write(400,*)"End of init_tracing_particles"
-      write(400,*)"ntime= ",ntime,"pdata_trace_id"
-      write(400,"(I20)")pdata_trace_id
-      call flush(400)
-!!!
-   endif   
+!    if(myrank==0)then
+! !!! for particle tracing test only:
+!       write(400,*)"End of init_tracing_particles"
+!       write(400,*)"ntime= ",ntime,"pdata_trace_id"
+!       write(400,"(I20)")pdata_trace_id
+!       call flush(400)
+! !!!
+!    endif   
 
    if(myrank.eq.0 .and. iprint.ge.1) print *, 'Done initializing tracing particles'
 
@@ -3617,6 +3636,23 @@ subroutine hdf5_write_particles(ierr)
    call write_vec_attr(part_root_id, "particle nrmfac", nrmfac, 2, ierr)
    !call write_real_attr(part_root_id, "particle delta-t", dt_ion, ierr)
 
+
+   !!! output traced particle global id's, i.e. {pdata%gid}.
+   call write_int_attr(part_root_id, "npart_trace", npart_trace, ierr)
+   call write_int_attr(part_root_id, "pdims_trace", pdims_trace, ierr)
+   call write_vec_attr_int(part_root_id, "pdata_trace_id", pdata_trace_id, npart_trace, ierr)
+
+!    if(myrank==0)then
+! !!! for particle tracing test only:
+!       write(600,*)"Read in pdata_trace_id for restart"
+!       write(600,*)"ntime= ",ntime,"pdata_trace_id = "
+!       write(600,"(I20)")pdata_trace_id
+!       call flush(600)
+! !!!
+!    endif   
+
+
+
    !Create global dataset
    call h5gcreate_f(part_root_id, "particles", group_id, ierr)
    global_dims(1) = pdims; local_dims(1) = pdims
@@ -3808,6 +3844,16 @@ subroutine hdf5_read_particles(filename, ierr)
    !call read_real_attr(part_root_id, "particle delta-t", dt_ion, ierr)
    !if(myrank.eq.0) print *,'particle dt from file = ',dt_ion
    call read_vec_attr(part_root_id, "particle nrmfac", nrmfac, 2, ierr)
+
+
+   !!! read traced particle global id's, i.e. {pdata%gid}. 
+   npart_trace=0
+   call read_int_attr(part_root_id, "npart_trace", npart_trace, ierr)
+   pdims_trace=0
+   call read_int_attr(part_root_id, "pdims_trace", pdims_trace, ierr)
+   if(.not. allocated(pdata_trace_id)) allocate(pdata_trace_id(npart_trace))
+   call read_vec_attr_int(part_root_id, "pdata_trace_id", pdata_trace_id, npart_trace, ierr)
+ 
 
    !Open the particle group for reading
    call h5gopen_f(part_root_id, "particles", group_id, ierr)
@@ -4004,23 +4050,16 @@ subroutine hdf5_write_particles_scalar(ierr)
    integer(HID_T) :: part_root_id, scalar_group_id
    integer(HSIZE_T), dimension(2) :: global_dims
    integer pindex, i
-!!! for test only:
-!   integer, parameter :: npart_trace = 256
-!   integer, dimension(npart_trace) :: pdata_trace_id
-   integer(HSSIZE_T), dimension(2) :: off_h5
-   integer poffset, itmp, np, size, numelms
-!!! 
+   real, dimension(:), allocatable :: tmparry_output
 
-!    character(LEN=32) :: part_file_name
-!    real, dimension(:, :), allocatable :: values
-!    integer, parameter :: pdims = vspdims + 12
-!    integer(HID_T) :: plist_id, part_file_id, part_root_id, group_id
-!    integer(HID_T) :: filespace, memspace, dset_id
-!    integer(HSIZE_T), dimension(2) :: local_dims, global_dims
+! !!! for test only:
+! !   integer, parameter :: npart_trace = 256
+! !   integer, dimension(npart_trace) :: pdata_trace_id
 !    integer(HSSIZE_T), dimension(2) :: off_h5
-!    integer :: info
-!    integer ielm, poffset, pindex, np, ipart, size
- 
+!    integer poffset, itmp, np, size, numelms
+! !!! 
+
+   pdims_trace = 5   ! 3: only trace (r, theta, z), see bellow values(1:pdims,npart_trace)
 
    !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
    !Calculate data size
@@ -4031,18 +4070,6 @@ subroutine hdf5_write_particles_scalar(ierr)
    if (hostrank == 0) then
       call delete_particle(.true.)
    end if
-
-!    call MPI_Bcast(ipart_begin, 1, MPI_INTEGER, 0, hostcomm, ierr)
-!    call MPI_Bcast(ipart_end, 1, MPI_INTEGER, 0, hostcomm, ierr)
-!    call MPI_Bcast(nparticles, 1, mpi_integer, 0, MPI_COMM_WORLD, ierr)
-!    call mpi_barrier(mpi_comm_world, ierr)
-!    call MPI_Comm_size(MPI_COMM_WORLD, size, ierr)
-!    np = int(nparticles/size) + 1
-!    !call mpi_scan(locparts, poffset, 1, MPI_INTEGER, MPI_SUM, MPI_COMM_WORLD, ierr)
-!    !poffset = poffset - locparts
-!    poffset = np*myrank
-!    if (poffset + np > nparticles) np = nparticles - poffset
-
 
 !!! for test only:
    
@@ -4100,6 +4127,13 @@ subroutine hdf5_write_particles_scalar(ierr)
    if(ntime.eq.0 .and. irestart.eq.0) then
       call h5gcreate_f(part_root_id, "particle_tracing_data", scalar_group_id, ierr)
       call write_int_attr(scalar_group_id, "ntimestep", ntime, ierr)
+      
+      !!! output traced particle global id's, i.e. {pdata%gid}. 
+      call write_int_attr(scalar_group_id, "npart_trace", npart_trace, ierr)
+      call write_int_attr(scalar_group_id, "pdims_trace", pdims_trace, ierr)
+      call write_vec_attr_int(scalar_group_id, "pdata_trace_id", pdata_trace_id, npart_trace, ierr)
+      ! call output_1dextendarr(scalar_group_id, "pdata_trace_id", pdata_trace_id, npart_trace, ntime, ierr)
+
    else
       call h5gopen_f(part_root_id, "particle_tracing_data", scalar_group_id, ierr)
       call update_int_attr(scalar_group_id, "ntimestep", ntime, ierr)
@@ -4111,26 +4145,6 @@ subroutine hdf5_write_particles_scalar(ierr)
    ! Time step
    call output_scalar(scalar_group_id, "time" , time, ntime, ierr)
    call output_scalar(scalar_group_id, "dt" ,     dt, ntime, ierr)
-
-
-!    !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-!    !Calculate data size
-!    call MPI_Bcast(nparticles, 1, MPI_INTEGER, 0, MPI_COMM_WORLD, ierr)
-! 
-!    !Calculate offset of current process
-!    if (hostrank == 0) then
-!       call delete_particle(.true.)
-!    end if
-!    call MPI_Bcast(ipart_begin, 1, MPI_INTEGER, 0, hostcomm, ierr)
-!    call MPI_Bcast(ipart_end, 1, MPI_INTEGER, 0, hostcomm, ierr)
-!    call MPI_Bcast(nparticles, 1, mpi_integer, 0, MPI_COMM_WORLD, ierr)
-!    call mpi_barrier(mpi_comm_world, ierr)
-!    call MPI_Comm_size(MPI_COMM_WORLD, size, ierr)
-!    np = int(nparticles/size) + 1
-!    !call mpi_scan(locparts, poffset, 1, MPI_INTEGER, MPI_SUM, MPI_COMM_WORLD, ierr)
-!    !poffset = poffset - locparts
-!    poffset = np*myrank
-!    if (poffset + np > nparticles) np = nparticles - poffset
 
    !Allocate buffer for element particle data
    allocate (values(pdims, npart_trace))
@@ -4205,24 +4219,24 @@ subroutine hdf5_write_particles_scalar(ierr)
          enddo !pindex
       enddo !i
 
-!!! for test only:
-      if(myrank==0)then
-          pindex = 3  !113
-          if(ntime==0) write(416,*)"myrank = ",myrank
-          if(ntime==0) write(416,*)"ntime      dt      gid      x1      x2      x3"
-          ! write(416,"(3E20.8)")values(2:4,pindex)
-          write(416,"(I7,E14.6,I12,3E17.8)")ntime,dt,int(values(1,pindex)),values(2:4,pindex)
-          call flush(416)
-!          !!! output deleted flag for diag particle
-!          do i = 1, nparticles
-!             if (pdata(i)%gid == pdata_trace_id(pindex)) then
-!                if(ntime==0) write(418,*)"gid=",pdata(i)%gid
-!                write(418,*)"ntime=",ntime,"deleted=",pdata(i)%deleted
-!                call flush(418)
-!             endif
-!          enddo
-      endif
-!!!
+! !!! for test only:
+!       if(myrank==0)then
+!           pindex = 3  !113
+!           if(ntime==0) write(416,*)"myrank = ",myrank
+!           if(ntime==0) write(416,*)"ntime      dt      gid      x1      x2      x3"
+!           ! write(416,"(3E20.8)")values(2:4,pindex)
+!           write(416,"(I7,E14.6,I12,3E17.8)")ntime,dt,int(values(1,pindex)),values(2:4,pindex)
+!           call flush(416)
+! !          !!! output deleted flag for diag particle
+! !          do i = 1, nparticles
+! !             if (pdata(i)%gid == pdata_trace_id(pindex)) then
+! !                if(ntime==0) write(418,*)"gid=",pdata(i)%gid
+! !                write(418,*)"ntime=",ntime,"deleted=",pdata(i)%deleted
+! !                call flush(418)
+! !             endif
+! !          enddo
+!       endif
+! !!!
 
 ! !!! for test only:
 !       if(myrank==1)then
@@ -4237,13 +4251,25 @@ subroutine hdf5_write_particles_scalar(ierr)
 
 
       !!! output a single particle info by calling the default function
+      if(.not. allocated(tmparry_output)) allocate(tmparry_output(pdims_trace*npart_trace))
+      do pindex = 1,npart_trace
+         i = (pindex-1)*pdims_trace
+         tmparry_output(i+1:i+3) = values(2:4,pindex)   !(r,theta,z)
+         tmparry_output(i+4:i+5) = values(7:8,pindex)   !vpara, mu/q
+         ! tmparry_output(i+6) = values(6,pindex)   !sps
+         ! tmparry_output(i+7) = values(1,pindex)   !gid
+         ! tmparry_output(i+8) = values(5,pindex)   !wt
+      enddo
+      call output_1dextendarr(scalar_group_id, "all_traced_particle", tmparry_output(:), npart_trace*pdims_trace, ntime, ierr)
+      ! deallocate(tmparry_output)
+
       pindex = 3 !113
+!       pdims_trace = 9 !pdims
 !       call output_scalar(scalar_group_id, "reck_rad"        , reckrad, ntime, ierr)
-      call output_1dextendarr(scalar_group_id, "test_particle", values(1:pdims,pindex), pdims, ntime, ierr)
-
-
+      call output_1dextendarr(scalar_group_id, "test_particle", values(1:pdims,pindex), pdims_trace, ntime, ierr)
+ 
 !!! for test only:
-if(myrank.eq.0) then
+   if(myrank.eq.0) then
 !!!
       !!! output all traced particle information
       ! Write the data to the dataset
@@ -4256,82 +4282,12 @@ if(myrank.eq.0) then
          call safestop(103)
       end if
 !!! for test only:
-endif ! myrank==0
+   endif ! myrank==0
 !!!
 
-!       call h5sclose_f(filespace, ierr)
-!       call h5sclose_f(memspace, ierr)
-
-      !poffset = poffset + np
-   end if
+   endif
    !enddo !ielm
    call h5sclose_f(filespace, ierr)
-
-!    !Output the particle data
-!    off_h5(1) = 0
-!    !nelms = size(pdata)
-!    !do ipart=1,nparticles
-!    !np = pdata(ielm)%np
-!    if (np .gt. 0) then
-! 
-!       !Select local hyperslab within dataset
-!       local_dims(2) = 1 !np
-!       call h5screate_simple_f(2, local_dims, memspace, ierr)
-!       if (ierr .ne. 0) then
-!          print *, myrank, ': error', ierr, ' after h5screate_simple_f'
-!          call safestop(102)
-!       end if
-!       call h5dget_space_f(dset_id, filespace, ierr)
-!       if (ierr .ne. 0) then
-!          print *, myrank, ': error', ierr, ' after h5dget_space_f'
-!          call safestop(102)
-!       end if
-!       off_h5(2) = myrank !poffset
-!       call h5sselect_hyperslab_f(filespace, H5S_SELECT_SET_F, off_h5, &
-!                                  local_dims, ierr)
-!       if (ierr .ne. 0) then
-!          print *, myrank, ': error', ierr, ' after h5sselect_hyperslab_f'
-!          call safestop(102)
-!       end if
-! 
-!       !Copy data to buffer
-!       do ipart = 1, 1 !np
-!          pindex = poffset + ipart
-!          values(1, ipart) = pdata(pindex)%gid
-!          values(2, ipart) = pdata(pindex)%x(1)
-!          values(3, ipart) = pdata(pindex)%x(2)
-!          values(4, ipart) = pdata(pindex)%x(3)
-!          values(5, ipart) = pdata(pindex)%wt
-!          values(6, ipart) = pdata(pindex)%sps
-!          values(7, ipart) = pdata(pindex)%v(1)
-!          values(8, ipart) = pdata(pindex)%v(2)
-!          if (vspdims == 5) then
-!             values(9, ipart) = pdata(pindex)%v(3)
-!             values(10, ipart) = pdata(pindex)%v(4)
-!          end if
-!          ! values(pdims, ipart) = pdata(pindex)%v(vspdims)
-!          values(9, ipart) = pdata(pindex)%f0
-!          values(10, ipart) = pdata(pindex)%x0(1)
-!          values(11, ipart) = pdata(pindex)%x0(2)
-!          values(12, ipart) = pdata(pindex)%x0(3)
-!          values(13, ipart) = pdata(pindex)%v0(1)
-!          values(14, ipart) = pdata(pindex)%v0(2)
-!       end do !ipart
-! 
-!       !Write the dataset
-!       call h5dwrite_f(dset_id, H5T_NATIVE_DOUBLE, values, global_dims, ierr, &
-!                       file_space_id=filespace, mem_space_id=memspace)
-!       if (ierr .ne. 0) then
-!          print *, myrank, ': error', ierr, ' after h5dwrite_f'
-!          call safestop(103)
-!       end if
-! 
-!       call h5sclose_f(filespace, ierr)
-!       call h5sclose_f(memspace, ierr)
-! 
-!       !poffset = poffset + np
-!    end if
-!    !enddo !ielm
 
    !Free the buffer
    deallocate (values)

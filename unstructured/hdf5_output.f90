@@ -233,17 +233,15 @@ contains
     integer, intent(in) :: val
     integer, intent(out) :: error
     
-    integer(HID_T) :: dspace_id, attr_id
+    integer(HID_T) :: attr_id
     integer(HSIZE_T), dimension(1) :: dims = 1
     integer :: v
 
-    call h5screate_f(H5S_SCALAR_F, dspace_id, error)
        
     call h5aopen_name_f(parent_id, name, attr_id, error)
     v = val
     call h5awrite_f(attr_id, H5T_NATIVE_INTEGER, v, dims, error)
     call h5aclose_f(attr_id, error)
-    call h5sclose_f(dspace_id, error)
   end subroutine update_int_attr
 
   ! read_real_attr
@@ -388,6 +386,88 @@ contains
     
   end subroutine write_vec_attr
 
+
+  ! read_vec_attr (integer version)
+  ! ==============
+  subroutine read_vec_attr_int(parent_id, name, values, len, error)
+    use hdf5
+
+    implicit none
+
+    integer(HID_T), intent(in) :: parent_id
+    character(LEN=*), intent(in) :: name
+    integer, intent(in) :: len
+    integer, dimension(len), intent(out)  :: values
+    integer, intent(out) :: error
+
+    integer(HID_T) :: attr_id
+    integer(HSIZE_T), dimension(1) :: dims
+
+    dims(1) = len
+
+    call h5aopen_name_f(parent_id, name, attr_id, error)
+    call h5aread_f(attr_id, H5T_NATIVE_INTEGER, values, dims, error)
+    call h5aclose_f(attr_id, error)
+  end subroutine read_vec_attr_int
+
+
+  ! write_vec_attr (integer version)
+  ! ==============
+  subroutine write_vec_attr_int(parent_id, name, values, len, error)
+    use hdf5
+    
+    implicit none
+    
+    integer(HID_T), intent(in) :: parent_id
+    character(LEN=*), intent(in) :: name
+    integer, intent(in) :: len
+    integer, dimension(len), intent(in)  :: values
+    integer, intent(out) :: error
+    
+    integer(HID_T) :: dspace_id, attr_id
+    integer(HSIZE_T), dimension(1) :: dims
+#ifdef USETAU
+    integer :: dummy     ! this is necessary to prevent TAU from
+    dummy = 0            ! breaking formatting requirements
+#endif
+
+    dims(1) = len
+
+    call h5screate_simple_f(1, dims, dspace_id, error)
+    call h5acreate_f(parent_id, name, H5T_NATIVE_INTEGER, dspace_id, attr_id, error)
+    call h5awrite_f(attr_id, H5T_NATIVE_INTEGER, values, dims, error)
+    call h5aclose_f(attr_id, error)
+    call h5sclose_f(dspace_id, error)
+    
+  end subroutine write_vec_attr_int
+
+  ! update_vec_attr (integer version)
+  ! ===============
+  subroutine update_vec_attr_int(parent_id, name, values, len, error)
+    use hdf5
+    
+    implicit none
+    
+    integer(HID_T), intent(in) :: parent_id
+    character(LEN=*), intent(in) :: name
+    integer, intent(in) :: len
+    integer, dimension(len), intent(in)  :: values
+    integer, intent(out) :: error
+    
+    integer(HID_T) :: attr_id
+    integer(HSIZE_T), dimension(1) :: dims
+#ifdef USETAU
+    integer :: dummy     ! this is necessary to prevent TAU from
+    dummy = 0            ! breaking formatting requirements
+#endif
+
+    dims(1) = len
+
+    call h5aopen_name_f(parent_id, name, attr_id, error)
+    call h5awrite_f(attr_id, H5T_NATIVE_INTEGER, values, dims, error)
+    call h5aclose_f(attr_id, error)
+    
+  end subroutine update_vec_attr_int
 
   ! output_field
   ! =================
