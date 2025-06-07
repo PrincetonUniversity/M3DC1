@@ -303,14 +303,27 @@ bin : a2cc mackenbach_profiles
 	fi
 	ln -s $(SRCDIR)/_$(ARCH)/a2cc bin
 	ln -s $(SRCDIR)/_$(ARCH)/mackenbach_profiles bin
-	ln -s $(SRCDIR)/_$(ARCH)-opt-25/m3dc1_2d bin
-	ln -s $(SRCDIR)/_$(ARCH)-opt-25-omp/m3dc1_2d_omp bin
-	ln -s $(SRCDIR)/_$(ARCH)-complex-opt-25/m3dc1_2d_complex bin
-	ln -s $(SRCDIR)/_$(ARCH)-complex-opt-25-omp/m3dc1_2d_complex_omp bin
-	ln -s $(SRCDIR)/_$(ARCH)-3d-opt-60/m3dc1_3d bin
-	ln -s $(SRCDIR)/_$(ARCH)-3d-opt-60-omp/m3dc1_3d_omp bin
-	ln -s $(SRCDIR)/_$(ARCH)-3d-st-opt-125/m3dc1_3d_st bin
-	ln -s $(SRCDIR)/_$(ARCH)-3d-st-opt-125-omp/m3dc1_3d_omp_st bin
+	# ln -s $(BIN_POSTFIX)/test bin
+	if [ $(PAR) -eq 1 ]; then \
+	  ln -s $(SRCDIR)/_$(ARCH)-pic-opt-25/m3dc1_2d bin ; \
+	  ln -s $(SRCDIR)/_$(ARCH)-pic-opt-25-omp/m3dc1_2d_omp bin ; \
+	  ln -s $(SRCDIR)/_$(ARCH)-complex-pic-opt-25/m3dc1_2d_complex bin ; \
+	  ln -s $(SRCDIR)/_$(ARCH)-complex-pic-opt-25-omp/m3dc1_2d_complex_omp bin ; \
+	  ln -s $(SRCDIR)/_$(ARCH)-3d-pic-opt-60/m3dc1_3d bin ; \
+	  ln -s $(SRCDIR)/_$(ARCH)-3d-pic-opt-60-omp/m3dc1_3d_omp bin ; \
+	  ln -s $(SRCDIR)/_$(ARCH)-3d-st-pic-opt-125/m3dc1_3d_st bin ; \
+	  ln -s $(SRCDIR)/_$(ARCH)-3d-st-pic-opt-125-omp/m3dc1_3d_omp_st bin ; \
+	else \
+	  ln -s $(SRCDIR)/_$(ARCH)-opt-25/m3dc1_2d bin ; \
+	  ln -s $(SRCDIR)/_$(ARCH)-opt-25-omp/m3dc1_2d_omp bin ; \
+	  ln -s $(SRCDIR)/_$(ARCH)-complex-opt-25/m3dc1_2d_complex bin ; \
+	  ln -s $(SRCDIR)/_$(ARCH)-complex-opt-25-omp/m3dc1_2d_complex_omp bin ; \
+	  ln -s $(SRCDIR)/_$(ARCH)-3d-opt-60/m3dc1_3d bin ; \
+	  ln -s $(SRCDIR)/_$(ARCH)-3d-opt-60-omp/m3dc1_3d_omp bin ; \
+	  ln -s $(SRCDIR)/_$(ARCH)-3d-st-opt-125/m3dc1_3d_st bin ; \
+	  ln -s $(SRCDIR)/_$(ARCH)-3d-st-opt-125-omp/m3dc1_3d_omp_st bin ; \
+	fi
+	
 	ln -s $(SRCDIR)/sbin/extract_profiles.sh bin
 	ln -s $(SRCDIR)/sbin/m3dc1_units.sh bin
 	ln -s $(SRCDIR)/sbin/create_mesh.sh bin

@@ -49,6 +49,14 @@ kinetic :
 	rm -fr _$(ARCH)-complex*
 	make OPT=1 COM=1 PAR=1 ENABLE_PARTICLE=1
 
+.PHONY: kineticall
+kineticall : 
+	make OPT=1 PAR=1 ENABLE_PARTICLE=1
+	make OPT=1 COM=1 PAR=1 ENABLE_PARTICLE=1
+	make OPT=1 3D=1 MAX_PTS=60 PAR=1 ENABLE_PARTICLE=1
+	make a2cc PAR=1
+	make bin PAR=1
+
 .PHONY: cleanall
 cleanall : 
 	rm -fr _$(ARCH)*
