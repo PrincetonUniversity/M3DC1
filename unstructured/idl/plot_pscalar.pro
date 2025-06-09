@@ -88,8 +88,8 @@ function read_pscalar, scalarname, filename=filename, title=title, $
    npart_trace = s.npart_trace._data
    pdims_trace = s.pdims_trace._data
    pdata_trace_id = s.pdata_trace_id._data
-   ;print, "all_traced_particle_size = ", SIZE(all_traced_particle_data,/DIMENSIONS)
-   print, "traced particle total number = ",npart_trace
+;   print, "all_traced_particle_size = ", SIZE(all_traced_particle_data,/DIMENSIONS)
+   print, "number of traced particles = ",npart_trace
 
    dims = SIZE(all_traced_particle_data,/DIMENSIONS)
    ;ntimemax = dims[1]

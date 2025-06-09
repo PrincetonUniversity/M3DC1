@@ -1064,7 +1064,7 @@ subroutine init_tracing_particles_local(pdata_local, locparts)
    include 'mpif.h'
 
    type(particle),dimension(:) :: pdata_local
-   integer :: locparts
+   integer :: locparts, sample_op
 
    integer :: i, ielm, itri, itmp, ipar, ipoint, icount
    real, dimension(:,:), allocatable :: x_in,v_in
@@ -1079,36 +1079,42 @@ subroutine init_tracing_particles_local(pdata_local, locparts)
 
    npart_trace = 9
 
+   !!! sample option: 1. uniformly select sample elements; 2. specify particle information
+   sample_op = 2
+
    !!! initialize particle tracing id array
    allocate(pdata_trace_id(npart_trace),pdata_trace_id_tmp(npart_trace))
-
-
+   pdata_trace_id(:) = 0
+   pdata_trace_id_tmp(:) = 0
+ 
+if(sample_op==1)then
 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 !!! Sampling Method 1: 
 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 
-
+   !!! uniformly sample the traced id through all elements.
    if(myrank==0)then   
-! !!! for particle tracing only:
-!       write(400,*)"nelms_global = ",nelms_global
-!       ipar = floor(nelms_global/(npart_trace-1.0))
-!       write(400,*)"nelms_global_interval = ",ipar
-!       call flush(400)
-! !!! 
-
+      ipar = floor(nelms_global/(npart_trace-1.0))
       do i = 1,npart_trace
          itmp = max(1, min((i-1)*ipar+1,nelms_global) )
-         pdata_trace_id(i) = itmp*10000+13
+         pdata_trace_id(i) = itmp*10000+13   ! choose 13th particle on the selected element.
       enddo
+
 ! !!! for particle tracing test only:
-!       write(400,*)"ntime= ",ntime,"pdata_trace_id"
+!       write(400,*)"npart_trace = ",npart_trace
+!       write(400,*)"nelms_global = ",nelms_global
+!       write(400,*)"nelms_global_interval = ",ipar
+! 
+!       write(400,*)"ntime= ",ntime,"pdata_trace_id from myrank=",myrank
 !       write(400,"(I20)")pdata_trace_id
-!       call flush(400)
+!       !call flush(400)
 ! !!!
     endif   
     call MPI_Bcast(npart_trace, 1, MPI_INTEGER, 0, MPI_COMM_WORLD, ierr)
     call MPI_Bcast(pdata_trace_id, npart_trace, MPI_INTEGER, 0, MPI_COMM_WORLD, ierr)
 
+
+elseif(sample_op==2) then
 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 !!! Sampling Method 2: 
 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
@@ -1119,15 +1125,15 @@ subroutine init_tracing_particles_local(pdata_local, locparts)
    allocate(pdata_trace_readin(pdims_readin,npart_trace))
 
    !!! input particle information: (r, theta, z, vpara, vperp)
-   pdata_trace_readin = reshape((/ 1.6, 0.0, -0.1, 1.0e4, 1.0e4,  &
-                                   1.6, 0.0, -0.0, 1.0e4, 1.0e4,  &
-                                   1.6, 0.0,  0.1, 1.0e4, 1.0e4,  &
-                                   1.8, 0.0, -0.4, 1.0e4, 1.0e4,  &
-                                   1.8, 0.0,  0.0, 1.0e4, 1.0e4,  &
-                                   1.8, 0.0,  0.4, 1.0e4, 1.0e4,  &
-                                   2.2, 0.0, -0.5, 1.0e4, 1.0e4,  &
-                                   2.2, 0.0,  0.0, 1.0e4, 1.0e4,  &
-                                   2.2, 0.0,  0.5, 1.0e4, 1.0e4 /), &
+   pdata_trace_readin = reshape((/ 1.6, 0.0, -0.1, 1.0e6, 1.0e6,  &
+                                   1.6, 0.0, -0.0, 1.0e6, 1.0e6,  &
+                                   1.6, 0.0,  0.1, 1.0e6, 1.0e6,  &
+                                   1.8, 0.0, -0.4, 1.0e6, 1.0e6,  &
+                                   1.8, 0.0,  0.0, 1.0e6, 1.0e6,  &
+                                   1.8, 0.0,  0.4, 1.0e6, 1.0e6,  &
+                                   2.2, 0.0, -0.5, 1.0e6, 1.0e6,  &
+                                   2.2, 0.0,  0.0, 1.0e6, 1.0e6,  &
+                                   2.2, 0.0,  0.5, 1.0e6, 1.0e6 /), &
                                    shape=[5,9])
    allocate(x_in(3,npart_trace),v_in(2,npart_trace),sps_in(npart_trace))
    x_in(:,:) = pdata_trace_readin(1:3,:)
@@ -1201,32 +1207,36 @@ subroutine init_tracing_particles_local(pdata_local, locparts)
    enddo
 
    if(icount .ne. 0)then
-      print *, 'finish particle allocation on MPI rank #',myrank,", loaded ",icount," particles"
-      call flush(unit=6)  ! refer to the standard output
-      
-      write(myrank+3000,*)"pdata_trace_id(:)"
-      write(myrank+3000,*)pdata_trace_id_tmp(:)
-      call flush(myrank+3000)
+      print *, 'particle allocation on MPI rank #',myrank,", loaded ",icount," particles"
+      !call flush(unit=6)  ! refer to the standard output
+     
+!       i = myrank+3000 
+!       write(i,*)"pdata_trace_id(:)"
+!       write(i,*)pdata_trace_id_tmp(:)
+!       !call flush(i)
+
    endif
   
-   call MPI_Barrier(MPI_COMM_WORLD, ierr)
-   
    ! part_trace_id is only non-zero for particles assigned on specific MPI, if not a shared memory for all MPI, so we need to gather information
+   call MPI_Barrier(MPI_COMM_WORLD, ierr)
 !    call MPI_ALLREDUCE(pdata_trace_id_tmp, pdata_trace_id, npart_trace, MPI_INTEGER, MPI_SUM, MPI_COMM_WORLD, ierr)
    call MPI_ALLREDUCE(pdata_trace_id_tmp, pdata_trace_id, npart_trace, MPI_INTEGER, MPI_MAX, MPI_COMM_WORLD, ierr)
+
    call MPI_Bcast(npart_trace, 1, MPI_INTEGER, 0, MPI_COMM_WORLD, ierr)
    ! call MPI_Bcast(pdata_trace_id, npart_trace, MPI_INTEGER, 0, MPI_COMM_WORLD, ierr)
 
    deallocate(pdata_trace_id_tmp)
 
-!    if(myrank==0)then
-! !!! for particle tracing test only:
-!       write(400,*)"End of init_tracing_particles"
-!       write(400,*)"ntime= ",ntime,"pdata_trace_id"
-!       write(400,"(I20)")pdata_trace_id
-!       call flush(400)
-! !!!
-!    endif   
+endif ! if(sample_op)
+
+   if(myrank==0)then
+!!! for particle tracing test only:
+      write(400,*)"End of init_tracing_particles"
+      write(400,*)"ntime= ",ntime,"pdata_trace_id"
+      write(400,"(I20)")pdata_trace_id
+      ! call flush(400)
+!!!
+   endif   
 
    if(myrank.eq.0 .and. iprint.ge.1) print *, 'Done initializing tracing particles'
 
@@ -4219,36 +4229,24 @@ subroutine hdf5_write_particles_scalar(ierr)
          enddo !pindex
       enddo !i
 
-! !!! for test only:
-!       if(myrank==0)then
-!           pindex = 3  !113
-!           if(ntime==0) write(416,*)"myrank = ",myrank
-!           if(ntime==0) write(416,*)"ntime      dt      gid      x1      x2      x3"
-!           ! write(416,"(3E20.8)")values(2:4,pindex)
-!           write(416,"(I7,E14.6,I12,3E17.8)")ntime,dt,int(values(1,pindex)),values(2:4,pindex)
-!           call flush(416)
-! !          !!! output deleted flag for diag particle
-! !          do i = 1, nparticles
-! !             if (pdata(i)%gid == pdata_trace_id(pindex)) then
-! !                if(ntime==0) write(418,*)"gid=",pdata(i)%gid
-! !                write(418,*)"ntime=",ntime,"deleted=",pdata(i)%deleted
-! !                call flush(418)
-! !             endif
-! !          enddo
-!       endif
-! !!!
-
-! !!! for test only:
-!       if(myrank==1)then
-!           pindex = 3 !113
-!           if(ntime==0) write(417,*)"myrank = ",myrank
-!           if(ntime==0) write(417,*)"ntime      dt      gid      x1      x2      x3"
-!           ! write(416,"(3E20.8)")values(2:4,pindex)
-!           write(417,"(I7,E14.6,I12,3E17.8)")ntime,dt,int(values(1,pindex)),values(2:4,pindex)
-!           call flush(417)
-!       endif
-! !!!
-
+!!! for test only:
+      if(myrank==0)then
+          pindex = 3  !113
+          if(ntime==0) write(416,*)"myrank = ",myrank
+          if(ntime==0) write(416,*)"ntime      dt      gid      x1      x2      x3"
+          ! write(416,"(3E20.8)")values(2:4,pindex)
+          write(416,"(I7,E14.6,I12,3E17.8)")ntime,dt,int(values(1,pindex)),values(2:4,pindex)
+          ! call flush(416)
+!          !!! output deleted flag for diag particle
+!          do i = 1, nparticles
+!             if (pdata(i)%gid == pdata_trace_id(pindex)) then
+!                if(ntime==0) write(418,*)"gid=",pdata(i)%gid
+!                write(418,*)"ntime=",ntime,"deleted=",pdata(i)%deleted
+!                call flush(418)
+!             endif
+!          enddo
+      endif
+!!!
 
       !!! output a single particle info by calling the default function
       if(.not. allocated(tmparry_output)) allocate(tmparry_output(pdims_trace*npart_trace))
@@ -4265,7 +4263,6 @@ subroutine hdf5_write_particles_scalar(ierr)
 
       pindex = 3 !113
 !       pdims_trace = 9 !pdims
-!       call output_scalar(scalar_group_id, "reck_rad"        , reckrad, ntime, ierr)
       call output_1dextendarr(scalar_group_id, "test_particle", values(1:pdims,pindex), pdims_trace, ntime, ierr)
  
 !!! for test only:
