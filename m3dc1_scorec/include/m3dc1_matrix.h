@@ -108,7 +108,7 @@ public:
 private:
   int setUpRemoteAStruct();
   int setKspType();
-  int kspSet;
+  int _kspSet;
   KSP _ksp;
   Mat remoteA;
 

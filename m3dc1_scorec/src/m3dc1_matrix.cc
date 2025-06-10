@@ -804,7 +804,7 @@ int matrix_mult::multiply(FieldID in_field, FieldID out_field) {
 matrix_solve::matrix_solve(int i, int s, FieldID f) : m3dc1_matrix(i, s, f) {
   _ksp=NULL;
   BgmgSet = 0;
-  kspSet = 0;
+  _kspSet = 0;
   remotePidOwned = NULL;
   remoteNodeRow = NULL; // <pid, <locnode>, numAdj>
   remoteNodeRowSize = NULL;
@@ -825,7 +825,7 @@ matrix_solve::~matrix_solve() {
     BgmgSet = 0;
   }
 
-  if (kspSet) {
+  if (_kspSet) {
     KSPDestroy(&_ksp);
     _ksp=NULL;
   }
@@ -875,8 +875,8 @@ int matrix_solve::reset_values() {
 
   mat_status = M3DC1_NOT_FIXED; // allow matrix value modification
   // start second solve
-  if (kspSet == 1) {
-    kspSet = 2;
+  if (_kspSet == 1) {
+    _kspSet = 2;
     // Set operators, keeping the identical preconditioner matrix for
     // all linear solves.  This approach is often effective when the
     // linear systems do not change very much between successive steps.
@@ -886,7 +886,7 @@ int matrix_solve::reset_values() {
 
   if (!PCU_Comm_Self())
     std::cout << "[M3DC1 ERROR] " << __func__ << ": mat_status=M3DC1_NOT_FIXED "
-              << mat_status << " kspSet=" << kspSet << "\n";
+              << mat_status << " kspSet=" << _kspSet << "\n";
 #ifdef DEBUG_
   PetscInt rstart, rend, r_rstart, r_rend, ncols;
   const PetscInt *cols;
@@ -1193,9 +1193,9 @@ int matrix_solve::solve(FieldID field_id) {
   int ierr;//= VecDuplicate(b, &x);
   //CHKERRQ(ierr);
 
-  if (!kspSet)
+  if (!_kspSet)
     setKspType();
-  if (kspSet == 2) {
+  if (_kspSet == 2) {
     ierr = KSPSetOperators(_ksp, _A, _A);
     CHKERRQ(ierr);
     if (!PCU_Comm_Self())
@@ -1233,9 +1233,9 @@ int matrix_solve::solve_with_guess(FieldID field_id, FieldID xVec_guess) {
   int ierr;
   KSPType ksptype;
 
-  if (!kspSet)
+  if (!_kspSet)
     setKspType();
-  if (kspSet == 2) {
+  if (_kspSet == 2) {
     ierr = KSPSetOperators(_ksp, _A, _A);
     CHKERRQ(ierr);
     if (!PCU_Comm_Self())
@@ -1351,7 +1351,7 @@ int matrix_solve::setKspType() {
 
   ierr = KSPSetFromOptions(_ksp);
   CHKERRQ(ierr);
-  kspSet = 1;
+  _kspSet = 1;
   return M3DC1_SUCCESS;
 }
 
