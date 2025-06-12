@@ -1668,6 +1668,25 @@ function read_field, name, x, y, t, slices=slices, mesh=mesh, $
        d = dimensions(/b0, _EXTRA=extra)
 
    ;===========================================
+   ; toroidal vector potential
+   ;===========================================
+   endif else if(strcmp('toroidal vector potential', name, /fold_case) eq 1) or $
+     (strcmp('ay', name, /fold_case) eq 1) then begin
+
+       psi = read_field('psi',x,y,t,slices=time, mesh=mesh, filename=filename, $
+                        points=pts,rrange=xrange,zrange=yrange, $
+                        linear=linear,complex=complex,phi=phi0)
+
+       if(itor eq 1) then begin
+           r = radius_matrix(x,y,t)
+       endif else r = 1.
+   
+       data = psi/r
+       symbol = '!8A!D!9P!N!X'
+       d = dimensions(/b0, /l0, =extra)
+
+
+   ;===========================================
    ; Pitch Angle
    ;===========================================
    endif else if( (strcmp('pitch_angle_z', name, /fold_case) eq 1)) $
