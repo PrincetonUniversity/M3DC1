@@ -19,7 +19,7 @@ def get_field(field, coord='scalar', row=1, sim=None, filename='C1.h5', time=Non
     Arguments:
 
     **field**
-    The field that is to be plotted, i.e. 'B', 'j', etc.
+    Name of the field to be returned, i.e. 'B', 'j', etc.
 
     **coord**
     The chosen part of a vector field to be plotted, options are:
@@ -74,7 +74,8 @@ def get_field(field, coord='scalar', row=1, sim=None, filename='C1.h5', time=Non
     
     sim, time = fpyl.setup_sims(sim,filename,time,linear,diff)
     #field_idx = fpyl.get_field_idx(coord)
-    fio_py.set_quiet_option(True)
+    if phys:
+        fio_py.set_quiet_option(True)
 
     # Make 3D grid based on the mesh points
     mesh_ob      = sim[0].get_mesh(quiet=quiet)
@@ -90,13 +91,13 @@ def get_field(field, coord='scalar', row=1, sim=None, filename='C1.h5', time=Non
             R_mesh = eval_field('rst', mesh_pts[:,4], phi0*np.ones_like(mesh_pts[:,4]), mesh_pts[:,5], sim=sim[0], filename=filename, time=-1, quiet=quiet)
 
         R_range      = [np.nanmin(R_mesh),np.nanmax(R_mesh)]
-        if not quiet:
+        if phys and not quiet:
             print("R_range=",R_range)
     if (R_range is None) or (Z_range is None):
         if phys:
             Z_mesh = eval_field('zst', mesh_pts[:,4], phi0*np.ones_like(mesh_pts[:,4]), mesh_pts[:,5], sim=sim[0], filename=filename, time=-1, quiet=quiet)
         Z_range      = [np.nanmin(Z_mesh),np.nanmax(Z_mesh)]
-        if not quiet:
+        if phys and not quiet:
             print("Z_range=",Z_range)
      # R_range=[1.1,1.3]
     # Z_range=[-0.35,0.35]
@@ -213,10 +214,14 @@ def get_field(field, coord='scalar', row=1, sim=None, filename='C1.h5', time=Non
     #     R_ave = np.where(np.isnan(rst_ave), R_ave, rst_ave)
     #     Z_ave = np.where(np.isnan(zst_ave), Z_ave, zst_ave)
     
-    if units.lower()=='m3dc1':
+    #if units.lower()=='m3dc1':
+    #    field1_ave = fpyl.get_conv_field(units,field,field1_ave,sim=sim[0])
+    #All fields listed in sim.available_fields are returned in MKS units by fusion-io. Other (scalar) fields are returned in m3dc1 units.
+    if (field in sim[0].available_fields and units.lower()=='m3dc1') or (field not in sim[0].available_fields and units.lower()=='mks'):
         field1_ave = fpyl.get_conv_field(units,field,field1_ave,sim=sim[0])
 
-    fio_py.set_quiet_option(False)
+    if phys:
+        fio_py.set_quiet_option(False)
     
     return sim, time, mesh_ob, R, phi, Z, R_mesh, Z_mesh, R_ave, Z_ave, np.asarray(field1_ave)
 
@@ -431,7 +436,9 @@ def get_field_vs_phi(field, coord='scalar', row=1, sim=None, filename='C1.h5', t
         R_ave = np.where(np.isnan(rst_ave), R_ave, rst_ave)
         Z_ave = np.where(np.isnan(zst_ave), Z_ave, zst_ave)
     
-    if units.lower()=='m3dc1':
+    #All fields listed in sim.available_fields are returned in MKS units by fusion-io. Other (scalar) fields are returned in m3dc1 units.
+    if (field in sim[0].available_fields and units.lower()=='m3dc1') or (field not in sim[0].available_fields and units.lower()=='mks'):
         field1_ave = fpyl.get_conv_field(units,field,field1_ave,sim=sim[0])
+    
     
     return sim, time, mesh_ob, R, phi, Z, R_mesh, Z_mesh, R_ave, Z_ave, phi_ave, np.asarray(field1_ave)

@@ -348,7 +348,10 @@ def get_fieldlabel(units,field,fac=1,shortlbl=False):
               'A':'vector potential', 'gradA':'grad vector potential',
               'E':'electric field', 'alpha':r'ballooning parameter $\alpha$',
               'eta':'resistivity', 'eta_spitzer':'resistivity',
-              'shear':'magnetic shear', 'psi':'poloidal flux', 'default':field}
+              'shear':'magnetic shear', 'psi':'poloidal flux', 
+              'ne/ng':'$n_e / n_G$',
+              'S':'Lundquist number $S$', 'lundquist':'Lundquist number $S$',
+              'default':field}
     
     short_labels = {'j':'j', 'ni':'$n_{i}$','ne':'$n_{e}$',
               'v':'v', 'B':'B', 'p':'p',
@@ -356,8 +359,9 @@ def get_fieldlabel(units,field,fac=1,shortlbl=False):
               'ti':'$T_{i}$', 'te':'$T_{e}$',
               'A':'A', 'gradA':'$grad A$ ',
               'E':'E', 'alpha':r'$\alpha$',
-              'eta':r'$\eta$', 'shear':'s',
-              'psi':r'$\psi$','default':field}
+              'eta':r'$\eta$', 'eta_spitzer':r'$\eta_{Spitzer}$',
+              'shear':'s', 'psi':r'$\psi$', 'ne/ng':'$n_e / n_G$',
+              'default':field}
 
     if units.lower()=='m3dc1':
         units = {'eta_spitzer':'a. u.', 'default':'M3DC1 units'}
@@ -366,7 +370,9 @@ def get_fieldlabel(units,field,fac=1,shortlbl=False):
                  'v':'m/s', 'B':'T', 'p':'Pa', 'pi':'Pa', 'pe':'Pa',
                  'ti':'eV', 'te':'eV', 'A':r'T$\cdot$m',
                  'gradA':r'Tesla$\cdot$m / (m or rad)', 'E':'V/m',
-                 'eta':r'$\Omega$m', 'psi':'Wb', 'default':'MKS units'}
+                 'eta_spitzer':r'$\Omega$m', 'eta':r'$\Omega$m',
+                 'psi':'Wb', 'ne/ng':'', 'S':'$S$', 'lundquist':'$S$',
+                 'default':'MKS units'}
 
     if field in labels:
         label = short_labels[field] if shortlbl else labels[field]
@@ -545,10 +551,12 @@ def get_conv_field(units,field,field1_ave,filename='C1.h5',sim=None):
     if field in fields:
         expns.update(fields[field])
 
+    if not isinstance(sim,fpy.sim_data):
+        sim = fpy.sim_data(filename=filename)
     if units.lower()=='m3dc1':
-        if not isinstance(sim,fpy.sim_data):
-            sim = fpy.sim_data(filename=filename)
         field1_ave = unit_conv(field1_ave,arr_dim='mks',sim=sim,**expns)
+    if units.lower()=='mks':
+        field1_ave = unit_conv(field1_ave,arr_dim='m3dc1',sim=sim,**expns)
     return field1_ave
 
 
