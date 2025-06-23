@@ -40,14 +40,14 @@ PetscErrorCode MyKSPMonitor(KSP ksp, PetscInt n, PetscReal rnorm, void *dummy)
   ierr=KSPBuildSolution(ksp, NULL, &x);
   ierr=KSPBuildResidual(ksp, NULL, NULL, &r);
 
-  PetscCall(VecStrideNorm(r, 0*stride, NORM_2, &norms[0]));
-  PetscCall(VecStrideNorm(r, 1*stride, NORM_2, &norms[1]));
-  PetscCall(VecStrideNorm(r, 2*stride, NORM_2, &norms[2]));
+  ierr=VecStrideNorm(r, 0*stride, NORM_2, &norms[0]);
+  ierr=VecStrideNorm(r, 1*stride, NORM_2, &norms[1]);
+  ierr=VecStrideNorm(r, 2*stride, NORM_2, &norms[2]);
 
   ierr=PetscPrintf(PETSC_COMM_WORLD, 
 		  "solve 5 %" PetscInt_FMT "th iteration: KSP Residual norm [ %1.12e  %1.12e  %1.12e  %1.12e ]\n", 
 		  n, (double)norms[0], (double)norms[1], (double)norms[2], rnorm);
-  PetscCall(VecDestroy(&r));
+  ierr=VecDestroy(&r);
   PetscFunctionReturn(PETSC_SUCCESS);
 }
 
@@ -718,9 +718,10 @@ int matrix_mult::assemble() {
 int matrix_mult::multiply(FieldID in_field, FieldID out_field) {
   if (!localMat) {
     Vec b, c;
-    PetscCall(MatCreateVecs(_A, &c, &b));
+    int ierr;
+    ierr=MatCreateVecs(_A, &c, &b);
     copyField2PetscVec(in_field, b, get_scalar_type());
-    int ierr;//= VecDuplicate(b, &c);
+    //int ierr;= VecDuplicate(b, &c);
     //CHKERRQ(ierr);
     MatMult(_A, b, c);
     copyPetscVec2Field(c, out_field, get_scalar_type());
@@ -1188,9 +1189,10 @@ int matrix_solve::set_row(int row, int numVals, int *columns, double *vals) {
 
 int matrix_solve::solve(FieldID field_id) {
   Vec x, b;
-  PetscCall(MatCreateVecs(_A, &x, &b));
+  int ierr;
+  ierr=MatCreateVecs(_A, &x, &b);
   copyField2PetscVec(field_id, b, get_scalar_type());
-  int ierr;//= VecDuplicate(b, &x);
+  //int ierr;= VecDuplicate(b, &x);
   //CHKERRQ(ierr);
 
   if (!_kspSet)
@@ -1305,7 +1307,7 @@ int matrix_solve::setKspType() {
   CHKERRQ(ierr);
 
   PetscBool flg = PETSC_FALSE;
-  PetscCall(PetscOptionsGetBool(NULL, NULL, "-ksp_monitor_5", &flg, NULL));
+  ierr=PetscOptionsGetBool(NULL, NULL, "-ksp_monitor_5", &flg, NULL);
   if (flg && mymatrix_id==5) ierr=KSPMonitorSet(_ksp, MyKSPMonitor, NULL, 0);
 
   int num_values, value_type, total_num_dof;
@@ -1432,15 +1434,15 @@ int matrix_solve::setBgmgType() {
   ierr= KSPGetPC(*ksp,&pcksp);
   ierr= PCSetType(pcksp,PCKSP);
   KSP ksprich;
-  PetscCall(PCKSPGetKSP(pcksp, &ksprich));
-  PetscCall(KSPSetType(ksprich, KSPRICHARDSON));
-  PetscCall(KSPSetTolerances(ksprich, PETSC_DEFAULT, PETSC_DEFAULT, PETSC_DEFAULT, 1));
-  PetscCall(KSPSetNormType(ksprich, KSP_NORM_NONE));
-  PetscCall(KSPSetConvergenceTest(ksprich, KSPConvergedSkip, NULL, NULL));
+  ierr=PCKSPGetKSP(pcksp, &ksprich);
+  ierr=KSPSetType(ksprich, KSPRICHARDSON);
+  ierr=KSPSetTolerances(ksprich, PETSC_DEFAULT, PETSC_DEFAULT, PETSC_DEFAULT, 1);
+  ierr=KSPSetNormType(ksprich, KSP_NORM_NONE);
+  ierr=KSPSetConvergenceTest(ksprich, KSPConvergedSkip, NULL, NULL);
 
-  PetscCall(KSPGetPC(ksprich, &pcmg));
+  ierr=KSPGetPC(ksprich, &pcmg);
 #else
-    PetscCall(KSPGetPC(_ksp, &pcmg));
+    ierr=KSPGetPC(_ksp, &pcmg);
 #endif
   //    ierr= KSPCreate(PETSC_COMM_WORLD,&ksp);
   ierr = KSPSetOptionsPrefix(_ksp, "hard_");
