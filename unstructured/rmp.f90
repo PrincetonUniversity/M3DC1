@@ -28,6 +28,8 @@ subroutine rmp_per(ilin)
   use coils
   use boundary_conditions
   use read_schaffer_field
+  use diagnostics
+  use diagnostics
 
   implicit none
 
@@ -183,8 +185,12 @@ subroutine rmp_field(n, nt, np, x, phi, z, br, bphi, bz, p)
   use basic
   use coils
   use gradshafranov
+  ! RiD:  Required for totcur (toroidal current)
+  use diagnostics
 
   implicit none
+  
+  include 'mpif.h'
 
   integer, intent(in) :: n, nt, np
   real, intent(in), dimension(n) :: x, phi, z
@@ -238,6 +244,13 @@ subroutine rmp_field(n, nt, np, x, phi, z, br, bphi, bz, p)
 				curr_plasma = 1.0 * totcur
 				curr_plasma0 = init_current * 1.0/795217.0 !RiD: convert from Ampere to M3DC1 units
 				rmp_scale_fac = 1.0 - abs(curr_plasma)/curr_plasma0
+				IF (totcur.le.1.e-1) rmp_scale_fac = 0.0
+					IF (myrank.eq.0 .and. iprint.ge.1) THEN
+							print *, 'totcur = ', totcur
+							print *, 'curr_plasma =', curr_plasma
+							print *, 'curr_plasma0 = ', curr_plasma0
+							print *, 'rmp_scale_fac = ', rmp_scale_fac
+					ENDIF
 		ENDIF
 		!RiD: window pane model to calculate coil magnetic field contribution
 		call pane(rmp_scale_fac*ic_na(i),xc_na(i),xc_na(i+1),zc_na(i),zc_na(i+1), & 
@@ -423,6 +436,7 @@ subroutine calculate_external_fields(ilin)
   use newvar_mod
   use boundary_conditions
   use gradshafranov
+  use diagnostics
 
   implicit none
 
@@ -442,6 +456,7 @@ subroutine calculate_external_fields(ilin)
   type(field_type) :: psi_f, bz_f, p_f, bf_f, bfp_f
 
   if(myrank.eq.0 .and. iprint.ge.2) print *, "Calculating error fields"
+  if(myrank.eq.0) print *, "Current value =", totcur !RiD
 
   if(.not.present(ilin)) then
      il = 1
@@ -679,8 +694,8 @@ subroutine calculate_external_fields(ilin)
      call mult(bz_field(il), -1.)
   end if
   if(iflip_j.eq.1) then
-     call mult(psi_field(il), -1.)
-     call mult(bfp_field(il), -1.)
+     call mult(psi_field(il), 1.) !RiD
+     call mult(bfp_field(il), 1.)
   end if
 
   call destroy_vector(psi_vec)

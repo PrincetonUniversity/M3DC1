@@ -28,6 +28,7 @@ Program Reducedquintic
   use transport_coefficients
   use m3dc1_vel_prof
   use hypervisc
+  use rmp
 #ifdef _OPENACC
   use openacc
 #endif
@@ -375,11 +376,28 @@ Program Reducedquintic
 
      ! re-scale solution if energy is too large
      if(linear.eq.1) call scaleback
-
+	
+		
      ! take time step
      if(myrank.eq.0 .and. iprint.ge.1) print *, " Calling onestep"
      if(myrank.eq.0 .and. itimer.eq.1) call second(tstart)
-     call onestep
+     call onestep ! RiD
+     
+     !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+	 ! RiD: Re-caluculate RMP fields for iScaleRmpWithCurrent = 1
+	 if(irmp.ge.1 .and. &
+       iScaleRmpWithCurrent.ge.1) then
+        call rmp_per
+        if(myrank.eq.0 .and. iprint.ge.1) then
+			print *, "Recalculated RMP, Toroidal current was", totcur
+        end if 
+    else
+		if(myrank.eq.0 .and. iprint.ge.1) then
+			print *, "Did not recalculate RMP, Toroidal current was", totcur	
+		endif
+	end if
+	!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+     
      if(myrank.eq.0 .and. itimer.eq.1) then
         call second(tend)
         t_onestep = t_onestep + tend - tstart
