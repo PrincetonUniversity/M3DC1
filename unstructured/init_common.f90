@@ -522,7 +522,7 @@ subroutine nre_eq
      call define_fields(itri,def_fields,1,0,1)
 
      nre079(:,OP_1) = 1.0*ri_79*ps079(:,OP_GS)/1.000
-     if(irunaway == 1) nre079(:,OP_1) = 0.8e-0*nre079(:,OP_1)
+     if(irunaway == 1) nre079(:,OP_1) = rjra*nre079(:,OP_1)
      if(irunaway == 2) nre079(:,OP_1) = 0.
 
      dofs = intx2(mu79(:,:,OP_1),nre079(:,OP_1))

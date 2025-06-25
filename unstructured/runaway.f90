@@ -136,7 +136,7 @@ contains
               else
                  sa = 0.
               endif
-              dndt = (sd*esign + sa)*cre*ec*va
+              dndt = (0*sd*esign + sa)*cre*ec*va
                  nrel = nre + dndt*dt_si
           else
               nrel = nre 
