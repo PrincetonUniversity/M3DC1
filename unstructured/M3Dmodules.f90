@@ -299,6 +299,10 @@ module basic
   real :: radiff         ! runaway diffusion
   real :: rjra           ! jra/j0
   integer :: runaway_characteristics           ! use method of characteristics
+  integer :: iDreicer ! 1 = Classical, 2 = Partially Screened, 0 = Off
+  integer :: iTritBeta ! Toggles Tritium Source
+  integer :: iAvalanche ! Toggles Avalanche RE term
+  integer :: iCompton ! Toggles Compton RE term
   integer :: iflip       ! 1 = flip handedness
   integer :: iflip_b     ! 1 = flip equilibrium toroidal field
   integer :: iflip_j     ! 1 = flip equilibrium toroidal current density
