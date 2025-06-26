@@ -48,7 +48,7 @@ PetscErrorCode MyKSPMonitor(KSP ksp, PetscInt n, PetscReal rnorm, void *dummy)
 		  "solve 5 %" PetscInt_FMT "th iteration: KSP Residual norm [ %1.12e  %1.12e  %1.12e  %1.12e ]\n", 
 		  n, (double)norms[0], (double)norms[1], (double)norms[2], rnorm);
   ierr=VecDestroy(&r);
-  PetscFunctionReturn(PETSC_SUCCESS);
+  PetscFunctionReturn(0); // PETSC_SUCCESS (0) to indicate success
 }
 
 void printMemStat() {
