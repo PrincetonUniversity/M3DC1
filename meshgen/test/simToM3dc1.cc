@@ -201,6 +201,14 @@ gmi_model* writePumiModel(std::string simModel, std::string output);
 void writePumiMesh(std::string simMesh, pMesh m, pMeshDataId dataId, 
                   pGModel simModel, gmi_model* mdl, std::string output);
 
+/*
+ * A function to write additional model information to a txt file
+ * pGModel simModel (in): Simmetrix model.
+ * Loop innerLoop (in): Inner model loop to be written to file.
+ * Loop outerLoop (in): Outer model loop to be written to file.
+ * std::string outModelInfo (out): txt file containing model info  to be written on disk.
+ */
+void writeModelInfo(pGModel model, Loop innerLoop, Loop outerLoop, std::string outModelInfo);
 
 /*******************************************************************************************
  ************************************** Main Function *************************************/
@@ -240,11 +248,13 @@ int main(int argc, char** argv)
   dataOnVerticesAtLoop(mesh, innerLoop, center, &norm_curv);
   dataOnVerticesAtLoop(mesh, outerLoop, center, &norm_curv);
 
-  // Step 6: Write Pumi model (.dmg) and mesh (.smb)
+  // Step 6: Write Pumi model (.dmg), mesh (.smb), modelInfo(.txt)
   std::string outModel = in.outputName + ".dmg";
   std::string outMesh = in.outputName + ".smb";
+  std::string outModelInfo = in.outputName + "_modelInfo.txt";
   gmi_model* mdl = writePumiModel(in.simModelName, outModel); 
   writePumiMesh(in.simMeshName, mesh, norm_curv, model, mdl, outMesh);
+  writeModelInfo(model, innerLoop, outerLoop, outModelInfo);
 
   // Step 7: Terminate the MPI, PCU environments.
   PCU_Comm_Free();
@@ -927,6 +937,37 @@ void writePumiMesh(std::string simMesh, pMesh m, pMeshDataId dataId,
   mesh->destroyNative();
   apf::destroyMesh(mesh);
   SimPartitionedMesh_stop();
-  
 }
 
+// A function to write additional model information to a txt file.
+// Write bounding box information and inner/outer loop information.
+// Can add more information as we move forward on this.
+void writeModelInfo(pGModel model, Loop innerLoop, Loop outerLoop, std::string outModelInfo)
+{
+  std::cout << "Writing additional model info (.txt) ... \n";  
+
+  // Step 1: The file to write the additional model information.
+  FILE* fp = fopen(outModelInfo.c_str(), "w");
+
+  // Step 2: Find the bounding box the model and write it to the file:
+  double min[3], max[3];
+  GM_bounds(model, min, max);
+  fprintf(fp, "%lf %lf\n", min[0], min[2]);
+  fprintf(fp, "%lf %lf\n", max[0], max[2]);
+
+  // Step 3: Write Inner Loop Info to the file.
+  int numEdges = innerLoop.modelEdges.size();
+  fprintf(fp, "%d\n" , numEdges);
+  for (int i = 0 ; i < numEdges; i++)
+    fprintf(fp, "%d ", GEN_tag(innerLoop.modelEdges[i]));
+
+  fprintf(fp, "\n");
+  // Step 3: Write Inner Loop Info to the file.
+  numEdges = outerLoop.modelEdges.size();
+  fprintf(fp, "%d\n" , numEdges);
+  for (int i = 0 ; i < numEdges; i++)
+    fprintf(fp, "%d ", GEN_tag(outerLoop.modelEdges[i]));
+  
+  std::cout << "Model info written: " << outModelInfo << "\n";
+  fclose(fp);
+}
