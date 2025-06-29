@@ -1201,6 +1201,8 @@ subroutine set_defaults
        "", mesh_grp)
   call add_var_string("mesh_model", mesh_model, 256, "struct.dmg", &
        "", mesh_grp)
+  call add_var_string("model_info", model_info, 256, "dummyInfo", &
+        "", mesh_grp)
   call add_var_int("ipartitioned",ipartitioned,0,&
        "1 = the input mesh is partitioned", mesh_grp)
   call add_var_int("imatassemble", imatassemble, 0, &
