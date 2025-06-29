@@ -12,6 +12,7 @@
 #include "apf.h"
 #include "apfMesh.h"
 #include "gmi.h"
+#include "gmi_mesh.h"
 #include <mpi.h>
 #include <map>
 #include <vector>
@@ -100,6 +101,7 @@ public:
   int next_plane_partid; // id of corresponding part in the next plane
   bool snapping; // support for snapping
 
+  int modelType = 1;  // = 1 for analytical, = 2 for PUMI (.dmg) model
   double* phi;
   int numEntOrig[3];
   double boundingBox[4];

@@ -880,15 +880,30 @@ int m3dc1_model_load(char* /* in */ model_file)
   else
     fclose(test_in);
 
-  pGeom g = pumi_geom_load(model_file, "analytic");
-  m3dc1_model::instance()->model = g->getGmi();
-  m3dc1_model::instance()->load_analytic_model(model_file); 
+  pGeom g;
+  std::string model_name = model_file; 
+  if(model_name.substr(model_name.find_last_of(".") + 1) == "dmg")
+  { // modelType = 2 (.dmg model)
+    g = pumi_geom_load(model_file, "mesh");
+    m3dc1_model::instance()->model = g->getGmi();   
+    gmi_register_mesh();
+    m3dc1_model::instance()->model = gmi_load(model_file);
+    m3dc1_model::instance()->modelType = 2;
+  }
+  else
+  { // modelType = 2 (non .dmg models)
+    g = pumi_geom_load(model_file, "analytic");
+    m3dc1_model::instance()->model = g->getGmi();
+    m3dc1_model::instance()->load_analytic_model(model_file); 
+    m3dc1_model::instance()->modelType = 1;
+  }
   pumi_geom_freeze(g);
 
-  m3dc1_model::instance()->caculateBoundingBox();
-  // save the num of geo ent on the oringal plane
+  if (m3dc1_model::instance()->modelType == 1)
+    m3dc1_model::instance()->caculateBoundingBox();
+
+  // save the num of geo ent on the oringal plan
   m3dc1_model::instance()->numEntOrig[0]=m3dc1_model::instance()->model->n[0];
-  //if (m3dc1_model::instance()->model->n[1]==1) assert(m3dc1_model::instance()->numEntOrig[0]==0); // for a smooth loop, there is no geo vtx 
   m3dc1_model::instance()->numEntOrig[1]=m3dc1_model::instance()->model->n[1];
   m3dc1_model::instance()->numEntOrig[2]=m3dc1_model::instance()->model->n[2];
   return M3DC1_SUCCESS;
