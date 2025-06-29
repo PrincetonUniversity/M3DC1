@@ -869,7 +869,7 @@ int m3dc1_model_getmaxcoord(double* x_max, double* y_max)
 //*******************************************************
 int m3dc1_model_load(char* /* in */ model_file)
 //*******************************************************
-{  
+{ 
   FILE *test_in = fopen (model_file,"r");
   if (!test_in)
   {
@@ -907,6 +907,60 @@ int m3dc1_model_load(char* /* in */ model_file)
   m3dc1_model::instance()->numEntOrig[1]=m3dc1_model::instance()->model->n[1];
   m3dc1_model::instance()->numEntOrig[2]=m3dc1_model::instance()->model->n[2];
   return M3DC1_SUCCESS;
+}
+
+//*******************************************************
+int m3dc1_modelinfo_load(char* /* in */ modelInfo_file)
+//*******************************************************
+{
+  if (m3dc1_model::instance()->modelType == 1)
+    return M3DC1_SUCCESS;  // only move forward for .dmg models
+
+  assert(m3dc1_model::instance()->modelType == 2);
+  if (std::strcmp(modelInfo_file, "dummyInfo") == 0)
+  {
+    std::cout << "Make sure to provide model_info file since model is .dmg\n";
+    exit(1);  // Need to have model info file
+  }
+
+  std::cout << "Model Info file = " << modelInfo_file << "\n";
+  
+  // Check if the given model info file exists or not:
+  std::ifstream ifs(modelInfo_file); 
+  if (!ifs) 
+  {
+    if (!PCU_Comm_Self()) 
+      std::cout<<"[M3D-C1 ERROR] "<<__func__<<" failed: model file \""<<modelInfo_file<<"\" doesn't exist\n";
+    return M3DC1_FAILURE; 
+  }
+
+  // Load the content of the model info file
+  // First read the bounding box
+  double r_min, z_min, r_max, z_max;
+  ifs >> r_min >> z_min >> r_max >> z_max;
+  m3dc1_model::instance()->boundingBox[0]= r_min;
+  m3dc1_model::instance()->boundingBox[1]= z_min;
+  m3dc1_model::instance()->boundingBox[2]= r_max;
+  m3dc1_model::instance()->boundingBox[3]= z_max;
+  
+  // Read innermost loop
+  int numEdges = 0;
+  ifs >> numEdges;
+  for (int i = 0; i < numEdges; i++)
+  {
+    int edgeId;
+    ifs >> edgeId;
+    m3dc1_model::instance()->innerLoop.push_back(edgeId);
+  } 
+  
+  // Read outermost loop
+  ifs >> numEdges;
+  for (int i = 0; i < numEdges; i++)
+  {
+    int edgeId;
+    ifs >> edgeId;
+    m3dc1_model::instance()->outerLoop.push_back(edgeId);
+  } 
 }
 
 //*******************************************************
