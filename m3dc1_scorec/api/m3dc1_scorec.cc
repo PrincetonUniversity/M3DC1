@@ -963,6 +963,26 @@ int m3dc1_modelinfo_load(char* /* in */ modelInfo_file)
   } 
 }
 
+// ****************************************************
+void get_geometric_loop(int* modelEdges, int* numberOfEdges, int* loopType)
+// ****************************************************
+{
+  std::vector <int> geomEdges;
+  if (*loopType == 0)
+    geomEdges = m3dc1_model::instance()->innerLoop;
+  else if (*loopType == 1)
+    geomEdges = m3dc1_model::instance()->outerLoop;
+  else  // might add further types in future
+  {
+    std::cout << "Incorrect Loop Type. Set 0 for inner loop, and 1 for outer loop\n";
+    exit(1);
+  }
+  for (int i = 0; i <  geomEdges.size(); i++)
+    modelEdges[i] = geomEdges[i];
+
+  *numberOfEdges = geomEdges.size();
+}
+
 //*******************************************************
 int m3dc1_model_print()
 //*******************************************************
