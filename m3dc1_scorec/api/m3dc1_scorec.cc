@@ -2024,13 +2024,37 @@ int m3dc1_node_getnormvec (int* /* in */ node_id, double* /* out */ xyzt)
   apf::MeshEntity* vt = getMdsEntity(m3dc1_mesh::instance()->mesh, 0, *node_id);
   assert(vt);
   xyzt[2]=0.0;
-  //cout<<"nodnormalvec_ "<<*iNode<<" "<<vt<<endl;
+
   gmi_ent* gent= (gmi_ent*)(m3dc1_mesh::instance()->mesh->toModel(vt));
   int gType = gmi_dim(m3dc1_model::instance()->model,gent);
   if (gType !=  1 && gType !=  0)
   {
     xyzt[0] = xyzt[1] = 0.0;
     return M3DC1_SUCCESS;
+  }
+
+  if (m3dc1_model::instance()->modelType == 2)
+  {
+    apf::MeshTag* norm_curv_tag = m3dc1_mesh::instance()->mesh->findTag("norm_curv");
+    if (norm_curv_tag && m3dc1_mesh::instance()->mesh->hasTag(vt, norm_curv_tag))
+    {
+      double norm_curv[3];
+      m3dc1_mesh::instance()->mesh->getDoubleTag(vt, norm_curv_tag, &norm_curv[0]);
+      xyzt[0] = norm_curv[0]; 
+      xyzt[1] = norm_curv[1];
+      return M3DC1_SUCCESS;
+    }
+    else 
+    {
+      std::cout << "Warning: In case of .dmg models, normal vectors are only provided at \n";
+      std::cout << "predefined boundaries while creating mesh, make sure this function is \n";
+      std::cout << "called at the correct model edges at correct boundary loop\n";
+
+      // Dummy to return normals so code doesn't crash in case 
+      xyzt[0] = 1.0;
+      xyzt[1] = 0.0;
+      return M3DC1_SUCCESS;
+    }
   }
 
   apf::MeshTag* norm_curv_tag = m3dc1_mesh::instance()->mesh->findTag("norm_curv");
@@ -2059,7 +2083,6 @@ int m3dc1_node_getnormvec (int* /* in */ node_id, double* /* out */ xyzt)
       int numEdgePlane=0;
       double normalvec[3]={0.,0.,0.};
       xyzt[0]=xyzt[1]=xyzt[2]=0;
-      if (gEdges.size()<2) 
         std::cout<<"["<<PCU_Comm_Self()<<"] "<<__func__<<" ERROR: #adjEdge of gVertex="
 		 <<gEdges.size()<<" (it should be minimum 2) \n";
       assert(gEdges.size()>=2);
@@ -2110,6 +2133,29 @@ int m3dc1_node_getcurv (int* /* in */ node_id, double* /* out */ curv)
 {
   apf::MeshEntity* vt = getMdsEntity(m3dc1_mesh::instance()->mesh, 0, *node_id);
   assert(vt);
+
+  if (m3dc1_model::instance()->modelType == 2)
+  {
+    apf::MeshTag* norm_curv_tag = m3dc1_mesh::instance()->mesh->findTag("norm_curv");
+    if (norm_curv_tag && m3dc1_mesh::instance()->mesh->hasTag(vt, norm_curv_tag))
+    {
+      double norm_curv[3];
+      m3dc1_mesh::instance()->mesh->getDoubleTag(vt, norm_curv_tag, &norm_curv[0]);
+      *curv = norm_curv[2];
+      return M3DC1_SUCCESS;
+    }
+    else 
+    {
+      std::cout << "Warning: In case of .dmg models, curvatures are only provided at \n";
+      std::cout << "predefined boundaries while creating mesh, make sure this function is \n";
+      std::cout << "called at the correct model edges at correct boundary loop\n";
+
+      // Dummy to return normals so code doesn't crash in case 
+      *curv = 0.0;
+      return M3DC1_SUCCESS;
+    }
+  }
+  
 
   apf::MeshTag* norm_curv_tag = m3dc1_mesh::instance()->mesh->findTag("norm_curv");
   if (norm_curv_tag && m3dc1_mesh::instance()->mesh->hasTag(vt, norm_curv_tag))
@@ -5484,8 +5530,6 @@ void m3dc1_node_getNormVecOnNewVert(apf::MeshEntity* v, double* normalVec)
   
   bool v0_found = false;
   bool v1_found = false;
-  apf::Vector3 param(0,0,0);
-  m->getParam(v,param);
   apf::Adjacent edges;
   m->getAdjacent(v, 1, edges);
   std::vector <apf::MeshEntity*> adjVert;
