@@ -6,7 +6,7 @@
 sim_model STAR_5_00_surface.smd
 
 ! Simmetrix Mesh (.sms) - Required
-sim_mesh  STAR_5_00_surface-case1.sms
+sim_mesh  STAR_5_00_surface.sms
 
 ! Output file names - Optional
 ! Default will be (output.smb , output.dmg)
