@@ -607,6 +607,44 @@ mesh\_model = `filename.txt'
 \end{enumerate}
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\subsection{Model and Mesh conversion from Simmetrix to M3DC1-PUMI files (simToM3dc1)}
+\label{ch:simToM3dc1}
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+To support geometries directly imported from modeling kernels such as Parasolid, a tool is developed that converts the geometries and associated meshes in a format that is supported in M3DC1. This workflow needs following two steps.
+\begin{enumerate}
+  \item Load the native model files from Parasolid model files (.x\_t, .xmt\_txt, .x\_b, .xmt\_bin) in Simmodeler. This converts Parasolid model file to a Simmetrix model file. Use the Simmodeler mesh controls ( see section ~\ref{ch:simmodeler}) to create a mesh of desired resolution. This gives us a Simmetrix model (.smd) and a Simmetrix mesh (.sms).
+  \item  Use simToM3dc1 to convert Simmetrix model and mesh from above step to PUMI model (.dmg), PUMI mesh (.smb) and file (.txt) that contains the additional model information since PUMI model(.dmg) only holds adjacency information. 
+\end{enumerate}
+To use simToM3dc1, an input file file is required to feed all the neccessary information to the convertor. The parameters required in simToM3dc1 are given below:
+\begin{itemize}
+\item sim\_model: Input Simmetrix model (.smd)
+\item sim\_mesh: Input Simmetrix mesh (.sms)
+\item native\_model: Native Parasolid file (.x\_t, .xmt\_txt, .x\_b, .xmt\_bin). Required if model was created from a Parasolid model. If model and mesh were not created from Parasolid (or any other geometric kernel) and were created directly in Simmetrix, then we do not need this parameter.
+\item out\_file (optional): Output files name. If this parameter is not provided, default name (output.smb, output.dmg, output\_modelInfo.txt) is used. 
+\item inner\_face: Innermost model face number in Simmetrix model. Check model face \# from Simmodeler GUI.
+\item outer\_face: Outermost model face number in Simmetrix model. Check model face \# from Simmodeler GUI.
+\end{itemize}
+
+The normal vectors and curvature on the mesh vertices at boundary loops are stored as tags on the PUMI meshes. Since Simmodeler does not provide any informaton on loops numbers, model face numbers are needed in the input file to define the inner and outer most model faces in the domain. From model face information, desired loop information is extracted. The outputs files are: 
+
+\begin{itemize}
+  \item PUMI model (.dmg)
+  \item PUMI mesh (.smb)
+  \item A .txt file (Output file name\_modelInfo.txt) that contains the following additional model information
+    \begin{itemize}
+      \item Minimum of bounding box (x\_min, y\_min)
+      \item Maximum of bounding box (x\_max, y\_max)
+      \item Number of model edges on Innermost loop
+      \item model edges Ids on Innermost loop
+      \item Number of model edges on Outermost loop
+      \item model edges Ids on Outermost loop
+    \end{itemize}
+\end{itemize}
+
+A test case with all the needed inputs, and usage information is provided in the M3DC1 repository. Check the following link: 
+\newline \url{https://github.com/PrincetonUniversity/M3DC1/tree/master/meshgen/test/data/sim-parasolid-testcase}. 
+\newline Check the input file to see how to set up the parameters and readme.md for the usage. 
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 \subsection{Mesh Partitioning}
 \label{ch:mesh-ptn}
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
