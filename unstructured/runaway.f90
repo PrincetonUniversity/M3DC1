@@ -4,6 +4,7 @@ module runaway_mod
   use arrays
   use m3dc1_nint
   use field
+  use auxiliary_fields
 
   implicit none
 
@@ -76,6 +77,7 @@ contains
     use basic
     use kprad
 	use kprad_m3dc1
+        use auxiliary_fields
 
     implicit none
 
@@ -228,6 +230,7 @@ contains
     use math
     use kprad
 	use kprad_m3dc1
+        use auxiliary_fields
     
     implicit none
 
@@ -269,8 +272,9 @@ contains
     n_ion = nt79(:,OP_1)*n0_norm*1e6 ! Ion density [per cubic m]
     kp_den = 0.0 * n_ion ! Impurity density [per cubic m]
     IF(ikprad.ne.0) THEN 
-		!kp_den = kprad_totden(:,OP_1)*n0_norm*1e6
-		kp_den = kprad_fz*nt79(:,OP_1)*n0_norm*1e6
+	call calculate_kprad_totden(0, kp_den)	
+            kp_den = kp_den*n0_norm*1e6
+	!	kp_den = kprad_fz*nt79(:,OP_1)*n0_norm*1e6
 	END IF
     
     ! Call RE subroutine
