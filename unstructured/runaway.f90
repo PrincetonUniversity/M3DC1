@@ -4,6 +4,8 @@ module runaway_mod
   use arrays
   use m3dc1_nint
   use field
+  use kprad
+  use kprad_m3dc1
   use auxiliary_fields
 
   implicit none
@@ -76,8 +78,8 @@ contains
     use math
     use basic
     use kprad
-	use kprad_m3dc1
-        use auxiliary_fields
+    use kprad_m3dc1
+    use auxiliary_fields
 
     implicit none
 
@@ -229,14 +231,14 @@ contains
     use diagnostics
     use math
     use kprad
-	use kprad_m3dc1
-        use auxiliary_fields
+    use kprad_m3dc1
+    use auxiliary_fields
     
     implicit none
 
     integer, intent(in) :: itri,izone
     vectype, dimension(MAX_PTS) :: epar, te, ne, nre, eta, &
-									n_ion, kp_den, kp_z
+            n_ion, kp_den, kp_z
     vectype, dimension(MAX_PTS) :: dndt, re_79, re_j79, &
                                    re_epar, ecrit, bz, bi  
     vectype, dimension(dofs_per_element) :: dofs
@@ -271,9 +273,13 @@ contains
     ! RiD: Adding quantities required for new sources
     n_ion = nt79(:,OP_1)*n0_norm*1e6 ! Ion density [per cubic m]
     kp_den = 0.0 * n_ion ! Impurity density [per cubic m]
-    IF(ikprad.ne.0) THEN 
-	call calculate_kprad_totden(0, kp_den)	
-            kp_den = kp_den*n0_norm*1e6
+    IF(ikprad.ne.0) THEN
+        print *, 'Calculating kp_den'    
+	call calculate_kprad_totden(itri, kp_den)
+        print *, 'Calculated kp_den'        
+        kp_den = kp_den*n0_norm*1e6
+        print *, 'kp_den = '
+        print *, kp_den
 	!	kp_den = kprad_fz*nt79(:,OP_1)*n0_norm*1e6
 	END IF
     
