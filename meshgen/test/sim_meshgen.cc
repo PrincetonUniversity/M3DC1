@@ -278,7 +278,7 @@ Inputs verifyInputs(int argc, char** argv)
   if (argc < 2)
   {
     std::cout << "Inputs Missing\n";
-    std::cout << "Usage: ./simToM3dc1 input_filename\n";
+    std::cout << "Usage: ./sim_meshgen input_filename\n";
     exit(1);
   }
 
