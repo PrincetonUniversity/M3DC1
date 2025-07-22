@@ -375,7 +375,8 @@ subroutine init_particles(lrestart, ierr)
       do inode = 1, nodes_per_element
          call m3dc1_ent_getglobalid(0, nodeids(inode) - 1, inode_global)
          mesh_nodes(inode, ielm_global) = inode_global + 1
-         call get_node_pos(nodeids(inode), mesh_coord(1,inode,ielm_global), mesh_coord(2,inode,ielm_global), mesh_coord(3,inode,ielm_global))
+         call get_node_pos(nodeids(inode), mesh_coord(1,inode,ielm_global), &
+                 mesh_coord(2,inode,ielm_global), mesh_coord(3,inode,ielm_global))
       end do
 
       call get_zone(ielm, izone)
@@ -397,16 +398,19 @@ subroutine init_particles(lrestart, ierr)
       sendcount = nodes_per_element*nelm_row(rowrank + 1)
       recvcounts = nodes_per_element*nelm_row
       displs = nodes_per_element*displs_elm
-      call MPI_ALLGATHERV(mesh_nodes(:,ielm_min:ielm_max),sendcount,MPI_INTEGER, mesh_nodes,recvcounts,displs,MPI_INTEGER, rowcomm,ierr)
+      call MPI_ALLGATHERV(mesh_nodes(:,ielm_min:ielm_max),sendcount,MPI_INTEGER, &
+              mesh_nodes,recvcounts,displs,MPI_INTEGER, rowcomm,ierr)
       sendcount = nodes_per_element*3*nelm_row(rowrank + 1)
       recvcounts = nodes_per_element*3*nelm_row
       displs = nodes_per_element*3*displs_elm
-      call MPI_ALLGATHERV(mesh_coord(:,:,ielm_min:ielm_max),sendcount,MPI_DOUBLE_PRECISION, mesh_coord,recvcounts,displs,MPI_DOUBLE_PRECISION, rowcomm,ierr) 
+      call MPI_ALLGATHERV(mesh_coord(:,:,ielm_min:ielm_max),sendcount,MPI_DOUBLE_PRECISION, &
+              mesh_coord,recvcounts,displs,MPI_DOUBLE_PRECISION, rowcomm,ierr) 
 
       sendcount = nelm_row(rowrank + 1)
       recvcounts = nelm_row
       displs = displs_elm
-      call MPI_ALLGATHERV(mesh_zone(ielm_min:ielm_max),sendcount,MPI_INTEGER, mesh_zone,recvcounts,displs,MPI_INTEGER, rowcomm,ierr)
+      call MPI_ALLGATHERV(mesh_zone(ielm_min:ielm_max),sendcount,MPI_INTEGER, &
+              mesh_zone,recvcounts,displs,MPI_INTEGER, rowcomm,ierr)
 
       deallocate (recvcounts)
       deallocate (displs)
@@ -762,7 +766,8 @@ subroutine fdot(x, v, w, dxdt, dvdt, dwdt, dEpdt, itri, ierr)
    real, dimension(3) :: lr, lr2
    integer :: itri2
    type(xgeomterms)   :: geomterms, geomterms2
-   real, dimension(3) :: x2, B_cyl, B0_cyl, B_cyl2, Jcyl, BxgrdB, deltaB, deltaB2, E_cyl, E_cyl2, bhat, bhat0, svec, svec0, Bstar, Bstar0
+   real, dimension(3) :: x2, B_cyl, B0_cyl, B_cyl2, Jcyl, BxgrdB, deltaB, deltaB2, &
+           E_cyl, E_cyl2, bhat, bhat0, svec, svec0, Bstar, Bstar0
    real, dimension(vspdims)                                  :: v2, vs, vu
    real, dimension(3) :: dBdR, dBdphi, dBdz, dB0dR, dB0dphi, dB0dz, dB1dR, dB1dphi, dB1dz
    real, dimension(3) :: gradB0, gradB, gradB02, gradB1, gradB12, dEdR, dEdphi, dEdz

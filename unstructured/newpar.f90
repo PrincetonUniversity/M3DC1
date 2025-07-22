@@ -1592,10 +1592,12 @@ subroutine calculate_qdfac(itri, z)
 end subroutine calculate_qdfac
 
 subroutine print_normal_curv()
-  use mpi
+!  use mpi
   use basic
   use mesh_mod
   implicit none
+
+    include 'mpif.h'
 
   integer :: ierr, i, icounter_t, numnodes
   integer :: izone, izonedim

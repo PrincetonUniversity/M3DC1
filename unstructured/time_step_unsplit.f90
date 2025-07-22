@@ -59,16 +59,9 @@ contains
     call create_mat(s1_mat, vecsize_phi, vecsize_phi, icomplex, 1)
 #endif
     call create_mat(d1_mat, vecsize_phi, vecsize_phi, icomplex, 0)
-#ifdef CJ_MATRIX_DUMP
-    print *, "create_mat time_step s1_mat", s1_mat%imatrix     
-    print *, "create_mat time_step d1_mat", d1_mat%imatrix     
-#endif 
     if(i3d.eq.1) then
        call set_matrix_index(o1_mat, o1_mat_index)
        call create_mat(o1_mat, vecsize_phi, 1, icomplex, 0)
-#ifdef CJ_MATRIX_DUMP
-       print *, "create_mat time_step o1_mat", o1_mat%imatrix     
-#endif 
     endif
 
     initialized = .true.
@@ -319,20 +312,8 @@ subroutine step_unsplit(calc_matrices)
   ! solve linear system...LU decomposition done first time
   if(myrank.eq.0 .and. iprint.ge.1) print *, "solving.."
   if(myrank.eq.0 .and. itimer.eq.1) call second(tstart)
-#ifdef CJ_MATRIX_DUMP
-  if(ntime.eq.ntimemax) then 
-     write ( *, * ) "print matrix s1_mat", s1_mat%imatrix, ntime
-     call write_matrix(s1_mat,'s1_mat')
-     call write_vector(b1_phi, 's1_mat_rhs.out')
-  endif
-#endif 
   call newsolve(s1_mat, b1_phi, jer)
   if(linear.eq.0 .and. iteratephi.eq.0) call clear_mat(s1_mat)
-#ifdef CJ_MATRIX_DUMP
-  if(ntime.eq.ntimemax) then 
-     call write_vector(b1_phi, 's1_mat_sol.out')
-  endif
-#endif 
   if(myrank.eq.0 .and. itimer.eq.1) then
      call second(tend)
      t_solve_b = t_solve_b + tend - tstart

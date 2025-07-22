@@ -474,10 +474,6 @@ subroutine calculate_external_fields(ilin)
   call set_matrix_index(bf_mat, bf_mat_index)
   call create_mat(bf_mat, 1, 1, icomplex, 1)
 
-#ifdef CJ_MATRIX_DUMP
-  print *, "create_mat coils br_mat", br_mat%imatrix 
-#endif
-
   read_p = .false.
   if(iread_ext_field.ne.0) then
      do i=1, iread_ext_field 
@@ -908,10 +904,6 @@ end subroutine boundary_rmp
 
     psi_f = 0.
     fx_f = 0.
-
-#ifdef CJ_MATRIX_DUMP
-    print *, "create_mat coils jx_mat", jx_mat%imatrix
-#endif
 
     ! boundary condition on psi
 !    ipsibound = BOUNDARY_NONE

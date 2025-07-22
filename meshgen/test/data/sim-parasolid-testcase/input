@@ -1,0 +1,26 @@
+! To convert Simmetrix Model(.smd) and Mesh(.sms) to PUMI Model(.dmg) and Mesh(.smb)
+! Normal vector data is attached to the mesh vertices on the inner and outer most 
+! loops in the domain.
+
+! Simmetrix Model (.smd) - Required
+sim_model STAR_5_00_surface.smd
+
+! Simmetrix Mesh (.sms) - Required
+sim_mesh  STAR_5_00_surface.sms
+
+! Output file names - Optional
+! Default will be (output.smb , output.dmg)
+out_file m3dc1_out
+
+! Native Model Name (.x_t, .xmt_txt, .x_b, .xmt_bin)
+! Required if model is created from a Parasolid model
+native_model STAR_5_00_surface_nat.x_t
+
+! Innermost Model Face Number (Check Model Face # from 
+Simmodeler GUI) - Required
+inner_face 8
+
+! Innermost Model Face Number (Check Model Face # from 
+Simmodeler GUI) - Required
+outer_face 25
+

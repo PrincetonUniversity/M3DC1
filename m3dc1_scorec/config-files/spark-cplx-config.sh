@@ -9,7 +9,7 @@ METIS_DIR=$PETSC_DIR/$PETSC_ARCH
 ZOLTAN_INSTALL_DIR=$PETSC_DIR/$PETSC_ARCH
 NETCDF_F_HOME=/opt/pppl/spack-pkgs/linux-rocky9-zen3/intel-2023.2.0/netcdf-fortran-4.6.0-hz3b2mq6ld2u2u6ktdodbx72k37opcdf
 NETCDF_C_HOME=/opt/pppl/spack-pkgs/linux-rocky9-zen3/intel-2023.2.0/netcdf-c-4.9.2-3wxlqzxkv3tfm4rpo5utrn2lc3yejtnu
-SCOREC_DIR=/p/swim/jchen/PETSC/core-trunk/spark-20231214
+SCOREC_DIR=/p/swim/jchen/PETSC/core-240527/spark-20231214
 PREFIX=$SCOREC_DIR
 
 cmake .. \

@@ -115,8 +115,8 @@ def plot_flux_average(field, sim=None, coord='scalar', fcoords='pest', deriv=0, 
     
     fieldlabel,unitlabel = fpyl.get_fieldlabel(units,field,fac=fac,shortlbl=shortlbl)
     ylbl = fieldlabel
-    if field not in ['q','safety factor']:
-            if not (field in ['alpha','shear'] and units=='m3dc1'):
+    if field not in ['q','safety factor','ne/ng']:
+            if not (field in ['alpha','shear'] and units=='m3dc1') or field not in ['S','lundquist']:
                 ylbl = ylbl + ' (' + unitlabel+')'
         
     plt.ylabel(ylbl,fontsize=axlblfs)
