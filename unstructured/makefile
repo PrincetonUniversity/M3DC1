@@ -158,6 +158,9 @@ endif
 ifeq ($(ST), 1)
   BIN := $(BIN)_st
 endif
+ifeq ($(PAR), 1)
+  BIN := $(BIN)_pic
+endif
 
 READGATO_OBJS = polar.o readgato.o
 READJSOLVER_OBJS = polar.o read_jsolver_exec.o
