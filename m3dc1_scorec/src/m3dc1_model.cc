@@ -237,6 +237,16 @@ void load_model(const char* filename)
   int numL,separatrixLoop, innerWallLoop, outerWallLoop, vacuumLoop;
   fscanf(fp,"%d %d %d %d %d\n", &numL, &separatrixLoop, &innerWallLoop, &outerWallLoop, &vacuumLoop);
 
+  // Identify outermost loop. We will always have inner loop even if numL==1.
+  int outerMostLoop = -1;
+  if (outerWallLoop > 0 || vacuumLoop > 0)
+  {
+    if (vacuumLoop > 0)
+      outerMostLoop = vacuumLoop;
+    else
+      outerMostLoop = outerWallLoop;
+  }
+
   std::vector<int> loop_ids;
   loop_ids.resize(numL);
 
@@ -259,7 +269,12 @@ void load_model(const char* filename)
     {
       int edge, beginvtx, endvtx,edgeType;
       fscanf(fp,"%d %d %d %d\n", &edge, &beginvtx, &endvtx, &edgeType);
-            if (edgeContainer.find(edge)!=edgeContainer.end()) // edge already created
+      if (loop == innerWallLoop)
+        m3dc1_model::instance()->innerLoop.push_back(edge);
+      if (loop == outerMostLoop)
+        m3dc1_model::instance()->outerLoop.push_back(edge);
+
+      if (edgeContainer.find(edge)!=edgeContainer.end()) // edge already created
       {
         edges[i]=edge;
         switch (edgeType)

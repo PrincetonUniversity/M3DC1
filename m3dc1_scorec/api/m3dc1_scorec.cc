@@ -891,7 +891,7 @@ int m3dc1_model_load(char* /* in */ model_file)
     m3dc1_model::instance()->modelType = 2;
   }
   else
-  { // modelType = 2 (non .dmg models)
+  { // modelType = 1 (non .dmg models)
     g = pumi_geom_load(model_file, "analytic");
     m3dc1_model::instance()->model = g->getGmi();
     m3dc1_model::instance()->load_analytic_model(model_file); 
@@ -910,11 +910,11 @@ int m3dc1_model_load(char* /* in */ model_file)
 }
 //*******************************************************
 void m3dc1_model_getmodeltype(int* modeltype)
+//*******************************************************
 {
   // 1 for .txt model, 2 for .dmg model
   *modeltype = m3dc1_model::instance()->modelType;
 }
-//*******************************************************
 
 //*******************************************************
 int m3dc1_modelinfo_load(char* /* in */ modelInfo_file)
@@ -984,6 +984,11 @@ void m3dc1_model_getgeometricloop(int* modelEdges, int* numberOfEdges, int* loop
     std::cout << "Incorrect Loop Type. Set 0 for inner loop, and 1 for outer loop\n";
     exit(1);
   }
+
+  // Print a warning if the requested loop does not exist.
+  if (geomEdges.size() == 0)
+    std::cout << "Warning: The requested loop has zero edges - Loop does not exist in the model\n";
+
   for (int i = 0; i <  geomEdges.size(); i++)
     modelEdges[i] = geomEdges[i];
 
