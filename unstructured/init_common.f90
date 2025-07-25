@@ -242,10 +242,12 @@ subroutine den_eq
 
   type(field_type) :: den_vec
   integer :: itri, numelms, def_fields
-#ifdef USEPARTICLES
+  
+  real :: val, val2
   integer :: nvals, j
   real, allocatable :: xvals(:), yvals(:)
-  real :: val, val2
+  type(spline1d) :: den_spline 
+#ifdef USEPARTICLES  
   type(spline1d) :: nf_spline      ! Ion density
   type(spline1d) :: tf_spline      ! Ion density
 #endif
@@ -254,7 +256,7 @@ subroutine den_eq
   real, dimension(MAX_PTS) :: n, p
   integer :: ip, izone
   
-  if((idenfunc.eq.0 .or. idenfunc.eq.4) .and. .not.(ipellet.gt.0 .and. linear.eq.1)) return
+  if((idenfunc.eq.0 .or. idenfunc.eq.4) .and. .not.(ipellet.gt.0 .and. linear.eq.1) .and. .not.(iread_ne.eq.22)) return
   if(ipellet.ne.0) then
      if(ipellet_z.ne.0 .and. all(pellet_mix.eq.0.)) return
   end if
@@ -263,6 +265,21 @@ subroutine den_eq
   call create_field(den_vec)
   
   def_fields = FIELD_PSI + FIELD_N + FIELD_P + FIELD_TE
+
+#if defined(USEST)
+  if (iread_ne .eq. 22) then
+     nvals = 0
+      call read_ascii_column('n_profile', xvals, nvals, icol=1)
+      call read_ascii_column('n_profile', yvals, nvals, icol=2)
+      if(nvals.eq.0) call safestop(5)
+      yvals = yvals / 1e6 / n0_norm 
+     if(allocated(yvals)) then
+        call create_spline(den_spline, nvals, xvals, yvals)
+        deallocate(xvals, yvals)
+     end if
+     den_vec=0.
+   endif
+#endif
 
   numelms = local_elements()
   do itri=1,numelms
@@ -310,7 +327,15 @@ subroutine den_eq
            end if
 #endif     
         end select
-     end if
+      elseif(iread_ne .eq. 22) then
+#ifdef USEST
+        temp79b = (xl_79-xcenter)**2 + (zl_79-zcenter)**2
+        do j=1, npoints
+              call evaluate_spline(den_spline,temp79b(j),val)
+              n079(j,OP_1) = val
+        end do
+#endif 
+      endif
 
      if(ipellet.gt.0 .and. linear.eq.1) then
         n = 0.

@@ -1506,8 +1506,7 @@ function bs_b1psifbb(e,f,g,h,i)
       denion(i)=nt79(i,OP_1)*1e20
 
 
-      ln_lambda_e(i) = 31.3 - log(sqrt(denelec(i)) / telec(i))
-      
+       ln_lambda_e(i) = 31.3 - log(sqrt(denelec(i)) / abs(telec(i)))
       temp(i) = 6.921e-18 * Zcharge * (denelec(i)) * ln_lambda_e(i) / &
             (telec(i))**2 / jbs_invAspectRatio79(i, OP_1)**(1.5) * jbs_qR79(i, OP_1)
       
@@ -1518,12 +1517,13 @@ function bs_b1psifbb(e,f,g,h,i)
       !--------------------------------------------------------!
       Zcharge = Zcharge_i  ! Use ion charge state
       ln_lambda_i(i) = 30.0 - log(Zcharge**3 * sqrt(denion(i)) / &
-                        (tion(i))**1.5)
+                        (abs(tion(i)))**1.5)
 
       temp(i) = 4.9e-18 * (denion(i)) * Zcharge**4 * ln_lambda_i(i) / &
                 (tion(i))**2 / jbs_invAspectRatio79(i, OP_1)**1.5 * jbs_qR79(i, OP_1)
 
       nu_i_star(i) = abs(temp(i))
+
     enddo
 
     !--------------------------------------------------------!
