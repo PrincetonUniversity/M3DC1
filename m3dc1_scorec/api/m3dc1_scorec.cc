@@ -908,6 +908,13 @@ int m3dc1_model_load(char* /* in */ model_file)
   m3dc1_model::instance()->numEntOrig[2]=m3dc1_model::instance()->model->n[2];
   return M3DC1_SUCCESS;
 }
+//*******************************************************
+void m3dc1_model_getmodeltype(int* modeltype)
+{
+  // 1 for .txt model, 2 for .dmg model
+  *modeltype = m3dc1_model::instance()->modelType;
+}
+//*******************************************************
 
 //*******************************************************
 int m3dc1_modelinfo_load(char* /* in */ modelInfo_file)
@@ -964,7 +971,7 @@ int m3dc1_modelinfo_load(char* /* in */ modelInfo_file)
 }
 
 // ****************************************************
-void get_geometric_loop(int* modelEdges, int* numberOfEdges, int* loopType)
+void m3dc1_model_getgeometricloop(int* modelEdges, int* numberOfEdges, int* loopType)
 // ****************************************************
 {
   std::vector <int> geomEdges;
