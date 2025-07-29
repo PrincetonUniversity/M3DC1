@@ -835,10 +835,13 @@ int outerLoop(std::vector <int> loops)
 // =2 if vacuum parameters are provided.
 void createVacuum(int vLoopId, double vMeshSize)
 {
-    gv1_id=gv1_id+1;
-    gv2_id=gv1_id+1;
-    ge1_id=ge1_id+1;
-    ge2_id=ge1_id+1;
+    if (numBdry!=0)
+    {
+      gv1_id=gv1_id+1;
+      gv2_id=gv1_id+1;
+      ge1_id=ge1_id+1;
+      ge2_id=ge1_id+1;
+    }
 
     if (useVacuum == 1 || useVacuum >2)
     {
