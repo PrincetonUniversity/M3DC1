@@ -332,7 +332,102 @@ subroutine den_eq
   call newvar_solve(den_vec%vec,mass_mat_lhs)
   den_field(0) = den_vec
 
+  call destroy_field(den_vec)
+
+end subroutine den_eq
+
+subroutine den_per
+  use basic
+  use arrays
+  use pellet
+  use diagnostics
+  use field
+  use m3dc1_nint
+  use newvar_mod
+  implicit none
+
+  type(field_type) :: den_vec
+  integer :: numelms, itri
+  real :: rate
+  vectype, dimension(dofs_per_element) :: dofs
+  real, dimension(MAX_PTS) :: n, p
+  integer :: ip, izone
+
+  if(ipellet.ge.0) return
+  if(ipellet_z.ne.0 .and. all(pellet_mix.eq.0.)) return
+
+  call create_field(den_vec)
+  den_vec = 0.
+
+  numelms = local_elements()
+  do itri=1,numelms
+     call define_element_quadrature(itri,int_pts_main,int_pts_tor)
+     call define_fields(itri,0,1,0)
+     call get_zone(itri, izone)
+
+     n179(:,OP_1) = 0.
+     ! negative ipellet in initial perturbation
+     if(ipellet.lt.0) then
+        n = 0.
+        p = 0.
+        do ip=1,npellets
+           if(pellet_mix(ip).eq.0) then
+              rate = pellet_rate(ip)
+           else
+              rate = pellet_rate_D2(ip)*2.0 ! two deuterium ions per D2 molecule
+           end if
+           n179(:,OP_1) = n179(:,OP_1) + rate*pellet_distribution(ip, x_79, phi_79, z_79, p, 1, izone)
+        end do
+     end if
+
+     dofs = intx2(mu79(:,:,OP_1),n179(:,OP_1))
+
+     call vector_insert_block(den_vec%vec,itri,1,dofs,VEC_ADD)
+  end do
+
+  call newvar_solve(den_vec%vec,mass_mat_lhs)
+  den_field(1) = den_vec
+
+  call destroy_field(den_vec)
+
+end subroutine den_per
+
 #if defined(USEST) && defined(USEPARTICLES)
+subroutine kinetic_eq
+  use basic
+  use arrays
+  use diagnostics
+  use math
+  use mesh_mod
+  use m3dc1_nint
+  use newvar_mod
+  use pellet
+  use read_ascii
+  use spline
+
+  implicit none
+
+  type(field_type) :: den_vec
+  integer :: itri, numelms, def_fields
+  integer :: nvals, j
+  real, allocatable :: xvals(:), yvals(:)
+  real :: val, val2
+  type(spline1d) :: nf_spline      ! Ion density
+  type(spline1d) :: tf_spline      ! Ion density
+  type(spline1d) :: nfi_spline      ! Ion density
+  type(spline1d) :: tfi_spline      ! Ion density
+  real :: rate
+  vectype, dimension(dofs_per_element) :: dofs
+  real, dimension(MAX_PTS) :: n, p
+  integer :: ip, izone
+  
+  if(myrank.eq.0 .and. iprint.ge.1) print *, ' Defining density equilibrium'
+  call create_field(den_vec)
+
+  def_fields = FIELD_PSI + FIELD_N + FIELD_P + FIELD_TE
+
+  numelms = local_elements()
+
   if ((kinetic.eq.1).and.(kinetic_fast_ion.eq.1)) then
      nvals = 0
      call read_ascii_column('nf_profile', xvals, nvals, icol=1)
@@ -405,6 +500,79 @@ subroutine den_eq
      call newvar_solve(den_vec%vec,mass_mat_lhs)
      pf_field = den_vec
   endif
+  if ((kinetic.eq.1).and.(kinetic_thermal_ion.eq.1)) then
+     nvals = 0
+     call read_ascii_column('nfi_profile', xvals, nvals, icol=1)
+     call read_ascii_column('nfi_profile', yvals, nvals, icol=2)
+     if(nvals.eq.0) call safestop(5)
+     yvals = yvals / 1e6 / n0_norm !rsae
+     xvals = xvals / xvals(nvals) ! normalize rho
+     if(allocated(yvals)) then
+        call create_spline(nfi_spline, nvals, xvals, yvals)
+        deallocate(xvals, yvals)
+     end if
+     den_vec=0.
+     do itri=1,numelms
+        call define_element_quadrature(itri,int_pts_main,int_pts_tor)
+        call define_fields(itri,def_fields,1,0)
+        call get_zone(itri, izone)
+        temp79b = (xl_79-xcenter)**2 + (zl_79-zcenter)**2
+        do j=1, npoints
+              call evaluate_spline(nfi_spline,temp79b(j),val)
+              n079(j,OP_1) = val
+        end do
+        dofs = intx2(mu79(:,:,OP_1),n079(:,OP_1))
+        call vector_insert_block(den_vec%vec,itri,1,dofs,VEC_ADD)
+     end do
+     call newvar_solve(den_vec%vec,mass_mat_lhs)
+     nfi_field = den_vec
+
+     nvals = 0
+     call read_ascii_column('tfi_profile', xvals, nvals, icol=1)
+     call read_ascii_column('tfi_profile', yvals, nvals, icol=2)
+     if(nvals.eq.0) call safestop(5)
+     !yvals = yvals / n0_norm !rsae
+     xvals = xvals / xvals(nvals) ! normalize rho
+     if(allocated(yvals)) then
+        call create_spline(tfi_spline, nvals, xvals, yvals)
+        deallocate(xvals, yvals)
+     end if
+     den_vec=0.
+     do itri=1,numelms
+        call define_element_quadrature(itri,int_pts_main,int_pts_tor)
+        call define_fields(itri,def_fields,1,0)
+        call get_zone(itri, izone)
+        temp79b = (xl_79-xcenter)**2 + (zl_79-zcenter)**2
+        do j=1, npoints
+              call evaluate_spline(tfi_spline,temp79b(j),val)
+              n079(j,OP_1) = val
+        end do
+        dofs = intx2(mu79(:,:,OP_1),n079(:,OP_1))
+        call vector_insert_block(den_vec%vec,itri,1,dofs,VEC_ADD)
+     end do
+     call newvar_solve(den_vec%vec,mass_mat_lhs)
+     tfi_field = den_vec
+
+     den_vec=0.
+     do itri=1,numelms
+        call define_element_quadrature(itri,int_pts_main,int_pts_tor)
+        call define_fields(itri,def_fields,1,0)
+        call get_zone(itri, izone)
+        temp79b = (xl_79-xcenter)**2 + (zl_79-zcenter)**2
+        do j=1, npoints
+          call evaluate_spline(nfi_spline,temp79b(j),val)
+          call evaluate_spline(tfi_spline,temp79b(j),val2)
+          if (fast_ion_dist==1) then
+            n079(j,OP_1) = val*val2* 1.6022e-12 / (b0_norm**2/(4.*pi*n0_norm))!rsae
+          endif
+        end do
+        dofs = intx2(mu79(:,:,OP_1),n079(:,OP_1))
+        call vector_insert_block(den_vec%vec,itri,1,dofs,VEC_ADD)
+     end do
+     call newvar_solve(den_vec%vec,mass_mat_lhs)
+     pfi_field = den_vec
+  endif
+
 
   if (kinetic.eq.1) then
      den_vec=0.
@@ -425,73 +593,24 @@ subroutine den_eq
      call newvar_solve(den_vec%vec,mass_mat_lhs)
      rho_field = den_vec
   endif
+
+  if ((kinetic.eq.1).and.(kinetic_fast_ion.eq.1)) then
+     call mult(pf_field, -1.)
+     call add(p_field(0), pf_field)
+     call mult(pf_field, -1.)
+  endif
+
+  if ((kinetic.eq.1).and.(kinetic_thermal_ion.eq.1)) then
+     call mult(pfi_field, -1.)
+     call add(p_field(0), pfi_field)
+     call mult(pfi_field, -1.)
+  endif
+
+
+  call destroy_field(den_vec)
+
+end subroutine kinetic_eq
 #endif     
-
-  !call mult(ti_field(0), 0.5)
-  !call mult(te_field(0), 0.5)
-  !call mult(p_field(0), 0.5)
-  !call mult(pe_field(0), 0.5)
-  !pfi_field = p_field(0)
-
-  call destroy_field(den_vec)
-
-end subroutine den_eq
-
-subroutine den_per
-  use basic
-  use arrays
-  use pellet
-  use diagnostics
-  use field
-  use m3dc1_nint
-  use newvar_mod
-  implicit none
-
-  type(field_type) :: den_vec
-  integer :: numelms, itri
-  real :: rate
-  vectype, dimension(dofs_per_element) :: dofs
-  real, dimension(MAX_PTS) :: n, p
-  integer :: ip, izone
-
-  if(ipellet.ge.0) return
-  if(ipellet_z.ne.0 .and. all(pellet_mix.eq.0.)) return
-
-  call create_field(den_vec)
-  den_vec = 0.
-
-  numelms = local_elements()
-  do itri=1,numelms
-     call define_element_quadrature(itri,int_pts_main,int_pts_tor)
-     call define_fields(itri,0,1,0)
-     call get_zone(itri, izone)
-
-     n179(:,OP_1) = 0.
-     ! negative ipellet in initial perturbation
-     if(ipellet.lt.0) then
-        n = 0.
-        p = 0.
-        do ip=1,npellets
-           if(pellet_mix(ip).eq.0) then
-              rate = pellet_rate(ip)
-           else
-              rate = pellet_rate_D2(ip)*2.0 ! two deuterium ions per D2 molecule
-           end if
-           n179(:,OP_1) = n179(:,OP_1) + rate*pellet_distribution(ip, x_79, phi_79, z_79, p, 1, izone)
-        end do
-     end if
-
-     dofs = intx2(mu79(:,:,OP_1),n179(:,OP_1))
-
-     call vector_insert_block(den_vec%vec,itri,1,dofs,VEC_ADD)
-  end do
-
-  call newvar_solve(den_vec%vec,mass_mat_lhs)
-  den_field(1) = den_vec
-
-  call destroy_field(den_vec)
-
-end subroutine den_per
 
 subroutine nre_eq
   use basic

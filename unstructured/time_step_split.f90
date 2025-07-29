@@ -884,7 +884,7 @@ call PetscLogStagePop(jer)
   ! Advance Density
   ! ===============
 #ifdef USEPARTICLES
-  if((idens.eq.1).and.(kinetic_thermal_ion.eq.0)) then
+  if((idens.eq.1).and.((kinetic.eq.0).or.(kinetic_thermal_ion.eq.0))) then
 #else
   if(idens.eq.1) then
 #endif

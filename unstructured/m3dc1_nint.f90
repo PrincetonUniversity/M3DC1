@@ -1734,6 +1734,7 @@ contains
 
            call eval_ops(itri, v_f_par, vfpar79, rfac)
            !call eval_ops(itri, v_f_par_0, vfpar079, rfac)
+           !pf079 = 0.
         else
            pfpar79 = 0.
            pfper79 = 0.

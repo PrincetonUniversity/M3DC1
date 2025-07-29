@@ -1737,7 +1737,7 @@ subroutine validate_input
   endif
 
 #ifdef USEPARTICLES
-  if(kinetic_thermal_ion.eq.0) particle_subcycles=0
+  if(kinetic_thermal_ion.eq.0) particle_subcycles=1
 #endif
 
   if(itemp.eq.0 .and. kappai_fac.ne.1.) then

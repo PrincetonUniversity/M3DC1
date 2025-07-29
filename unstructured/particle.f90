@@ -1094,12 +1094,12 @@ subroutine advance_particles(tinc)
          call rk4(pdata(ipart), tinc, istep .eq. psubsteps_particle, ierr)
          if (ierr .eq. 1) then ! Particle exited local+ghost domain -> lost
             pdata(ipart)%deleted = .true.
-            ! pdata(ipart)%x = pdata(ipart)%x0
-            ! pdata(ipart)%v = pdata(ipart)%v0
-            ! pdata(ipart)%wt = 0.
-            ! call mesh_search(pdata(ipart)%jel, pdata(ipart)%x, itri)
-            ! pdata(ipart)%jel = itri
-            ! pdata(ipart)%kel(:) = itri
+            !pdata(ipart)%x = pdata(ipart)%x0
+            !pdata(ipart)%v = pdata(ipart)%v0
+            !pdata(ipart)%wt = 0.
+            !call mesh_search(pdata(ipart)%jel, pdata(ipart)%x, itri)
+            !pdata(ipart)%jel = itri
+            !pdata(ipart)%kel(:) = itri
             cycle !Break out of tinc loop, go to next particle.
          end if
       end do!ielm
@@ -1154,23 +1154,23 @@ subroutine rk4(part, dt, last_step, ierr)
    itri = part%jel
    !if (ierr .eq. 1) return
    !1st step
-   call fdot(part%x, part%v, part%wt, k1, l1, m1, n1, itri, kel, part%f0, ierr, part%sps)
+   call fdot(part%x, part%v, part%wt, k1, l1, m1, n1, itri, kel, part%f0, ierr, part%sps, part%B0)
    if (ierr .eq. 1) return
    y1 = part%x + hh*k1; z1 = part%v + hh*l1; w1 = part%wt + hh*m1
    !write(0,*) k1(1),k1(2),k1(3)
 
    !2nd step
-   call fdot(y1, z1, w1, k2, l2, m2, n2, itri, kel, part%f0, ierr, part%sps)
+   call fdot(y1, z1, w1, k2, l2, m2, n2, itri, kel, part%f0, ierr, part%sps, part%B0)
    if (ierr .eq. 1) return
    y1 = part%x + hh*k2; z1 = part%v + hh*l2; w1 = part%wt + hh*m2
 
    !3rd step
-   call fdot(y1, z1, w1, k3, l3, m3, n3, itri, kel, part%f0, ierr, part%sps)
+   call fdot(y1, z1, w1, k3, l3, m3, n3, itri, kel, part%f0, ierr, part%sps, part%B0)
    if (ierr .eq. 1) return
    y1 = part%x + dt*k3; z1 = part%v + dt*l3; w1 = part%wt + dt*m3
 
    !4th step
-   call fdot(y1, z1, w1, k4, l4, m4, n4, itri, kel, part%f0, ierr, part%sps)
+   call fdot(y1, z1, w1, k4, l4, m4, n4, itri, kel, part%f0, ierr, part%sps, part%B0)
    if (ierr .eq. 1) return
    part%x = part%x + onethird*dt*(k2 + k3 + 0.5*(k1 + k4))
    part%v = part%v + onethird*dt*(l2 + l3 + 0.5*(l1 + l4))
@@ -1256,34 +1256,35 @@ subroutine rk4(part, dt, last_step, ierr)
    else
       part%dB = dot_product(deltaB, bhat)*B0inv
    end if
-   part%B0 = 1./B0inv
+   part%B0 = 1./B0inv ! fluid particle
    part%jel = itri
 
-   ! call evalf0(part%x, part%v(1), sqrt(2.0*qm_ion(part%sps)*part%v(2)/B0inv), elfieldcoefs(itri), geomterms, part%sps, f0, gradcoef, df0de, df0dxi)
-   ! if (part%f0/f0>10) then
-   !    if (floor(mod(part%x(1)*100000,500.0))==0) then
-   !       write(0,*) "33333333333333333333",part%f0/f0
-   !       part%x=part%x0
-   !       part%v=part%v0
-   !       part%wt=0.
-   !       call mesh_search(part%jel, part%x, itri)
-   !       part%jel=itri
-   !       part%kel(:)=itri
-   !       endif
-   ! endif
-   ! if (f0/part%f0>10) then
-   !    part%x=part%x0
-   !    part%v=part%v0
-   !    part%wt=0.
-   !    call mesh_search(part%jel, part%x, itri)
-   !    part%jel=itri
-   !    part%kel(:)=itri
-   !    write(0,*) "55555555555555",part%f0/f0
-   ! endif
+    !!call evalf0(part%x, part%v(1), sqrt(2.0*qm_ion(part%sps)*part%v(2)/B0inv), elfieldcoefs(itri), geomterms, part%sps, f0, gradcoef, df0de, df0dxi)
+    !call evalf0(part%x, part%v(1), sqrt(2.0*qm_ion(part%sps)*part%v(2)*part%B0), elfieldcoefs(itri), geomterms, part%sps, f0, gradcoef, df0de, df0dxi) ! fluid particle
+    !if (part%f0/f0>10) then
+    !   !if (floor(mod(part%x(1)*100000,500.0))==0) then
+    !      write(0,*) "33333333333333333333",part%f0/f0
+    !      part%x=part%x0
+    !      part%v=part%v0
+    !      part%wt=0.
+    !      call mesh_search(part%jel, part%x, itri)
+    !      part%jel=itri
+    !      part%kel(:)=itri
+    !      !endif
+    !endif
+    !if (f0/part%f0>10) then
+    !   part%x=part%x0
+    !   part%v=part%v0
+    !   part%wt=0.
+    !   call mesh_search(part%jel, part%x, itri)
+    !   part%jel=itri
+    !   part%kel(:)=itri
+    !   write(0,*) "55555555555555",part%f0/f0
+    !endif
    endif
 end subroutine rk4
 
-subroutine fdot(x, v, w, dxdt, dvdt, dwdt, dEpdt, itri, kel, f00, ierr, sps)
+subroutine fdot(x, v, w, dxdt, dvdt, dwdt, dEpdt, itri, kel, f00, ierr, sps, B00)
 !$acc routine seq
    use basic
    implicit none
@@ -1304,6 +1305,7 @@ subroutine fdot(x, v, w, dxdt, dvdt, dwdt, dEpdt, itri, kel, f00, ierr, sps)
    !integer, intent(in)                                        :: gid
    !real, intent(out)                                        :: deltaB0
    integer, intent(in)                                       :: sps
+   real, intent(in)                                       :: B00
    !real, intent(in)                                        :: df0de, df0dpsi
    real, parameter :: g_mks = 9.8067 ! earth avg surf grav accel in m/s/s
    type(elfield), target  :: fh_hop
@@ -1507,12 +1509,13 @@ subroutine fdot(x, v, w, dxdt, dvdt, dwdt, dEpdt, itri, kel, f00, ierr, sps)
    svec = (Jcyl + BxgrdB*B0inv)*B0inv
 
    Bstar0 = B0_cyl + (v(1)/qm_ion(sps))*svec
-   !Bstar = B_cyl
+   !Bstar0 = B0_cyl ! fluid particle
    Bss0 = dot_product(Bstar0, bhat0)
 
    svec0 = v(2)*gradB0 ! - g_mks/qm_ion
    !svec = svec - E_cyl  ! - g_mks/qm_ion
    !svec = v(2)*gradB0  ! - g_mks/qm_ion
+   !svec0 = 0. ! fluid particle
 
    dxdt0(1) = (v(1)*Bstar0(1) + bhat0(2)*svec0(3) - bhat0(3)*svec0(2))/Bss0
    dxdt0(2) = (v(1)*Bstar0(2) + bhat0(3)*svec0(1) - bhat0(1)*svec0(3))/Bss0
@@ -1520,7 +1523,7 @@ subroutine fdot(x, v, w, dxdt, dvdt, dwdt, dEpdt, itri, kel, f00, ierr, sps)
 
    dvdt0(1) = -qm_ion(sps)*dot_product(Bstar0, svec0)/Bss0
    !dvdt0(1) = -qm_ion*dot_product(bhat0, svec)
-   !dvdt(1) = 0
+   !dvdt0(1) = 0 ! fluid particle
    dvdt0(2) = 0. !magnetic moment is conserved.
 
    !call getBcylprime(x, elfieldcoefs(itri), geomterms, B_cyl, deltaB, dBdR, dBdphi, dBdz, .false.)
@@ -1564,11 +1567,13 @@ subroutine fdot(x, v, w, dxdt, dvdt, dwdt, dEpdt, itri, kel, f00, ierr, sps)
    end if
 
    Bstar = B_cyl + (v(1)/qm_ion(sps))*svec
-   !Bstar = B_cyl
+   !Bstar = B_cyl ! fluid particle
    Bss = dot_product(Bstar, bhat)
 
    svec = v(2)*gradB ! - g_mks/qm_ion
    svec = svec - E_cyl  ! - g_mks/qm_ion
+   !svec = -E_cyl ! fluid particle
+   !svec = 0.
    !svec = v(2)*gradB0  ! - g_mks/qm_ion
 
    if (particle_linear_particle .eq. 1) then
@@ -1587,7 +1592,7 @@ subroutine fdot(x, v, w, dxdt, dvdt, dwdt, dEpdt, itri, kel, f00, ierr, sps)
 
       dvdt(1) = -qm_ion(sps)*dot_product(Bstar, svec)/Bss
       !dvdt(1) = -qm_ion*dot_product(bhat0, svec)
-      !dvdt(1) = 0
+      !dvdt(1) = 0 ! fluid particle
       dvdt(2) = 0. !magnetic moment is conserved.
    end if
 
@@ -1635,6 +1640,7 @@ subroutine fdot(x, v, w, dxdt, dvdt, dwdt, dEpdt, itri, kel, f00, ierr, sps)
    gradrho(2) = Rinv*dot_product(elfieldcoefs(itri)%rho, geomterms%dphi)
 #endif
    call evalf0(x, v(1), sqrt(2.0*qm_ion(sps)*v(2)/B0inv), elfieldcoefs(itri), geomterms, sps, f0, gradcoef, df0de, df0dxi)
+   !call evalf0(x, v(1), sqrt(2.0*qm_ion(sps)*v(2)*B00), elfieldcoefs(itri), geomterms, sps, f0, gradcoef, df0de, df0dxi) ! fluid particle
    gradf = gradrho*gradcoef
    if (iconst_f0_particle.eq.1) then
       gradf = gradf*f0/f00
@@ -1714,8 +1720,8 @@ subroutine fdot(x, v, w, dxdt, dvdt, dwdt, dEpdt, itri, kel, f00, ierr, sps)
       dxdt = dxdt0
       dvdt = dvdt0
    end if
-   ! dxdt=0.
-   ! dvdt=0.
+   !dxdt=0.
+   !dvdt=0.
    dxdt(2) = Rinv*dxdt(2)  !phi-dot = (v_phi / R) for cylindrical case
 #ifdef USEST
    dxdt(1) = dxdt(1)-dRdphi*dxdt(2)
