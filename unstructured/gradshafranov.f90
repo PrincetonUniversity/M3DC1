@@ -1595,7 +1595,7 @@ endif
         do i=1, npoints
            call calc_fdensity(ps079(i,:),tf,x_79(i),z_79(i),izone)
            call calc_ftemp(ps079(i,:),tf2,x_79(i),z_79(i),izone)
-           if (fast_ion_dist==1) then
+           if ((fast_ion_dist==1).or.(fast_ion_dist==0)) then
               temp79a(i) =tf*tf2* 1.6022e-12 / (b0_norm**2/(4.*pi*n0_norm))!rsae
            else
               crit_v=sqrt(2*tf2*1.6e-19/fast_ion_mass/m_p)
