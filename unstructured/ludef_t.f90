@@ -606,8 +606,7 @@ subroutine vorticity_nolin(trialx, r4term)
                  + v1p(trialx,pfper79) -v1pbb(trialx,pfper79,b2i79(:,OP_1)) &
                  ) &
                  +( &
-                 (1-particle_couple)*v1pbb(trialx,pfpar79-pfper79,b2i79(:,OP_1))+ &
-                       0.5*v1pbb(trialx,b2i79,pfpar79(:,OP_1)-pfper79(:,OP_1))    & !parallel term
+                 (1-particle_couple)*v1pbb(trialx,pfpar79-pfper79,b2i79(:,OP_1))+0.5*v1pbb(trialx,b2i79,pfpar79(:,OP_1)-pfper79(:,OP_1))    & !parallel term
                 -0.5*v1p_2(trialx,b2i79,(pfpar79(:,OP_1)-pfper79(:,OP_1))/b2i79(:,OP_1)) &
                 +0.5*v1pbb(trialx,b2i79,pfpar79(:,OP_1)-pfper79(:,OP_1)) &
                 + v1jxb(trialx,(pfpar79(:,OP_1)-pfper79(:,OP_1))*b2i79(:,OP_1)) &
@@ -620,8 +619,7 @@ subroutine vorticity_nolin(trialx, r4term)
                  + v1p(trialx,piper79) -v1pbb(trialx,piper79,b2i79(:,OP_1)) &
                  ) &
                  +( &
-                 (1-particle_couple)*v1pbb(trialx,pipar79-piper79,b2i79(:,OP_1))+ &
-                       0.5*v1pbb(trialx,b2i79,pipar79(:,OP_1)-piper79(:,OP_1))    & !parallel term
+                 (1-particle_couple)*v1pbb(trialx,pipar79-piper79,b2i79(:,OP_1))+0.5*v1pbb(trialx,b2i79,pipar79(:,OP_1)-piper79(:,OP_1))    & !parallel term
                 -0.5*v1p_2(trialx,b2i79,(pipar79(:,OP_1)-piper79(:,OP_1))/b2i79(:,OP_1)) &
                 +0.5*v1pbb(trialx,b2i79,pipar79(:,OP_1)-piper79(:,OP_1)) &
                 + v1jxb(trialx,(pipar79(:,OP_1)-piper79(:,OP_1))*b2i79(:,OP_1)) &
@@ -1167,8 +1165,7 @@ subroutine axial_vel_nolin(trialx, r4term)
                  + v2p(trialx,pfper79) -v2pbb(trialx,pfper79,b2i79(:,OP_1)) &
                  ) &
                  +( &
-                 (1-particle_couple)*v2pbb(trialx,pfpar79-pfper79,b2i79(:,OP_1))+ &
-                       0.5*v2pbb(trialx,b2i79,pfpar79(:,OP_1)-pfper79(:,OP_1))    & !parallel term
+                 (1-particle_couple)*v2pbb(trialx,pfpar79-pfper79,b2i79(:,OP_1))+0.5*v2pbb(trialx,b2i79,pfpar79(:,OP_1)-pfper79(:,OP_1))    & !parallel term
                 -0.5*v2p_2(trialx,b2i79,(pfpar79(:,OP_1)-pfper79(:,OP_1))/b2i79(:,OP_1)) &
                 +0.5*v2pbb(trialx,b2i79,pfpar79(:,OP_1)-pfper79(:,OP_1)) &
                 + v2jxb(trialx,(pfpar79(:,OP_1)-pfper79(:,OP_1))*b2i79(:,OP_1)) &
@@ -1181,8 +1178,7 @@ subroutine axial_vel_nolin(trialx, r4term)
                  + v2p(trialx,piper79) -v2pbb(trialx,piper79,b2i79(:,OP_1)) &
                  ) &
                  +( &
-                 (1-particle_couple)*v2pbb(trialx,pipar79-piper79,b2i79(:,OP_1))+ &
-                       0.5*v2pbb(trialx,b2i79,pipar79(:,OP_1)-piper79(:,OP_1))    & !parallel term
+                 (1-particle_couple)*v2pbb(trialx,pipar79-piper79,b2i79(:,OP_1))+0.5*v2pbb(trialx,b2i79,pipar79(:,OP_1)-piper79(:,OP_1))    & !parallel term
                 -0.5*v2p_2(trialx,b2i79,(pipar79(:,OP_1)-piper79(:,OP_1))/b2i79(:,OP_1)) &
                 +0.5*v2pbb(trialx,b2i79,pipar79(:,OP_1)-piper79(:,OP_1)) &
                 + v2jxb(trialx,(pipar79(:,OP_1)-piper79(:,OP_1))*b2i79(:,OP_1)) &
@@ -1781,8 +1777,7 @@ subroutine compression_nolin(trialx, r4term)
                  + v3p(trialx,pfper79) -v3pbb(trialx,pfper79,b2i79(:,OP_1)) &
                  ) &
                  +( &
-                 (1-particle_couple)*v3pbb(trialx,pfpar79-pfper79,b2i79(:,OP_1))+ &
-                       0.5*v3pbb(trialx,b2i79,pfpar79(:,OP_1)-pfper79(:,OP_1))    & !parallel term
+                 (1-particle_couple)*v3pbb(trialx,pfpar79-pfper79,b2i79(:,OP_1))+0.5*v3pbb(trialx,b2i79,pfpar79(:,OP_1)-pfper79(:,OP_1))    & !parallel term
                 -0.5*v3p_2(trialx,b2i79,(pfpar79(:,OP_1)-pfper79(:,OP_1))/b2i79(:,OP_1)) &
                 +0.5*v3pbb(trialx,b2i79,pfpar79(:,OP_1)-pfper79(:,OP_1)) &
                 + v3jxb(trialx,(pfpar79(:,OP_1)-pfper79(:,OP_1))*b2i79(:,OP_1)) &
@@ -1795,8 +1790,7 @@ subroutine compression_nolin(trialx, r4term)
                  + v3p(trialx,piper79) -v3pbb(trialx,piper79,b2i79(:,OP_1)) &
                  ) &
                  +( &
-                 (1-particle_couple)*v3pbb(trialx,pipar79-piper79,b2i79(:,OP_1))+ &
-                       0.5*v3pbb(trialx,b2i79,pipar79(:,OP_1)-piper79(:,OP_1))    & !parallel term
+                 (1-particle_couple)*v3pbb(trialx,pipar79-piper79,b2i79(:,OP_1))+0.5*v3pbb(trialx,b2i79,pipar79(:,OP_1)-piper79(:,OP_1))    & !parallel term
                 -0.5*v3p_2(trialx,b2i79,(pipar79(:,OP_1)-piper79(:,OP_1))/b2i79(:,OP_1)) &
                 +0.5*v3pbb(trialx,b2i79,pipar79(:,OP_1)-piper79(:,OP_1)) &
                 + v3jxb(trialx,(pipar79(:,OP_1)-piper79(:,OP_1))*b2i79(:,OP_1)) &
