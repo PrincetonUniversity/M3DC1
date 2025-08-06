@@ -324,6 +324,7 @@ module basic
   integer :: ikinetic_vpar
   real :: vpar_reduce
   real :: smooth_par, smooth_pres
+  integer :: itrace, trace_sample_op, npart_trace_input
 #endif
 
   integer :: iohmic_heating  ! 1 = include ohmic heating

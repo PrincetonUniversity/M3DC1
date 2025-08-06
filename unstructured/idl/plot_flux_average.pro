@@ -215,7 +215,8 @@ pro plot_flux_average, field, time, filename=filename, complex=complex, $
        endif else begin
            plot, flux, fa, xtitle=xtitle, linestyle=ls, $
              ytitle=ytitle, title=title, xlog=xlog, ylog=ylog, /nodata, $
-             color=color(0), _EXTRA=extra
+             _EXTRA=extra
+;              color=color(0), _EXTRA=extra
            oplot, flux, fa, color=colors, linestyle=ls, _EXTRA=extra
        endelse
    endelse

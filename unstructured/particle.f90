@@ -953,7 +953,7 @@ subroutine init_particles(lrestart, ierr)
       end do
 
       !!! add tracing particles at the end of pdata_local before collecting all particle information
-      call init_tracing_particles_local(pdata_local,locparts)
+      if( (itrace .eq. 1) .and. (.not. allocated(pdata_trace_id)) ) call init_tracing_particles_local(pdata_local,locparts)
 
       allocate (recvcounts(ncols))
       allocate (displs(ncols))
@@ -1077,21 +1077,22 @@ subroutine init_tracing_particles_local(pdata_local, locparts)
 
    if(myrank.eq.0 .and. iprint.ge.1) print *, 'Begin initializing tracing particles'
 
-   npart_trace = 9
-
    !!! sample option: 1. uniformly select sample elements; 2. specify particle information
    sample_op = 2
+   sample_op = trace_sample_op
 
-   !!! initialize particle tracing id array
-   allocate(pdata_trace_id(npart_trace),pdata_trace_id_tmp(npart_trace))
-   pdata_trace_id(:) = 0
-   pdata_trace_id_tmp(:) = 0
- 
 if(sample_op==1)then
 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 !!! Sampling Method 1: 
 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 
+   npart_trace = npart_trace_input ! by default, we sample 9 input tracing particles
+   if(myrank.eq.0 .and. iprint.ge.1) print *,"npart_trace_input = ",npart_trace_input
+
+   !!! initialize particle tracing id array
+   allocate(pdata_trace_id(npart_trace))
+   pdata_trace_id(:) = 0
+ 
    !!! uniformly sample the traced id through all elements.
    if(myrank==0)then   
       ipar = floor(nelms_global/(npart_trace-1.0))
@@ -1121,7 +1122,14 @@ elseif(sample_op==2) then
 
 !!! for particle tracing test only:
    !!! use the input particle information
+   npart_trace = 9
    pdims_readin = 5
+
+   !!! initialize particle tracing id array
+   allocate(pdata_trace_id(npart_trace),pdata_trace_id_tmp(npart_trace))
+   pdata_trace_id(:) = 0
+   pdata_trace_id_tmp(:) = 0
+   
    allocate(pdata_trace_readin(pdims_readin,npart_trace))
 
    !!! input particle information: (r, theta, z, vpara, vperp)
@@ -3648,9 +3656,10 @@ subroutine hdf5_write_particles(ierr)
 
 
    !!! output traced particle global id's, i.e. {pdata%gid}.
-   call write_int_attr(part_root_id, "npart_trace", npart_trace, ierr)
-   call write_int_attr(part_root_id, "pdims_trace", pdims_trace, ierr)
-   call write_vec_attr_int(part_root_id, "pdata_trace_id", pdata_trace_id, npart_trace, ierr)
+   if (itrace .eq. 1) then
+      call write_int_attr(part_root_id, "npart_trace", npart_trace, ierr)
+      call write_int_attr(part_root_id, "pdims_trace", pdims_trace, ierr)
+      call write_vec_attr_int(part_root_id, "pdata_trace_id", pdata_trace_id, npart_trace, ierr)
 
 !    if(myrank==0)then
 ! !!! for particle tracing test only:
@@ -3660,6 +3669,7 @@ subroutine hdf5_write_particles(ierr)
 !       call flush(600)
 ! !!!
 !    endif   
+   endif
 
 
 
@@ -3856,13 +3866,15 @@ subroutine hdf5_read_particles(filename, ierr)
    call read_vec_attr(part_root_id, "particle nrmfac", nrmfac, 2, ierr)
 
 
-   !!! read traced particle global id's, i.e. {pdata%gid}. 
-   npart_trace=0
-   call read_int_attr(part_root_id, "npart_trace", npart_trace, ierr)
-   pdims_trace=0
-   call read_int_attr(part_root_id, "pdims_trace", pdims_trace, ierr)
-   if(.not. allocated(pdata_trace_id)) allocate(pdata_trace_id(npart_trace))
-   call read_vec_attr_int(part_root_id, "pdata_trace_id", pdata_trace_id, npart_trace, ierr)
+   !!! read traced particle global id's, i.e. {pdata%gid}.
+   if (itrace .eq. 1) then 
+      npart_trace=0
+      call read_int_attr(part_root_id, "npart_trace", npart_trace, ierr)
+      pdims_trace=0
+      call read_int_attr(part_root_id, "pdims_trace", pdims_trace, ierr)
+      if(.not. allocated(pdata_trace_id)) allocate(pdata_trace_id(npart_trace))
+      call read_vec_attr_int(part_root_id, "pdata_trace_id", pdata_trace_id, npart_trace, ierr)
+   endif
  
 
    !Open the particle group for reading

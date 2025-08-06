@@ -1286,6 +1286,15 @@ subroutine set_defaults
        "Smoothing factor for particle pressure", particle_grp)
   call add_var_double("smooth_pres", smooth_pres, 1.e-8, &
        "Smoothing factor for electron pressure used for calculating parallel electric field", particle_grp)
+
+  call add_var_int("itrace", itrace, 0, &
+       "1: trace sampled particles for time history", particle_grp)
+  call add_var_int("trace_sample_op", trace_sample_op, 1, &
+       "sample traced partilces, 1: uniformly through all mesh elements; &
+        2: with default position and velocity; 3: with input file", particle_grp)
+  call add_var_int("npart_trace_input", npart_trace_input, 9, &
+       "1: trace sampled particles for time history", particle_grp)
+
 #endif
 
   ! Deprecated

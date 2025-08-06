@@ -33,7 +33,7 @@ end
 
 function read_pscalar, scalarname, filename=filename, title=title, $
                       symbol=symbol, units=units, time=time, final=final, $
-                      integrate=integrate, ipellet=ipellet, _EXTRA=extra
+                      integrate=integrate, ipellet=ipellet, pid=pid, _EXTRA=extra
 
    if(n_elements(scalarname) eq 0) then begin
        print, "Error: no scalar name provided"
@@ -44,6 +44,10 @@ function read_pscalar, scalarname, filename=filename, title=title, $
    
    if(n_elements(ipellet) eq 0) then ipellet=0
 
+   if(n_elements(scalarname) eq 0) then scalarname = "r"
+
+   if(n_elements(pid) eq 0) then pid=0
+   
    if(n_elements(filename) gt 1) then begin
        data = fltarr(n_elements(filename))
        for i=0, n_elements(filename)-1 do begin
@@ -53,6 +57,7 @@ function read_pscalar, scalarname, filename=filename, title=title, $
        end
        return, data
    endif
+
 
 ; ;;; C1.h5 read test
 ;    s = read_scalars(filename=filename)
@@ -66,14 +71,14 @@ function read_pscalar, scalarname, filename=filename, title=title, $
    s = read_pscalars(filename=filename)
    n = tag_names(s)
    smatch = where(strcmp(n, scalarname, /fold_case) eq 1,scount)
-   print, 'tag_names = ', n
+   ;print, 'tag_names = ', n
 
    time = s.time._data
    ; print,"times_size = ",size(time,/DIMENSIONS)
    ; print,"time = ",time
    dims = size(time,/DIMENSIONS)
    ntimemax = dims[0]
-   print,"ntimemax = ",ntimemax
+   ;print,"ntimemax = ",ntimemax
 
 
 ; ;;; test output in time slice format  
@@ -102,18 +107,35 @@ function read_pscalar, scalarname, filename=filename, title=title, $
    ENDFOR
 
 
-   plot_id = 3 ; id-1
-   ; use reform to remove all dims of size 1
-   rdata = reform(pdata[0,plot_id,*])
-   tdata = reform(pdata[1,plot_id,*])
-   zdata = reform(pdata[2,plot_id,*])
-   ;print,"rdata_size",size(rdata,/DIMENSIONS)
-   ;print,"rdata = ",rdata
+   select_id = pid ; id-1
+   
+   if(scalarname eq "r") then begin
+       ; use reform to remove all dims of size 1
+       rdata = reform(pdata[0,select_id,*])
+       ;print,"rdata_size",size(rdata,/DIMENSIONS)
+       ;print,"rdata = ",rdata
+       print,"reading R data"
+       return, rdata
+   endif
 
-   print,"plot RZ trajectory of traced particle, #",plot_id
-   title_str = 'RZ trajectory of traced particle, #'+STRTRIM(STRING(floor(plot_id+1)),2)
-   ; PSYM sets marker style, COLOR sets marker color
-   PLOT, rdata, zdata, TITLE=title_str, XTITLE='R axis', YTITLE='Z axis';, PSYM=4, COLOR="red"; , LINESTYLE=1
+   if(scalarname eq "theta") then begin
+       ; use reform to remove all dims of size 1
+       tdata = reform(pdata[1,select_id,*])
+       print,"reading Theta data"
+       return, tdata
+   endif
+
+   if(scalarname eq "z") then begin
+       ; use reform to remove all dims of size 1
+       zdata = reform(pdata[2,select_id,*])
+       print,"reading Z data"
+       return, zdata
+   endif
+
+;     print,"plot RZ trajectory of traced particle, #",select_id
+;    title_str = 'RZ trajectory of traced particle, #'+STRTRIM(STRING(floor(select_id+1)),2)
+;    ; PSYM sets marker style, COLOR sets marker color
+;    PLOT, rdata, zdata, TITLE=title_str, XTITLE='R axis', YTITLE='Z axis';, PSYM=4, COLOR="red"; , LINESTYLE=1
  
 
 ; ;;; test output in time history format
@@ -146,7 +168,7 @@ pro plot_pscalar, scalarname, x, filename=filename, names=names, $
                  cgs=cgs,mks=mks,linestyle=ls, color=co, outfile=outfile, $
                  smooth=sm, compensate_renorm=comp, integrate=integrate, $
                  xscale=xscale, ipellet=ipellet, factor=fac, versus=versus, $
-                 xabs=xabs, _EXTRA=extra
+                 xabs=xabs, pid=pid, _EXTRA=extra
 
   if(n_elements(filename) eq 0) then filename='C1.h5'
   if(n_elements(xscale) eq 0) then xscale=1.
@@ -154,22 +176,124 @@ pro plot_pscalar, scalarname, x, filename=filename, names=names, $
 
   if(n_elements(names) eq 0) then names=filename
 
-  nfiles = n_elements(filename)
+  if(n_elements(scalarname) eq 0) then scalarname = "rz"
 
+  if(n_elements(pid) eq 0) then pid=1
+  
+  ; idl index starts from 0
+  pid = pid-1
+  
+  
+  nfiles = n_elements(filename)
 ;   data = read_pscalar(scalarname, filename=filename, time=time, ipellet=ipellet, $
 ;                      title=title, symbol=symbol, units=units, cgs=cgs, mks=mks, integrate=integrate)
-  scalarname = "rz"
- 
-  data = read_pscalar(scalarname, filename=filename, _EXTRA=extra)
-;   s = read_pscalars(filename=filename)
-;   n = tag_names(s)
-;   smatch = where(strcmp(n, scalarname, /fold_case) eq 1,scount)
-;   print, 'tag_names = ', n
- 
-;  xtitle = make_label('!6Frequency!X', t0=-1, cgs=cgs, mks=mks, _EXTRA=extra)
 
-;  data = power_spectrum(data, frequency=tdata, t=max(time))
+      rdata = read_pscalar("r", filename=filename, pid=pid, _EXTRA=extra)
+      rtitle = "R axis"
+      tdata = read_pscalar("theta", filename=filename, pid=pid, _EXTRA=extra)
+      ttitle = "Theta axis"
+      zdata = read_pscalar("z", filename=filename, pid=pid, _EXTRA=extra)
+      ztitle = "Z axis"
  
+  ; Open the file for writing (write mode)
+  unit = 13
+  OPENW, unit, 'test_particle_trajectory.out'
+  
+  ; Loop through the data and write each row
+  FOR i = 0, N_ELEMENTS(rdata) - 1 DO BEGIN
+      PRINTF, unit, FORMAT='(E16.8, E16.8, E16.8)', rdata[i], tdata[i], zdata[i]
+  END
+  
+  ; Close the file
+  CLOSE, unit
+
+
+  if(scalarname eq "rz") then begin
+      xdata = read_pscalar("r", filename=filename, pid=pid, _EXTRA=extra)
+      xtitle = "R axis"
+      ydata = read_pscalar("z", filename=filename, pid=pid, _EXTRA=extra)
+      ytitle = "Z axis"
+
+      plot_dims = 2
+  endif
+
+  if(scalarname eq "rtheta") then begin
+      rdata = read_pscalar("r", filename=filename, pid=pid, _EXTRA=extra)
+      rtitle = "R axis"
+      tdata = read_pscalar("theta", filename=filename, pid=pid, _EXTRA=extra)
+      ttitle = "Theta axis"
+
+      ; Convert cylindrical coordinates (r, theta, z) to Cartesian (x, y, z)
+      xdata = rdata * COS(tdata)
+      xtitle = "X axis"
+      ;print,"xdata_size",size(xdata,/DIMENSIONS)
+      ;print,"xdata = ",xdata
+      ydata = rdata * SIN(tdata)
+      ytitle = "Y axis"
+
+      plot_dims = 2
+;       title_str = 'R-Phi Trajectory of traced particle, #'+STRTRIM(STRING(floor(pid+1)),2)
+;       ; PSYM sets marker style, COLOR sets marker color
+;       pplot = POLARPLOT(xdata, ydata, TITLE=title_str, XTITLE=xtitle, YTITLE=ytitle) ;, PSYM=4, COLOR="red"; , LINESTYLE=1
+  endif
+
+  if(scalarname eq "thetaz") then begin
+      xdata = read_pscalar("theta", filename=filename, pid=pid, _EXTRA=extra)
+      xtitle = "Theta axis"
+      ydata = read_pscalar("z", filename=filename, pid=pid, _EXTRA=extra)
+      ytitle = "Z axis"
+
+      plot_dims = 2
+  endif
+
+  if(scalarname eq "rtz") then begin   
+      rdata = read_pscalar("r", filename=filename, pid=pid, _EXTRA=extra)
+      rtitle = "R axis"
+      tdata = read_pscalar("theta", filename=filename, pid=pid, _EXTRA=extra)
+      ttitle = "Theta axis"
+      zdata = read_pscalar("z", filename=filename, pid=pid, _EXTRA=extra)
+      ztitle = "Z axis"
+   
+      ; Convert cylindrical coordinates (r, theta, z) to Cartesian (x, y, z)
+      xdata = rdata * COS(tdata)
+      xtitle = "X axis"
+      ;print,"xdata_size",size(xdata,/DIMENSIONS)
+      ;print,"xdata = ",xdata
+      ydata = rdata * SIN(tdata)
+      ytitle = "Y axis"
+
+      plot_dims = 3
+  endif
+
+  if(plot_dims eq 3) then begin  
+
+;       x = FINDGEN(100) / 10.0
+;       y = SIN(x)
+;       z = COS(x)
+; 
+;       my3DPlot = PLOT3D(x, y, z)
+
+      print,"Real Trajectory of traced particle, #",pid+1
+      title_str = '3D Trajectory of traced particle, #'+STRTRIM(STRING(floor(pid+1)),2)
+      ; Create a 3D plot of the curve
+      my3DPlot = PLOT3D(xdata, ydata, zdata) ;, TITLE=title_str, XTITLE=xtitle, YTITLE=ytitle, ZTITLE=ztitle )
+  endif else if(plot_dims eq 2) then begin
+   ;   s = read_pscalars(filename=filename)
+   ;   n = tag_names(s)
+   ;   smatch = where(strcmp(n, scalarname, /fold_case) eq 1,scount)
+   ;   print, 'tag_names = ', n
+    
+   ;  xtitle = make_label('!6Frequency!X', t0=-1, cgs=cgs, mks=mks, _EXTRA=extra)
+   
+   ;  data = power_spectrum(data, frequency=tdata, t=max(time))
+   
+      print,"Trajectory of traced particle, #",pid+1
+      title_str = 'Trajectory of traced particle, #'+STRTRIM(STRING(floor(pid+1)),2)
+      ; PSYM sets marker style, COLOR sets marker color
+      PLOT, xdata, ydata, TITLE=title_str, XTITLE=xtitle, YTITLE=ytitle, PSYM=3, LINESTYLE=0 ;, PSYM=4, COLOR="red"; , LINESTYLE=1
+  endif
+
+;
 end
 
 

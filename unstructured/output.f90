@@ -94,7 +94,7 @@ contains
 #endif
 
 #ifdef USEPARTICLES
-       if (kinetic==1) call hdf5_write_particles_scalar(ier)
+       if (kinetic==1 .and. itrace==1) call hdf5_write_particles_scalar(ier)
 #endif
  
     if(myrank.eq.0 .and. itimer.eq.1) then
