@@ -634,7 +634,7 @@ subroutine init_particles(lrestart, ierr)
    if (fast_ion_dist.eq.0) then
       num_energy=0
       call read_ascii_column('ep_energy_array', energy_array, num_energy, icol=1)
-       !energy_array=energy_array*0.7855
+        !energy_array=energy_array*1.7
       num_pitch=0
       call read_ascii_column('ep_pitch_array', pitch_array, num_pitch, icol=1)
       num_r=0
@@ -707,9 +707,9 @@ subroutine init_particles(lrestart, ierr)
          call update_geom_terms_st(geomterms, elfieldcoefs(itri), .false.)
 #endif
          if (sps==1) then
-            f_mesh = dot_product(elfieldcoefs(itri)%nfi,geomterms%g)
+            f_mesh = dot_product(elfieldcoefs(itri)%nfi,geomterms%g)/nfi_axis
          else
-            f_mesh = dot_product(elfieldcoefs(itri)%nf,geomterms%g)
+            f_mesh = dot_product(elfieldcoefs(itri)%nf,geomterms%g)/nf_axis
          endif
 #ifdef USEST
          !npar_ratio_local=(x_max-x_min)*(dot_product(elfieldcoefs(itri)%rst,geomterms%g)/R_axis)/(di/di_axis)*(z_max-z_min)*f_mesh*2/nplanes
@@ -760,9 +760,9 @@ subroutine init_particles(lrestart, ierr)
          call update_geom_terms_st(geomterms, elfieldcoefs(itri), .false.)
 #endif
          if (sps==1) then
-            f_mesh = dot_product(elfieldcoefs(itri)%nfi,geomterms%g)
+            f_mesh = dot_product(elfieldcoefs(itri)%nfi,geomterms%g)/nfi_axis
          else
-            f_mesh = dot_product(elfieldcoefs(itri)%nf,geomterms%g)
+            f_mesh = dot_product(elfieldcoefs(itri)%nf,geomterms%g)/nf_axis
          endif
 #ifdef USEST
          npar_local=int(num_par_max*area*(dot_product(elfieldcoefs(itri)%rst,geomterms%g)/R_axis)/(di/di_axis)&
@@ -772,6 +772,7 @@ subroutine init_particles(lrestart, ierr)
 #endif
          ipar = 1
          do while (ipar<=npar_local)
+         !do ipar=1,npar_local
             call random_number(ran_temp)
 #ifdef USEST
             x_temp = ran_temp*(x_max-x_min)+x_min
@@ -1313,11 +1314,12 @@ subroutine fdot(x, v, w, dxdt, dvdt, dwdt, dEpdt, itri, kel, f00, ierr, sps, B00
    real, dimension(3) :: bhat, bhat0, svec, svec0, Bstar, Bstar0
    real, dimension(vspdims)                                  :: v2, vs, vu
    real, dimension(3) :: dBdR, dBdphi, dBdz, dB0dR, dB0dphi, dB0dz, dB1dR, dB1dphi, dB1dz
+   real, dimension(3) :: dB0dR2, dB0dphi2, dB0dz2, dB1dR2, dB1dphi2, dB1dz2
    real, dimension(3) :: gradB0, gradB, gradB02, gradB1, gradB12, dEdR, dEdphi, dEdz
    real, dimension(3) :: weqv0, weqv1, weqvD, weqvD1, gradpsi, gradf, gradpe, gradrho
    vectype, dimension(3) :: temp
    real f0, T0, tmp1, tmp2, tmp3, tmp4, tmp5, df0de, df0dxi, spd, gradcoef, dB1, dB12, j0xb, ne0, te0, dBdt, dEdt, dxidt
-   real :: Rinv, B0inv, Binv, Bss, Bss0
+   real :: Rinv, Rinv2, B0inv, Binv, Bss, Bss0
    real :: dRdphi, dZdphi, di, dxdR, dxdZ, dydR, dydZ
    real, dimension(3)                            :: dxdt2, dxdt0
    real, dimension(vspdims)                      :: dvdt0, weqa1
@@ -1356,22 +1358,21 @@ subroutine fdot(x, v, w, dxdt, dvdt, dwdt, dEpdt, itri, kel, f00, ierr, sps, B00
 
    !Calculate time derivatives
    !call getBcyl(x, fhptr, geomterms, B_cyl, deltaB, gradB0)
-   call getBcylprime(x, elfieldcoefs(itri), geomterms, B0_cyl, deltaB, dB0dR, dB0dphi, dB0dz, dB1dR, dB1dphi, dB1dz)
-   B_cyl = B0_cyl + deltaB
-   dBdR = dB0dR + dB1dR
-   dBdphi = dB0dphi + dB1dphi
-   dBdz = dB0dz + dB1dz
-   !call getBcyl(x, elfieldcoefs(itri), geomterms, B_cyl, deltaB, gradB0, gradB1, dB1)
-   !write(0,*) B_cyl(1), B_cyl(1), B_cyl(2)
+   call getBcyl(x, elfieldcoefs(itri), geomterms, B0_cyl, deltaB, gradB0, gradB1, dB1)
    B0inv = 1.0/sqrt(dot_product(B0_cyl, B0_cyl))  !1/magnitude of B
    bhat0 = B0_cyl*B0inv                         !Unit vector in b direction
-   Binv = 1.0/sqrt(dot_product(B_cyl, B_cyl))  !1/magnitude of B
-   bhat = B_cyl*Binv                         !Unit vector in b direction
 
    if (gyroaverage_particle.eq.1) then
       x2 = x
       deltaB = 0.
       E_cyl = 0.
+      B0_cyl = 0.
+      dB0dR = 0.
+      dB0dphi = 0.
+      dB0dz = 0.
+      dB1dR = 0.
+      dB1dphi = 0.
+      dB1dz = 0.
       gradpe = 0.
       j0xb = 0.
       do ipoint = 1, 4
@@ -1380,7 +1381,7 @@ subroutine fdot(x, v, w, dxdt, dvdt, dwdt, dEpdt, itri, kel, f00, ierr, sps, B00
             ran_temp = mod(x(1)*1.e6, 10.)/10.*twopi
             lr(1) = cos(ran_temp)
             lr(3) = sin(ran_temp)
-            lr(2) = -(lr(1)*bhat(1) + lr(3)*bhat(3))/bhat(2)
+            lr(2) = -(lr(1)*bhat0(1) + lr(3)*bhat0(3))/bhat0(2)
             lr = lr/sqrt(dot_product(lr, lr))*sqrt(2.0*qm_ion(sps)*v(2)/B0inv)/qm_ion(sps)*B0inv
             lr(2) = lr(2)/x2(1)
             x2 = x2 + lr
@@ -1389,9 +1390,9 @@ subroutine fdot(x, v, w, dxdt, dvdt, dwdt, dEpdt, itri, kel, f00, ierr, sps, B00
          case (3)
             x2 = x2 + lr
             lr(2) = lr(2)*x2(1)
-            lr2(1) = lr(2)*bhat(3) - lr(3)*bhat(2)
-            lr2(2) = (lr(3)*bhat(1) - lr(1)*bhat(3))/x2(1)
-            lr2(3) = lr(1)*bhat(2) - lr(2)*bhat(1)
+            lr2(1) = lr(2)*bhat0(3) - lr(3)*bhat0(2)
+            lr2(2) = (lr(3)*bhat0(1) - lr(1)*bhat0(3))/x2(1)
+            lr2(3) = lr(1)*bhat0(2) - lr(2)*bhat0(1)
             x2 = x2 + lr2
          case (4)
             x2 = x2 - 2*lr2
@@ -1402,20 +1403,43 @@ subroutine fdot(x, v, w, dxdt, dvdt, dwdt, dEpdt, itri, kel, f00, ierr, sps, B00
          if (ierr .ne. 0) then
             return
          end if
+#ifdef USEST
+         !Get electric field components
+         Rinv2 = 1.0/dot_product(elfieldcoefs(ipoint)%rst,geomterms2%g)
+         !Rinv = 1.0
+         !dRdphi = dot_product(elfieldcoefs(itri)%rst,geomterms%dphi)
+         !dZdphi = dot_product(elfieldcoefs(itri)%zst,geomterms%dphi)
+         !di = 1./(dot_product(elfieldcoefs(itri)%rst,geomterms%dr)*dot_product(elfieldcoefs(itri)%zst,geomterms%dz) -&
+         !   dot_product(elfieldcoefs(itri)%zst,geomterms%dr)*dot_product(elfieldcoefs(itri)%rst,geomterms%dz))
+         !dxdR = di*dot_product(elfieldcoefs(itri)%zst,geomterms%dz)
+         !dxdZ = -di*dot_product(elfieldcoefs(itri)%rst,geomterms%dz)
+         !dydR = -di*dot_product(elfieldcoefs(itri)%zst,geomterms%dr)
+         !dydZ = di*dot_product(elfieldcoefs(itri)%rst,geomterms%dr)
+         !call update_geom_terms_st(geomterms, elfieldcoefs(itri), vspdims.eq.2)
+#else
+         Rinv2 = 1.0/x2(1)
+#endif
          call getEcyl(x2, elfieldcoefs(kel(ipoint)), geomterms2, E_cyl2)
-         call getBcyl(x2, elfieldcoefs(kel(ipoint)), geomterms2, B_cyl2, deltaB2, gradB02, gradB12, dB12)
+         !call getBcyl(x2, elfieldcoefs(kel(ipoint)), geomterms2, B_cyl2, deltaB2, gradB02, gradB12, dB12)
+         call getBcylprime(x2, elfieldcoefs(kel(ipoint)), geomterms2, B_cyl2, deltaB2, dB0dR2, dB0dphi2, dB0dz2, dB1dR2, dB1dphi2, dB1dz2)
          !call getBcyl_last(x2, elfieldcoefs(kel(ipoint)), geomterms2, B_cyl2, deltaB_last2)
          E_cyl = E_cyl + E_cyl2
+         B0_cyl = B0_cyl + B_cyl2
          deltaB = deltaB + deltaB2
-         gradB1 = gradB1 + gradB12
-         dB1 = dB1 + dB12
+         dB0dR = dB0dR + dB0dR2
+         dB0dphi = dB0dphi + dB0dphi2
+         dB0dz = dB0dz + dB0dz2
+         dB1dR = dB1dR + dB1dR2
+         dB1dphi = dB1dphi + dB1dphi2
+         dB1dz = dB1dz + dB1dz2
+
          if (kinetic_thermal_ion_particle.eq.1) then
             temp(1) = dot_product(geomterms2%dr, elfieldcoefs(kel(ipoint))%pe)
             temp(3) = dot_product(geomterms2%dz, elfieldcoefs(kel(ipoint))%pe)
 #ifdef USECOMPLEX
             temp(2) = dot_product(geomterms2%g, elfieldcoefs(kel(ipoint))%pe)*rfac_particle/x2(1)
 #elif defined(USE3D)
-            temp(2) = dot_product(geomterms2%dphi, elfieldcoefs(kel(ipoint))%pe)/x2(1)
+            temp(2) = Rinv2*dot_product(geomterms2%dphi, elfieldcoefs(kel(ipoint))%pe)
 #else
             temp(2) = 0.
 #endif
@@ -1427,7 +1451,7 @@ subroutine fdot(x, v, w, dxdt, dvdt, dwdt, dEpdt, itri, kel, f00, ierr, sps, B00
             temp(1) = dot_product(geomterms2%dr, elfieldcoefs(kel(ipoint))%pe0)
             temp(3) = dot_product(geomterms2%dz, elfieldcoefs(kel(ipoint))%pe0)
 #ifdef USEST
-            temp(2) = dot_product(geomterms2%dphi, elfieldcoefs(kel(ipoint))%pe0)/x2(1)
+            temp(2) = Rinv2*dot_product(geomterms2%dphi, elfieldcoefs(kel(ipoint))%pe0)
 #else
             temp(2) = 0.
 #endif
@@ -1435,9 +1459,14 @@ subroutine fdot(x, v, w, dxdt, dvdt, dwdt, dEpdt, itri, kel, f00, ierr, sps, B00
          endif
       end do
       E_cyl = E_cyl/4.
+      B0_cyl = B0_cyl/4.
       deltaB = deltaB/4.
-      gradB1 = gradB1/4.
-      dB1 = dB1/4.
+      dB0dR = dB0dR/4.
+      dB0dphi = dB0dphi/4.
+      dB0dz = dB0dz/4.
+      dB1dR = dB1dR/4.
+      dB1dphi = dB1dphi/4.
+      dB1dz = dB1dz/4.
       if (kinetic_thermal_ion_particle.eq.1) then
          gradpe = gradpe/4.
          j0xb = j0xb/4.
@@ -1446,7 +1475,8 @@ subroutine fdot(x, v, w, dxdt, dvdt, dwdt, dEpdt, itri, kel, f00, ierr, sps, B00
       kel(:) = itri
       !call getEcylprime(x, fhptr, geomterms, E_cyl, dEdR, dEdphi, dEdz)
       call getEcyl(x, elfieldcoefs(itri), geomterms, E_cyl)
-      !call getBcyl_last(x, fhptr, geomterms, B_cyl2, deltaB_last)
+      call getBcylprime(x, elfieldcoefs(itri), geomterms, B0_cyl, deltaB, dB0dR, dB0dphi, dB0dz, dB1dR, dB1dphi, dB1dz)
+         !call getBcyl_last(x, fhptr, geomterms, B_cyl2, deltaB_last)
       if (kinetic_thermal_ion_particle.eq.1) then
          temp(1) = dot_product(geomterms%dr, elfieldcoefs(itri)%pe)
          temp(3) = dot_product(geomterms%dz, elfieldcoefs(itri)%pe)
@@ -1476,6 +1506,17 @@ subroutine fdot(x, v, w, dxdt, dvdt, dwdt, dEpdt, itri, kel, f00, ierr, sps, B00
          !endif
       endif
    end if
+
+   B_cyl = B0_cyl + deltaB
+   dBdR = dB0dR + dB1dR
+   dBdphi = dB0dphi + dB1dphi
+   dBdz = dB0dz + dB1dz
+   !call getBcyl(x, elfieldcoefs(itri), geomterms, B_cyl, deltaB, gradB0, gradB1, dB1)
+   !write(0,*) B_cyl(1), B_cyl(1), B_cyl(2)
+   B0inv = 1.0/sqrt(dot_product(B0_cyl, B0_cyl))  !1/magnitude of B
+   bhat0 = B0_cyl*B0inv                         !Unit vector in b direction
+   Binv = 1.0/sqrt(dot_product(B_cyl, B_cyl))  !1/magnitude of B
+   bhat = B_cyl*Binv                         !Unit vector in b direction
 
    if (particle_linear_particle .eq. 1) then
       E_cyl=E_cyl-dot_product(E_cyl,B0_cyl)*B0inv
@@ -1773,6 +1814,7 @@ subroutine particle_scaleback(scalefac)
 end subroutine particle_scaleback
 !---------------------------------------------------------------------------
 subroutine delete_particle(exchange)
+   use basic
    use diagnostics
    implicit none
    include 'mpif.h'
@@ -1797,6 +1839,7 @@ subroutine delete_particle(exchange)
    !endif
 
    !Replace the particle with the last one in the array
+   if (particle_nodelete.eq.0) then
    npart = ipart_begin - 1
    depar = 0.
    do ipart = ipart_begin, ipart_end
@@ -1813,6 +1856,7 @@ subroutine delete_particle(exchange)
       if (ipart .ne. npart) pdata(npart) = pdata(ipart)
    end do
    ipart_end = npart
+   endif
    write (0, *) ipart_begin, ipart_end
    if (exchange) then
       allocate (recvcounts(nrows))
@@ -3003,6 +3047,7 @@ subroutine evalf0(x, vpar, vperp, fh, gh, sps, f0, gradcoef, df0de, df0dxi)
           !df0dr=(f6-f3)/(r_array(radi_i+1)-r_array(radi_i))/(f0+1e-10)
        !endif
        if (abs(df0dr)>0.2/(r_array(2)-r_array(1))) df0dr=0
+       !df0dr=df0dr*0.003
        gradf = 0.
        gradf(1) = dot_product(fh%rho, gh%dr)
        gradf(3) = dot_product(fh%rho, gh%dz)
@@ -3031,6 +3076,7 @@ subroutine evalf0(x, vpar, vperp, fh, gh, sps, f0, gradcoef, df0de, df0dxi)
        !   df0de=0.
        !endif
        if (abs(df0de)>1./(energy_array(2)-energy_array(1))) df0de=0
+       !df0de=0.
        df0de=df0de/1.6e-19
        f1=f_array(energy_i,pitch_i,radi_i)*(energy_array(energy_i+1)-energy)/(energy_array(energy_i+1)-energy_array(energy_i))
        f1=f1+f_array(energy_i+1,pitch_i,radi_i)*(energy-energy_array(energy_i))/(energy_array(energy_i+1)-energy_array(energy_i))
@@ -3050,6 +3096,8 @@ subroutine evalf0(x, vpar, vperp, fh, gh, sps, f0, gradcoef, df0de, df0dxi)
           !df0dxi=(f6-f3)/(pitch_array(pitch_i+1)-pitch_array(pitch_i))/(f0+1e-10)
        !endif
        if (abs(df0dxi)>1./(pitch_array(2)-pitch_array(1))) df0dxi=0
+       !df0dxi=0
+       !df0dxi=exp(-((xi+0.5)/0.3)**2)*(-2)*(xi+0.5)/0.3/0.3
     endif
       gradrho(1) = dot_product(fh%rho,gh%dr)
       gradrho(3) = dot_product(fh%rho,gh%dz)

@@ -1257,19 +1257,21 @@ subroutine set_defaults
        "1: Enable thermal ion PIC and density coupling between MHD and PIC", particle_grp)
   call add_var_int("igyroaverage", igyroaverage, 0, &
        "1: Enable gyro-averaging for PIC simulation", particle_grp)
-  call add_var_int("particle_linear", particle_linear, linear, &
+  call add_var_int("particle_linear", particle_linear, -1, &
        "1: Solve linear delta-f equation. 0: Include nonlinear terms in delta-f", particle_grp)
   call add_var_int("particle_substeps", particle_substeps, 40, &
        "Number of substeps for particle pushing in one subcycle", particle_grp)
   call add_var_int("particle_subcycles", particle_subcycles, 1, &
        "Number of subcycles for particle pushing in one MHD timestep", particle_grp)
   call add_var_int("particle_couple", particle_couple, 0, &
-       "0: Pressure coupling. 1: Current coupling", particle_grp)
+       "-1: No coupling (test particle). 0: Pressure coupling. 1: Current coupling", particle_grp)
+  call add_var_int("particle_nodelete", particle_nodelete, 0, &
+       "Do not call delete_particle, keep particles' order", particle_grp)
   call add_var_int("iconst_f0", iconst_f0, 0, &
        "Use a constant f0 for delta-f equation", particle_grp)
-  call add_var_double("fast_ion_mass", fast_ion_mass, ion_mass, &
+  call add_var_double("fast_ion_mass", fast_ion_mass, 0., &
        "Fast ion mass (in units of m_p)", particle_grp)
-  call add_var_double("fast_ion_z", fast_ion_z, z_ion, &
+  call add_var_double("fast_ion_z", fast_ion_z, 0., &
        "Zeff of fast ion", particle_grp)
   call add_var_int("fast_ion_dist", fast_ion_dist, 1, &
        "Type of fast ion distribution function. 0: Read 3D distribution from file. 1: Maxwellian. &
@@ -1737,6 +1739,13 @@ subroutine validate_input
   endif
 
 #ifdef USEPARTICLES
+  if(particle_linear.eq.-1) particle_linear=linear
+
+  if(fast_ion_mass.eq.0) fast_ion_mass=ion_mass
+  write(0,*) fast_ion_mass
+
+  if(fast_ion_z.eq.0) fast_ion_z=z_ion
+
   if(kinetic_thermal_ion.eq.0) particle_subcycles=1
 #endif
 

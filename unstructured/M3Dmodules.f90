@@ -316,6 +316,7 @@ module basic
   integer :: particle_substeps
   integer :: particle_subcycles
   integer :: particle_couple
+  integer :: particle_nodelete
   integer :: iconst_f0
   real :: fast_ion_mass, fast_ion_z
   integer :: fast_ion_dist

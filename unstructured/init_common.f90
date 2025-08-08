@@ -594,13 +594,13 @@ subroutine kinetic_eq
      rho_field = den_vec
   endif
 
-  if ((kinetic.eq.1).and.(kinetic_fast_ion.eq.1)) then
+  if ((kinetic.eq.1).and.(particle_couple.ge.0).and.(kinetic_fast_ion.eq.1)) then
      call mult(pf_field, -1.)
      call add(p_field(0), pf_field)
      call mult(pf_field, -1.)
   endif
 
-  if ((kinetic.eq.1).and.(kinetic_thermal_ion.eq.1)) then
+  if ((kinetic.eq.1).and.(particle_couple.ge.0).and.(kinetic_thermal_ion.eq.1)) then
      call mult(pfi_field, -1.)
      call add(p_field(0), pfi_field)
      call mult(pfi_field, -1.)
