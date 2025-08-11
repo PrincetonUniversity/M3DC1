@@ -28,6 +28,7 @@ Program Reducedquintic
   use transport_coefficients
   use m3dc1_vel_prof
   use hypervisc
+  use runaway_advection
 #ifdef _OPENACC
   use openacc
 #endif
@@ -358,6 +359,8 @@ Program Reducedquintic
 
   if(myrank.eq.0 .and. iprint.ge.1) print *, ' Initializing timestep'
   call initialize_timestep
+
+  if ((irunaway.ge.1).and.(runaway_characteristics.eq.1)) call runaway_advection_initialize
 
   ! main time loop
   ! ~~~~~~~~~~~~~~
@@ -1570,7 +1573,7 @@ subroutine print_normal_curv()
   use mesh_mod
   implicit none
 
-  include "mpif.h"
+    include 'mpif.h'
 
   integer :: ierr, i, icounter_t, numnodes
   integer :: izone, izonedim

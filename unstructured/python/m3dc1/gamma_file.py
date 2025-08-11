@@ -66,13 +66,17 @@ class Gamma_file:
             print('WARNING: jelite not found!')
         if len(datal2)>=4:
             self.omegsti_max = float(datal2[3]) #Diamagnetic frequency NOT mulitplied by n, i.e. d pi / d psi / (ei ni)
+        else:
+            self.omegsti_max = -1
+            print('WARNING: diamagnetic frequency not found!')
         if ind > 2:
             datal3 = data[2].split()
             self.ped_height = datal3[0]
             self.ped_width = datal3[1]
         self.n_list = np.asarray(n_list,dtype=int)
         self.gamma_list = np.asarray(gamma_list)
-        self.gamma_dia_list = self.gamma_list / (self.n_list * self.omegsti_max/4)
+        if self.omegsti_max > 0:
+            self.gamma_dia_list = self.gamma_list / (self.n_list * self.omegsti_max/4)
         self.dgamma_list = np.asarray(dgamma_list)
         self.flat_list = np.asarray(flat_list,dtype=int)
         self.not_noisy_list = np.asarray(not_noisy_list,dtype=int)

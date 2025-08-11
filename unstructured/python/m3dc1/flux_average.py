@@ -13,8 +13,9 @@ from matplotlib import path
 from m3dc1.read_h5 import readParameter
 from m3dc1.eval_field import eval_field
 from m3dc1.flux_coordinates import flux_coordinates
+from m3dc1.get_timetrace import get_timetrace
 from m3dc1.unit_conv import unit_conv
-from m3dc1.get_shape import get_shape
+from m3dc1.eval_field import get_shape
 
 #ToDo: Implement unit conversion
 #ToDo: Allow for linear option, i.e. flux averaging of a difference between two time slides
@@ -209,8 +210,23 @@ def flux_average(field,coord='scalar',sim=None, fcoords=None, linear=False, deri
         #fig.colorbar(cont,ax=ax)
         #plt.axis('equal')
     elif field=='eta_spitzer':
-        Te = flux_average('te', coord='scalar', sim=sim, fcoords=fcoords, points=points, units='mks')[1]
-        fa = Te**(-3/2)
+        h5file = sim._all_attrs
+        version = readParameter('version',h5file=h5file)
+        if version >= 23:
+            Zeff = readParameter('z_ion',h5file=h5file)
+        else:
+            Zeff = readParameter('zeff',h5file=h5file)
+        ne = flux_average('ne', coord='scalar', sim=sim, fcoords=fcoords, points=points, units='mks')[1]
+        Te = flux_average('te', coord='scalar', sim=sim, fcoords=fcoords, points=points, units='mks')[1]/1000
+        ee = 1.602176634E-19
+        me = 9.1093837139E-31
+        epsilon0 = 8.8541878188E-12
+        coulomb = 31.3 - np.log(np.sqrt(ne)/Te)
+        
+        #fa = Te**(-3/2)
+        #fa = (4*np.sqrt(2*np.pi))/(3) * (Zeff * ee**2 * me**(1/2) * coulomb)/((4*np.pi*epsilon0)**2 * Te**(3/2))
+        
+        fa = 1.65E-9 * coulomb / (Te**(3/2))
     elif field=='shear':
         q = np.abs(fc.q)
         dqdV = fpyl.deriv(q, fc.V)
@@ -228,6 +244,51 @@ def flux_average(field,coord='scalar',sim=None, fcoords=None, linear=False, deri
         f = flux_average('f', coord='scalar', sim=sim, fcoords=fcoords, points=points, units='mks')[1]
         fprime = flux_average('f', coord='scalar', sim=sim, deriv=True, fcoords=fcoords, points=points, units='mks')[1]
         fa = f*fprime
+    elif field=='ne/ng':
+        f = flux_average('ne', coord='scalar', sim=sim, fcoords=fcoords, points=points, units='mks')[1]/1e20
+        
+        #Calculate minor radius
+        a,R0 = get_shape(sim=sim,res=points)
+        print('Minor radius a='+str(a))
+        print('Major radius R='+str(R0))
+        
+        if sim.timeslice>0:
+            fname = 'time_'+str(sim.timeslice).zfill(3)+'.h5'
+        elif sim.timeslice==-1:
+            fname = 'equilibrium.h5'
+        timestep = readParameter('ntimestep',fname=fname)
+        print(timestep)
+        IP = get_timetrace('ip',units='mks')[1][timestep]/1e6
+        print(IP)
+        nG = IP/(np.pi*a**2)
+        fa = f/nG
+    elif field=='DS':#Suydam parameter
+        mu0 = 4.0E-7*np.pi
+        shear = flux_average('shear', coord='scalar', sim=sim, fcoords=fcoords, points=points, units='mks')[1]
+        psin,p = flux_average('p', coord='scalar', sim=sim, fcoords=fcoords, points=points, units='mks')
+        
+        #dpdV = fpyl.deriv(p, fc.V)
+        dpdpsin = fpyl.deriv(p, psin)
+        xmag = sim.get_time_trace('xmag').values[0]
+        zmag = sim.get_time_trace('zmag').values[0]
+        Bphi = eval_field('B', xmag, 0.0, zmag, coord='phi', sim=sim)
+        print(xmag,zmag,Bphi)
+        #fa = shear**2 + 8*mu0/(Bphi**2)*fc.V*dpdV*(1-q**2)
+        fa = shear**2 + 8*mu0/(Bphi**2)*psin*dpdpsin
+    elif field=='DM':#Mercier parameter
+        mu0 = 4.0E-7*np.pi
+        shear = flux_average('shear', coord='scalar', sim=sim, fcoords=fcoords, points=points, units='mks')[1]
+        q = flux_average('q', coord='scalar', sim=sim, fcoords=fcoords, points=points, units='mks')[1]
+        psin,p = flux_average('p', coord='scalar', sim=sim, fcoords=fcoords, points=points, units='mks')
+        
+        #dpdV = fpyl.deriv(p, fc.V)
+        dpdpsin = fpyl.deriv(p, psin)
+        xmag = sim.get_time_trace('xmag').values[0]
+        zmag = sim.get_time_trace('zmag').values[0]
+        Bphi = eval_field('B', xmag, 0.0, zmag, coord='phi', sim=sim)
+        print(xmag,zmag,Bphi)
+        #fa = shear**2 + 8*mu0/(Bphi**2)*fc.V*dpdV*(1-q**2)
+        fa = shear**2 + 8*mu0/(Bphi**2)*psin*dpdpsin*(1-q**2)
     elif field=='lambda':
         fa = None
     elif field=='beta_pol':
@@ -263,7 +324,8 @@ def flux_average(field,coord='scalar',sim=None, fcoords=None, linear=False, deri
 
 def flux_average_field(field,jac,n,units,fieldname,sim):
     """
-    Calculates and return the flux average of a field
+    Calculates and return the flux average of a field that is defined in
+    fusion-io. Flux averages for all other fields are calculated above.
     
     Arguments:
 

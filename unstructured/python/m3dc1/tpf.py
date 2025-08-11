@@ -15,7 +15,7 @@ import fpy
 import m3dc1.fpylib as fpyl
 from m3dc1.get_field import get_field
 from m3dc1.get_time_of_slice import get_time_of_slice
-from m3dc1.time_trace_fast import get_timetrace
+from m3dc1.get_timetrace import get_timetrace
 from m3dc1.read_h5 import readParameter
 
 

@@ -158,6 +158,9 @@ endif
 ifeq ($(ST), 1)
   BIN := $(BIN)_st
 endif
+ifeq ($(PAR), 1)
+  BIN := $(BIN)_pic
+endif
 
 READGATO_OBJS = polar.o readgato.o
 READJSOLVER_OBJS = polar.o read_jsolver_exec.o
@@ -192,7 +195,7 @@ OBJS := fftw_fortran.o read_namelist.o gsl_wrapper.o \
 	init_3dwave.o init_3ddiffusion.o init_frs.o init_ftz.o init_eigen.o \
 	init_intkink.o init_lz.o init_kstar.o init_basicq.o init_cyl.o \
 	transport.o \
-	auxiliary_fields.o  \
+	auxiliary_fields.o runaway_advection.o \
 	time_step_split.o time_step_unsplit.o \
         hdf5_output.o particle.o   \
 	time_step.o output.o restart_hdf5.o \

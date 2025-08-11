@@ -298,6 +298,7 @@ module basic
   integer :: ra_cyc      ! runaway subcycle
   real :: radiff         ! runaway diffusion
   real :: rjra           ! jra/j0
+  integer :: runaway_characteristics           ! use method of characteristics
   integer :: iflip       ! 1 = flip handedness
   integer :: iflip_b     ! 1 = flip equilibrium toroidal field
   integer :: iflip_j     ! 1 = flip equilibrium toroidal current density
@@ -313,6 +314,7 @@ module basic
   integer :: igyroaverage
   integer :: particle_linear
   integer :: particle_substeps
+  integer :: particle_subcycles
   integer :: particle_couple
   integer :: iconst_f0
   real :: fast_ion_mass, fast_ion_z
@@ -322,6 +324,7 @@ module basic
   real, dimension(2) :: num_par_scale
   real, dimension(2) :: kinetic_nrmfac_scale
   integer :: ikinetic_vpar
+  real :: kinetic_rhomax
   real :: vpar_reduce
   real :: smooth_par, smooth_pres
   integer :: itrace, trace_sample_op, npart_trace_input
@@ -538,7 +541,8 @@ module arrays
   type(field_type) :: sigma_field, Fphi_field, Q_field, cd_field
   type(field_type) :: Totrad_field, Linerad_field, Bremrad_field, Ionrad_field, Reckrad_field, Recprad_field
   type(field_type) :: visc_field, visc_c_field, visc_e_field, pforce_field, pmach_field
-  type(field_type) :: Jbs_L31_field, Jbs_L32_field, Jbs_L34_field, Jbs_alpha_field, Jbs_fluxavg_iBsq_field, Jbs_fluxavg_G_field, Jbs_dtedpsit_field
+  type(field_type) :: Jbs_L31_field, Jbs_L32_field, Jbs_L34_field, Jbs_alpha_field, Jbs_fluxavg_iBsq_field, &
+          Jbs_fluxavg_G_field, Jbs_dtedpsit_field
   
   type(field_type) :: temporary_field
   

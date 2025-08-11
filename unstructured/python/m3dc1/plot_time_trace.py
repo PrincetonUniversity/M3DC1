@@ -1,34 +1,61 @@
 #!/usr/bin/env python3
+# -*- coding: utf-8 -*-
+"""
+Created on Wed Oct  2 14:24:12 2019
+
+@author: Andreas Kleiner
+"""
 
 import numpy as np
-import pint
 import os
+import glob
 import matplotlib.pyplot as plt
 from matplotlib import rc
-import fpy
-from m3dc1.unit_conv import unit_conv
-import m3dc1.fpylib as fpyl
-rc('text', usetex=True)
+from labellines import labelLines
 
-def plot_time_trace(trace,sim=None,units='mks',filename='C1.h5',growth=False,renorm=False,yscale='linear',write_data=False):
+import fpy
+import m3dc1.fpylib as fpyl
+from m3dc1.get_timetrace import get_timetrace
+from m3dc1.unit_conv import unit_conv
+from m3dc1.read_h5 import readParameter
+from m3dc1.get_time_of_slice import get_time_of_slice
+from m3dc1.time_trace_fast import create_plot_time_trace_fast
+
+
+rc('text', usetex=True)
+plt.rcParams.update({'figure.max_open_warning': 40})
+
+
+
+
+def plot_time_trace_fast(trace,units='mks',millisec=False,sim=None,filename='C1.h5',diff=False,
+                         growth=False,renorm=False,yscale='linear',unitlabel=None,fac=1,
+                         show_legend=False,leglbl=None,in_plot_txt=None,time_marks=[],ts_marks=[],
+                         ts_marks_all=False,rescale=False,save=False,savedir=None,pub=False,
+                         fignum=None,figsize=None,drop_time_steps=None,skip_n0=False,export=False,txtname=None):
     """
-    Plots the time trace of some quantity. All available
-    time traces can be found in the M3DC1 documentation.
+    Plots a scalar quantity vs. time. All available
+    time traces can be found in the M3D-C1 documentation.
     
     Arguments:
 
     **trace**
     String containing the trace to be plotted
 
-    **sim**
-    simulation sim_data object. If none is provided,
-    a new object will be created.
-
     **units**
     The units in which the trace will be plotted
 
+    **millisec**
+    True/False. If True and units='mks' plot will be in terms of milliseconds, instead of seconds.
+
+    **sim**
+    fpy simulation object.
+
     **filename**
     Contains the path to the C1.h5 file.
+
+    **diff**
+    True / False. Plot derivative of scalar.
 
     **growth**
     Determines wether to calculate the derivative.
@@ -39,372 +66,222 @@ def plot_time_trace(trace,sim=None,units='mks',filename='C1.h5',growth=False,ren
     in linear stability calculations. Interpolates at
     the locations of the spike. Should only be used if
     growth=True.
-    
+
     **yscale**
     Scale of y axis, e.g. linear, log
+
+    **unitlabel**
+    Specify custom unitlabel. If not specified, default label will be used.
+
+    **fac**
+    Factor to apply to field when using mks units. fac=1.0E-3 converts to kilo..., fac=1.0E-6 to Mega...
+
+    **show_legend**
+    If True, show plot legend.
+
+    **leglbl**
+    Legend label for plot curve.
+
+    **in_plot_txt**
+    Overlay text to be shown inside of plot window.
+
+    **time_marks**
+    List of times that will be marked in terms of a vertical line in plot.
+
+    **ts_marks**
+    List of time slice numbers. A vertical line will be added for the time corresponding
+    to each time slice listed.
+
+    **ts_marks_all**
+    True / False. If True, indicate times of all time slices.
+
+    **rescale**
+    Rescale y-axis such that noise in the beginning of the simulation is not considered for axis limits,
+    i.e. plot is zoomed in to show relevant values.
+
+    **save**
+    If True, save plot to file
+
+    **savedir**
+    Directory where plot will be saved
+
+    **pub**
+    If True, format figure for publication (larger labels and thicker lines)
+
+    **fignum**
+    Figure number.
+
+    **figsize**
+    If True, format figure for publication (larger labels and thicker lines)
+
+    **drop_time_steps**
+    Number of time steps at the end of time trace to drop from plot.
+
+    **skip_n0**
+    When plotting energy spectrum, do not plot energy for n=0 mode.
+
     """
     if not isinstance(sim,fpy.sim_data):
         sim = fpy.sim_data(filename)
-    constants = sim.get_constants()
+    time,y_axis,label, unitlabel = get_timetrace(trace,sim=sim,units=units,growth=growth,diff=diff,renorm=renorm,unitlabel=unitlabel,fac=fac)
+    if drop_time_steps is not None:
+        time = time[:-drop_time_steps]
+        y_axis = y_axis[:-drop_time_steps]
+    if unitlabel is None or unitlabel == '':
+        ylbl = label
+    else:
+        ylbl = label+' ('+unitlabel+')'
+    
+    filename = sim.filename
+    create_plot_time_trace_fast(time,y_axis,trace,units=units,millisec=millisec,sim=sim,filename=filename,growth=growth,diff=diff,show_legend=show_legend,
+                                leglbl=leglbl,yscale=yscale,rescale=rescale,save=save,savedir=savedir,pub=pub,in_plot_txt=in_plot_txt,
+                                time_marks=time_marks,ts_marks=ts_marks,ts_marks_all=ts_marks_all,ylbl=ylbl,fignum=fignum,figsize=figsize,skip_n0=skip_n0,
+                                export=export,txtname=txtname)
+    return
 
-    plt.ylabel(trace)
-    time = sim.get_time_trace('time').values
-    plt.xlabel(r'time $\tau_A$')
-    if units=='mks':
-        time = unit_conv(time,sim=sim,time=1)
-        plt.xlabel(r'time $[s]$')
-
-    if trace=='me':
-        y_axis = sim.get_time_trace('E_MP').values + \
-                 sim.get_time_trace('E_MT').values
-        if units=='mks':
-            y_axis = unit_conv(y_axis, arr_dim='M3DC1', sim=sim, energy=1)
-            plt.ylabel(r'Magnetic energy $[J]$')
 
 
-    if trace=='ke':
-        y_axis = sim.get_time_trace('E_KP').values + \
-                 sim.get_time_trace('E_KT').values + \
-                 sim.get_time_trace('E_K3').values
-        if growth:
-            plt.ylabel(r'$\gamma/\omega_A$')
-        if units=='mks':
-            y_axis = unit_conv(y_axis, arr_dim='M3DC1', sim=sim, energy=1)
-            if growth:
-                plt.ylabel(r'$\gamma$ $[s^{-1}]$')
-            else:
-                plt.ylabel(r'Kinetic energy $[J]$')
+
+def create_plot_time_trace_fast(time,scalar,trace,units='mks',millisec=False,sim=None,filename='C1.h5',
+                                growth=False,diff=False,yscale='linear',rescale=False,save=False,in_plot_txt=None,
+                                time_marks=[],ts_marks=[],ts_marks_all=False,savedir=None,title=False,pub=False,
+                                ylbl=None,show_legend=False,leglbl=None,fignum=None,figsize=None,skip_n0=False,
+                                export=False,txtname=None):
+
+    if not isinstance(sim,fpy.sim_data):
+        sim = fpy.sim_data(filename)
         
-    if trace=='it':
-        y_axis = sim.get_time_trace('toroidal_current').values
-        if units=='mks':
-            y_axis = unit_conv(y_axis, arr_dim='M3DC1', sim=sim, current=1)
-            plt.ylabel(r'Current $[A]$')
-
-
-    if trace=='ip':
-        y_axis = sim.get_time_trace('toroidal_current_p').values
-        if units=='mks':
-            y_axis = unit_conv(y_axis, arr_dim='M3DC1', sim=sim, current=1)
-            plt.ylabel(r'Current $[A]$')
-
-    
-    if trace=='vl':
-        y_axis = sim.get_time_trace('loop_voltage').values
-        if units=='mks':
-            y_axis = unit_conv(y_axis, arr_dim='M3DC1', sim=sim, voltage=1)
-            plt.ylabel(r'Voltage $[V]$')
-            
-    
-    if trace=='iw':
-        y_axis = sim.get_time_trace('toroidal_current_w').values
-        if units=='mks':
-            y_axis = unit_conv(y_axis, arr_dim='M3DC1', sim=sim, current=1)
-            plt.ylabel(r'Current $[A]$')
-
-
-    if trace=='itot':
-        y_axis = sim.get_time_trace('toroidal_current_w').values + \
-                 sim.get_time_trace('toroidal_current').values
-        if units=='mks':
-            y_axis = unit_conv(y_axis, arr_dim='M3DC1', sim=sim, current=1)
-            plt.ylabel(r'Current $[A]$')
-
-    ## Formally not right, we would like BT as a function of time
-    if trace=='bt':
-        Ave_P  = sim.get_time_trace('Ave_P').values
-        B0     = constants.B0
-        y_axis = 2*Ave_P/B0**2
-        
-        
-    if trace=='bp':
-        if constants.numvar < 3:
-            raise Exception('Must have numvar=3 for a poloidal beta calculation!')
-        gamma = constants.gamma
-        E_P = sim.get_time_trace('E_P').values
-        tor_cur = sim.get_time_trace('toroidal_current').values
-        y_axis  = 2*(gamma-1)*E_P/(tor_cur**2)
-        
-        
-    if trace=='bn':
-        raise Exception('Not coded yet')
-
-    
-    if trace=='beta':
-        gamma = constants.gamma
-        E_P   = sim.get_time_trace('E_P').values
-        E_MP  = sim.get_time_trace('E_MP').values
-        E_MT  = sim.get_time_trace('E_MT').values
-        y_axis= (gamma-1)*E_P/(E_MP + E_MT)
-        
-        
-    if trace in ['psibound', 'psilim']:
-        y_axis = sim.get_time_trace('psi_lcfs').values
-        if units=='mks':
-            y_axis = unit_conv(y_axis, arr_dim='M3DC1', sim=sim, magnetic_field=1, length=2)
-            plt.ylabel(r'Current $[T][m]^2$')
-
-    
-    if trace=='psimin':
-        y_axis = sim.get_time_trace('psimin').values
-        if units=='mks':
-            y_axis = unit_conv(y_axis, arr_dim='M3DC1', sim=sim, magnetic_field=1, length=2)
-            plt.ylabel(r'Current $[T][m]^2$')
-    
-
-    if trace=='dt':
-        y_axis = sim.get_time_trace('dt').values
-        if units=='mks':
-            y_axis = unit_conv(y_axis, sim=sim,time=1)
-            plt.ylabel(r'Time $[s]$')
-        
-    
-    if trace=='volume':
-        y_axis = sim.get_time_trace('volume').values
-        if units=='mks':
-            y_axis = unit_conv(y_axis, sim=sim,length=3)
-            plt.ylabel(r'Volume $[m]^3$')
-
-
-    if trace=='toroidal flux':
-        y_axis = sim.get_time_trace('toroidal_flux_p').values
-        if units=='mks':
-            y_axis = unit_conv(y_axis, sim=sim,magnetic_field=1,length=2)
-            plt.ylabel(r'Current $[T][m]^2$')
-
-
-    if trace=='reconnected flux':
-        y_axis = sim.get_time_trace('reconnected_flux').values
-        if units=='mks':
-            y_axis = unit_conv(y_axis, sim=sim,magnetic_field=1,length=2)
-            plt.ylabel(r'Current $[T][m]^2$')
-    
-    
-    if trace=='temax':
-        y_axis = sim.get_time_trace('temax').values
-        if units=='mks':
-            y_axis = unit_conv(y_axis, sim=sim,temperature=1)
-            plt.ylabel(r'Temperature $[eV]$')
-    
-
-    if trace=='p':
-        y_axis = sim.get_time_trace('E_P').values
-        if units=='mks':
-            y_axis = unit_conv(y_axis, sim=sim,energy=1)
-            plt.ylabel(r'Pressure $[J]$')
-
-
-    if trace=='pe':
-        y_axis = sim.get_time_trace('E_PE').values
-        if units=='mks':
-            y_axis = unit_conv(y_axis, sim=sim,energy=1)
-            plt.ylabel(r'Electron pressure $[J]$')
-
-    ## IDL has L=3, but isn't this already integrated over volume?
-    if trace=='n':
-        y_axis = sim.get_time_trace('particle_number').values
-        if units=='mks':
-            y_axis = unit_conv(y_axis, sim=sim,particles=1)
-            plt.ylabel(r'Number of particles')
-
-    ## IDL has L=3, but isn't this already integrated over volume?
-    if trace=='ne':
-        y_axis = sim.get_time_trace('electron_number').values
-        if units=='mks':
-            y_axis = unit_conv(y_axis, sim=sim,particles=1)
-            plt.ylabel(r'Number of particles')
-
-    
-    if trace=='angular momentum':
-        y_axis = sim.get_time_trace('angular_momentum').values
-        if units=='mks':
-            y_axis = unit_conv(y_axis, sim=sim,energy=1,time=1)
-            plt.ylabel(r'Angular momentum $[J][s]$')
-
-
-    if trace=='vorticity':
-        y_axis = sim.get_time_trace('circulation').values
-        if units=='mks':
-            y_axis = unit_conv(y_axis, sim=sim,length=2,time=-1)
-            plt.ylabel(r'Vorticity $[m]^2/[s]$')
-
-            
-    if trace=='bwb2':
-        amupar = constants.amupar
-        y_axis = 3.0/(4.0*amupar)*sim.get_time_trace('parallel_viscous_heating').values
-        if units=='mks':
-            # Not too sure about the units here...
-            y_axis = unit_conv(y_axis, sim=sim,energy=1,time=-2,length=3)
-            plt.ylabel(r'Please verify units in code!')
-
-
-    if trace=='li':
-        R0       = constants.R0
-        psi_lcfs = sim.get_time_trace('psi_lcfs').values
-        psimin   = sim.get_time_trace('psimin').values
-        tor_cur  = sim.get_time_trace('toroidal_current_p').values
-        y_axis   = -4.0 * np.pi * (psi_lcfs - psimin) / (R0*tor_cur)
-        plt.ylabel(r'Normalized inductance')
-
-
-    if trace=='li3':
-        R0       = constants.R0
-        W_M      = sim.get_time_trace('W_M').values
-        tor_curp = sim.get_time_trace('toroidal_current_p').values
-        y_axis   = 4.0 * W_M / (tor_curp**2 * R0)
-        plt.ylabel(r'Normalized inductance')
-
-
-    if trace=='flux':
-        psi_lcfs = sim.get_time_trace('psi_lcfs').values
-        psimin   = sim.get_time_trace('psimin').values
-        y_axis   = -2*np.pi*(psi_lcfs-psimin)
-        if units=='mks':
-            y_axis = unit_conv(y_axis, sim=sim,length=2,magnetic_field=-1)
-            plt.ylabel(r'Normalized inductance')
-
-
-    if trace=='xmag':
-        y_axis = sim.get_time_trace('xmag').values
-        if units=='mks':
-            y_axis = unit_conv(y_axis, sim=sim,length=1)
-            plt.ylabel(r'R coordinate of magnetic axis $[m]$')
-
-
-    if trace=='zmag':
-        y_axis = sim.get_time_trace('zmag').values
-        if units=='mks':
-            y_axis = unit_conv(y_axis, sim=sim,length=1)
-            plt.ylabel(r'Z coordinate of magnetic axis $[m]$')
-
-
-    if trace=='runaways':
-        y_axis = sim.get_time_trace('runaways').values
-        if units=='mks':
-            y_axis = unit_conv(y_axis, sim=sim,particles=1)
-            plt.ylabel(r'Number of runaways')
-
-
-    if trace=='radiation':
-        y_axis = sim.get_time_trace('radiation').values
-        # Not too sure about dimensions
-        if units=='mks':
-            y_axis = unit_conv(y_axis, sim=sim,energy=1,time=-1)
-            plt.ylabel(r'Radation losses $[J]/[s]$')
-
-            
-    if trace=='POhm':
-        e_mpd = sim.get_time_trace('E_MPD').values
-        e_mtd = sim.get_time_trace('E_MTD').values
-        y_axis= -(e_mpd+e_mtd)
-        # Not too sure about dimensions
-        if units=='mks':
-            y_axis = unit_conv(y_axis, sim=sim,energy=1,time=-1)
-            plt.ylabel(r'Ohmic heating $[J]/[s]$')
-
-
-    if trace=='pelr':
-        y_axis = sim.get_time_trace('pellet_rate').values
-        # Not too sure about dimensions
-        if units=='mks':
-            y_axis = unit_conv(y_axis, sim=sim,particles=1,time=-1)
-            plt.ylabel(r'Pellet rate $1/[s]$')
-
-
-    if trace=='pelvar':
-        y_axis = sim.get_time_trace('pellet_var').values
-        if units=='mks':
-            y_axis = unit_conv(y_axis, sim=sim,length=1)
-            plt.ylabel(r'Pellet variance $[m]$')
-
-
-    if trace=='pelrad':
-        if constants.version < 26:
-            y_axis = sim.get_time_trace('r_p2').values # RP2 is my fav space
-        else:
-            y_axis = sim.get_time_trace('r_p').values
-        if units=='mks':
-            y_axis = unit_conv(y_axis, sim=sim,length=1)
-            plt.ylabel(r'Pellet radius $[m]$')
-
-
-    if trace=='pelrpos':
-        if constants.version < 26:
-            y_axis = sim.get_time_trace('pellet_x').values
-        else:
-            y_axis = sim.get_time_trace('pellet_r').values
-        if units=='mks':
-            y_axis = unit_conv(y_axis, sim=sim,length=1)
-            plt.ylabel(r'Pellet R-coordinate $[m]$')
-
-
-    if trace=='pelzpos':
-        y_axis = sim.get_time_trace('pellet_z').values
-        if units=='mks':
-            y_axis = unit_conv(y_axis, sim=sim,length=1)
-            plt.ylabel(r'Pellet Z-coordinate $[m]$')
-
-
-    if trace=='bharmonics':
-        y_axis = sim.get_time_trace('bharmonics').values
-        time   = sim.get_time_trace('bharmonics').time
-        if units=='mks':
-            y_axis = unit_conv(y_axis, sim=sim,energy=1)
-            time   = unit_conv(time, sim=sim,time=1)
-            plt.ylabel(r'Magnetic energy harmonics $[J]$')
-            plt.xlabel(r'Time $[s]$')
-        for n in range(0,np.shape(y_axis)[1]):
-            plt.plot(time,y_axis[:,n],label='n = {}'.format(n))
-            plt.legend(loc='best')
-        plt.show()
-        return
-
-    if trace=='keharmonics':
-        y_axis = sim.get_time_trace('keharmonics').values
-        time   = sim.get_time_trace('keharmonics').time
-        if units=='mks':
-            y_axis = unit_conv(y_axis, sim=sim,energy=1)
-            time   = unit_conv(time, sim=sim,time=1)
-            plt.ylabel(r'Kinetic energy harmonics $[J]$')
-            plt.xlabel(r'Time $[s]$')
-        for n in range(0,np.shape(y_axis)[1]):
-            if growth:
-                y_axis[:,n] = 1.0/y_axis[:,n] * fpyl.deriv(y_axis[:,n],time)
-            plt.plot(time,y_axis[:,n],label='n = {}'.format(n))
-            plt.legend(loc='best')
-            if write_data:
-                data = np.array([time,y_axis[:,n]])
-                data = data.T
-                txtfname = 'growth_rates' if growth else 'keharmonics'
-                txtfname = txtfname+'_n'+str(n)+'.dat'
-                with open(txtfname, 'w+') as fileid:
-                    np.savetxt(fileid, data, fmt=['%.12E','%.12E'])
-        plt.show()
-        return
-
-    #if growth:
-    #    y_axis = np.gradient(y_axis, time)
-    if growth:
-        y_axis = 1.0/y_axis[1:] * fpyl.deriv(y_axis,time)
-    
-    if renorm:
-        for i in range(len(y_axis)-1):
-            if(abs(y_axis[i+1]/y_axis[i]) < 1E-9):
-                print('Renormalization found at '+str(time[i]))
-                print(y_axis[i],y_axis[i-1]+y_axis[i+1])
-                y_axis[i] = (y_axis[i-1] + y_axis[i+1])/2.0
-
     # If one array has new data but the other one doesn't 
     # plot only previous data
-    if y_axis.shape != time.shape:
-        ymax   = np.amax(y_axis.shape)
+    if scalar.shape != time.shape:
+        ymax   = np.amax(scalar.shape)
         tmax   = np.amax(time.shape)
         maxidx = np.amin([ymax,tmax])
         time   = time[0:maxidx]
-        y_axis = y_axis[0:maxidx]
+        scalar = scalar[0:maxidx]
     
+    ntor = readParameter('ntor',sim=sim)
+    
+    plt.figure(num=fignum,figsize=figsize)
+    
+    # Set font sizes and plot style parameters
+    if pub:
+        axlblfs = 20
+        titlefs = 18
+        ticklblfs = 16
+        linew = 2
+        legfs = 14
+        inplttxtfs = 20
+    else:
+        axlblfs = None
+        titlefs = None
+        ticklblfs = None
+        linew = 1
+        legfs = None
+        inplttxtfs = 16
+    
+    if units=='mks':
+        #time = unit_conv(time,filename=filename,time=1)
+        if millisec:
+            time = time*1000
+            plt.xlabel(r'time $(ms)$',fontsize=axlblfs)
+        else:
+            plt.xlabel(r'time $(s)$',fontsize=axlblfs)
+    else:
+        plt.xlabel(r'time $(\tau_A)$',fontsize=axlblfs)
+    
+    if diff:
+        plt.ylabel('d '+ylbl+' / d t',fontsize=axlblfs)
+    else:
+        if trace == 'ke':
+            if units=='mks':
+                #scalar = unit_conv(scalar, arr_dim='M3DC1', filename=filename, energy=1)
+                if growth:
+                    plt.ylabel(r'$\gamma$ $[s^{-1}]$')
+                else:
+                    plt.ylabel(r'Kinetic energy $[J]$')
+            elif units.lower()=='m3dc1':
+                if growth:
+                    plt.ylabel(r'$\gamma/\omega_A$')
+                else:
+                    plt.ylabel(r'Kinetic energy (M3DC1 units)')
+        else:
+            plt.ylabel(ylbl,fontsize=axlblfs)
+    
+    if export:
+        plot_data = np.column_stack([time])
+    
+    if len(scalar.shape)>1:
+        leglabels = ["n={:2}".format(n) for n in range(scalar.shape[1])]
+        for i in range(scalar.shape[1]):
+            if not (skip_n0 and i==0):
+                plt.plot(time,scalar[:,i],lw=linew,label=leglabels[i])
+        
+        ncol = 2 if scalar.shape[1] > 5 else 1
+        if show_legend:
+            plt.legend(loc=0, ncol=ncol,fontsize=legfs)
+        else:
+            labelLines(plt.gca().get_lines(), zorder=2.5)
+    else:
+        plt.plot(time,scalar,lw=linew,label=leglbl)
+        if show_legend and leglbl is not None:
+            plt.legend(loc=0,fontsize=legfs)
+            
+    if export:
+        plot_data = np.column_stack([plot_data, scalar])
     plt.grid(True)
-    plt.plot(time,y_axis)
+    #Determine y-axis limits
+    if rescale:
+        if np.amax(scalar[1:]) < scalar[0]:
+            start_time=250
+            if units=='mks':
+                start_time = unit_conv(start_time,arr_dim='m3dc1',sim=sim,time=1)
+            start_ind = int(fpyl.find_nearest(time,start_time))
+            top_lim=1.1*np.amax(scalar[start_ind:])
+            plt.ylim([0,top_lim])
+    
+    #Plot vertical lines to mark certain points in time specified by time_marks.
+    if len(time_marks)>0:
+        for t in time_marks:
+            plt.axvline(x=t,c='m')
+    
+    if ts_marks_all:
+        slices = glob.glob('time*.h5')
+        slices.sort(key=os.path.getmtime)
+        temp = [s.replace('time_', '') for s in slices]
+        temp = [s.replace('.h5', '') for s in temp]
+        ts_marks = np.array(temp,dtype=int)
+    
+    if len(ts_marks)>0:
+        for ts in ts_marks:
+            ts_marks_time = get_time_of_slice(ts,filename=filename,units=units,millisec=millisec)
+            plt.axvline(x=ts_marks_time,c='m')
+    
+    ax = plt.gca()
+    if in_plot_txt is not None:
+        plt.text(0.03, 0.95,in_plot_txt, ha='left', va='top', transform=ax.transAxes,fontsize=inplttxtfs)
+    
     plt.yscale(yscale)
-    plt.ticklabel_format( axis='y', style='sci',useOffset=False)
+    ax.tick_params(axis='both', which='major', labelsize=ticklblfs)
+    if pub:
+        yaxis_magn = ax.yaxis.get_offset_text()
+        yaxis_magn.set_size(ticklblfs)
+    if yscale == 'linear':
+        plt.ticklabel_format( axis='y', style='sci',useOffset=False)
+    if title:
+        plt.title('n='+str(ntor),fontsize=titlefs)
+    plt.tight_layout() #adjusts white spaces around the figure to tightly fit everything in the window
     plt.show()
+    
+    if save:
+        tracestr = trace
+        if growth:
+            tracestr = tracestr + '-growth'
+        if savedir is not None:
+            tracestr = savedir + tracestr
+        plt.savefig(tracestr+'_n'+"{:d}".format(ntor)+'.pdf', format='pdf',bbox_inches='tight')
+        
+    if export:
+        print(plot_data)
+        np.savetxt(txtname,plot_data,delimiter='   ')
+    return

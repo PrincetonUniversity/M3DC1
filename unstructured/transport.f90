@@ -49,7 +49,8 @@ function bootstrapCoeff_func(col_number)
             Coeff_filename='ProfileJBSCoeff_Te_L31_32_34_alpha_B2_dtedpsit_G'
          endif
    else
-      print *, 'Error: Incorrect ibootstrap method 2: to use da/dpsit=da/dte dte/dpsit 1: (B×∇a).∇ϕ=-‖B_p ‖^2  ∂a/∂ψ ---- ∂/∂ψ=-1/‖B_p ‖^2   1/R ((1/R ψ_z+f_ϕR )  ∂/∂z+(1/R ψ_r-f_ϕz )  ∂/∂r)'
+      print *, 'Error: Incorrect ibootstrap method 2: to use da/dpsit=da/dte dte/dpsit 1: '
+      !(B×∇a).∇ϕ=-‖B_p ‖^2  ∂a/∂ψ ---- ∂/∂ψ=-1/‖B_p ‖^2   1/R ((1/R ψ_z+f_ϕR )  ∂/∂z+(1/R ψ_r-f_ϕz )  ∂/∂r)'
       stop
    endif
 

@@ -39,8 +39,11 @@ makefile : ;
 all :
 	make OPT=1
 	make OPT=1 COM=1
+	make OPT=1 COM=1 PAR=1
 	make OPT=1 3D=1 MAX_PTS=60
+	make OPT=1 3D=1 MAX_PTS=60 PAR=1
 	make OPT=1 3D=1 MAX_PTS=125 ST=1
+	make OPT=1 3D=1 MAX_PTS=125 ST=1 PAR=1
 	make a2cc
 	make bin
 

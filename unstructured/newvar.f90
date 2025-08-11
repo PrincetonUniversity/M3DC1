@@ -91,12 +91,6 @@ contains
     call create_newvar_matrix(dp_mat_rhs_bfp,  NV_NOBOUND,NV_IP_MATRIX,0)
 #endif
 
-#ifdef CJ_MATRIX_DUMP
-    print *, "create_mat newvar mass_mat_lhs_dc", mass_mat_lhs_dc%mat%imatrix
-    print *, "create_mat newvar mass_mat_lhs",    mass_mat_lhs%mat%imatrix     
-    print *, "create_mat newvar gs_mat_rhs_dc",   gs_mat_rhs_dc%mat%imatrix
-#endif 
-
     if(inocurrent_tor.eq.0) then 
        call create_newvar_matrix(gs_mat_rhs,  NV_NOBOUND,NV_GS_MATRIX, 0)
     endif
@@ -114,27 +108,16 @@ contains
           call create_newvar_matrix(mass_mat_rhs_bf, NV_NMBOUND, &
                NV_I_MATRIX,  0)
        end if
-#ifdef CJ_MATRIX_DUMP
-       print *, "create_mat newvar bf_mat_lhs", bf_mat_lhs%mat%imatrix     
-       print *, "create_mat newvar mass_mat_rhs_bf", mass_mat_rhs_bf%mat%imatrix     
-#endif 
     endif
 
     if(jadv.eq.1 .and. hyper.ne.0. .and. imp_hyper.eq.0) then
        call create_newvar_matrix(s10_mat, NV_SJBOUND, NV_SJ_MATRIX, 1)
        call create_newvar_matrix(d10_mat, NV_SJBOUND, NV_SJ_MATRIX, 0)
-#ifdef CJ_MATRIX_DUMP
-       print *, "create_mat newvar s10_mat", s10_mat%mat%imatrix     
-       print *, "create_mat newvar d10_mat", d10_mat%mat%imatrix     
-#endif 
     endif
         call create_newvar_matrix(pot2_mat_lhs,NV_DCBOUND, NV_DP_MATRIX,1)
 
     if(igs.ne.0) then
        call create_newvar_matrix(mass_mat_rhs,NV_NOBOUND,NV_I_MATRIX, 0)
-#ifdef CJ_MATRIX_DUMP
-       print *, "create_mat newvar mass_mat_rhs", mass_mat_rhs%mat%imatrix     
-#endif 
     endif
   end subroutine create_newvar_matrices
 
@@ -356,10 +339,6 @@ subroutine solve_newvar_axby(mata,vout,matb,vin,bvec)
   type(vector_type), pointer :: bptr
   integer :: ier
 
-#ifdef CJ_MATRIX_DUMP
-  character*30 filename
-#endif
-
   if(present(bvec)) then
      bptr => bvec
   else
@@ -370,21 +349,7 @@ subroutine solve_newvar_axby(mata,vout,matb,vin,bvec)
   call matvecmult(matb%mat, vin, temp)
   call apply_bc(temp,mata%ibound,bptr)
 
-#ifdef CJ_MATRIX_DUMP
-     if(ntime.eq.ntimemax) then 
-        write ( *, * ) "print matrix", mata%mat%imatrix, ntime
-        call write_matrix(mata%mat,filename)
-        call write_vector(temp, trim(filename))
-     endif
-#endif 
-
   call newsolve(mata%mat,temp,ier)
-
-#ifdef CJ_MATRIX_DUMP
-     if(ntime.eq.ntimemax) then 
-        call write_vector(temp, trim(filename))
-     endif
-#endif 
 
   if(ier.ne.0) then
      print *, 'Error in newvar solve'
@@ -477,10 +442,6 @@ end subroutine solve_newvar1
     integer :: ier
     type(vector_type), pointer :: bptr
 
-#ifdef CJ_MATRIX_DUMP
-    character*30 filename
-#endif
-
     if(.not.present(bvec)) then
        bptr => rhs
     else
@@ -490,21 +451,7 @@ end subroutine solve_newvar1
 
     call apply_bc(rhs,mat%ibound,bptr)
 
-#ifdef CJ_MATRIX_DUMP
-     if(ntime.eq.ntimemax) then 
-        write ( *, * ) "print matrix", mat%mat%imatrix, ntime
-        call write_matrix(mat%mat,filename)
-        call write_vector(rhs, trim(filename))
-     endif
-#endif 
-
     call newsolve(mat%mat,rhs,ier)
-
-#ifdef CJ_MATRIX_DUMP
-     if(ntime.eq.ntimemax) then 
-        call write_vector(rhs, trim(filename))
-     endif
-#endif 
 
     call finalize(rhs)
   end subroutine newvar_solve
@@ -521,10 +468,6 @@ end subroutine solve_newvar1
     integer :: ier
     type(vector_type), pointer :: bptr
 
-#ifdef CJ_MATRIX_DUMP
-    character*30 filename
-#endif
-
     if(.not.present(bvec)) then
        bptr => rhs
     else
@@ -534,21 +477,7 @@ end subroutine solve_newvar1
 
     call apply_bc(rhs,mat%ibound,bptr)
 
-#ifdef CJ_MATRIX_DUMP
-     if(ntime.eq.ntimemax) then 
-        write ( *, * ) "print matrix", mat%mat%imatrix, ntime
-        call write_matrix(mat%mat,filename)
-        call write_vector(rhs, trim(filename))
-     endif
-#endif 
-
     call newsolve_with_guess(mat%mat,rhs,xVec_guess,ier)
-
-#ifdef CJ_MATRIX_DUMP
-     if(ntime.eq.ntimemax) then 
-        call write_vector(rhs, trim(filename))
-     endif
-#endif 
 
     call finalize(rhs)
   end subroutine newvar_solve_with_guess
