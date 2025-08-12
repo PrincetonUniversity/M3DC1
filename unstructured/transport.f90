@@ -54,7 +54,8 @@ function bootstrapCoeff_func(col_number)
       Coeff_filename='ProfileJBSCoeff_Tenorm_L31_32_34_alpha_B2_dtedpsit_G_ft_qR_e_temax'
    else
       print *, 'Error: Incorrect ibootstrap method'
-      print *, '1: (B×∇a).∇ϕ=-‖B_p ‖^2  ∂a/∂ψ ---- ∂/∂ψ=-1/‖B_p ‖^2   1/R ((1/R ψ_z+f_ϕR )  ∂/∂z+(1/R ψ_r-f_ϕz )  ∂/∂r)'
+      print *, '1: (B×∇a).∇ϕ=-‖B_p ‖^2  ∂a/∂ψ ---- ∂/∂ψ=-1/‖B_p ‖^2'
+      print *, '      1/R ((1/R ψ_z+f_ϕR )  ∂/∂z+(1/R ψ_r-f_ϕz )  ∂/∂r)'
       print *, '2: to use te: da/dpsit=da/dte dte/dpsit'
       print *, '3: to use tenorm: da/dpsit=da/dte dte/dpsit=-temax da/dte dtenorm/dpsit'
       stop
@@ -222,9 +223,9 @@ function bootstrapCoeff_func(col_number)
          !using normalized temperature That = 1 - Te/Temax
            ! if(real(net79(j,OP_1)).gt.0.)then  
                if(temax .le. 1e-8) then
-                  pso = 1. - pet79(j,OP_1)/net79(j,OP_1)/temax_readin
+                  pso = 1. - abs(pet79(j,OP_1)/net79(j,OP_1))/temax_readin
                else          
-                  pso=1. - pet79(j,OP_1)/net79(j,OP_1)/(temax)
+                  pso=1. - abs(pet79(j,OP_1)/net79(j,OP_1))/(temax)
                endif
            ! else
            !    pso=1.
