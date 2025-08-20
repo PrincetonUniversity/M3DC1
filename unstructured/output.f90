@@ -1145,7 +1145,7 @@ subroutine output_fields(time_group_id, equilibrium, error)
         !Parallel component of hot ion pressure tensor
         call write_field(group_id, "v_i_par", v_i_par, nelms, error)
 
-        call write_field(group_id, "psmooth", psmooth_field, nelms, error)
+        call write_field(group_id, "densmooth", densmooth_field, nelms, error)
         call write_field(group_id, "vparsmooth", vparsmooth_field, nelms, error)
   endif
 #endif

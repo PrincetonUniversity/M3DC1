@@ -1448,7 +1448,7 @@ endif
      call create_field(nfi_field)
      call create_field(tfi_field)
      call create_field(pfi_field)
-     call create_field(psmooth_field)
+     call create_field(densmooth_field)
      call create_field(vparsmooth_field)
 #endif
 

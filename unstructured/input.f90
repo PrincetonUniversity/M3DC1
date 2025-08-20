@@ -1292,8 +1292,8 @@ subroutine set_defaults
        "Factor of parallel flow reduction for every timestep", particle_grp)
   call add_var_double("smooth_par", smooth_par, 1.e-8, &
        "Smoothing factor for particle pressure", particle_grp)
-  call add_var_double("smooth_pres", smooth_pres, 1.e-8, &
-       "Smoothing factor for electron pressure used for calculating parallel electric field", particle_grp)
+  call add_var_double("smooth_dens_parallel", smooth_dens_parallel, 0., &
+       "Smoothing factor for electron density in parallel direction, used for calculating parallel electric field", particle_grp)
 #endif
 
   ! Deprecated
