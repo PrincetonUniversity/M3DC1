@@ -316,6 +316,7 @@ module basic
   integer :: particle_substeps
   integer :: particle_subcycles
   integer :: particle_couple
+  integer :: particle_nodelete
   integer :: iconst_f0
   real :: fast_ion_mass, fast_ion_z
   integer :: fast_ion_dist
@@ -326,7 +327,7 @@ module basic
   integer :: ikinetic_vpar
   real :: kinetic_rhomax
   real :: vpar_reduce
-  real :: smooth_par, smooth_pres
+  real :: smooth_par, smooth_dens_parallel
 #endif
 
   integer :: iohmic_heating  ! 1 = include ohmic heating
@@ -577,7 +578,7 @@ module arrays
 #endif
 #ifdef USEPARTICLES
   type(field_type) :: rho_field, nf_field, tf_field, pf_field, vfpar0_field
-  type(field_type) :: nfi_field, tfi_field, pfi_field, psmooth_field, vparsmooth_field
+  type(field_type) :: nfi_field, tfi_field, pfi_field, densmooth_field, vparsmooth_field
   type(field_type) :: epar_field, den2_field
 
   type(field_type) :: p_f_par, p_f_perp  !Kinetic pressure tensor components

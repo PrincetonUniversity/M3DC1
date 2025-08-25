@@ -1264,6 +1264,8 @@ endif
   error2 = 0.
   !-------------------------------------------------------------------
   ! start of iteration loop on plasma current
+  !gamma4=1.0
+  !mainloop: do itnum=1, 0
   mainloop: do itnum=1, iabs(igs)
 
      if(myrank.eq.0) print *, "GS iteration = ", itnum, error2
@@ -1593,7 +1595,7 @@ endif
         do i=1, npoints
            call calc_fdensity(ps079(i,:),tf,x_79(i),z_79(i),izone)
            call calc_ftemp(ps079(i,:),tf2,x_79(i),z_79(i),izone)
-           if (fast_ion_dist==1) then
+           if ((fast_ion_dist==1).or.(fast_ion_dist==0)) then
               temp79a(i) =tf*tf2* 1.6022e-12 / (b0_norm**2/(4.*pi*n0_norm))!rsae
            else
               crit_v=sqrt(2*tf2*1.6e-19/fast_ion_mass/m_p)
@@ -1704,13 +1706,13 @@ endif
      pfi_field = b1vecini_vec
   end if 
 
-  if ((kinetic.eq.1).and.(kinetic_fast_ion.eq.1)) then
+  if ((kinetic.eq.1).and.(particle_couple.ge.0).and.(kinetic_fast_ion.eq.1)) then
      call mult(pf_field, -1.)
      call add(p_field(0), pf_field)
      call mult(pf_field, -1.)
   endif
 
-  if ((kinetic.eq.1).and.(kinetic_thermal_ion.eq.1)) then
+  if ((kinetic.eq.1).and.(particle_couple.ge.0).and.(kinetic_thermal_ion.eq.1)) then
      call mult(pfi_field, -1.)
      call add(p_field(0), pfi_field)
      call mult(pfi_field, -1.)

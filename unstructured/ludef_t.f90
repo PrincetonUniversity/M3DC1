@@ -600,7 +600,7 @@ subroutine vorticity_nolin(trialx, r4term)
 #ifdef USEPARTICLES
   ! kinetic terms
   ! ~~~~~~~~~~~~~
-  if(kinetic_fast_ion .eq. 1) then
+  if((particle_couple.ge.0).and.(kinetic_fast_ion .eq. 1)) then
      r4term = r4term + 1.0*dt*(( &
                  (1-particle_couple)*v1pbb(trialx,pfper79,b2i79(:,OP_1)) & !parallel term
                  + v1p(trialx,pfper79) -v1pbb(trialx,pfper79,b2i79(:,OP_1)) &
@@ -613,7 +613,7 @@ subroutine vorticity_nolin(trialx, r4term)
                ) &
             )  
     endif
-   if(kinetic_thermal_ion .eq. 1) then
+   if((particle_couple.ge.0).and.(kinetic_thermal_ion .eq. 1)) then
      r4term = r4term + 1.0*dt*(( &
                  (1-particle_couple)*v1pbb(trialx,piper79,b2i79(:,OP_1)) & !parallel term
                  + v1p(trialx,piper79) -v1pbb(trialx,piper79,b2i79(:,OP_1)) &
@@ -1159,7 +1159,7 @@ subroutine axial_vel_nolin(trialx, r4term)
 #ifdef USEPARTICLES
   ! kinetic terms
   ! ~~~~~~~~~~~~~
-  if(kinetic_fast_ion .eq. 1) then
+  if((particle_couple.ge.0).and.(kinetic_fast_ion .eq. 1)) then
      r4term = r4term + 1.0*dt*(( &
                  (1-particle_couple)*v2pbb(trialx,pfper79,b2i79(:,OP_1)) & !parallel term
                  + v2p(trialx,pfper79) -v2pbb(trialx,pfper79,b2i79(:,OP_1)) &
@@ -1172,7 +1172,7 @@ subroutine axial_vel_nolin(trialx, r4term)
              ) &
             )  
    endif
-   if(kinetic_thermal_ion .eq. 1) then
+   if((particle_couple.ge.0).and.(kinetic_thermal_ion .eq. 1)) then
      r4term = r4term + 1.0*dt*(( &
                  (1-particle_couple)*v2pbb(trialx,piper79,b2i79(:,OP_1)) & !parallel term
                  + v2p(trialx,piper79) -v2pbb(trialx,piper79,b2i79(:,OP_1)) &
@@ -1771,7 +1771,7 @@ subroutine compression_nolin(trialx, r4term)
 #ifdef USEPARTICLES
   ! kinetic terms
   ! ~~~~~~~~~~~~~
-  if(kinetic .eq. 1) then
+  if((particle_couple.ge.0).and.(kinetic .eq. 1)) then
      r4term = r4term + 1.0*dt*(( &
                  (1-particle_couple)*v3pbb(trialx,pfper79,b2i79(:,OP_1)) & !parallel term
                  + v3p(trialx,pfper79) -v3pbb(trialx,pfper79,b2i79(:,OP_1)) &
@@ -1784,7 +1784,7 @@ subroutine compression_nolin(trialx, r4term)
              ) &
             )  
    endif
-   if(kinetic_thermal_ion .eq. 1) then
+   if((particle_couple.ge.0).and.(kinetic_thermal_ion .eq. 1)) then
      r4term = r4term + 1.0*dt*(( &
                  (1-particle_couple)*v3pbb(trialx,piper79,b2i79(:,OP_1)) & !parallel term
                  + v3p(trialx,piper79) -v3pbb(trialx,piper79,b2i79(:,OP_1)) &
