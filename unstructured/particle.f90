@@ -1103,14 +1103,14 @@ subroutine advance_particles(tinc)
          !call rk4(pdata(ielm)%ion(ipart), tinc, itri, ierr)
          call rk4(pdata(ipart), tinc, istep .eq. psubsteps_particle, ierr)
          if (ierr .eq. 1) then ! Particle exited local+ghost domain -> lost
-            !pdata(ipart)%deleted = .true.
-            pdata(ipart)%x = pdata(ipart)%x0
-            pdata(ipart)%v = pdata(ipart)%v0
-            pdata(ipart)%wt = 0.
-            call mesh_search(pdata(ipart)%jel, pdata(ipart)%x, itri)
-            pdata(ipart)%jel = itri
-            pdata(ipart)%kel(:) = itri
-            cycle !Break out of tinc loop, go to next particle.
+            pdata(ipart)%deleted = .true.
+            !pdata(ipart)%x = pdata(ipart)%x0
+            !pdata(ipart)%v = pdata(ipart)%v0
+            !pdata(ipart)%wt = 0.
+            !call mesh_search(pdata(ipart)%jel, pdata(ipart)%x, itri)
+            !pdata(ipart)%jel = itri
+            !pdata(ipart)%kel(:) = itri
+            !cycle !Break out of tinc loop, go to next particle.
          end if
       end do!ielm
 #ifndef _OPENACC
@@ -1269,28 +1269,28 @@ subroutine rk4(part, dt, last_step, ierr)
    part%B0 = 1./B0inv ! fluid particle
    part%jel = itri
 
-    call evalf0(part%x, part%v(1), sqrt(2.0*qm_ion(part%sps)*part%v(2)/B0inv), elfieldcoefs(itri), geomterms, part%sps, f0, gradcoef, df0de, df0dxi)
-    !call evalf0(part%x, part%v(1), sqrt(2.0*qm_ion(part%sps)*part%v(2)*part%B0), elfieldcoefs(itri), geomterms, part%sps, f0, gradcoef, df0de, df0dxi) ! fluid particle
-    if (part%f0/f0>10) then
-       !if (floor(mod(part%x(1)*100000,500.0))==0) then
-          write(0,*) "33333333333333333333",part%f0/f0
-          part%x=part%x0
-          part%v=part%v0
-          part%wt=0.
-          call mesh_search(part%jel, part%x, itri)
-          part%jel=itri
-          part%kel(:)=itri
-          !endif
-    endif
-    if (f0/part%f0>10) then
-       part%x=part%x0
-       part%v=part%v0
-       part%wt=0.
-       call mesh_search(part%jel, part%x, itri)
-       part%jel=itri
-       part%kel(:)=itri
-       write(0,*) "55555555555555",part%f0/f0
-    endif
+    !call evalf0(part%x, part%v(1), sqrt(2.0*qm_ion(part%sps)*part%v(2)/B0inv), elfieldcoefs(itri), geomterms, part%sps, f0, gradcoef, df0de, df0dxi)
+    !!call evalf0(part%x, part%v(1), sqrt(2.0*qm_ion(part%sps)*part%v(2)*part%B0), elfieldcoefs(itri), geomterms, part%sps, f0, gradcoef, df0de, df0dxi) ! fluid particle
+    !if (part%f0/f0>10) then
+    !   !if (floor(mod(part%x(1)*100000,500.0))==0) then
+    !      write(0,*) "33333333333333333333",part%f0/f0
+    !      part%x=part%x0
+    !      part%v=part%v0
+    !      part%wt=0.
+    !      call mesh_search(part%jel, part%x, itri)
+    !      part%jel=itri
+    !      part%kel(:)=itri
+    !      !endif
+    !endif
+    !if (f0/part%f0>10) then
+    !   part%x=part%x0
+    !   part%v=part%v0
+    !   part%wt=0.
+    !   call mesh_search(part%jel, part%x, itri)
+    !   part%jel=itri
+    !   part%kel(:)=itri
+    !   write(0,*) "55555555555555",part%f0/f0
+    !endif
    endif
 end subroutine rk4
 
@@ -4206,9 +4206,9 @@ subroutine set_density
       !temp79a = n179(:,OP_1) + 0.9*(nfi79(:,OP_1))&
       !          -0.5*n179(:,OP_1)
       !temp79a = n179(:,OP_1)
-       where (real(temp79a(:)+n079(:,OP_1))<0.07)
+       where (real(temp79a(:)+n079(:,OP_1))<0.035)
       !   ! temp79a(:)=p179(:,OP_1)
-          temp79a(:)=0.15-n079(:,OP_1)
+          temp79a(:)=0.035-n079(:,OP_1)
       !   !temp79a(:)=0
       end where
       !temp79a(:)=0.
