@@ -1742,7 +1742,6 @@ subroutine validate_input
   if(particle_linear.eq.-1) particle_linear=linear
 
   if(fast_ion_mass.eq.0) fast_ion_mass=ion_mass
-  write(0,*) fast_ion_mass
 
   if(fast_ion_z.eq.0) fast_ion_z=z_ion
 

@@ -631,7 +631,7 @@ subroutine init_particles(lrestart, ierr)
       - dot_product(elfieldcoefs(itri)%zst,geomterms%dr)*dot_product(elfieldcoefs(itri)%rst,geomterms%dz))
 #endif
 
-   if (fast_ion_dist.eq.0) then
+   if ((kinetic_fast_ion.eq.1).and.(fast_ion_dist.eq.0)) then
       num_energy=0
       call read_ascii_column('ep_energy_array', energy_array, num_energy, icol=1)
         !energy_array=energy_array*1.7
@@ -961,7 +961,7 @@ subroutine init_particles(lrestart, ierr)
 
    end if !!lrestart
 
-   if (fast_ion_dist.eq.0) then
+   if ((kinetic_fast_ion.eq.1).and.(fast_ion_dist.eq.0)) then
       if (energy_array(1).eq.0) energy_array=energy_array+0.1*(energy_array(2)-energy_array(1))
       do energy_i=1,num_energy
          f_array(energy_i,:,:)=f_array(energy_i,:,:)/sqrt(energy_array(energy_i)/energy_array(num_energy))
@@ -986,7 +986,7 @@ subroutine init_particles(lrestart, ierr)
 !$acc update device(particle_linear_particle,psi_axis,nf_axis,nfi_axis,toroidal_period_particle)
 !$acc update device(gyroaverage_particle,psubsteps_particle,iconst_f0_particle,kinetic_rhomax_particle)
 !$acc update device(kinetic_thermal_ion_particle,fast_ion_dist_particle,fast_ion_max_energy_particle)
-      if (fast_ion_dist.eq.0) then
+      if ((kinetic_fast_ion.eq.1).and.(fast_ion_dist.eq.0)) then
 !$acc update device(num_energy,num_pitch,num_r) async(blocky)
 !$acc enter data create(energy_array,pitch_array,r_array,f_array) async(blocky)
 !$acc update device(energy_array,pitch_array,r_array,f_array) async(blocky)
@@ -3290,6 +3290,7 @@ subroutine particle_pressure_rhs
                phfac = exp(-rfac*xtemp(2))
             end if
             coeffspai_local(:, itri) = coeffspai_local(:, itri) + ppar*phfac*wnuhere/4*2
+            !coeffspai_local(:,itri) = coeffspai_local(:,itri) + ppar*geomterms%g*nrmfac(pdata(ipart)%sps)/4
             coeffspei_local(:, itri) = coeffspei_local(:, itri) + pperp*phfac*wnuhere2/4*2
             !coeffspei_local(:,itri) = coeffspei_local(:,itri) + pperp*geomterms%g*nrmfac(pdata(ipart)%sps)/4
             coeffsdei_local(:, itri) = coeffsdei_local(:, itri) + phfac*wnuhere/4&
@@ -3322,9 +3323,9 @@ subroutine particle_pressure_rhs
                phfac = exp(-rfac*xtemp(2))
             end if
             coeffspaf_local(:, itri) = coeffspaf_local(:, itri) + ppar*phfac*wnuhere/4*2
-             !coeffspaf_local(:,itri) = coeffspaf_local(:,itri) + ppar*geomterms%g*nrmfac(pdata(ipart)%sps)/4
+            !coeffspaf_local(:,itri) = coeffspaf_local(:,itri) + ppar*geomterms%g*nrmfac(pdata(ipart)%sps)/4
             coeffspef_local(:, itri) = coeffspef_local(:, itri) + pperp*phfac*wnuhere2/4*2
-             !coeffspef_local(:,itri) = coeffspef_local(:,itri) + pperp*geomterms%g*nrmfac(pdata(ipart)%sps)/4
+            !coeffspef_local(:,itri) = coeffspef_local(:,itri) + pperp*geomterms%g*nrmfac(pdata(ipart)%sps)/4
             coeffsdef_local(:, itri) = coeffsdef_local(:, itri) + phfac*wnuhere/4&
                *(b0_norm/1e4)**2/(4*3.14159*1e-7)/(n0_norm*1e6)*2
             coeffsvpf_local(:,itri) = coeffsvpf_local(:,itri) + vpar/(v0_norm/100.)*phfac*wnuhere/4&
@@ -3476,6 +3477,12 @@ subroutine hdf5_write_particles(ierr)
    integer(HSSIZE_T), dimension(2) :: off_h5
    integer :: info
    integer ielm, poffset, pindex, np, ipart, size
+   real, dimension(3) :: xtemp
+   real, dimension(vspdims) :: vtemp
+   real :: spsq
+   type(xgeomterms)   :: geomterms
+   integer :: itri
+
    !Calculate data size
    call MPI_Bcast(nparticles, 1, MPI_INTEGER, 0, MPI_COMM_WORLD, ierr)
 
@@ -3622,7 +3629,18 @@ subroutine hdf5_write_particles(ierr)
          values(12, ipart) = pdata(pindex)%x0(3)
          values(13, ipart) = pdata(pindex)%v0(1)
          values(14, ipart) = pdata(pindex)%v0(2)
-      end do !ipart
+         xtemp = pdata(pindex)%x
+         vtemp = pdata(pindex)%v
+         itri = pdata(pindex)%jel
+         call get_geom_terms(xtemp, itri, geomterms, .false., ierr)
+#ifdef USEST
+         call update_geom_terms_st(geomterms, elfieldcoefs(itri), .false.)
+#endif
+         spsq = vtemp(1)**2 + 2.0*qm_ion(pdata(pindex)%sps)*vtemp(2)*pdata(pindex)%B0
+         values(11, ipart) = dot_product(elfieldcoefs(itri)%rho, geomterms%g)
+         values(12, ipart) = vtemp(1)/sqrt(spsq)
+         values(13, ipart) = m_ion(pdata(pindex)%sps)*0.5*spsq
+     end do !ipart
 
       !Write the dataset
       call h5dwrite_f(dset_id, H5T_NATIVE_DOUBLE, values, global_dims, ierr, &
