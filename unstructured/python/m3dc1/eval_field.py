@@ -348,8 +348,30 @@ def get_shape(sim,res=250,quiet=False):
             print(Rmax,Rmin)
     a=(Rmax-Rmin)/2
     R0 = (Rmax+Rmin)/2
+    
+    Z_max = np.amax(vert[:,1])
+    Z_max_ind = fpyl.get_ind_at_val(vert[:,1], Z_max, unique=True)
+    Z_min = np.amin(vert[:,1])
+    Z_min_ind = fpyl.get_ind_at_val(vert[:,1], Z_min, unique=True)
+    
+    z0 = (Z_max + Z_min)/2.0
+    b = (Z_max - Z_min)/2.0
+    
+    R_upper = vert[:,0][Z_max_ind]
+    R_lower = vert[:,0][Z_min_ind]
+    print(R_upper)
+    print(R_lower)
+    delta_u = (R0-R_upper)/a
+    delta_l = (R0-R_lower)/a
+    
     if not quiet:
-        print('a = '+str(a))
         print('R0 = '+str(R0))
+        print('a = '+str(a))
         print('A=R0/a = '+str(R0/a))
+        print('z0 = '+str(z0))
+        print('b = '+str(b))
+        print('kappa     =  '+str((Z_max-Z_min)/(2*a)))
+        print('delta     =  '+str( ( delta_u + delta_l ) / 2))
+        print('delta_u   =  '+str(delta_u))
+        print('delta_l   =  '+str(delta_l))
     return a,R0
