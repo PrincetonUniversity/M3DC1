@@ -3010,11 +3010,6 @@ subroutine evalf0(x, vpar, vperp, fh, gh, sps, f0, gradcoef, df0de, df0dxi)
          f0=f0*T0**(-1.5)*exp(-m_ion(sps)*spd**2/(2*T0*1.6e-19))
          df0de = -1./(T0*1.6e-19)
          df0dxi = 0.
-         if (real(dot_product(fh%rho, gh%g))>kinetic_rhomax_particle) then
-            gradf=0.
-            df0de=0.
-            df0dxi=0.
-         endif
       elseif (fast_ion_dist_particle.eq.2) then
          !slowingdown
          gradf=gradf-3./(spd**3 + (2*T0*1.6e-19/m_ion(sps))**(1.5))*(2*T0*1.6e-19/m_ion(sps))**(0.5)/m_ion(2)*1.6e-19*gradT
@@ -3131,6 +3126,12 @@ subroutine evalf0(x, vpar, vperp, fh, gh, sps, f0, gradcoef, df0de, df0dxi)
       !gradcoef = 0.0
       df0de = 0.0
    end select
+   if (real(dot_product(fh%rho, gh%g))>kinetic_rhomax_particle) then
+      gradf=0.
+      df0de=0.
+      df0dxi=0.
+   endif
+
 end subroutine evalf0
 !---------------------------------------------------------------------------
 subroutine particle_pressure_rhs
@@ -4221,6 +4222,11 @@ subroutine set_density
       !   -0.1*dt*n179(:,OP_1)*te079(:,OP_1)*2
       temp79a = n179(:,OP_1) + 0.9*(nfi79(:,OP_1)+nf79(:,OP_1)) &
         -0.9*n179(:,OP_1)
+      !where (real(rhof79(:,OP_1))>0.5)
+      !    !temp79a(:)=-temp79b(:)
+      !    temp79a(:)=n179(:,OP_1)
+      ! end where
+
       !temp79a = n179(:,OP_1) + 0.9*(nfi79(:,OP_1))&
       !          -0.5*n179(:,OP_1)
       !temp79a = n179(:,OP_1)
@@ -4239,8 +4245,13 @@ subroutine set_density
   den_field(1) = p_v
   call destroy_field(p_v)
   call calculate_ne(1, den_field(1), ne_field(1), eqsubtract)
-  call calculate_pressures(1, pe_field(1), p_field(1), ne_field(1), &
-       den_field(1), te_field(1), ti_field(1), eqsubtract)
+  if(itemp.eq.0 .and. (numvar.eq.3 .or. ipres.gt.0)) then
+     call calculate_temperatures(1, te_field(1), ti_field(1), &
+          pe_field(1), p_field(1), ne_field(1), den_field(1), eqsubtract)
+  else
+     call calculate_pressures(1, pe_field(1), p_field(1), ne_field(1), &
+          den_field(1), te_field(1), ti_field(1), eqsubtract)
+  endif
 end subroutine set_density
 
 subroutine set_den_smooth

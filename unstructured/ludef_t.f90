@@ -5848,6 +5848,9 @@ subroutine ludefden_n(itri)
   ssterm = ssterm + tempxx
   if(itime_independent.eq.0) ddterm = ddterm + tempxx*bdf
 
+#ifdef USEPARTICLES
+  if((kinetic.eq.0).or.(kinetic_thermal_ion.eq.0)) then
+#endif
   do j=1,dofs_per_element
      
      tempx = n1ndenm(mu79,nu79(j,:,:),denm79,vzt79) &
@@ -5909,6 +5912,9 @@ subroutine ludefden_n(itri)
         endif
      endif
   end do
+#ifdef USEPARTICLES
+  endif
+#endif
 
   ! Source term
   ! ~~~~~~~~~~~~ 

@@ -883,11 +883,7 @@ call PetscLogStagePop(jer)
   
   ! Advance Density
   ! ===============
-#ifdef USEPARTICLES
-  if((idens.eq.1).and.((kinetic.eq.0).or.(kinetic_thermal_ion.eq.0))) then
-#else
   if(idens.eq.1) then
-#endif
      if(myrank.eq.0 .and. iprint.ge.1) print *, " Advancing density"
      
      call create_vector(temp, vecsize_n)
