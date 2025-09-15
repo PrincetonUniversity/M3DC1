@@ -851,16 +851,24 @@ subroutine init_particles(lrestart, ierr)
                call random_number(ran_temp)
                energy = ran_temp*(energy_array(num_energy)-energy_array(1))+energy_array(1)
                energy_i=int((energy-energy_array(1))/(energy_array(2)-energy_array(1)))+1
-               f1=f_array(energy_i,pitch_i,radi_i)*(energy_array(energy_i+1)-energy)/(energy_array(energy_i+1)-energy_array(energy_i))
-               f1=f1+f_array(energy_i+1,pitch_i,radi_i)*(energy-energy_array(energy_i))/(energy_array(energy_i+1)-energy_array(energy_i))
-               f2=f_array(energy_i,pitch_i+1,radi_i)*(energy_array(energy_i+1)-energy)/(energy_array(energy_i+1)-energy_array(energy_i))
-               f2=f2+f_array(energy_i+1,pitch_i+1,radi_i)*(energy-energy_array(energy_i))/(energy_array(energy_i+1)-energy_array(energy_i))
+               f1=f_array(energy_i,pitch_i,radi_i)*(energy_array(energy_i+1)-energy)&
+               /(energy_array(energy_i+1)-energy_array(energy_i))
+               f1=f1+f_array(energy_i+1,pitch_i,radi_i)*(energy-energy_array(energy_i))&
+               /(energy_array(energy_i+1)-energy_array(energy_i))
+               f2=f_array(energy_i,pitch_i+1,radi_i)*(energy_array(energy_i+1)-energy)&
+               /(energy_array(energy_i+1)-energy_array(energy_i))
+               f2=f2+f_array(energy_i+1,pitch_i+1,radi_i)*(energy-energy_array(energy_i))&
+               /(energy_array(energy_i+1)-energy_array(energy_i))
                f3=f1*(pitch_array(pitch_i+1)-pitch)/(pitch_array(pitch_i+1)-pitch_array(pitch_i))
                f3=f3+f2*(pitch-pitch_array(pitch_i))/(pitch_array(pitch_i+1)-pitch_array(pitch_i))
-               f4=f_array(energy_i,pitch_i,radi_i+1)*(energy_array(energy_i+1)-energy)/(energy_array(energy_i+1)-energy_array(energy_i))
-               f4=f4+f_array(energy_i+1,pitch_i,radi_i+1)*(energy-energy_array(energy_i))/(energy_array(energy_i+1)-energy_array(energy_i))
-               f5=f_array(energy_i,pitch_i+1,radi_i+1)*(energy_array(energy_i+1)-energy)/(energy_array(energy_i+1)-energy_array(energy_i))
-               f5=f5+f_array(energy_i+1,pitch_i+1,radi_i+1)*(energy-energy_array(energy_i))/(energy_array(energy_i+1)-energy_array(energy_i))
+               f4=f_array(energy_i,pitch_i,radi_i+1)*(energy_array(energy_i+1)-energy)&
+               /(energy_array(energy_i+1)-energy_array(energy_i))
+               f4=f4+f_array(energy_i+1,pitch_i,radi_i+1)*(energy-energy_array(energy_i))&
+               /(energy_array(energy_i+1)-energy_array(energy_i))
+               f5=f_array(energy_i,pitch_i+1,radi_i+1)*(energy_array(energy_i+1)-energy)&
+               /(energy_array(energy_i+1)-energy_array(energy_i))
+               f5=f5+f_array(energy_i+1,pitch_i+1,radi_i+1)*(energy-energy_array(energy_i))&
+               /(energy_array(energy_i+1)-energy_array(energy_i))
                f6=f4*(pitch_array(pitch_i+1)-pitch)/(pitch_array(pitch_i+1)-pitch_array(pitch_i))
                f6=f6+f5*(pitch-pitch_array(pitch_i))/(pitch_array(pitch_i+1)-pitch_array(pitch_i))
                f0=f3*(r_array(radi_i+1)-radi)/(r_array(radi_i+1)-r_array(radi_i))
@@ -1038,14 +1046,22 @@ subroutine init_particles(lrestart, ierr)
       !tempxx = tempxx + smooth_pres*intxx3(mu79(:, :, OP_DPP), nu79(:, :, OP_DPP), ri4_79)
 !#endif
       tempxx = tempxx + smooth_dens_parallel*(&
-            + intxx5(mu79(:,:,OP_DZ),nu79(:,:,OP_DZ),ri_79*pstx79(:,OP_DR)-bfptx79(:,OP_DZ),ri_79*pstx79(:,OP_DR)-bfptx79(:,OP_DZ),b2i79(:,OP_1)) &
-            - intxx5(mu79(:,:,OP_DZ),nu79(:,:,OP_DR),ri_79*pstx79(:,OP_DR)-bfptx79(:,OP_DZ),ri_79*pstx79(:,OP_DZ)+bfptx79(:,OP_DR),b2i79(:,OP_1)) &
-            + intxx5(mu79(:,:,OP_DZ),nu79(:,:,OP_DP),ri_79*pstx79(:,OP_DR)-bfptx79(:,OP_DZ),ri2_79*bztx79(:,OP_1),b2i79(:,OP_1)) &
-            - intxx5(mu79(:,:,OP_DR),nu79(:,:,OP_DZ),ri_79*pstx79(:,OP_DZ)+bfptx79(:,OP_DR),ri_79*pstx79(:,OP_DR)-bfptx79(:,OP_DZ),b2i79(:,OP_1)) &
-            + intxx5(mu79(:,:,OP_DR),nu79(:,:,OP_DR),ri_79*pstx79(:,OP_DZ)+bfptx79(:,OP_DR),ri_79*pstx79(:,OP_DZ)+bfptx79(:,OP_DR),b2i79(:,OP_1)) &
-            - intxx5(mu79(:,:,OP_DR),nu79(:,:,OP_DP),ri_79*pstx79(:,OP_DZ)+bfptx79(:,OP_DR),ri2_79*bztx79(:,OP_1),b2i79(:,OP_1)) &
-            + intxx5(mu79(:,:,OP_DP),nu79(:,:,OP_DZ),ri2_79*bztx79(:,OP_1),ri_79*pstx79(:,OP_DR)-bfptx79(:,OP_DZ),b2i79(:,OP_1)) &
-            - intxx5(mu79(:,:,OP_DP),nu79(:,:,OP_DR),ri2_79*bztx79(:,OP_1),ri_79*pstx79(:,OP_DZ)+bfptx79(:,OP_DR),b2i79(:,OP_1)) &
+            + intxx5(mu79(:,:,OP_DZ),nu79(:,:,OP_DZ),ri_79*pstx79(:,OP_DR)-&
+                     bfptx79(:,OP_DZ),ri_79*pstx79(:,OP_DR)-bfptx79(:,OP_DZ),b2i79(:,OP_1)) &
+            - intxx5(mu79(:,:,OP_DZ),nu79(:,:,OP_DR),ri_79*pstx79(:,OP_DR)-&
+                     bfptx79(:,OP_DZ),ri_79*pstx79(:,OP_DZ)+bfptx79(:,OP_DR),b2i79(:,OP_1)) &
+            + intxx5(mu79(:,:,OP_DZ),nu79(:,:,OP_DP),ri_79*pstx79(:,OP_DR)-&
+                     bfptx79(:,OP_DZ),ri2_79*bztx79(:,OP_1),b2i79(:,OP_1)) &
+            - intxx5(mu79(:,:,OP_DR),nu79(:,:,OP_DZ),ri_79*pstx79(:,OP_DZ)+&
+                     bfptx79(:,OP_DR),ri_79*pstx79(:,OP_DR)-bfptx79(:,OP_DZ),b2i79(:,OP_1)) &
+            + intxx5(mu79(:,:,OP_DR),nu79(:,:,OP_DR),ri_79*pstx79(:,OP_DZ)+&
+                     bfptx79(:,OP_DR),ri_79*pstx79(:,OP_DZ)+bfptx79(:,OP_DR),b2i79(:,OP_1)) &
+            - intxx5(mu79(:,:,OP_DR),nu79(:,:,OP_DP),ri_79*pstx79(:,OP_DZ)+&
+                     bfptx79(:,OP_DR),ri2_79*bztx79(:,OP_1),b2i79(:,OP_1)) &
+            + intxx5(mu79(:,:,OP_DP),nu79(:,:,OP_DZ),ri2_79*bztx79(:,OP_1),ri_79*pstx79(:,OP_DR)-&
+                     bfptx79(:,OP_DZ),b2i79(:,OP_1)) &
+            - intxx5(mu79(:,:,OP_DP),nu79(:,:,OP_DR),ri2_79*bztx79(:,OP_1),ri_79*pstx79(:,OP_DZ)+&
+                     bfptx79(:,OP_DR),b2i79(:,OP_1)) &
             + intxx5(mu79(:,:,OP_DP),nu79(:,:,OP_DP),ri2_79*bztx79(:,OP_1),ri2_79*bztx79(:,OP_1),b2i79(:,OP_1)) &
             )
 
@@ -1433,7 +1449,8 @@ subroutine fdot(x, v, w, dxdt, dvdt, dwdt, dEpdt, itri, kel, f00, ierr, sps, B00
 #endif
          call getEcyl(x2, elfieldcoefs(kel(ipoint)), geomterms2, E_cyl2)
          !call getBcyl(x2, elfieldcoefs(kel(ipoint)), geomterms2, B_cyl2, deltaB2, gradB02, gradB12, dB12)
-         call getBcylprime(x2, elfieldcoefs(kel(ipoint)), geomterms2, B_cyl2, deltaB2, dB0dR2, dB0dphi2, dB0dz2, dB1dR2, dB1dphi2, dB1dz2)
+         call getBcylprime(x2, elfieldcoefs(kel(ipoint)), geomterms2, B_cyl2, &
+           deltaB2, dB0dR2, dB0dphi2, dB0dz2, dB1dR2, dB1dphi2, dB1dz2)
          !call getBcyl_last(x2, elfieldcoefs(kel(ipoint)), geomterms2, B_cyl2, deltaB_last2)
          E_cyl = E_cyl + E_cyl2
          B0_cyl = B0_cyl + B_cyl2
@@ -3040,16 +3057,24 @@ subroutine evalf0(x, vpar, vperp, fh, gh, sps, f0, gradcoef, df0de, df0dxi)
        if (energy>energy_array(num_energy)) energy=energy_array(num_energy)
        energy_i=int((energy-energy_array(1))/(energy_array(2)-energy_array(1)))+1
        if (energy_i>=num_energy) energy_i=num_energy-1
-       f1=f_array(energy_i,pitch_i,radi_i)*(energy_array(energy_i+1)-energy)/(energy_array(energy_i+1)-energy_array(energy_i))
-       f1=f1+f_array(energy_i+1,pitch_i,radi_i)*(energy-energy_array(energy_i))/(energy_array(energy_i+1)-energy_array(energy_i))
-       f2=f_array(energy_i,pitch_i+1,radi_i)*(energy_array(energy_i+1)-energy)/(energy_array(energy_i+1)-energy_array(energy_i))
-       f2=f2+f_array(energy_i+1,pitch_i+1,radi_i)*(energy-energy_array(energy_i))/(energy_array(energy_i+1)-energy_array(energy_i))
+       f1=f_array(energy_i,pitch_i,radi_i)*(energy_array(energy_i+1)-energy)&
+         /(energy_array(energy_i+1)-energy_array(energy_i))
+       f1=f1+f_array(energy_i+1,pitch_i,radi_i)*(energy-energy_array(energy_i))&
+         /(energy_array(energy_i+1)-energy_array(energy_i))
+       f2=f_array(energy_i,pitch_i+1,radi_i)*(energy_array(energy_i+1)-energy)&
+         /(energy_array(energy_i+1)-energy_array(energy_i))
+       f2=f2+f_array(energy_i+1,pitch_i+1,radi_i)*(energy-energy_array(energy_i))&
+         /(energy_array(energy_i+1)-energy_array(energy_i))
        f3=f1*(pitch_array(pitch_i+1)-pitch)/(pitch_array(pitch_i+1)-pitch_array(pitch_i))
        f3=f3+f2*(pitch-pitch_array(pitch_i))/(pitch_array(pitch_i+1)-pitch_array(pitch_i))
-       f4=f_array(energy_i,pitch_i,radi_i+1)*(energy_array(energy_i+1)-energy)/(energy_array(energy_i+1)-energy_array(energy_i))
-       f4=f4+f_array(energy_i+1,pitch_i,radi_i+1)*(energy-energy_array(energy_i))/(energy_array(energy_i+1)-energy_array(energy_i))
-       f5=f_array(energy_i,pitch_i+1,radi_i+1)*(energy_array(energy_i+1)-energy)/(energy_array(energy_i+1)-energy_array(energy_i))
-       f5=f5+f_array(energy_i+1,pitch_i+1,radi_i+1)*(energy-energy_array(energy_i))/(energy_array(energy_i+1)-energy_array(energy_i))
+       f4=f_array(energy_i,pitch_i,radi_i+1)*(energy_array(energy_i+1)-energy)&
+         /(energy_array(energy_i+1)-energy_array(energy_i))
+       f4=f4+f_array(energy_i+1,pitch_i,radi_i+1)*(energy-energy_array(energy_i))&
+         /(energy_array(energy_i+1)-energy_array(energy_i))
+       f5=f_array(energy_i,pitch_i+1,radi_i+1)*(energy_array(energy_i+1)-energy)&
+         /(energy_array(energy_i+1)-energy_array(energy_i))
+       f5=f5+f_array(energy_i+1,pitch_i+1,radi_i+1)*(energy-energy_array(energy_i))&
+         /(energy_array(energy_i+1)-energy_array(energy_i))
        f6=f4*(pitch_array(pitch_i+1)-pitch)/(pitch_array(pitch_i+1)-pitch_array(pitch_i))
        f6=f6+f5*(pitch-pitch_array(pitch_i))/(pitch_array(pitch_i+1)-pitch_array(pitch_i))
        f0=f3*(r_array(radi_i+1)-radi)/(r_array(radi_i+1)-r_array(radi_i))
@@ -3091,16 +3116,24 @@ subroutine evalf0(x, vpar, vperp, fh, gh, sps, f0, gradcoef, df0de, df0dxi)
        if (abs(df0de)>1./(energy_array(2)-energy_array(1))) df0de=0
        !df0de=0.
        df0de=df0de/1.6e-19
-       f1=f_array(energy_i,pitch_i,radi_i)*(energy_array(energy_i+1)-energy)/(energy_array(energy_i+1)-energy_array(energy_i))
-       f1=f1+f_array(energy_i+1,pitch_i,radi_i)*(energy-energy_array(energy_i))/(energy_array(energy_i+1)-energy_array(energy_i))
-       f2=f_array(energy_i,pitch_i,radi_i+1)*(energy_array(energy_i+1)-energy)/(energy_array(energy_i+1)-energy_array(energy_i))
-       f2=f2+f_array(energy_i+1,pitch_i,radi_i+1)*(energy-energy_array(energy_i))/(energy_array(energy_i+1)-energy_array(energy_i))
+       f1=f_array(energy_i,pitch_i,radi_i)*(energy_array(energy_i+1)-energy)&
+         /(energy_array(energy_i+1)-energy_array(energy_i))
+       f1=f1+f_array(energy_i+1,pitch_i,radi_i)*(energy-energy_array(energy_i))&
+         /(energy_array(energy_i+1)-energy_array(energy_i))
+       f2=f_array(energy_i,pitch_i,radi_i+1)*(energy_array(energy_i+1)-energy)&
+         /(energy_array(energy_i+1)-energy_array(energy_i))
+       f2=f2+f_array(energy_i+1,pitch_i,radi_i+1)*(energy-energy_array(energy_i))&
+         /(energy_array(energy_i+1)-energy_array(energy_i))
        f3=f1*(r_array(radi_i+1)-radi)/(r_array(radi_i+1)-r_array(radi_i))
        f3=f3+f2*(radi-r_array(radi_i))/(r_array(radi_i+1)-r_array(radi_i))
-       f4=f_array(energy_i,pitch_i+1,radi_i)*(energy_array(energy_i+1)-energy)/(energy_array(energy_i+1)-energy_array(energy_i))
-       f4=f4+f_array(energy_i+1,pitch_i+1,radi_i)*(energy-energy_array(energy_i))/(energy_array(energy_i+1)-energy_array(energy_i))
-       f5=f_array(energy_i,pitch_i+1,radi_i+1)*(energy_array(energy_i+1)-energy)/(energy_array(energy_i+1)-energy_array(energy_i))
-       f5=f5+f_array(energy_i+1,pitch_i+1,radi_i+1)*(energy-energy_array(energy_i))/(energy_array(energy_i+1)-energy_array(energy_i))
+       f4=f_array(energy_i,pitch_i+1,radi_i)*(energy_array(energy_i+1)-energy)&
+         /(energy_array(energy_i+1)-energy_array(energy_i))
+       f4=f4+f_array(energy_i+1,pitch_i+1,radi_i)*(energy-energy_array(energy_i))&
+         /(energy_array(energy_i+1)-energy_array(energy_i))
+       f5=f_array(energy_i,pitch_i+1,radi_i+1)*(energy_array(energy_i+1)-energy)&
+         /(energy_array(energy_i+1)-energy_array(energy_i))
+       f5=f5+f_array(energy_i+1,pitch_i+1,radi_i+1)*(energy-energy_array(energy_i))&
+         /(energy_array(energy_i+1)-energy_array(energy_i))
        f6=f4*(r_array(radi_i+1)-radi)/(r_array(radi_i+1)-r_array(radi_i))
        f6=f6+f5*(radi-r_array(radi_i))/(r_array(radi_i+1)-r_array(radi_i))
        !if ((f6/f3>10.).or.(f6/f3<0.1)) then

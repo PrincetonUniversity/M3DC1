@@ -5478,13 +5478,13 @@ function v3pbb1psi(e,f,g,h)
              -  intx5(e(:,:,OP_DZ),temp79b,f(:,OP_DR),h(:,OP_DZ),pst79(:,OP_DR)) &
              +  intx5(e(:,:,OP_DR),temp79b,f(:,OP_DR),h(:,OP_DZ),pst79(:,OP_DZ))
 
-  #if defined(USE3D) || defined(USECOMPLEX)
+#if defined(USE3D) || defined(USECOMPLEX)
         temp79a = -g*ri3_79
         temp = temp +intx5(e(:,:,OP_DR),temp79a,h(:,OP_DR),f(:,OP_DZ),bfpt79(:,OP_DR)) &
               -intx5(e(:,:,OP_DR),temp79a,h(:,OP_DZ),f(:,OP_DR),bfpt79(:,OP_DR)) &
               +intx5(e(:,:,OP_DZ),temp79a,h(:,OP_DR),f(:,OP_DZ),bfpt79(:,OP_DZ)) &
               -intx5(e(:,:,OP_DZ),temp79a,h(:,OP_DZ),f(:,OP_DR),bfpt79(:,OP_DZ)) 
-      #endif
+#endif
     end if
 
   v3pbb1psi = temp
@@ -5508,7 +5508,7 @@ function v3pbb1f(e,f,g,h)
      if(surface_int) then
         temp = 0.
      else
-  #if defined(USE3D) || defined(USECOMPLEX)
+#if defined(USE3D) || defined(USECOMPLEX)
      temp79a = -g*ri3_79
         temp = temp +intx5(e(:,:,OP_DZ),temp79a,pst79(:,OP_DR),f(:,OP_DR),h(:,OP_DR)) &
               +intx5(e(:,:,OP_DZ),temp79a,pst79(:,OP_DR),f(:,OP_DZ),h(:,OP_DZ)) &
@@ -5519,7 +5519,7 @@ function v3pbb1f(e,f,g,h)
               +intx5(e(:,:,OP_DZ),temp79a,bfpt79(:,OP_DZ),f(:,OP_DR),h(:,OP_DR)) &
               +intx5(e(:,:,OP_DR),temp79a,bfpt79(:,OP_DR),f(:,OP_DZ),h(:,OP_DZ)) &
               +intx5(e(:,:,OP_DZ),temp79a,bfpt79(:,OP_DZ),f(:,OP_DZ),h(:,OP_DZ)) 
-      #endif
+#endif
     end if
 
   v3pbb1f = temp

@@ -496,7 +496,7 @@ module basic
   real :: xnull2, znull2    ! coordinates of the limiting x-point
   real :: psinull, psinull2
   integer :: mod_null_rs, mod_null_rs2  ! if 1, modify xnull,znull or xnull2,znull2 at restart
-  real :: temax            ! maximum temperature
+  real :: temax, temax_readin      ! maximum temperature, reading in for ibootstrap=3
 
   integer :: isolve_with_guess=0 ! (=0; use zero initial guess); (=1; use previous step value as non-zero initial guess)
 
@@ -541,9 +541,9 @@ module arrays
   type(field_type) :: sigma_field, Fphi_field, Q_field, cd_field
   type(field_type) :: Totrad_field, Linerad_field, Bremrad_field, Ionrad_field, Reckrad_field, Recprad_field
   type(field_type) :: visc_field, visc_c_field, visc_e_field, pforce_field, pmach_field
-  type(field_type) :: Jbs_L31_field, Jbs_L32_field, Jbs_L34_field, Jbs_alpha_field, Jbs_fluxavg_iBsq_field, &
-          Jbs_fluxavg_G_field, Jbs_dtedpsit_field
-  
+  type(field_type) :: Jbs_L31_field, Jbs_L32_field, Jbs_L34_field, Jbs_alpha_field, Jbs_fluxavg_iBsq_field &
+  , Jbs_fluxavg_G_field, Jbs_dtedpsit_field
+  type(field_type) :: Jbs_ftrap_field,Jbs_qR_field,Jbs_invAspectRatio_field 
   type(field_type) :: temporary_field
   
   type(field_type) :: psi_coil_field

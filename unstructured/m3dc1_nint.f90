@@ -160,6 +160,8 @@ module m3dc1_nint
 !$OMP THREADPRIVATE(qd79)
   vectype, dimension(MAX_PTS, OP_NUM) :: jbsl3179,jbsl3279,jbsl3479,jbsalpha79,jbsfluxavg_iBsq_B79,jbsfluxavg_G79,jbs_dtedpsit79
 !$OMP THREADPRIVATE(jbsl3179,jbsl3279,jbsl3479,jbsalpha79,jbsfluxavg_iBsq_B79,jbsfluxavg_G79,jbs_dtedpsit79)
+  vectype, dimension(MAX_PTS, OP_NUM) :: jbs_ftrap79,jbs_qR79,jbs_invAspectRatio79
+!$OMP THREADPRIVATE(jbs_ftrap79,jbs_qR79,jbs_invAspectRatio79)
 
   ! precalculated terms
    real, private :: fterm(MAX_PTS, OP_NUM, coeffs_per_element)
@@ -1626,14 +1628,25 @@ contains
   if((iand(fields, FIELD_JBS).eq.FIELD_JBS) &
        .and. ibootstrap.gt.0) then
      if(itri.eq.1 .and. myrank.eq.0 .and. iprint.ge.2) print *, "   Jbs_coefs..."
-     call eval_ops(itri, Jbs_L31_field, jbsl3179)
-     call eval_ops(itri, Jbs_L32_field, jbsl3279)
-     call eval_ops(itri, Jbs_L34_field, jbsl3479)
-     call eval_ops(itri, Jbs_alpha_field, jbsalpha79)
+
      call eval_ops(itri, Jbs_fluxavg_iBsq_field, jbsfluxavg_iBsq_B79)
      call eval_ops(itri, Jbs_fluxavg_G_field, jbsfluxavg_G79)
-     if(ibootstrap.eq.2) then
+     if(ibootstrap.eq.2 .or. ibootstrap .eq.1) then
+      call eval_ops(itri, Jbs_L31_field, jbsl3179)
+      call eval_ops(itri, Jbs_L32_field, jbsl3279)
+      call eval_ops(itri, Jbs_L34_field, jbsl3479)
+      call eval_ops(itri, Jbs_alpha_field, jbsalpha79)
       call eval_ops(itri, Jbs_dtedpsit_field, jbs_dtedpsit79)
+     endif
+     if(ibootstrap.eq.3) then
+      jbsl3179 = 0.
+      jbsl3279 = 0.
+      jbsl3479 = 0.
+      jbsalpha79 = 0.
+      call eval_ops(itri, Jbs_dtedpsit_field, jbs_dtedpsit79)
+      call eval_ops(itri, Jbs_ftrap_field, jbs_ftrap79)
+      call eval_ops(itri, Jbs_qR_field, jbs_qR79)
+      call eval_ops(itri, Jbs_invAspectRatio_field, jbs_invAspectRatio79)
      endif
      
   else
@@ -1645,6 +1658,12 @@ contains
      jbsfluxavg_G79 = 0.
      if(ibootstrap.eq.2) then
       jbs_dtedpsit79 =0.
+     endif
+     if(ibootstrap.eq.3) then
+      jbs_dtedpsit79 =0.
+      jbs_ftrap79 =0.
+      jbs_qR79 =0.
+      jbs_invAspectRatio79 =0.
      endif
   end if
 

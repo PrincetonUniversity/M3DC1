@@ -254,7 +254,6 @@ subroutine hdf5_write_parameters(error)
   call write_real_attr(root_id, "frequency"  , frequency,  error)
   call write_int_attr (root_id, "ibootstrap_model", ibootstrap_model, error)
   call write_real_attr(root_id, "bootstrap_alpha", bootstrap_alpha, error)
-  call write_int_attr (root_id, "ibootstrap_map_te", ibootstrap_map_te, error)
   call write_real_attr(root_id, "eta_te_offset", eta_te_offset, error)
   call write_int_attr (root_id, "imag_probes", imag_probes, error)
   call write_int_attr (root_id, "iflux_loops", iflux_loops, error)
@@ -1201,14 +1200,21 @@ subroutine output_fields(time_group_id, equilibrium, error)
      if(ibootstrap.gt.0) then
         call write_field(group_id, "visc_e", visc_e_field, nelms, error,.true.)
           !Bootstrap Coeff Fields
-        call write_field(group_id, "Jbs_L31", Jbs_L31_field, nelms, error,.true.)
-        call write_field(group_id, "Jbs_L32", Jbs_L32_field, nelms, error,.true.)
-        call write_field(group_id, "Jbs_L34", Jbs_L34_field, nelms, error,.true.)
-        call write_field(group_id, "Jbs_alpha", Jbs_alpha_field, nelms, error,.true.)
+        if(ibootstrap.eq.1 .or. ibootstrap.eq.2 .or. ibootstrap.eq.3) then
+         call write_field(group_id, "Jbs_L31", Jbs_L31_field, nelms, error,.true.)
+         call write_field(group_id, "Jbs_L32", Jbs_L32_field, nelms, error,.true.)
+         call write_field(group_id, "Jbs_L34", Jbs_L34_field, nelms, error,.true.)
+         call write_field(group_id, "Jbs_alpha", Jbs_alpha_field, nelms, error,.true.)
+        endif
         call write_field(group_id, "Jbs_fluxavg_iBsq", Jbs_fluxavg_iBsq_field, nelms, error,.true.)
         call write_field(group_id, "Jbs_fluxavg_G", Jbs_fluxavg_G_field, nelms, error,.true.)
-        if(ibootstrap.eq.2) then
+        if(ibootstrap.eq.2 .or. ibootstrap.eq.3) then
           call write_field(group_id, "Jbs_dtedpsit", Jbs_dtedpsit_field, nelms, error,.true.)
+        endif
+        if(ibootstrap.eq.3) then
+          call write_field(group_id, "Jbs_ftrap", Jbs_ftrap_field, nelms, error,.true.)
+          call write_field(group_id, "Jbs_qR", Jbs_ftrap_field, nelms, error,.true.)
+          call write_field(group_id, "Jbs_invAspectRatio", Jbs_ftrap_field, nelms, error,.true.)
         endif
      endif
   end if !(iwrite_transport_coeffs.eq.1)
@@ -1493,14 +1499,21 @@ subroutine mark_fields(equilibrium)
         ! visc_e_field
         call mark_field_for_solutiontransfer(visc_e_field)
         !Bootstrap Coeff Fields
-        call mark_field_for_solutiontransfer(Jbs_L31_field)
-        call mark_field_for_solutiontransfer(Jbs_L32_field)
-        call mark_field_for_solutiontransfer(Jbs_L34_field)
-        call mark_field_for_solutiontransfer(Jbs_alpha_field)
+        if(ibootstrap.eq.1 .or. ibootstrap.eq.2 .or. ibootstrap.eq.3) then
+         call mark_field_for_solutiontransfer(Jbs_L31_field)
+         call mark_field_for_solutiontransfer(Jbs_L32_field)
+         call mark_field_for_solutiontransfer(Jbs_L34_field)
+         call mark_field_for_solutiontransfer(Jbs_alpha_field)
+        endif
         call mark_field_for_solutiontransfer(Jbs_fluxavg_iBsq_field)
         call mark_field_for_solutiontransfer(Jbs_fluxavg_G_field)
-        if(ibootstrap.eq.2) then
+        if(ibootstrap.eq.2 .or. ibootstrap.eq.3) then
          call mark_field_for_solutiontransfer(Jbs_dtedpsit_field)
+        endif
+        if(ibootstrap.eq.3) then
+         call mark_field_for_solutiontransfer(Jbs_ftrap_field)
+         call mark_field_for_solutiontransfer(Jbs_qR_field)
+         call mark_field_for_solutiontransfer(Jbs_invAspectRatio_field)
         endif
      endif
   end if !(iwrite_transport_coeffs.eq.1)

@@ -1142,15 +1142,13 @@ and the truncation error is
   $\grad{p_e}$ terms in Ohm's law (electron form).  2: ion form (not
   recommended)  3: parallel pressure gradient in Ohm's law only
   (not recommended) \\
-  \texttt{ibootstrap} & 0 & 1: When using bootstrap coeeficients as a function of $\psi$; \\
-                      &   & 2: When using bootstrap coeeficients as a function of $T_e$ \\
+  \texttt{ibootstrap} & 0 & 1: Using bootstrap coefficients as a function of $\psi$; \\
+                      &   & 2: Using bootstrap coefficients as a function of $T_e$ \\
+                      &   & 3: Using bootstrap coefficients as a function of $\hat{T}=1-T_e/T_e_{max}$, coefficients are updated within M3D-C1 \\
   \texttt{ibootstrap\_model} & 0 & 1: Sauter (with eqsubtract = 0/1); \\
                              &   & 2: Redl (with eqsubtract = 0/1); \\
                              &   & 3: Sauter Model (with eqsubtract = 0); \\
                              &   & 4: Redl Model (with eqsubtract = 0) \\
-  \texttt{ibootstrap\_map\_te} & 0 & 1: Map bootstrap coefficients with respect to Te
-  (used for stellarator cases). This setting is to be used with ibootstrap: 2 and 
-  ibootstrap$\_$model: 3 or 4\\
   \texttt{ibootstrap\_regular} & 1e-8 & regularization term used in bootstrap current calculations \\
   \texttt{bootstrap\_alpha} & 1 & Amplification factor for bootstrap current \\
   \texttt{imp\_bf} & 0 & 1: include implicit equation for f (recommended for

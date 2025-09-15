@@ -745,6 +745,7 @@ subroutine derived_quantities(ilin)
   use transport_coefficients
   use auxiliary_fields
   use gradshafranov
+  use bootstrap
 
   implicit none
 
@@ -763,7 +764,12 @@ subroutine derived_quantities(ilin)
      if(linear.eq.1) then 
         if(ntime.eq.ntime0) then
           if(ifixed_temax .eq. 0) then
-            call te_max(xmag,zmag,te_field(0),temax,0,ier)
+            if(ibootstrap.eq.3) then
+               !call te_max3(xmag,zmag,te_field(0),temax,0,ier)
+               call te_max4(te_field(0),temax,linear,ier)
+            else
+               call te_max(xmag,zmag,te_field(0),temax,0,ier)
+            endif
           else
             call te_max2(xmag0,zmag0,te_field(0),temax,0,ier)
           endif
@@ -777,7 +783,12 @@ endif
         te_temp = te_field(0)
         call add_field_to_field(te_temp, te_field(1))
         if(ifixed_temax .eq. 0) then
-           call te_max(xmag,zmag,te_temp,temax,0,ier)
+            if(ibootstrap.eq.3) then
+               !call te_max3(xmag,zmag,te_temp,temax,0,ier)
+               call te_max4(te_temp,temax,linear,ier)
+            else
+               call te_max(xmag,zmag,te_temp,temax,0,ier)
+            endif  
         else
            call te_max2(xmag0,zmag0,te_temp,temax,0,ier)
         endif
@@ -785,7 +796,12 @@ endif
      endif
   else
      if(ifixed_temax .eq. 0) then
-       call te_max(xmag,zmag,te_field(1),temax,0,ier)
+      if(ibootstrap.eq.3) then
+         !call te_max3(xmag,zmag,te_field(1),temax,0,ier)
+         call te_max4(te_field(1),temax,linear,ier)
+      else
+         call te_max(xmag,zmag,te_field(1),temax,0,ier)
+      endif 
      else
        call te_max2(xmag0,zmag0,te_field(1),temax,0,ier)
      endif
@@ -1363,7 +1379,12 @@ if (ispradapt .eq. 1) then
      if(ibootstrap.gt.0) call create_field(Jbs_alpha_field, "Jbs_alpha")
      if(ibootstrap.gt.0) call create_field(Jbs_fluxavg_iBsq_field, "Jbs_fluxavg_iBsq")
      if(ibootstrap.gt.0) call create_field(Jbs_fluxavg_G_field, "Jbs_fluxavg_G")
-     if(ibootstrap.eq.2) call create_field(Jbs_dtedpsit_field, "Jbs_dtedpsit")
+     if(ibootstrap.eq.2 .or. ibootstrap.eq.3)  call create_field(Jbs_dtedpsit_field, "Jbs_dtedpsit")
+     
+     if(ibootstrap.eq.3) call create_field(Jbs_ftrap_field,"Jbs_ftrap_field")
+     if(ibootstrap.eq.3) call create_field(Jbs_qR_field,"Jbs_qR_field")
+     if(ibootstrap.eq.3) call create_field(Jbs_invAspectRatio_field,"Jbs_invApsectRatio_field")
+
 
      call create_field(psi_coil_field, "psi_coil")
 
@@ -1416,7 +1437,10 @@ else
      if(ibootstrap.gt.0) call create_field(Jbs_alpha_field)
      if(ibootstrap.gt.0) call create_field(Jbs_fluxavg_iBsq_field)
      if(ibootstrap.gt.0) call create_field(Jbs_fluxavg_G_field)
-     if(ibootstrap.eq.2) call create_field(Jbs_dtedpsit_field)
+     if(ibootstrap.eq.2 .or. ibootstrap.eq.3 ) call create_field(Jbs_dtedpsit_field)
+     if(ibootstrap.eq.3) call create_field(Jbs_ftrap_field)
+     if(ibootstrap.eq.3) call create_field(Jbs_qR_field)
+     if(ibootstrap.eq.3) call create_field(Jbs_invAspectRatio_field)
 
      call create_field(psi_coil_field)
 

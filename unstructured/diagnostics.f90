@@ -947,6 +947,9 @@ subroutine calculate_scalars()
     elseif (ibootstrap.eq.2)then
       call calculate_CommonTerm_Lambda_fordtedpsit(temp79a,temp79b,temp79c,temp79d,temp79e)
       jbs = jbs + int4(ri2_79,bzt79(:,OP_1),temp79a,mr) 
+    elseif (ibootstrap.eq.3)then
+      call calculate_CommonTerm_Lambda_fordtenormdpsit(temp79a,temp79b,temp79c,temp79d,temp79e)
+      jbs = jbs + int4(ri2_79,bzt79(:,OP_1),temp79a,mr) 
     endif
      ! M_iz = int(dV Z*J)
      ! This is used for calculating the vertical "center" of the plasma current
@@ -1820,6 +1823,205 @@ subroutine te_max2(xguess,zguess,te,tem,imethod,ier)
 end subroutine te_max2
 
 
+! te_max3
+! ~~~~~~~
+! searches each cell for the extreemum in te and the value of te there
+!  finds the local global maximum of te
+!=====================================================
+subroutine te_max3(xguess,zguess,te,tem,imethod,ier)
+  use basic
+  use mesh_mod
+  use m3dc1_nint
+  use field
+
+  implicit none
+
+  include 'mpif.h'
+
+  real, intent(inout) :: xguess, zguess
+  type(field_type), intent(in) :: te
+  real, intent(out) :: tem
+
+  integer, parameter :: iterations = 20  !  max number of Newton iterations
+  real, parameter :: bfac = 0.1  !max zone fraction for movement each iteration
+  real, parameter :: tol = 1e-3   ! convergence tolorance (fraction of h)
+
+  type(element_data) :: d
+  integer :: inews
+  integer :: i, ier, in_domain, converged
+  real :: x1, z1, x, z, si, zi, eta, h, phi
+  real :: sum
+  real :: xtry, ztry, rdiff
+  vectype, dimension(coeffs_per_element) :: avector
+  real :: temp1, temp2
+  real, dimension(nodes_per_element) :: xnode , phinode, znode
+  real :: xsum, zsum, psum, summax
+  integer :: itri, itri1, numelms, inode, imethod
+  integer :: nodeids(nodes_per_element)
+  real :: max_val_local, x_max_local, z_max_local
+
+  ! Initialize local max
+  max_val_local = -1.0e30
+  x_max_local = 0.0
+  z_max_local = 0.0
+
+! search over all triangles local to this processor
+!
+  numelms = local_elements()
+  summax = 0.
+  sum = 0.
+  !if(myrank.eq.0 .and. iprint.ge.2) &
+  !  write(*,'(A,5i5)') 'parameters',iterations,coeffs_per_element,nodes_per_element, &
+  !                       numelms      !,coeffs_per_tri
+  triangles : do itri = 1,numelms
+
+    call get_element_nodes(itri,nodeids)
+
+!   calculate the triangle center
+      xsum = 0
+      zsum = 0
+      psum = 0
+      do inode=1,3
+         call get_node_pos(nodeids(inode),xnode(inode),phinode(inode),znode(inode))
+         xsum = xsum + xnode(inode)
+         zsum = zsum + znode(inode)
+         psum = psum + phinode(inode)
+      enddo
+      x = xsum/3.
+      z = zsum/3.
+      phi = psum/3.
+
+         ! if(myrank.eq.0 .and. iprint.ge.2) &
+         !   write(*,'(A,i5,1p3e12.4)') '  itri ,x,z,phi = ', itri, x, z,phi
+
+      converged = 0
+  
+       call whattri(x,phi,z,itri1,x1,z1)
+      ! if(myrank.eq.0 .and. iprint.ge.2) &
+      !   write(*,'(A,2i5,1p2e12.4)') 'itri,itri1,x1,z1',itri,itri1,x1,z1
+
+     ! calculate position of maximum
+       if(itri1.eq.itri) then
+        call calcavector(itri, te, avector)
+        call get_element_data(itri, d)
+
+        ! calculate local coordinates
+        call global_to_local(d, x, phi , z, si, zi, eta)
+
+        ! calculate mesh size
+       ! h = sqrt((d%a+d%b)*d%c)
+       
+       !if(myrank.eq.0) write(*,'(A,1p6e12.4)') 'triangle data',d%a,d%b,d%c,si,zi,eta
+
+        ! evaluate the polynomial 
+        sum = 0.
+        do i=1, coeffs_per_tri
+           sum = sum + avector(i)*si**mi(i)*eta**ni(i)
+        enddo
+        ! Convert local (si, eta) to global (xq, zq)
+        xtry = x1 + d%co*(d%b + si) - d%sn*eta
+        ztry = z1 + d%sn*(d%b + si) + d%co*eta
+
+
+
+        x = xtry
+        z = ztry
+         if (sum > max_val_local) then
+           max_val_local = sum
+           x_max_local = x
+           z_max_local = z
+        end if
+     else ! on itri.eq.itri1
+        x_max_local = 0.
+        z_max_local = 0.
+        sum   = 0.
+        max_val_local =0. 
+     endif  ! on itri.eq.itri1
+  
+  end do triangles
+
+  ! select maximum over all processors
+  if(maxrank.gt.1) then
+     temp1 = max_val_local 
+     call mpi_allreduce(temp1, temp2, 1, &
+          MPI_DOUBLE_PRECISION, MPI_MAX, MPI_COMM_WORLD, ier)
+     summax   = temp2
+  endif
+
+  tem = summax
+  ier = 0
+
+  if(myrank.eq.0 .and. iprint.ge.2) &
+       write(*,'(A,E12.4)') '  te_max3:', summax
+  
+end subroutine te_max3
+
+
+
+! te_max4
+! ~~~~~~~
+! searches each cell for the extreemum in te and the value of te there
+!  finds the local global maximum of te
+!=====================================================
+subroutine te_max4(te,tem,ilin,ier)
+  use basic
+  use mesh_mod
+  use m3dc1_nint
+  use field
+
+  implicit none
+
+  include 'mpif.h'
+
+  type(field_type), intent(in) :: te
+  integer, intent(in) :: ilin
+  real, intent(out) :: tem
+  integer :: i, ier
+  integer :: itri,  numelms
+  real :: max_val_local, tempval,temp1, temp2, summax
+  real, dimension(MAX_PTS) :: tet
+
+  ! Initialize local max
+  max_val_local = -1.0e30
+
+! search over all triangles local to this processor
+!
+  numelms = local_elements()
+  
+  tempval = 0.
+  summax = 0.
+ 
+  do itri = 1,numelms
+  tet79=0
+   call define_element_quadrature(itri, int_pts_aux, 5)
+   call define_fields(itri, 0, 1, ilin)
+   call eval_ops(itri, te, tet79)  
+  
+   tet=tet79(:,OP_1)
+   tempval=maxval(tet)
+
+   if (tempval > max_val_local) then
+      max_val_local = tempval
+   end if
+  end do 
+
+  !select maximum over all processors
+  if(maxrank.gt.1) then
+     temp1 = max_val_local 
+     call mpi_allreduce(temp1, temp2, 1, &
+          MPI_DOUBLE_PRECISION, MPI_MAX, MPI_COMM_WORLD, ier)
+     summax   = temp2
+  else
+     summax = max_val_local
+  endif
+
+  tem = summax
+  ier = 0
+
+  if(myrank.eq.0 .and. iprint.ge.2) &
+       write(*,'(A,E12.4)') '  te_max4:', summax
+  
+end subroutine te_max4
 
 !=====================================================
 ! lcfs

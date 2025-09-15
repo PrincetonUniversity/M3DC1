@@ -460,8 +460,6 @@ subroutine set_defaults
        "1: J_BS = alpha F <p,psi> B", model_grp)
   call add_var_double("bootstrap_alpha", bootstrap_alpha, 0., &
        "alpha parameter in bootstrap current model", model_grp)
-  call add_var_int("ibootstrap_map_te", ibootstrap_map_te, 0, &
-       "Mapping paramater for bootstrap coefficients 0=Psi_n, 1=Te", model_grp)   
   call add_var_double("ibootstrap_regular", ibootstrap_regular, 1e-8, &
        "Regularization parameter Default=1e-8", model_grp)     
   call add_var_int("kinetic", kinetic, 0, &
