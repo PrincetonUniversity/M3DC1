@@ -182,7 +182,8 @@ def flux_average(field,coord='scalar',sim=None, fcoords=None, linear=False, deri
         #R0 = Zeff = readParameter('rzero',h5file=h5file)
         
         #Calculate minor radius
-        a,R0 = get_shape(sim)
+        shape = get_shape(sim=sim,quiet=True)
+        a,R0 = (shape["a"],shape["R0"])
         
         epsilon = a/R0
         print('Minor radius: a='+str(a))
@@ -248,7 +249,8 @@ def flux_average(field,coord='scalar',sim=None, fcoords=None, linear=False, deri
         f = flux_average('ne', coord='scalar', sim=sim, fcoords=fcoords, points=points, units='mks')[1]/1e20
         
         #Calculate minor radius
-        a,R0 = get_shape(sim=sim,res=points)
+        shape = get_shape(sim=sim,quiet=True)
+        a,R0 = (shape["a"],shape["R0"])
         print('Minor radius a='+str(a))
         print('Major radius R='+str(R0))
         
