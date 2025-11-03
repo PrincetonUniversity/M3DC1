@@ -3474,6 +3474,25 @@ void m3dc1_matrix_reset(int* matrix_id)
 
 
 //*******************************************************
+void m3dc1_matrix_update(int* matrix_id)
+//*******************************************************
+{
+  m3dc1_matrix* mat = m3dc1_solver::instance()->get_matrix(*matrix_id);
+#ifdef DEBUG
+  if (!PCU_Comm_Self())
+     std::cout <<"[M3D-C1 INFO] "<<__func__<<": matrix "<<* matrix_id<<"\n";
+  if (!mat)
+  {  
+    if (!PCU_Comm_Self())
+      std::cout <<"[M3D-C1 ERROR] "<<__func__<<" failed: matrix with id "<<*matrix_id<<" does not exist\n";
+    return;
+  }
+#endif
+  mat->update_values();
+}
+
+
+//*******************************************************
 int m3dc1_matrix_insert(int* matrix_id, int* row, 
          int* col, int* scalar_type, double* val)
 //*******************************************************
@@ -3649,8 +3668,6 @@ int m3dc1_matrix_solve(int* matrix_id, FieldID* rhs_sol) //solveSysEqu_
   }
 #endif
 
-  mat->mymatrix_id = *matrix_id;
-
   (dynamic_cast<matrix_solve*>(mat))->solve(*rhs_sol);
   addMatHit(*matrix_id);
   return M3DC1_SUCCESS;
@@ -3678,8 +3695,6 @@ void m3dc1_matrix_solve_with_guess(int* matrix_id, FieldID* rhs_sol, FieldID* xV
     return;
   }
 #endif
-
-  mat->mymatrix_id = *matrix_id;
 
   (dynamic_cast<matrix_solve*>(mat))->solve_with_guess(*rhs_sol, *xVec_guess);
   addMatHit(*matrix_id);

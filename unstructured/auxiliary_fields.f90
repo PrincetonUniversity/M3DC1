@@ -83,9 +83,9 @@ if (ispradapt .eq. 1) then
     call create_field(Jp_BS_z, "Jp_BS_z")
     call create_field(Jp_BS_phi, "Jp_BS_phi")
     call create_field(JpdotB, "JpdotB")
-    call create_field(JpdotB, "JpdotB_dndpsi")
-    call create_field(JpdotB, "JpdotB_dtedpsi")
-    call create_field(JpdotB, "JpdotB_dtidpsi")
+    call create_field(JpdotB_dndpsi, "JpdotB_dndpsi")
+    call create_field(JpdotB_dtedpsi, "JpdotB_dtedpsi")
+    call create_field(JpdotB_dtidpsi, "JpdotB_dtidpsi")
    endif
 else
   call create_field(bdotgradp)
@@ -1089,7 +1089,9 @@ subroutine calculate_auxiliary_fields(ilin)
       elseif (ibootstrap.eq.2)then
          !using dte/dpsit: da/dpsit = da/dTe dTe/dpsit = (del a.del Te)/(|del Te|^2 + chi^2) dTe/dpsit              
          call calculate_CommonTerm_Lambda_fordtedpsit(temp79a,temp79b,temp79c,temp79d,temp79e)
-         
+      elseif (ibootstrap.eq.3)then
+         !ibootstrap=3 3: to use tenorm: da/dpsit=da/dte dte/dpsit=-temax da/dte dtenorm/dpsit            
+         call calculate_CommonTerm_Lambda_fordtenormdpsit(temp79a,temp79b,temp79c,temp79d,temp79e)      
        endif
       
 
@@ -1114,12 +1116,26 @@ subroutine calculate_auxiliary_fields(ilin)
       dofs = intx2(mu79(:,:,OP_1),temp79c) 
       call vector_insert_block(JpdotB_dndpsi%vec,itri,1,dofs,VEC_ADD)
 
+
       dofs = intx2(mu79(:,:,OP_1),temp79d) 
       call vector_insert_block(JpdotB_dtedpsi%vec,itri,1,dofs,VEC_ADD)
 
       dofs = intx2(mu79(:,:,OP_1),temp79e) 
       call vector_insert_block(JpdotB_dtidpsi%vec,itri,1,dofs,VEC_ADD)
 
+      if(ibootstrap .eq. 3)then
+         dofs = intx2(mu79(:,:,OP_1),jbsl3179(:,OP_1)) 
+         call vector_insert_block(Jbs_L31_field%vec,itri,1,dofs,VEC_ADD)
+
+         dofs = intx2(mu79(:,:,OP_1),jbsl3279(:,OP_1)) 
+         call vector_insert_block(Jbs_L32_field%vec,itri,1,dofs,VEC_ADD)
+
+         dofs = intx2(mu79(:,:,OP_1),jbsl3479(:,OP_1)) 
+         call vector_insert_block(Jbs_L34_field%vec,itri,1,dofs,VEC_ADD)
+         
+         dofs = intx2(mu79(:,:,OP_1),jbsalpha79(:,OP_1)) 
+         call vector_insert_block(Jbs_alpha_field%vec,itri,1,dofs,VEC_ADD)
+      endif
      end if
   end do
 
@@ -1186,6 +1202,7 @@ subroutine calculate_auxiliary_fields(ilin)
     call newvar_solve(JpdotB_dtedpsi%vec, mass_mat_lhs)
     call newvar_solve(JpdotB_dtidpsi%vec, mass_mat_lhs)
    endif
+
   if(myrank.eq.0 .and. iprint.ge.1) print *, ' Done calculating diagnostic fields'
   
   end subroutine calculate_auxiliary_fields

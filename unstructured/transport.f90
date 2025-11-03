@@ -16,6 +16,10 @@ module transport_coefficients
   type(spline1d), private :: coef_spline_fluxavg_iBsq
   type(spline1d), private :: coef_spline_dtedpsit
   type(spline1d), private :: coef_spline_fluxavg_G
+  type(spline1d), private :: coef_spline_ftrap
+  type(spline1d), private :: coef_spline_qR
+  type(spline1d), private :: coef_spline_invAspectRatio
+  type(spline1d), private :: coef_spline_temax
 contains
 
 ! bootstrap model coeffcients L31, L32, L34, alpha, 1/Bsq, dte/dpsit 
@@ -42,125 +46,172 @@ function bootstrapCoeff_func(col_number)
    character(len=256) :: Coeff_filename
 
    bootstrap_coef_0flag = 0
-   if(ibootstrap.ne.0) then
-         if (ibootstrap_map_te == 0) then
-            Coeff_filename='ProfileJBSCoeff_Psi_L31_32_34_alpha_B2_dtedpsit_G'
-         elseif (ibootstrap_map_te == 1) then
-            Coeff_filename='ProfileJBSCoeff_Te_L31_32_34_alpha_B2_dtedpsit_G'
-         endif
+   if(ibootstrap==1) then         !inputs w.r.t psi
+      Coeff_filename='ProfileJBSCoeff_Psi_L31_32_34_alpha_B2_dtedpsit_G'
+   elseif (ibootstrap == 2) then !input w.r.t Te
+      Coeff_filename='ProfileJBSCoeff_Te_L31_32_34_alpha_B2_dtedpsit_G'
+   elseif (ibootstrap == 3) then !Calculating coefficients within M3D-C1 and input w.r.t 1-Te/Temax
+      Coeff_filename='ProfileJBSCoeff_Tenorm_L31_32_34_alpha_B2_dtedpsit_G_ft_qR_e_temax'
    else
-      print *, 'Error: Incorrect ibootstrap method 2: to use da/dpsit=da/dte dte/dpsit 1: '
-      !(B×∇a).∇ϕ=-‖B_p ‖^2  ∂a/∂ψ ---- ∂/∂ψ=-1/‖B_p ‖^2   1/R ((1/R ψ_z+f_ϕR )  ∂/∂z+(1/R ψ_r-f_ϕz )  ∂/∂r)'
+      print *, 'Error: Incorrect ibootstrap method'
+      print *, '1: (B×∇a).∇ϕ=-‖B_p ‖^2  ∂a/∂ψ ---- ∂/∂ψ=-1/‖B_p ‖^2'
+      print *, '      1/R ((1/R ψ_z+f_ϕR )  ∂/∂z+(1/R ψ_r-f_ϕz )  ∂/∂r)'
+      print *, '2: to use te: da/dpsit=da/dte dte/dpsit'
+      print *, '3: to use tenorm: da/dpsit=da/dte dte/dpsit=-temax da/dte dtenorm/dpsit'
       stop
    endif
 
    if(ibootstrap.ne.0) then
-     if(col_number==2)then
+      if(col_number==2)then
          if(.not.allocated(coef_spline_L31%x)) then
-            ! Read in L31 or L32 or L34 or alpha or 1/<B^2> or dte/dpsit from col number 2,3,4,5,6,7
+            ! Read in L31 or L32 or L34 or alpha or 1/<B^2> or dte/dpsit or G from col number 2,3,4,5,6,7,8
             nvals = 0
             call read_ascii_column(Coeff_filename, xvals, nvals,skip=1, icol=1)
             call read_ascii_column(Coeff_filename, yvals, nvals,skip=1, icol=col_number)
             if(nvals.eq.0) call safestop(6)
-           ! print*,'Reading L31,32,34,alpha from column number',col_number
-           ! print*,'Reading X',xvals
-           ! print*,'Reading Y',yvals
             call create_spline(coef_spline_L31, nvals, xvals, yvals)
             deallocate(xvals, yvals)
          end if
       elseif(col_number==3)then
          if(.not.allocated(coef_spline_L32%x)) then
-            ! Read in L31 or L32 or L34 or alpha or 1/<B^2> or dte/dpsit from col number 2,3,4,5,6,7
+            ! Read in L31 or L32 or L34 or alpha or 1/<B^2> or dte/dpsit or G from col number 2,3,4,5,6,7,8
             nvals = 0
             call read_ascii_column(Coeff_filename, xvals, nvals,skip=1, icol=1)
             call read_ascii_column(Coeff_filename, yvals, nvals,skip=1, icol=col_number)
             if(nvals.eq.0) call safestop(6)
-            !print*,'Reading L31,32,34,alpha from column number',col_number
-            !print*,'Reading X',xvals
-            !print*,'Reading Y',yvals
             call create_spline(coef_spline_L32, nvals, xvals, yvals)
             deallocate(xvals, yvals)
          end if
       elseif(col_number==4)then        
         if(.not.allocated(coef_spline_L34%x)) then
-            ! Read in L31 or L32 or L34 or alpha or 1/<B^2> or dte/dpsit from col number 2,3,4,5,6,7
+            ! Read in L31 or L32 or L34 or alpha or 1/<B^2> or dte/dpsit or G from col number 2,3,4,5,6,7,8
             nvals = 0
             call read_ascii_column(Coeff_filename, xvals, nvals,skip=1, icol=1)
             call read_ascii_column(Coeff_filename, yvals, nvals,skip=1, icol=col_number)
             if(nvals.eq.0) call safestop(6)
-            !print*,'Reading L31,32,34,alpha from column number',col_number
-            !print*,'Reading X',xvals
-            !print*,'Reading Y',yvals
             call create_spline(coef_spline_L34, nvals, xvals, yvals)
             deallocate(xvals, yvals)
          end if
       elseif(col_number==5)then    
          if(.not.allocated(coef_spline_alpha%x)) then
-            ! Read in L31 or L32 or L34 or alpha or 1/<B^2> or dte/dpsit from col number 2,3,4,5,6,7
+            ! Read in L31 or L32 or L34 or alpha or 1/<B^2> or dte/dpsit or G from col number 2,3,4,5,6,7,8
             nvals = 0
             call read_ascii_column(Coeff_filename, xvals, nvals,skip=1, icol=1)
             call read_ascii_column(Coeff_filename, yvals, nvals,skip=1, icol=col_number)
             if(nvals.eq.0) call safestop(6)
-            !print*,'Reading L31,32,34,alpha from column number',col_number
-            !print*,'Reading X',xvals
-            !print*,'Reading Y',yvals
             call create_spline(coef_spline_alpha, nvals, xvals, yvals)
             deallocate(xvals, yvals) 
          end if
       elseif(col_number==6)then    
-            if(.not.allocated(coef_spline_fluxavg_iBsq%x)) then
-               ! Read in L31 or L32 or L34 or alpha or 1/<B^2> or dte/dpsit from col number 2,3,4,5,6,7
-               nvals = 0
-               call read_ascii_column(Coeff_filename, xvals, nvals,skip=1, icol=1)
-               call read_ascii_column(Coeff_filename, yvals, nvals,skip=1, icol=col_number)
-               if(nvals.eq.0) call safestop(6)
-               !print*,'Reading L31,32,34,alpha,B from column number',col_number
-               !print*,'Reading X',xvals
-               !print*,'Reading Y',yvals
-               call create_spline(coef_spline_fluxavg_iBsq, nvals, xvals, yvals)
-               deallocate(xvals, yvals) 
-            end if
-      elseif(col_number==7)then    
-            if(.not.allocated(coef_spline_dtedpsit%x)) then
-               ! Read in L31 or L32 or L34 or alpha or 1/<B^2> or dte/dpsit from col number 2,3,4,5,6,7
-               nvals = 0
-               call read_ascii_column(Coeff_filename, xvals, nvals,skip=1, icol=1)
-               call read_ascii_column(Coeff_filename, yvals, nvals,skip=1, icol=col_number)
-               if(nvals.eq.0) call safestop(6)
-               !print*,'Reading L31,32,34,alpha,1/<B^2> or dte/dpsit from column number',col_number
-               !print*,'Reading X',xvals
-               !print*,'Reading Y',yvals
-               yvals = yvals * 1.6022e-9 * (4.*pi*n0_norm)/ (b0_norm**2)
-               call create_spline(coef_spline_dtedpsit, nvals, xvals, yvals)
-               deallocate(xvals, yvals) 
-            end if
+         if(.not.allocated(coef_spline_fluxavg_iBsq%x)) then
+            ! Read in L31 or L32 or L34 or alpha or 1/<B^2> or dte/dpsit or G from col number 2,3,4,5,6,7,8
+            nvals = 0
+            call read_ascii_column(Coeff_filename, xvals, nvals,skip=1, icol=1)
+            call read_ascii_column(Coeff_filename, yvals, nvals,skip=1, icol=col_number)
+            if(nvals.eq.0) call safestop(6)
+            call create_spline(coef_spline_fluxavg_iBsq, nvals, xvals, yvals)
+            deallocate(xvals, yvals) 
+         end if
       elseif(col_number==8)then    
-            if(.not.allocated(coef_spline_fluxavg_G%x)) then
+         if(.not.allocated(coef_spline_fluxavg_G%x)) then
+            ! Read in L31 or L32 or L34 or alpha or 1/<B^2> or dte/dpsit or G from col number 2,3,4,5,6,7,8
+            nvals = 0
+            call read_ascii_column(Coeff_filename, xvals, nvals,skip=1, icol=1)
+            call read_ascii_column(Coeff_filename, yvals, nvals,skip=1, icol=col_number)
+            if(nvals.eq.0) call safestop(6)
+            call create_spline(coef_spline_fluxavg_G, nvals, xvals, yvals)
+           ! print*,'xvals,yvals',xvals,yvals
+            deallocate(xvals, yvals) 
+         end if
+      end if
+
+      if(ibootstrap .eq. 1 .or. ibootstrap .eq. 2 ) then
+       if(col_number==7)then    
+         if(.not.allocated(coef_spline_dtedpsit%x)) then
+            ! Read in L31 or L32 or L34 or alpha or 1/<B^2> or dte/dpsit or G from col number 2,3,4,5,6,7,8
+            nvals = 0
+            call read_ascii_column(Coeff_filename, xvals, nvals,skip=1, icol=1)
+            call read_ascii_column(Coeff_filename, yvals, nvals,skip=1, icol=col_number)
+            if(nvals.eq.0) call safestop(6)
+            yvals = yvals * 1.6022e-9 * (4.*pi*n0_norm)/ (b0_norm**2)
+            call create_spline(coef_spline_dtedpsit, nvals, xvals, yvals)
+            deallocate(xvals, yvals) 
+         end if
+       endif
+      endif
+
+      if(ibootstrap .eq. 3) then
+         if(col_number==7)then
+            if(.not.allocated(coef_spline_dtedpsit%x)) then
                ! Read in L31 or L32 or L34 or alpha or 1/<B^2> or dte/dpsit or G from col number 2,3,4,5,6,7,8
                nvals = 0
                call read_ascii_column(Coeff_filename, xvals, nvals,skip=1, icol=1)
                call read_ascii_column(Coeff_filename, yvals, nvals,skip=1, icol=col_number)
                if(nvals.eq.0) call safestop(6)
-               !print*,'Reading L31,32,34,alpha,1/<B^2> or dte/dpsit or G from column number',col_number
-               !print*,'Reading X',xvals
-               !print*,'Reading Y',yvals
-               call create_spline(coef_spline_fluxavg_G, nvals, xvals, yvals)
+               !yvals = yvals * 1.6022e-9 * (4.*pi*n0_norm)/ (b0_norm**2)
+               call create_spline(coef_spline_dtedpsit, nvals, xvals, yvals)
                deallocate(xvals, yvals) 
             end if
-     end if
-     
-         
+         elseif(col_number==9)then
+            if(.not.allocated(coef_spline_ftrap%x)) then
+               ! Read in ftra or qR or e /invaspectratio or max Te for time=0 from col number 9/10/11/12
+               nvals = 0
+               call read_ascii_column(Coeff_filename, xvals, nvals,skip=1, icol=1)
+               call read_ascii_column(Coeff_filename, yvals, nvals,skip=1, icol=col_number)
+               if(nvals.eq.0) call safestop(6)
+               call create_spline(coef_spline_ftrap, nvals, xvals, yvals)
+               deallocate(xvals, yvals)
+            end if
+         elseif(col_number==10)then
+            if(.not.allocated(coef_spline_qR%x)) then
+               ! Read in ftra or qR or e /invaspectratio or max Te for time=0 from col number 9/10/11/12
+               nvals = 0
+               call read_ascii_column(Coeff_filename, xvals, nvals,skip=1, icol=1)
+               call read_ascii_column(Coeff_filename, yvals, nvals,skip=1, icol=col_number)
+               if(nvals.eq.0) call safestop(6)
+               call create_spline(coef_spline_qR, nvals, xvals, yvals)
+               deallocate(xvals, yvals)
+            end if
+         elseif(col_number==11)then        
+            if(.not.allocated(coef_spline_invAspectRatio%x)) then
+               ! Read in ftra or qR or e /invaspectratio or max Te for time=0 from col number 9/10/11/12
+               nvals = 0
+               call read_ascii_column(Coeff_filename, xvals, nvals,skip=1, icol=1)
+               call read_ascii_column(Coeff_filename, yvals, nvals,skip=1, icol=col_number)
+               if(nvals.eq.0) call safestop(6)
+               call create_spline(coef_spline_invAspectRatio, nvals, xvals, yvals)
+               !print*,'xvals,yvals',xvals,yvals
+               deallocate(xvals, yvals)
+            endif
+         elseif(col_number==12)then  
+         !Reading column 12 - temax input
+            if(.not.allocated(coef_spline_temax%x)) then 
+               ! Read in ftra or qR or e /invaspectratio or max Te for time=0 from col number 9/10/11/12
+               nvals = 0
+               call read_ascii_column(Coeff_filename, xvals, nvals,skip=1, icol=1)
+               call read_ascii_column(Coeff_filename, yvals, nvals,skip=1, icol=col_number)
+               if(nvals.eq.0) call safestop(6)
+               call create_spline(coef_spline_temax, nvals, xvals, yvals)
+               !print*,'xvals,yvals',xvals,yvals
+               temax_readin=yvals(1)* 1.6022e-9 * (4.*pi*n0_norm)/ (b0_norm**2)
+               deallocate(xvals, yvals)
+            endif
+         endif
+      endif
+      
+      
+   
         
-     
+    
       do j=1, npoints
-         if (ibootstrap_map_te == 0) then
+         if (ibootstrap == 1) then
             call magnetic_region(pst79(j,OP_1),pst79(j,OP_DR),pst79(j,OP_DZ), &
                  x_79(j),z_79(j),mr,psib)
             if(mr.eq.REGION_PF) then
                pso = 2.*psib - pso
             end if
             pso = (real(pst79(j,OP_1)) - psimin)/(psibound - psimin)
-         else if (ibootstrap_map_te == 1) then
+         else if (ibootstrap == 2) then
             if(itemp == 1) then
                pso = real(tet79(j,OP_1))
             else
@@ -168,10 +219,19 @@ function bootstrapCoeff_func(col_number)
             endif
             !convert to pso to eV
             pso=pso * (p0_norm / n0_norm) / 1.6022e-12
+         else if (ibootstrap == 3) then
+         !using normalized temperature That = 1 - Te/Temax
+           ! if(real(net79(j,OP_1)).gt.0.)then  
+               if(temax .le. 1e-8) then
+                  pso = 1. - abs(pet79(j,OP_1)/net79(j,OP_1))/temax_readin
+               else          
+                  pso=1. - abs(pet79(j,OP_1)/net79(j,OP_1))/(temax)
+               endif
+           ! else
+           !    pso=1.
+           ! endif    
          endif 
-         if(bootstrap_coef_0flag==1)then
-            temp79a(j) = 0
-         else
+         
             if(col_number==2)then  
                call evaluate_spline(coef_spline_L31,pso,val,valp,valpp,extrapolate=1)
             elseif(col_number==3)then  
@@ -187,9 +247,23 @@ function bootstrapCoeff_func(col_number)
             elseif(col_number==8)then 
                call evaluate_spline(coef_spline_fluxavg_G,pso,val,valp,valpp,extrapolate=1)    
             endif
+            
+            if (ibootstrap == 3) then
+               if(col_number==9)then 
+                  call evaluate_spline(coef_spline_ftrap,pso,val,valp,valpp,extrapolate=1)    
+               elseif(col_number==10)then 
+                  call evaluate_spline(coef_spline_qR,pso,val,valp,valpp,extrapolate=1)    
+               elseif(col_number==11)then 
+                  call evaluate_spline(coef_spline_invAspectRatio,pso,val,valp,valpp,extrapolate=1)    
+               elseif(col_number==12)then 
+                  call evaluate_spline(coef_spline_temax,pso,val,valp,valpp,extrapolate=1)    
+               endif
+            endif
+
+
             temp79a(j) = val
             !if(myrank.eq.0) print *,'pso,val', pso, val
-         endif
+         
       end do
                  
             
@@ -1521,9 +1595,9 @@ subroutine define_transport_coefficients()
        solve_visc_e, solve_q, solve_totrad, solve_linerad, solve_bremrad, &
        solve_ionrad, solve_reckrad, solve_recprad, solve_cd, solve_f, &
        solve_fp, solve_denm, solve_L31,solve_L32,solve_L34,solve_alpha,&
-       solve_fluxavg_iBsq,solve_dtedpsit,solve_fluxavg_G
+       solve_fluxavg_iBsq,solve_dtedpsit,solve_fluxavg_G,solve_ftrap,solve_qR,solve_invAspectRatio
 
-  integer, parameter :: num_scalars = 24
+  integer, parameter :: num_scalars = 27
   integer, dimension(num_scalars) :: temp, temp2
   vectype, dimension(dofs_per_element) :: dofs
 
@@ -1559,6 +1633,9 @@ subroutine define_transport_coefficients()
   solve_fluxavg_iBsq = .false.
   solve_dtedpsit = .false.
   solve_fluxavg_G = .false.
+  solve_ftrap = .false.
+  solve_qR = .false.
+  solve_invAspectRatio = .false.
 
   ! clear variables
   resistivity_field = 0.
@@ -1589,6 +1666,13 @@ subroutine define_transport_coefficients()
    Jbs_fluxavg_G_field = 0.
    if(ibootstrap.eq.2) then
       Jbs_dtedpsit_field = 0.
+   endif
+   if(ibootstrap.eq.3) then
+      Jbs_dtedpsit_field = 0.
+      Jbs_ftrap_field = 0.
+      Jbs_qR_field = 0.
+      Jbs_invAspectRatio_field = 0.
+      temax_readin = 0.
    endif
   end if
   if(ipforce.gt.0) pforce_field = 0.
@@ -1773,6 +1857,8 @@ subroutine define_transport_coefficients()
 
    !Adding bootstrap coefficients
    if(ibootstrap.ne.0) then
+      if(ibootstrap.eq.3) dofs = bootstrapCoeff_func(12)
+
       !Adding L31
       dofs = bootstrapCoeff_func(2)
       if(.not.solve_L31) solve_L31 = .true. !any(dofs.ne.0.)
@@ -1808,17 +1894,14 @@ subroutine define_transport_coefficients()
       if(solve_fluxavg_iBsq) &
             call vector_insert_block(Jbs_fluxavg_iBsq_field%vec,itri,1,dofs,VEC_ADD)
 !$OMP END CRITICAL  
-   endif
-   if(ibootstrap.eq.2) then          
+        
       dofs = bootstrapCoeff_func(7)
       if(.not.solve_dtedpsit) solve_dtedpsit = .true. !any(dofs.ne.0.)
 !$OMP CRITICAL
       if(solve_dtedpsit) &
             call vector_insert_block(Jbs_dtedpsit_field%vec,itri,1,dofs,VEC_ADD)
 !$OMP END CRITICAL 
-   end if
 
-   if(ibootstrap.ne.0) then
       dofs = bootstrapCoeff_func(8)
       if(.not.solve_fluxavg_G) solve_fluxavg_G = .true. !any(dofs.ne.0.)
 !$OMP CRITICAL
@@ -1827,6 +1910,30 @@ subroutine define_transport_coefficients()
 !$OMP END CRITICAL  
    endif
    
+
+   if(ibootstrap.eq.3) then
+      dofs = bootstrapCoeff_func(9)
+      if(.not.solve_ftrap) solve_ftrap = .true. !any(dofs.ne.0.)
+!$OMP CRITICAL
+      if(solve_ftrap) &
+            call vector_insert_block(Jbs_ftrap_field%vec,itri,1,dofs,VEC_ADD)
+!$OMP END CRITICAL  
+
+      dofs = bootstrapCoeff_func(10)
+      if(.not.solve_qR) solve_qR = .true. !any(dofs.ne.0.)
+!$OMP CRITICAL
+      if(solve_qR) &
+            call vector_insert_block(Jbs_qR_field%vec,itri,1,dofs,VEC_ADD)
+!$OMP END CRITICAL  
+
+      dofs = bootstrapCoeff_func(11)
+      if(.not.solve_invAspectRatio) solve_invAspectRatio = .true. !any(dofs.ne.0.)
+!$OMP CRITICAL
+      if(solve_invAspectRatio) &
+            call vector_insert_block(Jbs_invAspectRatio_field%vec,itri,1,dofs,VEC_ADD)
+!$OMP END CRITICAL
+   endif
+
   end do
 !!$OMP END PARALLEL DO
 
@@ -1862,6 +1969,9 @@ subroutine define_transport_coefficients()
      if(solve_fluxavg_iBsq)temp(22) = 1
      if(solve_dtedpsit)    temp(23) = 1
      if(solve_fluxavg_G)   temp(24) = 1
+     if(solve_ftrap)       temp(25) = 1
+     if(solve_qR)          temp(26) = 1
+     if(solve_invAspectRatio)   temp(27) = 1
      
 
      call mpi_allreduce(temp, temp2, num_scalars, MPI_INTEGER, &
@@ -1891,6 +2001,9 @@ subroutine define_transport_coefficients()
      solve_fluxavg_iBsq= temp2(22).eq.1
      solve_dtedpsit    = temp2(23).eq.1
      solve_fluxavg_G   = temp2(24).eq.1
+     solve_ftrap       = temp2(25).eq.1
+     solve_qR          = temp2(26).eq.1
+     solve_invAspectRatio   = temp2(27).eq.1
   end if
 
   if(myrank.eq.0 .and. iprint.ge.1) print *, ' solving...'
@@ -2017,6 +2130,21 @@ subroutine define_transport_coefficients()
   if(solve_fluxavg_G) then
    if(myrank.eq.0 .and. iprint.ge.1) print *, '  Jbs_fluxavg_G'
    call newvar_solve(Jbs_fluxavg_G_field%vec, mass_mat_lhs)
+  endif
+
+  if(solve_ftrap) then
+   if(myrank.eq.0 .and. iprint.ge.1) print *, '  Jbs_ftrap'
+   call newvar_solve(Jbs_ftrap_field%vec, mass_mat_lhs)
+  endif
+
+  if(solve_qR) then
+   if(myrank.eq.0 .and. iprint.ge.1) print *, '  Jbs_qR'
+   call newvar_solve(Jbs_qR_field%vec, mass_mat_lhs)
+  endif
+
+  if(solve_invAspectRatio) then
+   if(myrank.eq.0 .and. iprint.ge.1) print *, '  Jbs_invAspectRatio'
+   call newvar_solve(Jbs_invAspectRatio_field%vec, mass_mat_lhs)
   endif
   ! the "compressible" viscosity is the same as the "incompressible"
   ! viscosity up to a constant

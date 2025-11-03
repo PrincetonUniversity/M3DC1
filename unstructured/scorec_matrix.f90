@@ -41,6 +41,10 @@ module scorec_matrix_mod
      module procedure scorec_matrix_zero
   end interface
 
+  interface update_mat
+     module procedure scorec_matrix_update
+  end interface
+
   interface flush
      module procedure scorec_matrix_flush
   end interface
@@ -571,6 +575,17 @@ contains
      call m3dc1_matrix_reset(mat%imatrix)
   end subroutine scorec_matrix_zero
 
+
+  !====================================================================
+  ! update: mat=0, to be update at ntime+1
+  ! ~~~~~~~~
+  ! update solver matrix and preconditioner matrix
+  !====================================================================
+  subroutine scorec_matrix_update(mat)
+    implicit none
+    type(scorec_matrix) :: mat
+     call m3dc1_matrix_update(mat%imatrix)
+  end subroutine scorec_matrix_update
 
   !====================================================================
   ! flush

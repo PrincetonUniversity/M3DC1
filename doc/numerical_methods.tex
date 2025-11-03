@@ -1,0 +1,480 @@
+\section{Numerical Methods}
+
+\subsection{Flux / Potential Representation}
+
+The magnetic field is represented using a vector potential
+\begin{equation}
+  \vec{A} = R^2 \nabla \varphi \times \nabla f + \psi \nabla \varphi
+\end{equation}
+This vector potential satisfies the gauge condition $\nabla_p \cdot
+\left( \vec{A} / R^2 \right) = 0$.  where
+\[
+\nabla_p \equiv \nabla - \nabla \varphi\, \partial_\varphi
+\]
+The magnetic field is
+
+\begin{eqnarray}
+  \vec{B} & = & \nabla \times \vec{A}\\
+          & = & \nabla \psi \times \nabla \varphi + F \nabla \varphi - \nabla_p f'
+\end{eqnarray}
+where $f' \equiv \partial_\varphi f$ and
+\begin{equation}
+  F \equiv R^2 \nabla_p^2 f
+\end{equation}
+The current density is
+\begin{eqnarray}
+  \vec{J} & = & \nabla \times \vec{B}\\
+          & = & \nabla \left(F + f'' \right) \times \nabla \varphi
+ - \Delta^*\psi \nabla \varphi + R^{-2} \nabla_p \psi'
+\end{eqnarray}
+where
+\[
+\Delta^* \psi \equiv R^2 \nabla \cdot \left( \nabla_p \psi / R^2 \right)
+\]
+
+The velocity is defined as
+\begin{equation}
+  \vec{u} = R^2 \nabla U \times \nabla \varphi 
++ R^2 \omega \nabla \varphi 
++ R^{-2} \nabla_p \chi
+\end{equation}
+
+
+\subsection{Finite Elements}
+
+In M3D-C1, fields are represented as a linear combination of basis
+functions $\nu_i$.  For example,
+\[
+  psi(\x) = \sum_i \nu_i(\vec{x}) \Psi_i
+\]
+In 2D simulations, these basis functions are reduced quintic
+elements~\cite{Jardin04}.  In 3D simulations, the basis functions are
+a tensor product of the reduced quintic elements (in the poloidal
+plane) with cubic Hermite elements (in the toroidal direction).  
+
+\subsubsection{Galerkin Method}
+
+The Galerkin method is used in M3D-C1 to discretize the equations.
+This involves multiplying each equation by a set of ``test functions''
+$\mu_i$ that span the space of the basis functions $\nu_i$ and
+integrating over the computational domain $\Omega$:
+\[
+  \frac{\partial \psi}{\partial t} = \nabla \cdot (\eta(\x) \nabla \psi(\x))
+  \to \int_\Omega{d^3x\ \mu_i(\x) \frac{\partial \psi(\x)}{\partial t}}
+    = \int_\Omega{d^3x\ \mu_i(\x) \nabla \cdot (\eta(\x) \nabla \psi(\x))}
+\]
+Expanding $\psi$ yields
+\[
+  \int_\Omega{d^3x\ \mu_i(\x) \nu_j(\x) \frac{\partial \Psi_j}{\partial t}} 
+    = \int{d^3x\ \mu_i(\x) \nabla \cdot \left[\eta(\x) \nabla \nu_j(\x)\,
+\Psi_j \right]}
+\]
+where summation over $j$ is implied.  In many cases, it is convenient
+(or necessary) to integrate by parts to reduce the number of
+derivatives on the basis functions.  For example,
+\[
+\begin{split}
+  \int_\Omega{d^3x\ \mu_i(\x) \nu_j(\x) \frac{\partial \Psi_j}{\partial t}}
+    = - \int_\Omega{d^3x\ \eta(\x) \nabla \mu_i(\x) \cdot \nabla \nu_j(\x)\, \Psi_j }\\
+      + \int_\Omega{d^3x\ \nabla \cdot \left[\mu_i(\x) \eta(\x) \nabla
+\nu_j(\x)\, \Psi_j \right] }
+\end{split}
+\]
+Stokes's theorem can be used to convert the last term to a surface integral:
+\[
+\begin{split}
+  \int_\Omega{d^3x\ \mu_i(\x) \nu_j(\x) \frac{\partial \Psi_j}{\partial t}}
+    = - \int_\Omega{d^3x\ \eta(\x) \nabla \mu_i(\x) \cdot \nabla \nu_j(\x) \Psi_j }\\
+      + \oint_{\partial \Omega}{d^2x\ \hat{n} \cdot \nabla \nu_j(\x)\,
+       \mu_i(\x)\, \eta(\x)\,  \Psi_j }
+\end{split}
+\]
+where $\hat{n}$ is the outward normal direction to the domain boundary.
+Finally, these equations are cast into a form amenable to solution by
+linear algebra solvers by calculating the integrals to populate a
+matrix equation:
+\[
+  M_{ij} \frac{\partial \Psi_j}{\partial t} = S_{ij} \Psi_j
+\]
+where
+\begin{eqnarray*}
+  M_{ij} & = & \int_\Omega{d^3x\ \mu_i(\x) \nu_j(\x)}
+\\
+  S_{ij} & = & - \int_\Omega{d^3x\ \eta(\x) \nabla \mu_i(\x) \cdot \nabla \nu_j(\x) }
+      + \oint_{\partial \Omega}{d^2x\ \hat{n} \cdot \nabla \nu_j(\x)\,
+\mu_i(\x)\, \eta(\x)}
+\end{eqnarray*}
+
+Note that it can be preferable not to integrate by parts in the
+toroidal direction in order to separate the toroidal dependence from
+the finite element calculation in the complex version.
+\[
+\begin{split}
+  \int_\Omega{d^3x\ \mu_i(\x) \nu_j(\x) \frac{\partial
+              \Psi_j}{\partial t}}
+    = - \int_\Omega{d^3x\ \eta(\x) \nabla_p \mu_i(\x) \cdot \nabla_p
+                    \nu_j(\x) \Psi_j }\\
+      + \int_\Omega{d^3x\ \mu_i(\x) \frac{1}{R}\frac{\partial}{\partial \varphi}
+             \left[\eta(\x) \nabla \nu_j(\x)\, \Psi_j \right]}\\
+      + \int_\Omega{d^3x\ \nabla_p \cdot \left[\mu_i(\x) \eta(\x) \nabla
+\nu_j(\x)\, \Psi_j \right] }
+\end{split}
+\]
+
+
+\subsubsection{Integration quadrature}
+
+The integrals required to calculate the weak-form equations of the
+Galerkin method are computed numerically using an $n$-point Gaussian
+quadrature.  That is, the value of each field is calculated at 79
+points for each triangular element, and a weighted sum of these values
+is computed to approximate the integral.
+\[
+  \int dA\ f(x) \simeq \sum_{i=1}^{n} w_i f(x_i),
+\]
+where the integrand $f(x)$ is restricted to a single element.  The
+sampling points and weights appropriate for a equilateral triangle are
+taken from ref.~\cite{Dunavant85}.
+
+The coordinates of the sampling points are given in the ``natural
+coordinates'' $(\alpha, \beta, \gamma)$ in ref.~\cite{Dunavant85}.
+These coordinates may be converted to cartesian coordinates $(r, Z)$
+for an equilateral triangle $e$ having vertices
+\[
+\left\{\left(-\frac{\sqrt{3}}{2},-\frac{1}{2}\right),
+\left(\frac{\sqrt{3}}{2},-\frac{1}{2}\right), (0,1)\right\} 
+\]
+using the linear transformation
+\[ 
+\phi_{n \to e}(\alpha, \beta, \gamma) = 
+\left(\frac{\sqrt{3}}{2}(\beta-\gamma), \frac{1}{2}(3 \alpha - 1)
+\right).
+\]
+The weights must be multiplied by the Jacobian of this transformation,
+\[
+\mathcal{J}_{\phi_{n \to e}} = \frac{3 \sqrt{3}}{4}.
+\]
+To find the coordinates of the sampling points for a general triangle
+$g$ having vertices $\{(-b,0), (a,0), (0,c)\}$, as in
+ref.~\cite{Jardin04}, one may use the linear transformation
+\begin{eqnarray*}
+  \phi_{e \to g}(r,Z) & = & 
+    \left(\frac{a+b}{\sqrt{3}} x + \frac{a-b}{3} (1-y), 
+    \frac{c}{3}(2y+1) \right) \\
+  \mathcal{J}_{\phi_{e \to g}} & = &  \frac{2 c}{3 \sqrt{3}} (a+b).
+\end{eqnarray*}
+The transformation from natural coordinates to cartesian coordinates
+for a triangle having vertices $\{(-b,0), (a,0), (0,c)\}$ is therefore
+\begin{eqnarray*}
+  \phi_{n \to g}(r,Z) & = & 
+  \left(\frac{1}{2} (a+b) (\beta-\gamma) +
+  \frac{1}{2} (a-b)(1-\alpha), c \alpha \right) \\
+  \mathcal{J}_{\phi_{n \to g}} & = & \frac{1}{2} (a+b) c.
+\end{eqnarray*}
+
+The 79-point quadrature gives the exact results for integrands which
+are polynomials of degree 20 (or less).  In the case of quintic finite
+elements, this means the integration is exact for terms involving
+products of three fields or fewer, not including the degree-five
+trial function $\nu$.  In cylindrical geometry, the presence factors
+of $1/R$ will cause the quadrature not to be exact, as $1/R$ is not in
+the form of a polynomial.  The weights $w_i$ must also be multiplied
+by $R_i$ in cylindrical coordinates to account for the Jacobian of the
+transformation from cartesian to cylindrical coordinates.
+
+
+
+\subsection{Scalar Equations}
+
+\begin{equation}
+  \mu \frac{\partial n}{\partial t} = 
+    R^2 n \pb{\mu}{U} 
+    - \mu (n \omega)' 
+    + R^{-2} n \ip{\mu}{\chi} 
+    + \mu \sigma
+\end{equation}
+
+Scalar equations are obtained from force balance, equation~(\ref{eq:force_balance}), by applying the operators
+\begin{eqnarray*}
+  -\mu \nabla \varphi \cdot \nabla \times \left( R^2 n\, \square \right) \\
+  R^2 \mu \nabla \varphi \cdot \square \\
+  \mu \nabla_p \cdot \left( R^{-2} n\, \square \right)
+\end{eqnarray*}
+This yields the following equations for vorticity
+\begin{equation}
+  -\mu \nabla \varphi \cdot \nabla \times \left( R^2 n \frac{\partial \vec{v}}{\partial t} \right) =
+  -R^2 n \frac{\partial \vec{v}}{\partial t} \cdot (\nabla \mu \times \nabla \varphi)
+  +\nabla \cdot \left(R^2 \mu \nabla \varphi \times \frac{\partial \vec{v}}{\partial t} \right)
+\end{equation}
+axial velocity
+\begin{equation}
+  R^2 \mu \nabla \varphi \cdot \left(n \frac{\partial \vec{v}}{\partial t} \right)
+\end{equation}
+and compression
+\begin{equation}
+  \mu \nabla_p \cdot \left( R^{-2} n \frac{\partial \vec{v}}{\partial t} \right)
+  = -R^{-2} n \frac{\partial \vec{v}}{\partial t} 
+  + \nabla_p \cdot \left( R^{-2} \mu n \frac{\partial \vec{v}}{\partial t} \right)
+\end{equation}
+
+There are two options in M3D-C1 for obtaining scalar equations from
+Faraday's law, equation~(\ref{eq:Faraday}).  In the first option
+(\texttt{jadv=0} in \texttt{C1input}), an equation for the toroidal
+component of the vector potential $\psi$ is obtained by taking the
+toroidal component of the vector induction equation, equation~(\ref{eq:vector_induction}):
+\begin{equation}
+R^2 \mu \nabla \varphi \cdot \frac{\partial \vec{A}}{\partial t}
+ = -R^2 \mu \nabla \varphi \cdot \left(\vec{E} + \nabla \phi \right)
+\end{equation}
+In the second option (\texttt{jadv=1} in \texttt{C1input}), an
+equation for the toroidal current density is obtained by applying the
+operator $-\mu \nabla \varphi \cdot \nabla \times$ to Faraday's law, equation~(\ref{eq:Faraday}):
+\begin{equation}
+\begin{split}
+-\mu \nabla \varphi \cdot \nabla \times \frac{\partial \vec{B}}{\partial t}
+= \nabla \times (\nabla \mu  \times \nabla \varphi) \cdot \vec{E}
++ \left[ \nabla \varphi \cdot \vec{E} \times (\nabla \mu \times \nabla \varphi) \right]'\\
+\mbox{} + \nabla_p \cdot \left[ \vec{E} \times (\nabla \mu \times \nabla \varphi
++ \mu \nabla \varphi \times \frac{\partial \vec{B}}{\partial t} \right]
+\end{split}
+\end{equation}
+
+In both options, an equation for the toroidal field is obtained by
+from the toroidal component of equation~(\ref{eq:Faraday}):
+\begin{equation}
+\mu \nabla \varphi \cdot \frac{\partial \vec{B}}{\partial t} =
+-\vec{E} \cdot (\nabla \mu \times \nabla \varphi) 
++ \nabla \cdot (\mu \nabla \varphi \times \vec{E})
+\end{equation}
+
+
+\subsection{Time Step}
+
+For the implicit time advance, the fields are evaulated at the
+$\theta$-advanced time (\emph{e.g.} $F(\psi) \to F(\psi + \theta \dt
+\dot{\psi} + \cdots)$), linearized (\emph{i.e.} $\order{\dt^2}$ and
+higher are dropped), and then discretized temporally according to the
+chosen time integration method (\emph{i.e.} $\dot{\psi} \to
+(\psi^{(n+1)} - \psi^{(n)})/\dt$).
+
+
+\begin{eqnarray}
+  \begin{pmatrix}
+    \cola{S^v_{1 1}} & \cola{R^v_{1 1}} &
+    \colb{S^v_{1 2}} & \colb{R^v_{1 2}} & 
+          S^v_{1 3}  &        0         &
+          R^v_{1 4}  &       R^v_{1 3}
+    \\
+    \cola{R^B_{1 1}} & \cola{S^B_{1 1}} &
+    \colb{R^B_{1 2}} & \colb{S^B_{1 2}} & 
+          R^B_{1 3}  &       S^B_{1 3}  &
+              0      &        0
+    \\
+    \colb{S^v_{2 1}} & \colb{R^v_{2 1}} & 
+    \colb{S^v_{2 2}} & \colb{R^v_{2 2}} & 
+          S^v_{2 3}  &        0         &
+	  R^v_{2 4}  &       R^v_{2 3}
+    \\
+    \colb{R^B_{2 1}} & \colb{S^B_{2 1}} &
+    \colb{R^B_{2 2}} & \colb{S^B_{2 2}} & 
+          R^B_{2 3}  &       S^B_{2 3}  &
+              0      &        0
+    \\
+          S^v_{3 1}  &       R^v_{3 1}  &
+          S^v_{3 2}  &       R^v_{3 2}  &
+          S^v_{3 3}  &        0         &
+	  R^v_{3 4}  &       R^v_{3 3}  
+    \\
+          R^B_{3 1}  &       S^v_{3 1}  &
+          R^B_{3 2}  &       S^v_{3 2}  &
+          R^B_{3 3}  &       S^v_{3 3}  &
+              0      &        0
+    \\
+          R^n_{3 1}  &        0         &
+          R^n_{3 2}  &        0         &
+          R^n_{3 3}  &        0         &
+          S^n        &        0
+    \\
+          R^p_{3 1}  &        0         &
+          R^p_{3 2}  &        0         &
+          R^p_{3 3}  &        0         &
+              0      &       S^p        &
+  \end{pmatrix}
+  \begin{pmatrix}
+    \cola{U}\\ \cola{\psi}\\ 
+    \colb{V}\\ \colb{F}   \\
+    \chi \\ p_e \\ 
+    n \\ p
+  \end{pmatrix}^{(n+1)} = \nonumber \\
+  \begin{pmatrix}
+    \cola{D^v_{1 1}} & \cola{Q^v_{1 1}} &
+    \colb{D^v_{1 2}} & \colb{Q^v_{1 2}} & 
+          D^v_{1 3}  &        0         &
+          Q^v_{1 4}  &       Q^v_{1 3}
+    \\
+    \cola{Q^B_{1 1}} & \cola{D^B_{1 1}} &
+    \colb{Q^B_{1 2}} & \colb{D^B_{1 2}} & 
+          Q^B_{1 3}  &       D^B_{1 3}  &
+              0      &        0
+    \\
+    \colb{D^v_{2 1}} & \colb{Q^v_{2 1}} & 
+    \colb{D^v_{2 2}} & \colb{Q^v_{2 2}} & 
+          D^v_{2 3}  &        0         &
+	  Q^v_{2 4}  &       Q^v_{2 3}
+    \\
+    \colb{Q^B_{2 1}} & \colb{D^B_{2 1}} &
+    \colb{Q^B_{2 2}} & \colb{D^B_{2 2}} & 
+          Q^B_{2 3}  &       D^B_{2 3}  &
+              0      &        0
+    \\
+          D^v_{3 1}  &       Q^v_{3 1}  &
+          D^v_{3 2}  &       Q^v_{3 2}  &
+          D^v_{3 3}  &        0         &
+	  Q^v_{3 4}  &       Q^v_{3 3}  
+    \\
+          Q^B_{3 1}  &       D^v_{3 1}  &
+          Q^B_{3 2}  &       D^v_{3 2}  &
+          Q^B_{3 3}  &       D^v_{3 3}  &
+              0      &        0
+    \\
+          Q^n_{3 1}  &        0         &
+          Q^n_{3 2}  &        0         &
+          Q^n_{3 3}  &        0         &
+          D^n        &        0
+    \\
+          Q^p_{3 1}  &        0         &
+          Q^p_{3 2}  &        0         &
+          Q^p_{3 3}  &        0         &
+              0      &       D^p        &
+  \end{pmatrix}
+  \begin{pmatrix}
+    \cola{U}\\ \cola{\psi}\\ 
+    \colb{V}\\ \colb{F}   \\
+    \chi \\ p_e \\ 
+    n \\ p
+  \end{pmatrix}^{(n)} +   
+  \begin{pmatrix}
+    Q_1 \\ Q_2 \\ 
+    Q_3 \\ Q_4 \\
+    Q_5 \\ Q_6 \\ 
+    Q_7 \\ Q_8
+  \end{pmatrix}
+\end{eqnarray}
+
+\subsubsection{Split Time Step Method}
+
+
+
+Time is advanced using a split time-step method in which the velocity
+field is advanced first, then the density and total pressure fields
+are advanced separately, and finally the magnetic field and electron
+pressure are advanced together.  Though the velocity and magnetic
+field are advanced separately, the Alfv\'en and magnetosonic waves are
+treated implicitly by using the pressure equation and Faraday's law to
+calculate analytically the advanced-time values of the pressure and
+magnetic field for use in the velocity time step.
+
+
+
+\begin{eqnarray}
+  \label{eq:velocity_advance}
+  \lefteqn{
+  \begin{pmatrix}
+    \cola{S^v_{1 1}} & \colb{S^v_{1 2}} & S^v_{1 3}\\
+    \colb{S^v_{2 1}} & \colb{S^v_{2 2}} & S^v_{2 3}\\
+          S^v_{3 1}  &       S^v_{3 2}  & S^v_{3 3}\\
+  \end{pmatrix} 
+  \begin{pmatrix}
+    \cola{U}\\ \colb{V}\\ \chi
+  \end{pmatrix}^{(n+1)}}\\
+  & = & 
+  \begin{pmatrix}
+    \cola{D^v_{1 1}} & \colb{D^v_{1 2}} & D^v_{1 3}\\
+    \colb{D^v_{2 1}} & \colb{D^v_{2 2}} & D^v_{2 3}\\
+          D^v_{3 1}  &       D^v_{3 2}  & D^v_{3 3}\\
+  \end{pmatrix} 
+  \begin{pmatrix}
+    \cola{U}\\ \colb{V}\\ \chi
+  \end{pmatrix}^{(n)}
+  + 
+  \begin{pmatrix}
+    \cola{Q^v_{1 1}} & \colb{Q^v_{1 2}} & Q^v_{1 3}\\
+    \colb{Q^v_{2 1}} & \colb{Q^v_{2 2}} & Q^v_{2 3}\\
+          Q^v_{3 1}  &       Q^v_{3 2}  & Q^v_{3 3}\\
+  \end{pmatrix} 
+  \begin{pmatrix}
+    \cola{\psi}\\ \colb{F}\\ p
+  \end{pmatrix}^{(n)} \nonumber
+  \\ & & \mbox{} + 
+  \begin{pmatrix}
+    \cola{O^v_{1}}\\
+    \colb{O^v_{2}}\\
+          O^v_{3} \\
+  \end{pmatrix} \nonumber
+\end{eqnarray}
+
+\begin{eqnarray}
+  \label{eq:density_advance}
+  S^n n^{(n+1)} & = & D^n n^{(n)} + 
+  \begin{pmatrix} R^n_1 & R^n_2 & R^n_3\end{pmatrix}
+  \begin{pmatrix}\cola{U}\\ \colb{V}\\ \chi\end{pmatrix}^{(n+1)}
+  \\ & & \mbox{} + 
+  \begin{pmatrix}Q^n_1    &   Q^n_2   & Q^n_3\end{pmatrix}
+  \begin{pmatrix}\cola{U}\\ \colb{V}\\ \chi\end{pmatrix}^{(n)} \nonumber
+\end{eqnarray}
+
+
+\begin{eqnarray}
+  \label{eq:pressure_advance}
+  S^p p^{(n+1)} & = & D^p p^{(n)} + 
+  \begin{pmatrix}R^p_1 & R^p_2 & R^p_3\end{pmatrix}
+  \begin{pmatrix}\cola{U}\\ \colb{V}\\ \chi \end{pmatrix}^{(n+1)}
+  \\ & & \mbox{} + 
+  \begin{pmatrix}Q^p_1 & Q^p_2 & Q^p_3\end{pmatrix}
+  \begin{pmatrix}\cola{U}\\ \colb{V}\\ \chi \end{pmatrix}^{(n)} \nonumber
+\end{eqnarray}
+
+
+\begin{eqnarray}
+  \label{eq:field_advance}
+  \lefteqn{
+  \begin{pmatrix}
+    \cola{S^B_{1 1}} & \colb{S^B_{1 2}} & S^B_{1 3}\\
+    \colb{S^B_{2 1}} & \colb{S^B_{2 2}} & S^B_{2 3}\\
+          S^B_{3 1}  &       S^B_{3 2}  & S^B_{3 3}\\
+  \end{pmatrix} 
+  \begin{pmatrix}
+    \cola{\psi}\\ \colb{F}\\ p_e
+  \end{pmatrix}^{(n+1)}}\\
+  & = & 
+  \begin{pmatrix}
+    \cola{D^B_{1 1}} & \colb{D^B_{1 2}} & D^B_{1 3}\\
+    \colb{D^B_{2 1}} & \colb{D^B_{2 2}} & D^B_{2 3}\\
+          D^B_{3 1}  &       D^B_{3 2}  & D^B_{3 3}\\
+  \end{pmatrix} 
+  \begin{pmatrix}
+    \cola{\psi}\\ \colb{F}\\ p_e
+  \end{pmatrix}^{(n)} +
+  \begin{pmatrix}
+    \cola{R^B_{1 1}} & \colb{R^B_{1 2}} & R^B_{1 3}\\
+    \colb{R^B_{2 1}} & \colb{R^B_{2 2}} & R^B_{2 3}\\
+          R^B_{3 1}  &       R^B_{3 2}  & R^B_{3 3}\\
+  \end{pmatrix} 
+  \begin{pmatrix}
+    \cola{U}\\ \colb{V}\\ \chi
+  \end{pmatrix}^{(n+1)} \nonumber
+  \\ & & \mbox{} +
+  \begin{pmatrix}
+    \cola{Q^B_{1 1}} & \colb{Q^B_{1 2}} & Q^B_{1 3}\\
+    \colb{Q^B_{2 1}} & \colb{Q^B_{2 2}} & Q^B_{2 3}\\
+          Q^B_{3 1}  &       Q^B_{3 2}  & Q^B_{3 3}\\
+  \end{pmatrix} 
+  \begin{pmatrix}
+    \cola{U}\\ \colb{V}\\ \chi
+  \end{pmatrix}^{(n)} +
+  \begin{pmatrix}
+    \cola{O^B_{1}}\\
+    \colb{O^B_{2}}\\
+          O^B_{3} \\
+  \end{pmatrix} \nonumber
+\end{eqnarray}

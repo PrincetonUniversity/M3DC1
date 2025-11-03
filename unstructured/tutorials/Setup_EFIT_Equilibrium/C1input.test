@@ -127,10 +127,16 @@
 	nonrect = 1
 
 	mesh_filename = 'part.smb'
-	mesh_model = 'diiid-0.02-2.5-4.0.txt'
+	mesh_model = 'diiid.txt'
 
 	icsubtract = 1
 	imulti_region = 1
+
+	boundary_type(1) = 1  ! Loop 1 is the first wall
+	boundary_type(3) = 2  ! Loop 3 is the domain boundary
+	zone_type(1) = 1    ! Zone 1 is the plasma
+	zone_type(2) = 2    ! Zone 2 is a conductor (resistive wall)
+	zone_type(3) = 3    ! Zone 3 is a vacuum
 
 
 ! Grad-Shafranov Options

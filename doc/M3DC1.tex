@@ -1,23 +1,6 @@
-\documentclass[11pt]{article}  % include bezier curves
-\renewcommand\baselinestretch{1.0}           % single space
-%\pagestyle{empty}                            % no headers and page numbers
-\author{}
-\title{}
-
-\oddsidemargin -10 true pt      % Left margin on odd-numbered pages.
-\evensidemargin 10 true pt      % Left margin on even-numbered pages.
-\marginparwidth 1.5 true in    % Width of marginal notes.
-\oddsidemargin  0 true in       % Note that \oddsidemargin=\evensidemargin
-\evensidemargin 0 true in
-\topmargin -0.5 true in        % Nominal distance from top of page to top of
-\textheight 9.0 true in         % Height of text (including footnotes and figures)
-\textwidth 6.5 true in        % Width of text line.
-\parindent=0pt                  % Do not indent paragraphs
-\parskip=0.15 true in
-%\usepackage{color}              % Need the color package
+\documentclass[10pt]{article}
 
 \usepackage[pdftex]{color, graphicx}
-%\usepackage{graphicx} %for epsfig
 \usepackage{hyperref} %for url
 \usepackage{graphics}
 \usepackage{epsfig}
@@ -25,65 +8,155 @@
 \usepackage{mathrsfs}
 \usepackage{eufrak}
 \usepackage{amsmath}
+\usepackage{amssymb}
 \usepackage{graphicx}
 \usepackage{longtable}
-%\usepackage{mesh}
 \usepackage{url}
-%\usepackage[noline,algonl,boxed]{algorithm2e}
-%\usepackage[lined,algonl,boxed]{algorithm2e}
-%\renewcommand{\listalgorithmcfname}{LIST OF ALGORITHMS}
+\usepackage[T1]{fontenc}
 
-%\usepackage[dvips]{graphicx}
-%\usepackage{epsfig} % for epsfig
-%\usepackage{amsmath}
-%\usepackage{amssymb}
-%\usepackage{graphicx}
-%\usepackage[usenames]{color}
+\usepackage[% Set the height and width of the paper
+includehead,
+nomarginpar,% We don't want any margin paragraphs
+textwidth=5.5in,
+headheight=1in,
+top=0.5in
+]{geometry}
+
+\usepackage{sectsty}
+\sectionfont{\fontfamily{phv}\selectfont}
+\subsectionfont{\fontfamily{phv}\selectfont}
+\subsubsectionfont{\fontfamily{phv}\selectfont}
+
+\usepackage[backend=biber]{biblatex}
+\addbibresource{m3dc1.bib}
+
+
+
+\newcommand{\dt}{\ensuremath{\delta t}}
+\newcommand{\ddt}[1]{\frac{\partial #1}{\partial t}}
+\newcommand{\thimp}{\ensuremath{\theta}}
+
+\newcommand{\order}[1]{\ensuremath{\mathcal{O}(#1)}}
+
+\renewcommand{\vec}[1]{\ensuremath{\mathbf{#1}}}
+\newcommand{\tensor}[1]{\mathsf{#1}}
+\newcommand{\tor}{\varphi}              % toroidal coordinate
+\newcommand{\A}{\vec{A}}
+\newcommand{\B}{\vec{B}}
+\newcommand{\E}{\vec{E}}
+\newcommand{\R}{\vec{R}}
+\newcommand{\x}{\vec{x}}
+\renewcommand{\r}{R}
+\renewcommand{\v}{\vec{v}}
+\renewcommand{\u}{\vec{u}}
+\newcommand{\F}{\vec{F}}
+\renewcommand{\j}{\vec{J}}
+\newcommand{\q}{\vec{q}}
+\newcommand{\g}{\vec{g}}
+\newcommand{\jn}{\frac{\j}{n}}
+\renewcommand{\P}{\tensor{\Pi}}
+\renewcommand{\b}{\vec{b}}
+\newcommand{\W}{\tensor{W}}
+\newcommand{\codename}{\textsc{M3D-$C^1$}}
+
+\newcommand{\grad}[1]{\nabla #1}
+\newcommand{\gradp}[1]{\nabla_\perp #1}
+\renewcommand{\div}[1]{\nabla \cdot #1}
+\newcommand{\divp}[1]{\nabla_\perp \cdot #1}
+\newcommand{\curl}[1]{\nabla \times #1}
+
+\newcommand{\dotdot}{:}
+\newcommand{\dottimes}{\dot\times}
+\newcommand{\timestimes}{\stackrel{\times}{\times}}
+
+\newcommand{\gs}[1]{\Delta^* #1}
+\newcommand{\lp}[1]{\nabla^2 #1}
+\newcommand{\pb}[2]{\left[#1,#2\right]}
+\newcommand{\ip}[2]{\left\langle  #1,#2\right\rangle}
+\newcommand{\funcss}[2]{
+  \left\langle\left\langle #1,#2 \right\rangle\right\rangle}
+\newcommand{\funcsa}[2]{\left[\left\langle #1,#2 \right\rangle\right]}
+\newcommand{\funcaa}[2]{\left[\left[ #1,#2 \right]\right]}
+
+\newcommand{\cola}[1]{\textcolor{red}{#1}}
+\newcommand{\colb}[1]{\textcolor{blue}{#1}}
+
+\newcommand{\uvec}[1]{\ensuremath{\vec{\hat{#1}}}}
+\newcommand{\n}{\ensuremath{\uvec{n}}}
+
+\newcommand{\repositoryloc}{portal.pppl.gov/p/tsc/C1/svn}
+\newcommand{\svnurl}{http://subversion.tigris.org/}
+
+
+
+
+
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-\title{The M3D-C1 User's Guide}
+%\title{The M3D-C1 User's Guide}
 
-\author{
-M3D-C1 Team \\
-RPI SCOREC}
+%\author{
+%M3D-C1 Team \\
+%RPI SCOREC}
 
-\date{\today}
+%\date{\today}
 
 \begin{document}
 
-\maketitle
+%\maketitle
+
+\begin{titlepage}
+    \newgeometry{top=2in,bottom=1in}
+    \begin{center}
+        {\fontfamily{phv}\selectfont\Huge {\textbf{M3D-C1 User's Guide}}}\\
+        \vspace{0.5in}
+        {\fontfamily{phv}\selectfont\Large 
+	{S. Jardin, N. Ferraro, J. Chen, and the M3D-C1 Team\\
+	{M. Shephard, S. Seol, U. Riaz, and the RPI SCOREC Team}}}\\
+	\vspace{0.5in}
+	{\fontfamily{phv}\selectfont\Large \today}
+	\vfill
+    \end{center}
+\end{titlepage}
 
 \newpage
+\restoregeometry
 \tableofcontents
 \newpage
 
 \include{building}
 
-\include{github}
+\include{physics-model}
 
-\include{equilibria}
+%\include{tutorials}
+
+%\include{github}
+
+%\include{equilibria}
 
 \include{mesh-gen}
 
 \include{mesh-adapt}
-\include{numerical-methods}
-
-\include{output}
-
-\include{petsc_option}
 
 \include{running_jobs}
 
-\include{physics-model}
+\include{petsc_option}
 
-\include{doc}
+\include{output}
+
+\include{numerical_methods}
+
+%\include{doc}
 
 % Bibliography
-\bibliographystyle{plain}
-\bibliography{m3dc1}
+%\bibliographystyle{plain}
+%\bibliography{m3dc1}
+\printbibliography
 
 \appendix
-\include{idl-postproc}
+%\include{idl-postproc}
 %\include{scorec-api}
+\include{units}
+\include{inputs}
 \include{app-paraview}
 \end{document}
 

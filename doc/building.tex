@@ -1,26 +1,4 @@
-\section{Obtaining M3D-C1}
-
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-\subsection{License Agreement}
-\label{sec:license}
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-
-M3D-C1 is a code developed with funding from the US Department of
-Energy, and is intended for open scientific research.  If you intend
-to run M3D-C1, please complete the following steps:
-
-\begin{enumerate}
-\item Sign the license agreement
-  \url{https://m3dc1.pppl.gov/M3D-C1\_License.pdf} and return to
-  \href{mailto:nferraro@pppl.gov}{nferraro@pppl.gov}.
-\item Request access to the code using the form
-  \url{https://pppl.tiny.us/code-release-form}.  This step will
-  involve review by PPPL to clear any potential export control issues.
-\end{enumerate}
-
-Please be aware that permission to run M3D-C1 does not carry an
-implicit agreement to provide technical support for compiling,
-running, modifying, or interpreting output of, M3D-C1.
+\section{Obtaining and Building M3D-C1}
 
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
@@ -33,18 +11,15 @@ Installations are presently available on a number of systems,
 including:
 
 \begin{description}
-\item{GA Iris}:\\
-  \texttt{module use /fusion/projects/codes/m3dc1/modules}\\
-  \texttt{module load m3dc1/1.14}
 \item{NERSC Perlmutter}:\\
   \texttt{module use /global/cfs/projectdirs/mp288/C1/modules/perlmutter}\\
-  \texttt{module load m3dc1/1.14-cpu}
-\item{PPPL Cluster}:\\
+  \texttt{module load m3dc1/1.15-cpu}
+\item{PPPL Flux}:\\
   \texttt{module use /p/m3dc1/modules}\\
-  \texttt{module load m3dc1/1.14}
+  \texttt{module load m3dc1/1.15}
 \item{PU Stellar}:\\
   \texttt{module use /projects/M3DC1/modules}\\
-  \texttt{module load m3dc1/1.14}
+  \texttt{module load m3dc1/1.15}
 \end{description}
 
 These modules will modify the user's enviroment variables
@@ -54,49 +29,44 @@ IDL routines.
 
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-\subsection{Accessing the M3D-C1 Source Code}
+\subsection{Building from Source Code}
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
-If you choose to build the code yourself, either to use an unreleased
-version or to do code development yourself, you will need access to
-the M3D-C1 code repository.  The M3D-C1 source code is located in the
-Github repository: \texttt{PrincetonUniversity/M3DC1}. To get access
-to this repository, please complete the license form and software
-access request form as described in section~\ref{sec:license}.
+Given a properly set up git installation, the M3D-C1 source code can be
+cloned to the working directory using:
 
-
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-\subsection{Makefiles and Dependencies}
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\texttt{git clone https://github.com/PrincetonUniversity/M3DC1}
 
 Some of the build scripts depend on the following environment
 variables to be set, to specify the location of the M3D-C1 source code
 and the directory in which to install any compiled executables:
 \begin{description}
-\item{\texttt{M3DC1\_DIR}} should be set to the directory containing
+\item{\texttt{M3DC1\_CODE\_DIR}} should be set to the directory containing
   the M3D-C1 source code.  For example:\\
-  \texttt{setenv M3DC1\_DIR \$HOME/src/M3DC1}
+  \texttt{setenv M3DC1\_CODE\_DIR \$HOME/src/M3DC1}
 \item{\texttt{M3DC1\_INSTALL\_DIR}} should be set to the directory in
   which M3D-C1 will be installed.  For example:\\
   \texttt{setenv M3DC1\_INSTALL\_DIR \$HOME/M3DC1}
 \end{description}
 It is recommended to set these values in your login script.
 
-Makefiles for a number of systems are included in the repository,
-with filenames \texttt{\$M3DC1\_DIR/unstructured/*.mk}.  For most of
-these systems, environment modules are also included in the
+Makefiles for a number of systems are included in the repository, with filenames 
+
+\texttt{\$M3DC1\_CODE\_DIR/unstructured/*.mk}.  
+
+For most of these systems, environment modules are also included in the
 repository.  These modules will load the appropriate software modules
 for building on that particular system, and can be loaded using:
 
 \begin{description}
 \item{NERSC Perlmutter}:\\
-  \texttt{module use \$M3DC1\_DIR/modules/perlmutter}\\
+  \texttt{module use \$M3DC1\_CODE\_DIR/modules/perlmutter}\\
+  \texttt{module load m3dc1/devel-cpu-gcc}
+\item{PPPL Flux}:\\
+  \texttt{module use \$M3DC1\_CODE\_DIR/modules/pppl}\\
   \texttt{module load m3dc1/devel}
-\item{PPPL Cluster}:\\
-  \texttt{module use \$M3DC1\_DIR/modules/pppl}\\
-  \texttt{module load m3dc1/devel-centos7}
 \item{PU Stellar}:\\
-  \texttt{module use \$M3DC1\_DIR/modules/stellar}\\
+  \texttt{module use \$M3DC1\_CODE\_DIR/modules/stellar}\\
   \texttt{module load m3dc1/devel}
 \end{description}
 
@@ -110,12 +80,27 @@ default to ``sunfire'').
 
 If you are building M3D-C1 on a system for which no makefile or development
 module is provided, please refer to the existing makefiles and modules
-as examples.  In general, M3D-C1 requires the following dependencies:
+as examples. Currently available \texttt{*.mk} files are
+
+\begin{description}
+        \item{ kairos.mk}, \quad ARCH=kairo
+        \item{ marconi.mk}, \quad ARCH=marconi
+        \item{ mit.mk}, \quad ARCH=mit
+        \item{ perlmutter\_cpu.mk}, \quad ARCH=perlmutter\_cpu
+        \item{ perlmutter\_cpu\_gcc.mk}, \quad ARCH=perlmutter\_cpu\_gcc
+        \item{ perlmutter\_gpu.mk}, \quad ARCH=perlmutter\_gpu
+        \item{ saturn.mk}, \quad ARCH=saturn
+        \item{ sdumont.mk}, \quad ARCH=sdumont
+        \item{ stellar.mk}, \quad ARCH=stellar
+        \item{ fllux.mk}, \quad ARCH=flux
+\end{description}
+
+In general, M3D-C1 requires the following dependencies:
 \begin{itemize}
 \item Compilers for C, C++, and Fortran;
 \item MPI
 \item HDF5 compiled with support for Fortran and MPI
-\item netcdf
+\item netcdf-c, netcdf-fortran
 \item GSL
 \item FFTW
 \item PETSc compiled with support for Fortran, complex-valued
@@ -128,18 +113,19 @@ as examples.  In general, M3D-C1 requires the following dependencies:
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
 Once the appropriate makefile has been defined, the M3D-C1 executables
-can be built by entering \texttt{\$M3DC1\_DIR/unstructured} and
+can be built by entering \texttt{\$M3DC1\_CODE\_DIR/unstructured} and
 running
 
-\texttt{make all}
+\texttt{make all ARCH=\$M3DC1\_ARCH}
 
 This will run the following commands:
 
 \begin{tabular}{ll}
-\texttt{make OPT=1} & Builds the 2D version\\
-\texttt{make OPT=1 COM=1} & Builds the complex version\\
-\texttt{make OPT=1 3D=1 MAX\_PTS=60} & Builds the 3D version\\
-\texttt{make OPT=1 3D=1 MAX\_PTS=60 ST=1} & Builds the stellarator version\\
+\texttt{make OPT=1 ARCH=\$M3DC1\_ARCH} & Builds the 2D version\\
+\texttt{make OPT=1 COM=1 ARCH=\$M3DC1\_ARCH} & Builds the complex version\\
+\texttt{make OPT=1 3D=1 MAX\_PTS=60 ARCH=\$M3DC1\_ARCH} & Builds the 3D version\\
+\texttt{make OPT=1 3D=1 MAX\_PTS=60 ST=1 ARCH=\$M3DC1\_ARCH} & Builds the stellarator version\\
+\texttt{make OPT=1 3D=1 MAX\_PTS=60 ST=1 PAR=1 ARCH=\$M3DC1\_ARCH} & Builds the kinetic pic version\\
 \texttt{make a2cc} & Builds a utility for extracting coil currents
 from a-eqdsk files\\
 \texttt{make bin} & Puts executables into the \texttt{\_\$M3DC1\_ARCH} subdirectory\\
@@ -154,7 +140,8 @@ The M3D-C1 source code includes a suite of regression tests that
 should be run before commiting any new code to the repository.  To run
 these tests:
 
-\texttt{cd \$M3DC1\_DIR/unstructured/regtest}
+\texttt{cd \$M3DC1\_CODE\_DIR/unstructured/regtest}
+
 \texttt{./run <arch> <test>}
 
 where \texttt{<arch>} and \texttt{<test>} are optional arguments
@@ -165,11 +152,11 @@ regression test to run, respectively.  By default,
 If \texttt{<test>} is not
 specified, then all the regression tests will be run, using the batch
 scripts\\
-\texttt{\$M3DC1\_DIR/unstructured/regtest/*/base/batchjob.<arch>}.
+\texttt{\$M3DC1\_CODE\_DIR/unstructured/regtest/*/base/batchjob.<arch>}.
 
 The \texttt{run} script will create new directories in which to run
 these regression tests, named\\
-\texttt{\$M3DC1\_DIR/unstructured/regtest/*/\$\{M3DC1\_VERSION\}\_<arch>/}.
+\texttt{\$M3DC1\_CODE\_DIR/unstructured/regtest/*/\$\{M3DC1\_VERSION\}\_<arch>/}.
 
 If \texttt{<test>} is specified, then only
 \texttt{\$M3DC1\_ARCH/unstructured/regtest/<test>/base/batchjob.<arch>}
@@ -180,5 +167,3 @@ specified.
 To check the results of the regression tests
 
 \texttt{./check <arch>}
-
-

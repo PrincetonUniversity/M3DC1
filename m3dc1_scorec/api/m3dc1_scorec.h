@@ -203,6 +203,7 @@ int m3dc1_matrix_create(int* matrix_id, int* matrix_type, int* scalar_type, Fiel
 int m3dc1_matrix_assemble(int* matrix_id); //finalizematrix_
 int m3dc1_matrix_delete(int* matrix_id); //deletematrix_
 void m3dc1_matrix_reset(int* matrix_id); // cleanMatrixValues_
+void m3dc1_matrix_update(int* matrix_id); // updateAPMatrixValues_
 
 int m3dc1_matrix_insert(int* matrix_id, int* row, int* column, int* scalar_type, double* val);
 int m3dc1_matrix_add(int* matrix_id, int* row, int* column, int* scalar_type, double* val); //globalinsertval_

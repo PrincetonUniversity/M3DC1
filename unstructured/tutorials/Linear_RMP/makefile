@@ -11,7 +11,7 @@ clean :
 	-not -name 'rmp_coil.dat' \
 	-not -name 'rmp_current.dat' \
 	-not -name 'geqdsk' \
-	-not -name 'diiid-0.02-2.5-4.0.txt' \
+	-not -name 'diiid.txt' \
 	-not -name 'mesh0.smb' \
 	-not -name 'batchjob.*' \
 	-not -name 'makefile' \

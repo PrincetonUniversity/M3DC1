@@ -670,10 +670,16 @@ subroutine initial_conditions()
   call den_eq
   call den_per
   call kprad_init_conds
+
+#if defined(USEST) && defined(USEPARTICLES)
+  if(kinetic .eq. 1) then
+     call kinetic_eq
+  endif
+#endif
   if(irunaway .gt. 0) then
      call nre_eq
      call nre_per
-  endif
+   endif
 
   ! For RMP, 3D vacuum, and error fields
   if(irmp.ge.1 .or. iread_ext_field.ge.1 .or. &

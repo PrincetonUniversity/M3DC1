@@ -108,7 +108,8 @@ def eval_field(field_name, R, phi, Z, coord='scalar', sim=None, filename='C1.h5'
         eta = fpyl.get_conv_field('mks','eta',eta,sim=sim)
         va = eval_field('va', R=R, phi=phi, Z=Z, coord='scalar', sim=sim, filename=filename, time=time)#mks units
         mu0 = 4.0E-7*np.pi
-        a,R0 = get_shape(sim=sim,res=200)
+        shape = get_shape(sim=sim,quiet=True)
+        a,R0 = (shape["a"],shape["R0"])
         L=a
         field_array = mu0 * L * va / eta
     else:
@@ -348,8 +349,33 @@ def get_shape(sim,res=250,quiet=False):
             print(Rmax,Rmin)
     a=(Rmax-Rmin)/2
     R0 = (Rmax+Rmin)/2
+    
+    Z_max = np.amax(vert[:,1])
+    Z_max_ind = fpyl.get_ind_at_val(vert[:,1], Z_max, unique=True)
+    Z_min = np.amin(vert[:,1])
+    Z_min_ind = fpyl.get_ind_at_val(vert[:,1], Z_min, unique=True)
+    
+    z0 = (Z_max + Z_min)/2.0
+    b = (Z_max - Z_min)/2.0
+    
+    R_upper = vert[:,0][Z_max_ind]
+    R_lower = vert[:,0][Z_min_ind]
+    
+    kappa = (Z_max-Z_min)/(2*a)
+    delta_u = (R0-R_upper)/a
+    delta_l = (R0-R_lower)/a
+    delta = (delta_u + delta_l) / 2
+    
+    shape = {"a":a, "R0":R0, "A":R0/a, "z0":z0, "b":b,"kappa":kappa, "delta_u":delta_u, "delta_l":delta_l, "delta":delta}
+    
     if not quiet:
-        print('a = '+str(a))
         print('R0 = '+str(R0))
+        print('a = '+str(a))
         print('A=R0/a = '+str(R0/a))
-    return a,R0
+        print('z0 = '+str(z0))
+        print('b = '+str(b))
+        print('kappa     =  '+str(kappa))
+        print('delta     =  '+str(delta))
+        print('delta_u   =  '+str(delta_u))
+        print('delta_l   =  '+str(delta_l))
+    return shape

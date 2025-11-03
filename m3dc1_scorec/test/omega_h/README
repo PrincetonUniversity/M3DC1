@@ -1,8 +1,0 @@
-Let the absolute path to the binary be $BIN, and assuming you are running from the current directory.
-
-Example usage:
-
-mpirun -n 1 $BIN/omega_h_test ../1K-1part/part.smb
-
-mpirun -n 4 $BIN/omega_h_test ../1K-1part/part.smb
-

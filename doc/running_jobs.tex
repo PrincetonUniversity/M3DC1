@@ -1,17 +1,22 @@
 \section{Running Jobs}
 
-\noindent
-Users can find almost all of the needed example batch scripts and input files to run a job on available computing facilities from 
-\begin{verbatim}
-unstructured/regtest/*/base/
-\end{verbatim}
+\subsection{Tutorials}
 
-\noindent
-directories.
+Tutorials for a few common use cases are provided in the M3D-C1 github
+repository under the \texttt{unstructured/tutorials} directory.
+Documentation for the tutorials can be found here:
+\url{http://sites.google.com/pppl.gov/m3d-c1/documentation}.
+
+\subsection{Regression Tests}
+
+The regression tests also provide a useful starting point for several
+typical cases, including batch scripts for a number of different
+systems.  These case be found in the github repository under
+\texttt{\$M3DC1\_DIR/unstructured/regtest/*/base/}.
+
 
 \subsection{Running 2D or Linear Jobs}
 
-\noindent
 In 2D, the run can be either linear or nonlinear, depending on the C1input parameter $linear$:
 
 $linear=0$ (non-linear run: must compile with the option RL=1)
@@ -41,12 +46,12 @@ struct-dmg.sms
 
 To run non-linear job
 \begin{verbatim}
-mpirun –np 8 ./m3dc1_2d
+srun -np 8 m3dc1_2d
 \end{verbatim}
 
 To run linear job
 \begin{verbatim}
-mpirun –np 24 ./m3dc1_2d_complex -pc_factor_mat_solver_package mumps 
+srun -np 24 m3dc1_2d_complex -pc_factor_mat_solver_package mumps 
 \end{verbatim}
 
 \subsection{Running 3D Nonlinear Jobs}
@@ -61,7 +66,7 @@ Files required to be present to the local directory are:
 \begin{verbatim}
 executable (m3dc1 or m3dc1_st)
 C1input,
-partnn.smb (one for each poloidal plane partition)
+part\#\#.smb (one for each poloidal plane partition)
 options_bjacobi
 m3dc1.xml (if using ADIOS)
 geqdsk (if needed)
@@ -70,10 +75,13 @@ geqdsk (if needed)
 \noindent
 To run linear job
 \begin{verbatim}
-mpirun –np 16 ./ m3dc1 –ipetsc –options_file options_bjacobi (nplane=2, M=8)
+srun -np 16 m3dc1_3d -ipetsc -options_file options_bjacobi
 \end{verbatim}
 \noindent
-See the previou section for the format of the PETSc option file options\_bjacobi. In this example job, there are $M=8$ mesh partition files:
+
+See the previous section for the format of the PETSc option file
+\texttt{options\_bjacobi}. In this example job, there are $M=8$ mesh
+partition files:
 \begin{verbatim}
 part0.smb part1.smb part2.smb part3.smb part4.smb part5.smb part6.smb part7.smb
 \end{verbatim}
@@ -112,35 +120,29 @@ To run simulations with the bootstrap model enabled, the following procedure sho
 
 The non-local quantities $L_{31}$, $L_{32}$, $L_{34}$, and $\alpha$ are currently computed outside M3D-C1 using the $n$, $T_e$, and $B$ field outputs from M3D-C1 (via fusion-io). These values are assumed not to change significantly throughout the simulation but can be updated when restarting the simulations.
 
-\subsection{Graphics Files}
-\noindent
-The graphics files are of two types. There is a single file called: C1.h5 that contains all the timedependent scalar information. This must be saved and be present in the directory of a job so that it can be added to.
-
-\noindent
-In addition to this file, each plot cycle will produce a file: time\_nnn.h5, where nnn is the plot cycle
-number. The equilibrium is written into a file called equilibrium.h5. These must be stored in the same
-directory as the C1.h5 file.
-
 \subsection{Restarting Jobs}
 
-\noindent
-By default  hdf5 files are written in every time step. Therefore jobs can be restarted from the hdf5 “plot file”, the same one that is used by the idl routines to make plots.
+The HDF5 output files contain all of the needed state information to
+restart a simulation.
 
-\noindent
-By default, the hdf5 files are written in single precision. If idouble\_out is set to 1 in C1input file, hdf5 files are written in double precision.
+By default, the hdf5 files are written in single precision. If
+\texttt{idouble\_out=1} in C1input file, hdf5 files are written in
+double precision.
 
 \subsubsection{Reading restart files for 2D real, 2D complex, or 3D real runs}
-To start a normal simulation with the hdf5 files, set the C1input parameter “irestart” to 1.
 
-However, the files C1.h5 and the final time\_nnn.h5 file must be present in the working directory. You may also
-restart from an intermediate time by setting irestart\_slice=nn where nn is the nnth plot file. If this is not
-set, it will restart from the final plot file. 
+To start a normal simulation with the hdf5 files, set the C1input
+parameter \texttt{irestart=1}.  You may restart from an intermediate
+time slice \texttt{nnn} by setting \texttt{irestart\_slice=nnn}. If
+this is not set, it will restart from the final time slice.  The files
+\texttt{C1.h5} and \texttt{time\_nnn.h5} must be present in the working
+directory. 
 
 \subsubsection{Reading real restart files to initialize 2D complex calculation}
 \begin{itemize}
-\item  Run 2D linear=0
-\item  Copy 2D C1.h5 and the final time\_nnnn.h5 to the working directory
-\item  Run 2D (complex) linear=1. In the initial restart, the time and cycle number will start from t=0
+\item  Run 2D (m3dc1\_2d) \texttt{linear=0}
+\item  Copy 2D \texttt{C1.h5} and \texttt{time\_nnn.h5} to the working directory
+\item  Run 2D complex (m3dc1\_2d\_complex) \texttt{linear=1}. In the initial restart, the time and cycle number will start from t=0
 and N=0 for the complex run
 \end{itemize}
 
@@ -148,8 +150,8 @@ and N=0 for the complex run
 To start a 3D simulation with 2D restart files, do the following:
 \begin{itemize}
 \item  Run 2D
-\item  Copy 2D C1.h5 and the final time\_nnn.h5 to the working directory
-\item  In 3D work folder, set the C1input parameter “irestart= 1”
+\item  Copy 2D \texttt{C1.h5} and the \texttt{time\_nnn.h5} to the working directory
+\item  In 3D work folder, set the C1input parameter \texttt{irestart=1}
 Regardless of the time step when the restart files were written, the 3D simulation starts with time step 1. 
 \end{itemize}
 
@@ -165,14 +167,14 @@ cycle time kinetic_energy growth_rate
 B. C1.h5 file: You can monitor a time dependent run by using the idl utility described below.  Especially useful is the 
 
 \begin{verbatim}
-plot_scalar,‘ke’
+plot_scalar, 'ke'
 \end{verbatim}
 
 \noindent
 command and also 
 
 \begin{verbatim}
-plot_scalar,’ke’,/growth
+plot_scalar, 'ke', /growth
 \end{verbatim}
 
 C. You can use a text editor to monitor the log file slurm-nnnn.out file (where nnnn is the job number assigned by SLURM)

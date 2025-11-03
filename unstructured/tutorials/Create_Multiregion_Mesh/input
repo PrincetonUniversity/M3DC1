@@ -1,37 +1,66 @@
+! Read in one boundary (loop) file
+numBdry 1
+
+! Read in first boundary file
+!   file_name loop-id node_spacing
+bdryFile first_wall.pts 1 0.04
+
+
+! Create thick wall
+!   is_thick initial_loop_id new_loop_id node_spacing
+thickWall 1 1 2 0.02
+
+! Create a vacuum boundary
+!  (2=parameterized) loop_id node_spacing
+!  R0 a delta Z0 a*kappa
+useVacuum 2 3 0.1
+vacuumParams 1.8 1.4 0.4 0.0 2.5
+
+! Define 3 faces (plasma, wall, vacuum)
+numFace 3
+
+!  n_loops loop_1 ... node_spacing
+faceBdry 1 1 0.04     ! plasma
+faceBdry 2 1 2 0.04   ! wall
+faceBdry 2 2 3 0.1
+
+outFile diiid
+
+
 !simVer: 0   - the latest SimModeler (5.0 as of 06/15/16)
 !        100 - SimModeler 5.0
 !        90  - SimModeler 4.0
-simVer 90
+!simVer 90
 
 !model type: 0 - parameterized vacuum
 !            1 - piece-wise linear vacuum; 
 !            2 - piece-wise polynomial vacuum
 !            3 - three-regions  
-modelType 3
+!modelType 3
 
-inFile first_wall.pts
-outFile diiid
+!inFile first_wall.pts
+!outFile diiid
 
 ! meshSize default 0.05. For 3 region model, set three doubles for plasma, resistive, vacuum
-meshSize 0.04 0.04 0.1
+!meshSize 0.04 0.04 0.1
 
 ! for parametrized vacuum model only.
-useVacuumParams 1
+!useVacuumParams 1
 
 ! 1 to multiply coord and params of nodes on vacuum boundary by vacuumFactor
 ! If vacuumFactor is not specified, the default is 2*PI
 ! If adjustVacuumParams=1, using SimModeler for further meshing is not supported and simmmetrix mesh file is not generated
-adjustVacuumParams 0
+!adjustVacuumParams 0
 
-vacuumParams 1.8 1.4 0.4 0.0 2.5
-numVacuumPts 20
+!vacuumParams 1.8 1.4 0.4 0.0 2.5
+!numVacuumPts 20
 
 ! For 3-region model only.
 ! meshGradationRate default 0.3
-meshGradationRate 0.3
-resistive-width 0.02
-plasma-offsetX 0.0
-plasma-offsetY 0.0
-vacuum-width  2.5
-vacuum-height 4.0
+!meshGradationRate 0.3
+!resistive-width 0.02
+!plasma-offsetX 0.0
+!plasma-offsetY 0.0
+!vacuum-width  2.5
+!vacuum-height 4.0
 

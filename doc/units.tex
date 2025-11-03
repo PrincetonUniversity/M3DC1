@@ -1,0 +1,43 @@
+\section{System of Units}
+\label{sec:units}
+
+Most quantities in M3D-C1 are input and output in a system of units
+based on a characteristic length ($L_0$), magnetic field
+strength ($B_0$), number density ($n_0$), and the Alf\'en time
+corresponding to these scales ($\tau_0$).  By default, these are
+\begin{eqnarray*}
+L_0 & = & 100 \text{ cm}\\
+B_0 & = & 10^4 \text{ G}\\
+n_0 & = & 10^{14} \text{ cm$^{-3}$}\\
+\end{eqnarray*}
+These can be changed by setting the input parameters \texttt{L0\_norm},
+\texttt{B0\_norm}, and $\texttt{n0\_norm}$ in the \texttt{C1input} file,
+respectively.  The characteristic timescale is defined as
+\[
+\tau_0 = L_0 \sqrt{4 \pi \mu_i m_p n_0} / B_0 = 4.5846\times 10^{-7} \text{ s}
+\]
+where $m_p$ is the proton mass and $\mu_i$ is the atomic mass number
+of the main ion species, set by \texttt{ion\_mass} in \texttt{C1input}.
+By default, $\mu_i=1$.
+
+These characteristic quantities define the following system of units:\\
+\begin{tabular}{llll}
+Dimension & Unit & Default (cgs) & Default (SI)\\
+\hline
+Current              & $c B_0 L_0 / 4\pi$           & $2.3856\times 10^{15}$ s.a.        & $7.9577\times 10^5$ A       \\
+Current Density      & $c B_0 / 4\pi L_0$           & $2.3856\times 10^{11}$ s.a./cm$^3$ & $7.9577\times 10^5$ A/m$^2$ \\
+Density              & $n_0$                        & $10^{14}$ cm$^{-3}$                & $10^{20}$ m$^{-3}$          \\
+Diffusivity          & $L_0^2 / \tau_0$             & $2.1812\times 10^{10}$ cm$^2$/s    & $2.1812\times 10^6$ m$^2$/s \\
+Electric Field       & $L_0 B_0 / \tau_0 c$         & 72.758 s.v./cm                     & $2.1812\times 10^6$ V/m     \\
+Energy               & $L_0^3 B_0^2 / 4\pi$         & $7.9577\times 10^{12}$ erg         & $7.9577\times 10^5$ J       \\
+Force                & $L_0^2 B_0^2 / 4\pi$         & $7.9577\times 10^{10}$ dyne        & $7.9577\times 10^5$ N       \\
+Length               & $L_0$                        & 100 cm                             & 1 m                         \\
+Magnetic Field       & $B_0$                        & $10^4$ G                           & 1 T                         \\
+Pressure             & $B_0^2 / 4\pi$               & $7.9577\times 10^6$ dyne/cm$^2$    & $7.9577\times 10^5$ Pa      \\
+Resistivity          & $4\pi L_0^2/\tau_0 c^2$      & $3.0498\times 10^{-10}$ s          & 2.7410 $\Omega$ m           \\
+Temperature          & $B_0^2 / 4\pi n_0$           & $4.9667\times 10^4$ eV             & $4.9667\times 10^4$ eV      \\
+Time                 & $\tau_0$                     & $4.5846\times 10^{-7}$ s           & $4.5846\times 10^{-7}$ s    \\
+Thermal conductivity & $n_0 L_0^2 / \tau_0$         & $2.1812\times 10^{24}$ 1/(cm s)    & $2.1812\times 10^{26}$ 1/(m s) \\
+Velocity             & $L_0 / \tau_0$               & $2.1812\times 10^8$ cm/s           & $2.1812\times 10^6$ m/s     \\
+Viscosity            & $\mu_i m_p n_0 L_0^2/\tau_0$ & 3.6483 g/(cm s)                    & 0.36483 kg/(m s)
+\end{tabular}

@@ -310,7 +310,7 @@ bin : a2cc mackenbach_profiles
 	if [ $(PAR) -eq 1 ]; then \
 	  ln -s $(SRCDIR)/_$(ARCH)-pic-opt-25/m3dc1_2d bin ; \
 	  ln -s $(SRCDIR)/_$(ARCH)-pic-opt-25-omp/m3dc1_2d_omp bin ; \
-	  ln -s $(SRCDIR)/_$(ARCH)-complex-pic-opt-25/m3dc1_2d_complex bin ; \
+	  ln -s $(SRCDIR)/_$(ARCH)-complex-pic-opt-25/m3dc1_2d_complex_pic bin/m3dc1_2d_complex ; \
 	  ln -s $(SRCDIR)/_$(ARCH)-complex-pic-opt-25-omp/m3dc1_2d_complex_omp bin ; \
 	  ln -s $(SRCDIR)/_$(ARCH)-3d-pic-opt-60/m3dc1_3d bin ; \
 	  ln -s $(SRCDIR)/_$(ARCH)-3d-pic-opt-60-omp/m3dc1_3d_omp bin ; \
@@ -332,5 +332,8 @@ bin : a2cc mackenbach_profiles
 	ln -s $(SRCDIR)/sbin/create_mesh.sh bin
 	ln -s $(SRCDIR)/sbin/create_fixed_mesh.sh bin
 	ln -s $(SRCDIR)/sbin/part_mesh.sh bin
+
+bin_pic :
+	ln -s $(SRCDIR)/_$(ARCH)-complex-pic-opt-25/m3dc1_2d_complex bin/m3dc1_2d_complex_pic
 
 endif

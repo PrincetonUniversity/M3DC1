@@ -18,9 +18,10 @@
 #include "petscksp.h"
 #include <vector>
 
-int copyField2PetscVec(FieldID field, Vec &petscVec, int scalar_type);
+int copyField2PetscVec(FieldID field, Vec petscVec, int scalar_type);
 int copyPetscVec2Field(Vec &petscVec, FieldID field, int scalar_type);
 void printMemStat();
+PetscErrorCode MyKSPMonitor(KSP, PetscInt, PetscReal, void *);
 // NOTE: all field realted interaction is done through m3dc1 api rather than apf
 class m3dc1_matrix {
 public:
@@ -41,6 +42,7 @@ public:
   int get_fieldOrdering() { return fieldOrdering; }
   int write(const char *file_name);
   virtual int reset_values() = 0;
+  virtual int update_values() = 0;
   virtual int get_type() const = 0;
   virtual int assemble() = 0;
   virtual int setupMat() = 0;
@@ -78,6 +80,7 @@ public:
     mat_status = M3DC1_NOT_FIXED;
     return M3DC1_SUCCESS;
   };
+  int update_values() { MatZeroEntries(_A); mat_status=M3DC1_NOT_FIXED; return M3DC1_SUCCESS; };
   virtual int get_type() const { return 0; } // M3DC1_MULTIPLY; }
   virtual int assemble();
   virtual int setupMat();
@@ -99,6 +102,7 @@ public:
   int add_blockvalues(int rbsize, PetscInt *rows, int cbsize, PetscInt *columns,
                       double *values);
   int reset_values();
+  int update_values();
   virtual int get_type() const { return 1; }
   virtual int assemble();
   virtual int setupMat();
@@ -113,7 +117,7 @@ private:
   Mat remoteA;
 
   // block mg in toroidal direction
-  int BgmgSet;         // only for mymatrix_id=5 or 17, the hard ones
+  int _BgmgSet;         // only for mymatrix_id=5 or 17, the hard ones
   PetscInt mg_nlevels; // default = 2
   // PC *pc;
   Mat *mg_interp_mat;

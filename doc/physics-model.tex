@@ -1,0 +1,182 @@
+\section{Physics Model}
+\label{sec:physics_model}
+
+\subsection{Extended-MHD Equations}
+
+The basic physics model for a single-species plasma in M3D-C1 is the following:
+\begin{eqnarray}
+  \label{eq:continuity}
+  \frac{\partial n_i}{\partial t} + \nabla \cdot (n_i \vec{v})
+  & = & \nabla \cdot (D \nabla n_i) + \sigma_i
+\\
+  \label{eq:force_balance}
+  \rho \left( \frac{\partial \vec{v}}{\partial t}
+  + \vec{v} \cdot \nabla \vec{v} \right)
+  & = & 
+  \vec{J} \times \vec{B} - \nabla p - \nabla \cdot \Pi
+  - \varpi\, \vec{v}
+  %+ \vec{F}_s
+\end{eqnarray}
+For a single-species plasma, $n_e = Z_i n_i$, $\rho = m_i n_i$, and
+$\varpi = m_i \sigma_i$ (these are modified for multi-species plasmas,
+as described in section~\ref{sec:impurities}).  The final term in
+equation~(\ref{eq:force_balance}) represents the slowing of the fluid
+velocity to conserve momentum as new particles are added.
+
+The magnetic field is advanced using Faraday's law
+\begin{equation}
+\label{eq:Faraday}
+\frac{\partial \vec{B}}{\partial t} = -\nabla \times \vec{E}
+\end{equation}
+or by integrating this equation to obtain the vector potential
+induction equation:
+\begin{equation}
+\label{eq:vector_induction}
+\frac{\partial \vec{A}}{\partial t} = -\vec{E} - \nabla \phi
+\end{equation}
+where the constant of integration, $\phi$, is the electric potential.
+The electron momentum equation defines the generalized Ohm's law
+\begin{equation}
+\label{eq:ohm}
+  \vec{E} = - \vec{v} \times \vec{B} + \eta\, \left(\vec{J} - \vec{J}_x \right)
+  + \frac{d_i}{n_e}\left(\vec{J} \times \vec{B} - \nabla p_e \right)
+\end{equation}
+where $\vec{J}_x$ represents an external force on the electrons.
+
+Several models for advancing the ion and electron temperatures, either
+together or independently, are implemented in M3D-C1.  Each of these
+models are built from the electron temperature equation:
+\begin{multline}
+  \label{eq:electron_temperature}
+  n_e \left[ \frac{\partial T_e}{\partial t} + \vec{v} \cdot \nabla T_e
+  + (\Gamma - 1) T_e \nabla \cdot \vec{v} \right] + \sigma_e T_e
+  = \\
+  (\Gamma - 1) \left[ \eta \vec{J} \cdot \left(\vec{J} - \vec{J}_x \right)
+  - \nabla \cdot \vec{q}_e + Q_e
+  -\Pi_e : \nabla \vec{v} \right]
+\end{multline}
+and the ion temperature equation is:
+\begin{multline}
+  \label{eq:ion_temperature}
+  n_i \left[ \frac{\partial T_i}{\partial t} + \vec{v} \cdot \nabla T_i
+  + (\Gamma - 1) T_i \nabla \cdot \vec{v} \right] + \sigma_i T_i
+  = \\
+  (\Gamma - 1) \left[ - \nabla \cdot \vec{q}_i + Q_i
+  -\Pi_i : \nabla \vec{v}  + \frac{1}{2} \varpi\, v^2
+  \right]
+\end{multline}
+The final term in equation~(\ref{eq:ion_temperature})
+accounts for the net loss of kinetic energy caused by the slowing of
+the fluid velocity as new particles are added.  Models implemented
+include a single total pressure equation in which $p_e / p_i$ is
+assumed fixed; a single total temperature equation in which $T_e /
+T_i$ is assumed fixed; a two-pressure equation in which the total
+pressure $p$ and electron pressure $p_e$ are evolved separately; and a
+two-temperature model in which the electron temperature $T_e$ and ion
+temperature $T_i$ are evolved independently using
+equations~(\ref{eq:electron_temperature}) and
+(\ref{eq:ion_temperature}).  Each of these models conserves total
+energy, in the sense that all sources and sinks are are due to
+physical processes that are included in the model.
+
+The electron heat source density $Q_e$ is the sum of the heating from
+radiation and ionization $Q_{rad}$ (this is negative for power lost
+from the plasma) and the collisional transfer of energy from the ions
+to the electrons $Q_\Delta$~\cite{Braginskii65}.  The radiated power
+is calculated using the KPRAD module, and is the sum of the
+bremsstrahlung, line radiation, and recombination losses.  We note
+that KPRAD calculates both the kinetic energy and potential energy
+released as radiation during recombination, but we only include the
+kinetic contribution in $Q_e$, since the potential contribution does
+not subtract from the kinetic energy of the electron fluid.
+
+The equipartition term is the sum of the energy transfer from all ion
+species to electrons:
+\begin{equation}
+  Q_\Delta = 3 m_e n_e (T_i - T_e)
+  \left(\frac{\nu_{ei}}{m_i}
+  + \sum_{j=1}^Z \frac{\nu_{eZ}^{(j)}}{m_Z} \right)
+\end{equation}
+where the collision rate between electrons and ion species $j$ is
+\begin{equation}
+  \nu_{ej} = \frac{4 \sqrt{2 \pi} e^4
+    Z_j^2 n_j \ln \Lambda}{3 \sqrt{m_e} T_e^{3/2}}
+\end{equation}
+Therefore one can write
+\begin{equation}
+  Q_\Delta = 3 \mu \, \nu_{e H}\, n_e\, (T_i - T_e)
+\end{equation}
+where
+\begin{equation}
+  \mu = \frac{m_e}{n_e} \left(\frac{Z_i^2 n_i}{m_i} +
+  \sum_{j=1}^Z \frac{j^2 n_Z^{(j)}}{m_Z} \right)
+\end{equation}
+and where $\nu_{e H}$ is the collision frequency for a pure Hydrogen
+plasma ($Z_j=1$, $m_j = m_p$, $n_j = n_e$).  Similarly, summing the
+collisional drag between the electrons and each ion species, the total
+resistivity can be written in terms of the collision frequency for a
+pure Hydrogen plasma scaled by an ``effective $Z$''~\cite{Wesson87}:
+\begin{align}
+  \label{eq:eta}
+  \eta & = \frac{m_e \nu_{e H}}{n_e e^2} Z_{eff}
+  \\
+  Z_{eff} & = \frac{Z_i^2 n_i + \sum_{j=1}^Z j^2 n_Z^{(j)}}{n_e}
+\end{align}
+The heat flux densities are defined by
+\begin{align}
+  \vec{q}_e & =
+  -\kappa^{e} \nabla T_e
+  - \kappa^{e}_\parallel \frac{\vec{B} \vec{B}}{B^2} \cdot \nabla T_e
+  \\
+  \vec{q}_i & =
+  -\kappa^{i} \nabla T_i
+  - \kappa^{i}_\parallel \frac{\vec{B} \vec{B}}{B^2} \cdot \nabla T_i
+\end{align}
+
+
+
+\subsection{Impurity model}
+\label{sec:impurities}
+
+The impurity model evolves each individual
+charge state of the impurity species, $n_Z^{(j)}$ for $1 \le j \le Z$,
+by including the continuity equations
+\begin{equation}
+  \frac{\partial n_Z^{(j)}}{\partial t} + \nabla \cdot (n_Z^{(j)} \vec{v})
+  = \nabla \cdot (D \nabla n_Z^{(j)}) + \sigma_Z^{(j)}
+\end{equation}
+The electron density is defined to satisfy quasi-neutrality
+\begin{equation}
+  n_e = Z_i n_i + \sum_{j=1}^Z j\, n_Z^{(j)}
+\end{equation}
+The particle source density for each impurity charge state due to
+ionization and recombination, $\sigma_Z^{(j)}$, is calculated using
+the KPRAD model~\cite{Whyte97}.
+
+In addition, the mass density $\rho$ and mass density source rate
+$\varpi$ are modified to account for the impurity density and sources:
+\begin{eqnarray}
+  \rho & = & m_i n_i + \sum_{j=1}^Z m_Z n_Z^{(j)}
+  \\
+  \varpi & = & m_i \sigma_i + \sum_{j=1}^Z m_Z \sigma_Z^{(j)}
+\end{eqnarray}
+
+It is assumed that all ionized impurities have the same temperature as
+the main ion species, $T_i$.  The ion temperature equation is replaced
+by the sum of the temperature equations for all ion species
+(\textit{i.e.} main ions and all ionized impurities):
+\begin{multline}
+  \label{eq:ion_temperature_multispecies}
+  n_* \left[ \frac{\partial T_i}{\partial t} + \vec{v} \cdot \nabla T_i
+  + (\Gamma - 1) T_i \nabla \cdot \vec{v} \right] + \sigma_* T_i
+  = \\
+  (\Gamma - 1) \left[ - \nabla \cdot \vec{q}_* + Q_*
+  -\Pi_* : \nabla \vec{v}  + \frac{1}{2} \varpi\, v^2
+  \right]
+\end{multline}
+Here, $n_*$, $\sigma_*$,$\Pi_*$, $Q_*$, and $\vec{q}_*$ are sum over  
+all ion species of the particle densities, particle source densities,
+stresses, energy density sources, and energy density fluxes,                    
+respectively.
+
+\subsection{Resistive wall model}

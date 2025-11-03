@@ -60,7 +60,7 @@ void printMemStat() {
       << PCU_Comm_Self() << " current " << mem / 1e6 << std::endl;
 }
 
-int copyField2PetscVec(FieldID field_id, Vec &petscVec, int scalar_type) {
+int copyField2PetscVec(FieldID field_id, Vec petscVec, int scalar_type) {
   int num_own_ent = m3dc1_mesh::instance()->num_own_ent[0];
   int num_own_dof = 0, vertex_type = 0;
   m3dc1_field_getnumowndof(&field_id, &num_own_dof);
@@ -688,6 +688,7 @@ void m3dc1_matrix::printInfo() {
 // ***********************************
 matrix_mult::matrix_mult(int i, int s, FieldID field)
     : m3dc1_matrix(i, s, field), localMat(1) {
+  mymatrix_id=i;
   initialize();
 }
 
@@ -700,7 +701,7 @@ int matrix_mult::initialize() {
   // disable error when preallocate not enough
   ierr = MatSetOption(_A, MAT_NEW_NONZERO_ALLOCATION_ERR, PETSC_FALSE);
   CHKERRQ(ierr);
-  ierr = MatSetOption(_A, MAT_IGNORE_ZERO_ENTRIES, PETSC_TRUE);
+  ierr = MatSetOption(_A, MAT_IGNORE_ZERO_ENTRIES, PETSC_FALSE);
   CHKERRQ(ierr);
   return M3DC1_SUCCESS;
 }
@@ -804,16 +805,17 @@ int matrix_mult::multiply(FieldID in_field, FieldID out_field) {
 
 matrix_solve::matrix_solve(int i, int s, FieldID f) : m3dc1_matrix(i, s, f) {
   _ksp=NULL;
-  BgmgSet = 0;
+  _BgmgSet = 0;
   _kspSet = 0;
   remotePidOwned = NULL;
   remoteNodeRow = NULL; // <pid, <locnode>, numAdj>
   remoteNodeRowSize = NULL;
+  mymatrix_id=i;
   initialize();
 }
 
 matrix_solve::~matrix_solve() {
-  if (BgmgSet) {
+  if (_BgmgSet) {
     int nlevels=mg_nlevels-1;
     for (int level = 0; level < nlevels; level++) {
       MatDestroy(&(mg_interp_mat[level]));
@@ -823,7 +825,7 @@ matrix_solve::~matrix_solve() {
     delete[] mg_interp_mat;
     delete[] mg_level_ksp;
     delete[] mg_level_pc;
-    BgmgSet = 0;
+    _BgmgSet = 0;
   }
 
   if (_kspSet) {
@@ -848,7 +850,7 @@ int matrix_solve::initialize() {
   // commented per Jin's request on Nov 9, 2017
   // ierr = MatSetOption(_A,MAT_NEW_NONZERO_ALLOCATION_ERR,PETSC_TRUE);
   // CHKERRQ(ierr);
-  ierr = MatSetOption(_A, MAT_IGNORE_ZERO_ENTRIES, PETSC_TRUE);
+  ierr = MatSetOption(_A, MAT_IGNORE_ZERO_ENTRIES, PETSC_FALSE);
   CHKERRQ(ierr);
   CHKERRQ(ierr);
   return M3DC1_SUCCESS;
@@ -876,7 +878,7 @@ int matrix_solve::reset_values() {
 
   mat_status = M3DC1_NOT_FIXED; // allow matrix value modification
   // start second solve
-  if (_kspSet == 1) {
+  if (_kspSet >= 1) {
     _kspSet = 2;
     // Set operators, keeping the identical preconditioner matrix for
     // all linear solves.  This approach is often effective when the
@@ -911,6 +913,33 @@ int matrix_solve::reset_values() {
     MatRestoreRow(remoteA, row, &ncols, &cols, &vals); // prevent memory leak
   }
 #endif
+  return M3DC1_SUCCESS;
+}
+
+int matrix_solve::update_values() 
+{ 
+  int ierr = MatZeroEntries(_A); 
+  //MatZeroEntries(remoteA); 
+    delete remotePidOwned;
+    delete remoteNodeRow;
+    delete remoteNodeRowSize;
+    ierr =MatDestroy(&remoteA);
+    if (!m3dc1_solver::instance()->assembleOption) setUpRemoteAStruct();
+
+  mat_status = M3DC1_NOT_FIXED; // allow matrix value modification
+  //start second solve
+  if(_kspSet>=1) 
+  {
+    _kspSet=3;
+    // we set this manually (true) to get KSP to not setup, and need to turn on now
+    ierr= KSPSetReusePreconditioner(_ksp,PETSC_FALSE); CHKERRQ(ierr);
+    ierr= KSPSetOperators(_ksp,_A,_A); CHKERRQ(ierr);
+         if (!PCU_Comm_Self())
+           std::cout <<"\t-- Update A, Update Preconditioner" << std::endl;
+  }
+  
+  if (!PCU_Comm_Self())
+    std::cout<<"[M3DC1 INFO] "<<__func__<<": mat_status=M3DC1_NOT_FIXED "<<mat_status<<" kspSet="<<_kspSet<<"\n";
   return M3DC1_SUCCESS;
 }
 
@@ -1290,7 +1319,7 @@ int matrix_solve::setKspType() {
     if (!PCU_Comm_Self())
       std::cout << "[M3DC1 INFO] " << __func__ << ": matrix " << mymatrix_id
                 << " is going to use BGMG preconditioner" << "\n";
-    if (!BgmgSet)
+    if (!_BgmgSet)
       setBgmgType();
   }
 
@@ -1349,6 +1378,7 @@ int matrix_solve::setKspType() {
            */
     if (mymatrix_id == 5)
       ierr = KSPSetOptionsPrefix(_ksp, "hard_");
+      ierr = MatViewFromOptions(_A, NULL, "-A_view");
   }
 
   ierr = KSPSetFromOptions(_ksp);
@@ -1587,7 +1617,6 @@ int matrix_solve::setBgmgType() {
     //   -A_view binary[:[filename][:[ascii_info][:append]]]
     //   -A_view binary[:[filename][:[ascii_info_detail][:append]]]
     //   -A_view binary[:[filename][:[ascii_matlab][:append]]]
-    ierr = MatViewFromOptions(_A, NULL, "-A_view");
     if (level == 0)
       ierr = MatViewFromOptions(mg_interp_mat[level], NULL, "-I0_view");
     if (level == 1)
@@ -1632,7 +1661,7 @@ int matrix_solve::setBgmgType() {
   ierr = PetscFree(mg_offset);
   ierr = PetscFree(mg_planeid);
   ierr = PetscFree(mg_nplanes);
-  BgmgSet = 1;
+  _BgmgSet = 1;
   return M3DC1_SUCCESS;
 }
 

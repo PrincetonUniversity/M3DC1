@@ -1,8 +1,6 @@
 1. login: 
 
    ssh -P perlmutter-p1.nersc.gov -l [username]
-   or
-   ssh -P saul-p1.nersc.gov -l [username]
 
 2. code
    git clone git@github.com:PrincetonUniversity/M3DC1.git 
@@ -19,16 +17,22 @@
        module use $M3DC1_CODE_DIR/unstructured/modules/perlmutter
        module load m3dc1/devel-cpu
 
+   for development modules with gcc compiler:
+       export M3DC1_CODE_DIR=$HOME/src/M3DC1  [for example]
+       module use $M3DC1_CODE_DIR/unstructured/modules/perlmutter
+       module load m3dc1/devel-cpu-gcc
+
 4. compile code
 
+   compiler once for all:
    make ARCH=perlmutter_cpu all
-    (make OPT=1 RL=1 MAX_PTS=25 ARCH=perlmutter_cpu
+   make ARCH=perlmutter_cpu_gcc  all
+
+   compiler one by wal:
+   make OPT=1 RL=1 MAX_PTS=25 ARCH=perlmutter_cpu
    make OPT=1 COM=1 MAX_PTS=25 ARCH=perlmutter_cpu
    make 3D=1 OPT=1 MAX_PTS=60 ARCH=perlmutter_cpu
-   make 3D=1 OPT=1 MAX_PTS=60 ARCH=perlmutter_cpu ST=1
-    (These modules crashes at restart: cray-hdf5-parallel/1.12.0.7 cray-netcdf-hdf5parallel/4.7.4.7
-     So rebuilt hdf5, netcdf-c, netcdf-fortran on 2/15/2022.)
-    )
+   make 3D=1 OPT=1 MAX_PTS=125 ARCH=perlmutter_cpu ST=1
 
 5. mesh utility
    see $SCOREC_UTIL_DIR in perlmutter_cpu.mk
@@ -53,7 +57,8 @@
         -hard_sub_pc_factor_mat_solver_type mumps
         -hard_sub_mat_mumps_icntl_14 100
         -hard_sub_ksp_type preonly
-        -hard_ksp_type fgmres
+        -hard_ksp_type lgmres
+        -hard_ksp_lgmres_augment 4
         -hard_ksp_gmres_restart 220
         -hard_ksp_rtol 1.e-9
         -hard_ksp_atol 1.e-20
@@ -63,8 +68,7 @@
 
    Please change the number of blocks (here 4) to match the number of plane in your 'C1input' file.
 
-   We have another set of options with 'hard_" as the prefix for PETSC VERSION 3.8 or newer
-   to isolate the hard solves (#5, #17) from easier ones for optimization purpose.
+   The 'hard_" is used as the prefix to isolate the hard solves (#5, #17) from easier ones for optimization purpose.
 
 7. run job
 

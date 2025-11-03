@@ -1,9 +1,0 @@
-mu 0.001
-eta 0.001
-dt 0.1
-model tilt.txt
-mesh1 /lore/fzhang/repo/DATA/newadapt/2/mesh160.smb
-mesh2 /lore/fzhang/repo/DATA/tilt_14_uninform/98-4-unsplit/mesh160.smb
-fieldName field12
-compareU 1
-comparePsi 1

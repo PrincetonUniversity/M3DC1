@@ -1,7 +1,10 @@
 #!/bin/bash
 #SBATCH -J NCSX
-#SBATCH -n 64
+#SBATCH --nodes=1
+#SBATCH --ntasks-per-node=64
+##SBATCH -n 64
 #SBATCH --time=01:30:00
+#SBATCH --mem=128G
 #SBATCH -p sched_mit_psfc_r8
 #SBATCH -o C1stdout
 
@@ -11,10 +14,10 @@ touch started
 
 # partition mesh
 PARTS=8
-srun -n $PARTS /orcd/data/psfc/001/software/scorec/gcc12.2.0-openmpi4.1.4/petsc3.19.2/bin/split_smb circle-858.smb part.smb $PARTS
+$M3DC1_MPIRUN -n $PARTS split_smb circle-858.smb part.smb $PARTS
 echo $? > mesh_partitioned
 
-srun -n $SLURM_NTASKS m3dc1_3d_st -options_file options_bjacobi.type_mumps
+$M3DC1_MPIRUN -n $SLURM_NTASKS m3dc1_3d_st -options_file options_bjacobi1
 
 # Run M3D-C1
 echo $command

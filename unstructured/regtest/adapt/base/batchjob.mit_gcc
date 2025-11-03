@@ -1,7 +1,10 @@
 #!/bin/bash
 #SBATCH -J adapt
-#SBATCH -n 16
+#SBATCH --nodes=1
+#SBATCH --ntasks-per-node=16
+##SBATCH -n 16
 ##SBATCH --gres=gpu:4
+#SBATCH --mem=128G
 #SBATCH --time=01:30:00
 #SBATCH -p sched_mit_psfc_r8
 #SBATCH -o C1stdout
@@ -14,13 +17,13 @@ touch started
 # partition mesh
 #part_mesh.sh circle-0.02-0.0-0.0-2K.smb 16
 PARTS=$SLURM_NTASKS
-srun -n $PARTS /orcd/data/psfc/001/software/scorec/gcc12.2.0-openmpi4.1.4/petsc3.19.2/bin/split_smb circle-0.02-0.0-0.0-2K.smb part.smb $PARTS
+$M3DC1_MPIRUN -n $PARTS split_smb circle-0.02-0.0-0.0-2K.smb part.smb $PARTS
 echo $? > mesh_partitioned
 
 
 # Run M3D-C1
-srun -n $PARTS m3dc1_2d -pc_factor_mat_solver_type mumps
-srun -n $PARTS /orcd/data/psfc/001/software/scorec/gcc12.2.0-openmpi4.1.4/petsc3.19.2/bin/collapse circle-0.02-0.0-0.0.dmg ts0-adapted.smb mesh.smb $PARTS
+$M3DC1_MPIRUN -n $PARTS m3dc1_2d -pc_factor_mat_solver_type mumps
+$M3DC1_MPIRUN -n $PARTS collapse circle-0.02-0.0-0.0.dmg ts0-adapted.smb mesh.smb $PARTS
 
 # -mat_superlu_dist_statprint 1 -options_left
 

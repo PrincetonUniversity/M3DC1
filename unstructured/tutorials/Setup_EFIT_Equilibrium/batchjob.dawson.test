@@ -7,6 +7,6 @@
 cp C1input.test C1input
 
 PARTS=$SLURM_NTASKS
-$M3DC1_MPIRUN -n $PARTS split_smb part_mesh.sh mesh.smb part.smb $PARTS
+$M3DC1_MPIRUN -n $PARTS split_smb mesh.smb part.smb $PARTS
 
 $M3DC1_MPIRUN -n $SLURM_NTASKS m3dc1_2d

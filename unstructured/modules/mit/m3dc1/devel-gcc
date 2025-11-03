@@ -31,21 +31,25 @@ module-whatis                   "$description"
 
 ## Software-specific settings exported to user environment
 
-if { ! [ is-loaded gcc/12.2.0-x86_64 ] } {
-  module load gcc/12.2.0-x86_64
+if { ! [ is-loaded openmpi/5.0.8 ] } {
+  module load openmpi/5.0.8
 }
 
-module use /orcd/data/psfc/001/software/modulefiles/spack-admin
+if { ! [ is-loaded cmake ] } {
+  module load cmake/3.27.9
+}
+
+#module use /orcd/data/psfc/001/software/modulefiles/spack-admin
 #module load openmpi-4.1.4-gcc-12.2.0-3r4zaih
 #module load netcdf-c-4.9.2-gcc-12.2.0-kogljzt netcdf-fortran-4.6.0-gcc-12.2.0-cylyrw3
-module load openmpi/4.1.4-pmi-cuda-ucx-x86_64
-module load netcdf-c/4.9.0-x86_64
-module load netcdf-fortran/4.6.0-x86_64
+#module load openmpi/4.1.4-pmi-cuda-ucx-x86_64
+#module load netcdf-c/4.9.0-x86_64
+#module load netcdf-fortran/4.6.0-x86_64
 
 setenv          M3DC1_VERSION   $version
 setenv          M3DC1_DIR       $root
 setenv		M3DC1_ARCH	mit_gcc
-setenv		M3DC1_MPIRUN	srun
+setenv		M3DC1_MPIRUN	mpirun
 
 prepend-path    PATH             $root/unstructured/_mit_gcc/bin
 prepend-path    IDL_PATH         $root/unstructured/idl

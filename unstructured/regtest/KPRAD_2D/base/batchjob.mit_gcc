@@ -1,18 +1,21 @@
 #!/bin/bash
 #SBATCH -J KPRAD_2D
-#SBATCH -n 24
+#SBATCH --nodes=1
+#SBATCH --ntasks-per-node=24
+##SBATCH -n 24
 ##SBATCH --gres=gpu:4
+#SBATCH --mem=128G
 #SBATCH --time=01:30:00
 #SBATCH -p sched_mit_psfc_r8
 #SBATCH -o C1stdout
 
 PARTS=24
-srun -n $PARTS /orcd/data/psfc/001/software/scorec/gcc12.2.0-openmpi4.1.4/petsc3.19.2/bin/split_smb analytic-2K.smb part.smb $PARTS
+$M3DC1_MPIRUN -n $PARTS split_smb analytic-2K.smb part.smb $PARTS
 echo $? > mesh_partitioned
 
 touch started
 
-srun -n 24 m3dc1_2d
+$M3DC1_MPIRUN -n 24 m3dc1_2d
 #sbatch -x node[2100-2104,2119,2300-2304,2319]
 
 touch finished

@@ -118,10 +118,10 @@ contains
       call define_element_quadrature(itri,int_pts_main,int_pts_tor)
       call define_fields(itri,0,1,0)
       !vmec_fields(x, phi, z, br, bphi, bz, p, den,temper)
-    
-      call vmec_fields(xl_79, phi_79, zl_79, temp79a, temp79b, temp79c, &
-                      temp79d, temp79e, temp79f)
-
+      do k=1,MAX_PTS
+       call vmec_fields(xl_79(k), phi_79(k), zl_79(k), temp79a(k), &
+            temp79b(k), temp79c(k), temp79d(k), temp79e(k), temp79f(k))
+      enddo
       ! fp equation
       temp(:,:,1,1) = &
           -intxx2(mu79(:,:,OP_DR),nu79(:,:,OP_DR)) &

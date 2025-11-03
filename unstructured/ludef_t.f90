@@ -600,26 +600,28 @@ subroutine vorticity_nolin(trialx, r4term)
 #ifdef USEPARTICLES
   ! kinetic terms
   ! ~~~~~~~~~~~~~
-  if(kinetic_fast_ion .eq. 1) then
+  if((particle_couple.ge.0).and.(kinetic_fast_ion .eq. 1)) then
      r4term = r4term + 1.0*dt*(( &
                  (1-particle_couple)*v1pbb(trialx,pfper79,b2i79(:,OP_1)) & !parallel term
                  + v1p(trialx,pfper79) -v1pbb(trialx,pfper79,b2i79(:,OP_1)) &
                  ) &
                  +( &
-                 (1-particle_couple)*v1pbb(trialx,pfpar79-pfper79,b2i79(:,OP_1))+0.5*v1pbb(trialx,b2i79,pfpar79(:,OP_1)-pfper79(:,OP_1))    & !parallel term
+                 (1-particle_couple)*v1pbb(trialx,pfpar79-pfper79,b2i79(:,OP_1))&
+                 +0.5*v1pbb(trialx,b2i79,pfpar79(:,OP_1)-pfper79(:,OP_1))    & !parallel term
                 -0.5*v1p_2(trialx,b2i79,(pfpar79(:,OP_1)-pfper79(:,OP_1))/b2i79(:,OP_1)) &
                 +0.5*v1pbb(trialx,b2i79,pfpar79(:,OP_1)-pfper79(:,OP_1)) &
                 + v1jxb(trialx,(pfpar79(:,OP_1)-pfper79(:,OP_1))*b2i79(:,OP_1)) &
                ) &
             )  
     endif
-   if(kinetic_thermal_ion .eq. 1) then
+   if((particle_couple.ge.0).and.(kinetic_thermal_ion .eq. 1)) then
      r4term = r4term + 1.0*dt*(( &
                  (1-particle_couple)*v1pbb(trialx,piper79,b2i79(:,OP_1)) & !parallel term
                  + v1p(trialx,piper79) -v1pbb(trialx,piper79,b2i79(:,OP_1)) &
                  ) &
                  +( &
-                 (1-particle_couple)*v1pbb(trialx,pipar79-piper79,b2i79(:,OP_1))+0.5*v1pbb(trialx,b2i79,pipar79(:,OP_1)-piper79(:,OP_1))    & !parallel term
+                 (1-particle_couple)*v1pbb(trialx,pipar79-piper79,b2i79(:,OP_1))&
+                 +0.5*v1pbb(trialx,b2i79,pipar79(:,OP_1)-piper79(:,OP_1))    & !parallel term
                 -0.5*v1p_2(trialx,b2i79,(pipar79(:,OP_1)-piper79(:,OP_1))/b2i79(:,OP_1)) &
                 +0.5*v1pbb(trialx,b2i79,pipar79(:,OP_1)-piper79(:,OP_1)) &
                 + v1jxb(trialx,(pipar79(:,OP_1)-piper79(:,OP_1))*b2i79(:,OP_1)) &
@@ -1159,26 +1161,28 @@ subroutine axial_vel_nolin(trialx, r4term)
 #ifdef USEPARTICLES
   ! kinetic terms
   ! ~~~~~~~~~~~~~
-  if(kinetic_fast_ion .eq. 1) then
+  if((particle_couple.ge.0).and.(kinetic_fast_ion .eq. 1)) then
      r4term = r4term + 1.0*dt*(( &
                  (1-particle_couple)*v2pbb(trialx,pfper79,b2i79(:,OP_1)) & !parallel term
                  + v2p(trialx,pfper79) -v2pbb(trialx,pfper79,b2i79(:,OP_1)) &
                  ) &
                  +( &
-                 (1-particle_couple)*v2pbb(trialx,pfpar79-pfper79,b2i79(:,OP_1))+0.5*v2pbb(trialx,b2i79,pfpar79(:,OP_1)-pfper79(:,OP_1))    & !parallel term
+                 (1-particle_couple)*v2pbb(trialx,pfpar79-pfper79,b2i79(:,OP_1))&
+                 +0.5*v2pbb(trialx,b2i79,pfpar79(:,OP_1)-pfper79(:,OP_1))    & !parallel term
                 -0.5*v2p_2(trialx,b2i79,(pfpar79(:,OP_1)-pfper79(:,OP_1))/b2i79(:,OP_1)) &
                 +0.5*v2pbb(trialx,b2i79,pfpar79(:,OP_1)-pfper79(:,OP_1)) &
                 + v2jxb(trialx,(pfpar79(:,OP_1)-pfper79(:,OP_1))*b2i79(:,OP_1)) &
              ) &
             )  
    endif
-   if(kinetic_thermal_ion .eq. 1) then
+   if((particle_couple.ge.0).and.(kinetic_thermal_ion .eq. 1)) then
      r4term = r4term + 1.0*dt*(( &
                  (1-particle_couple)*v2pbb(trialx,piper79,b2i79(:,OP_1)) & !parallel term
                  + v2p(trialx,piper79) -v2pbb(trialx,piper79,b2i79(:,OP_1)) &
                  ) &
                  +( &
-                 (1-particle_couple)*v2pbb(trialx,pipar79-piper79,b2i79(:,OP_1))+0.5*v2pbb(trialx,b2i79,pipar79(:,OP_1)-piper79(:,OP_1))    & !parallel term
+                 (1-particle_couple)*v2pbb(trialx,pipar79-piper79,b2i79(:,OP_1))&
+                 +0.5*v2pbb(trialx,b2i79,pipar79(:,OP_1)-piper79(:,OP_1))    & !parallel term
                 -0.5*v2p_2(trialx,b2i79,(pipar79(:,OP_1)-piper79(:,OP_1))/b2i79(:,OP_1)) &
                 +0.5*v2pbb(trialx,b2i79,pipar79(:,OP_1)-piper79(:,OP_1)) &
                 + v2jxb(trialx,(pipar79(:,OP_1)-piper79(:,OP_1))*b2i79(:,OP_1)) &
@@ -1771,26 +1775,28 @@ subroutine compression_nolin(trialx, r4term)
 #ifdef USEPARTICLES
   ! kinetic terms
   ! ~~~~~~~~~~~~~
-  if(kinetic .eq. 1) then
+  if((particle_couple.ge.0).and.(kinetic .eq. 1)) then
      r4term = r4term + 1.0*dt*(( &
                  (1-particle_couple)*v3pbb(trialx,pfper79,b2i79(:,OP_1)) & !parallel term
                  + v3p(trialx,pfper79) -v3pbb(trialx,pfper79,b2i79(:,OP_1)) &
                  ) &
                  +( &
-                 (1-particle_couple)*v3pbb(trialx,pfpar79-pfper79,b2i79(:,OP_1))+0.5*v3pbb(trialx,b2i79,pfpar79(:,OP_1)-pfper79(:,OP_1))    & !parallel term
+                 (1-particle_couple)*v3pbb(trialx,pfpar79-pfper79,b2i79(:,OP_1))&
+                 +0.5*v3pbb(trialx,b2i79,pfpar79(:,OP_1)-pfper79(:,OP_1))    & !parallel term
                 -0.5*v3p_2(trialx,b2i79,(pfpar79(:,OP_1)-pfper79(:,OP_1))/b2i79(:,OP_1)) &
                 +0.5*v3pbb(trialx,b2i79,pfpar79(:,OP_1)-pfper79(:,OP_1)) &
                 + v3jxb(trialx,(pfpar79(:,OP_1)-pfper79(:,OP_1))*b2i79(:,OP_1)) &
              ) &
             )  
    endif
-   if(kinetic_thermal_ion .eq. 1) then
+   if((particle_couple.ge.0).and.(kinetic_thermal_ion .eq. 1)) then
      r4term = r4term + 1.0*dt*(( &
                  (1-particle_couple)*v3pbb(trialx,piper79,b2i79(:,OP_1)) & !parallel term
                  + v3p(trialx,piper79) -v3pbb(trialx,piper79,b2i79(:,OP_1)) &
                  ) &
                  +( &
-                 (1-particle_couple)*v3pbb(trialx,pipar79-piper79,b2i79(:,OP_1))+0.5*v3pbb(trialx,b2i79,pipar79(:,OP_1)-piper79(:,OP_1))    & !parallel term
+                 (1-particle_couple)*v3pbb(trialx,pipar79-piper79,b2i79(:,OP_1))&
+                 +0.5*v3pbb(trialx,b2i79,pipar79(:,OP_1)-piper79(:,OP_1))    & !parallel term
                 -0.5*v3p_2(trialx,b2i79,(pipar79(:,OP_1)-piper79(:,OP_1))/b2i79(:,OP_1)) &
                 +0.5*v3pbb(trialx,b2i79,pipar79(:,OP_1)-piper79(:,OP_1)) &
                 + v3jxb(trialx,(pipar79(:,OP_1)-piper79(:,OP_1))*b2i79(:,OP_1)) &
@@ -5848,6 +5854,9 @@ subroutine ludefden_n(itri)
   ssterm = ssterm + tempxx
   if(itime_independent.eq.0) ddterm = ddterm + tempxx*bdf
 
+#ifdef USEPARTICLES
+  if((kinetic.eq.0).or.(kinetic_thermal_ion.eq.0)) then
+#endif
   do j=1,dofs_per_element
      
      tempx = n1ndenm(mu79,nu79(j,:,:),denm79,vzt79) &
@@ -5909,6 +5918,9 @@ subroutine ludefden_n(itri)
         endif
      endif
   end do
+#ifdef USEPARTICLES
+  endif
+#endif
 
   ! Source term
   ! ~~~~~~~~~~~~ 

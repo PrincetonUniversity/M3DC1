@@ -23,7 +23,8 @@ echo $? > mesh_partitioned
 
 
 # Run M3D-C1
-${M3DC1_MPIRUN} -n $SLURM_NTASKS m3dc1_3d -ipetsc -options_file options_bjacobi.type_mumps
+${M3DC1_MPIRUN} -n $SLURM_NTASKS m3dc1_3d -ipetsc -options_file options_bjacobi.type_mumps \
+	-malloc_debug
 
 
 touch finished

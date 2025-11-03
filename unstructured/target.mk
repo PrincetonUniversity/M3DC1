@@ -47,18 +47,25 @@ all :
 	make a2cc
 	make bin
 
+### for wenhao's kinetic test only:
 .PHONY: kinetic
 kinetic : 
 	rm -fr _$(ARCH)-complex*
-	make OPT=1 COM=1 PAR=1 ENABLE_PARTICLE=1
+	make OPT=1 COM=1 PAR=1
 
 .PHONY: kineticall
 kineticall : 
-	make OPT=1 PAR=1 ENABLE_PARTICLE=1
-	make OPT=1 COM=1 PAR=1 ENABLE_PARTICLE=1
-	make OPT=1 3D=1 MAX_PTS=60 PAR=1 ENABLE_PARTICLE=1
+	make OPT=1 PAR=1
+	make OPT=1 COM=1 PAR=1
+	make OPT=1 3D=1 MAX_PTS=60 PAR=1
 	make a2cc PAR=1
 	make bin PAR=1
+###
+
+.PHONY: pic
+pic :
+	make OPT=1 COM=1 PAR=1
+	make bin_pic
 
 .PHONY: cleanall
 cleanall : 

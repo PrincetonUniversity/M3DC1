@@ -21,7 +21,16 @@ echo $? > mesh_partitioned
 
 
 # Run M3D-C1
-${M3DC1_MPIRUN} -n $SLURM_NTASKS -c 2 m3dc1_3d -ipetsc -options_file options_bjacobi.type_mumps
+${M3DC1_MPIRUN} -n $SLURM_NTASKS -c 2 m3dc1_3d -options_file options_bjacobi.type_mumps \
+	-malloc_debug
 
+#	-mgsolve 5 -options_file options_bjacobi.type_mg \
+#	-hard_ksp_gmres_restart 220 -hard_ksp_max_it 10000 -hard_ksp_rtol 1.e-9 -hard_ksp_atol 1.e-20 \
+#	-hard_ksp_converged_reason -hard_ksp_monitor -hard_ksp_monitor_true_residual \
+#	-ksp_monitor_5
+
+#-ksp_view
+#-hard_ksp_view
+#-A_view binary:A.bin
 touch finished
 

@@ -99,6 +99,7 @@
 #define m3dc1_matrix_assemble m3dc1_matrix_freeze_
 #define m3dc1_matrix_delete m3dc1_matrix_delete_
 #define m3dc1_matrix_reset m3dc1_matrix_reset_
+#define m3dc1_matrix_update m3dc1_matrix_update_
 #define m3dc1_matrix_insert m3dc1_matrix_insert_
 #define m3dc1_matrix_add m3dc1_matrix_add_
 #define m3dc1_matrix_setbc m3dc1_matrix_setbc_

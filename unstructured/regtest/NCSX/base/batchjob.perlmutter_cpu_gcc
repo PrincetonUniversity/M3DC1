@@ -21,7 +21,8 @@ $M3DC1_MPIRUN -n $PARTS split_smb circle-858.smb part.smb $PARTS
 echo $? > mesh_partitioned
 
 #${M3DC1_MPIRUN} -n $SLURM_NTASKS m3dc1_3d_st -ipetsc -options_file options_bjacobi.type_mumps
-${M3DC1_MPIRUN} -n $SLURM_NTASKS m3dc1_3d_st -ipetsc -options_file options_bjacobi1
+${M3DC1_MPIRUN} -n $SLURM_NTASKS m3dc1_3d_st -ipetsc -options_file options_bjacobi1 \
+	-malloc_debug
 
 # Run M3D-C1
 echo $command

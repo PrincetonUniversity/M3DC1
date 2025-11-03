@@ -4,4 +4,4 @@
 #SBATCH -J m3dc1_tutorial
 #SBATCH -t 0:10:00
 
-srun -n 1 m3dc1_meshgen input
+srun -n 1 m3dc1_mfmgen input

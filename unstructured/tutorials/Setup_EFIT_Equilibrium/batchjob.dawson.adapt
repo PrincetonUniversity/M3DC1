@@ -8,7 +8,7 @@
 cp C1input.adapt C1input
 
 PARTS=$SLURM_NTASKS
-$M3DC1_MPIRUN -n $PARTS split_smb part_mesh.sh diiid-0.02-2.5-4.0-8K.smb part.smb $PARTS
+$M3DC1_MPIRUN -n $PARTS split_smb diiid-8K.smb part.smb $PARTS
 
 $M3DC1_MPIRUN -n $SLURM_NTASKS m3dc1_2d
 
