@@ -74,7 +74,7 @@ set(SOURCES
   src/m3dc1_matrix.cc
   src/m3dc1_model.cc
   src/m3dc1_slnTransfer.cc
-  src/ReducedQuinticExplicit.cc
+  #src/ReducedQuinticExplicit.cc
   src/slntransferUtil.cc 
   fortran/c1_12_element.F90
   fortran/explicit_element.F90
@@ -94,7 +94,7 @@ set(HEADERS
   include/CMODGeoExpression.h  
   include/m3dc1_matrix.h
   include/m3dc1_sizeField.h
-  include/ReducedQuinticExplicit.h
+  #include/ReducedQuinticExplicit.h
   include/slntransferUtil.h
   include/Expression.h
 

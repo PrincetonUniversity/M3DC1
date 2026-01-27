@@ -1,0 +1,9 @@
+numBdry 0
+
+useVacuum 2 1 0.025
+vacuumParams 1.61 0.6 0.3 0.08 1.1
+
+numFace 1
+faceBdry 1 1 0.025     ! plasma
+
+outFile aug_fw1

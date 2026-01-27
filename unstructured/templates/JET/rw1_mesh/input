@@ -1,0 +1,27 @@
+! Read in one boundary (loop) file
+numBdry 1
+
+! Read in first boundary file
+!   file_name loop-id node_spacing
+bdryFile boundary.dat 1 0.04
+
+
+! Create thick wall
+!   is_thick initial_loop_id new_loop_id node_spacing
+thickWall 1 1 2 0.02
+
+! Create a vacuum boundary
+!  (2=parameterized) loop_id node_spacing
+!  R0 a delta Z0 a*kappa
+useVacuum 2 3 0.1
+vacuumParams 2.8 2. 0.2 0.0 3.
+
+! Define 3 faces (plasma, wall, vacuum)
+numFace 3
+
+!  n_loops loop_1 ... node_spacing
+faceBdry 1 1 0.04     ! plasma
+faceBdry 2 1 2 0.04   ! wall
+faceBdry 2 2 3 0.1
+
+outFile jet_rw1

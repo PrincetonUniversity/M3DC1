@@ -17,15 +17,15 @@ function field_data, name, units=units, itor=itor, filename=filename
        return, "!8I!X"
    endif else if(strcmp(name, 'phi', /fold_case) eq 1 or $
                  strcmp(name, 'phi_i', /fold_case) eq 1) then begin
-       units = dimensions(/v0, l0=1+itor)
+       units = dimensions(/v0, l0=1-itor)
        return, "!8U!X"
    endif else if(strcmp(name, 'V', /fold_case) eq 1 or $
                  strcmp(name, 'V_i', /fold_case) eq 1) then begin
-       units = dimensions(/v0, l0=itor)
+       units = dimensions(/v0, l0=-itor)
        return, "!8V!X"
    endif else if(strcmp(name, 'chi', /fold_case) eq 1 or $
                  strcmp(name, 'chi_i', /fold_case) eq 1) then begin
-       units = dimensions(/v0, l0=1)
+       units = dimensions(/v0, l0=1+2*itor)
        return, "!7v!X"
    endif else if(strcmp(name, 'eta', /fold_case) eq 1 or $
                  strcmp(name, 'eta_i', /fold_case) eq 1) then begin

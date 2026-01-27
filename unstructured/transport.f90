@@ -202,7 +202,7 @@ function bootstrapCoeff_func(col_number)
       
    
         
-    
+      temp79a = 0.
       do j=1, npoints
          if (ibootstrap == 1) then
             call magnetic_region(pst79(j,OP_1),pst79(j,OP_DR),pst79(j,OP_DZ), &
@@ -221,15 +221,13 @@ function bootstrapCoeff_func(col_number)
             pso=pso * (p0_norm / n0_norm) / 1.6022e-12
          else if (ibootstrap == 3) then
          !using normalized temperature That = 1 - Te/Temax
-           ! if(real(net79(j,OP_1)).gt.0.)then  
-               if(temax .le. 1e-8) then
-                  pso = 1. - abs(pet79(j,OP_1)/net79(j,OP_1))/temax_readin
-               else          
-                  pso=1. - abs(pet79(j,OP_1)/net79(j,OP_1))/(temax)
-               endif
-           ! else
-           !    pso=1.
-           ! endif    
+            if(temax .le. 1e-8) then              
+              ! pso = 1. - abs(pet79(j,OP_1)/net79(j,OP_1))/temax_readin
+               pso = 1. - MAX(real(pet79(j,OP_1)/net79(j,OP_1)),regular**2)/temax_readin
+            else                      
+               !pso=1. - abs(pet79(j,OP_1)/net79(j,OP_1))/(temax)
+               pso = 1. - MAX(real(pet79(j,OP_1)/net79(j,OP_1)),regular**2)/temax   
+            endif
          endif 
          
             if(col_number==2)then  

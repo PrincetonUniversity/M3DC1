@@ -2,8 +2,10 @@ FOPTS = -c -fdefault-real-8 -fdefault-double-8 -fallow-argument-mismatch -cpp -D
 CCOPTS  = -c -O -DPETSC_VERSION=313 -DDEBUG
 R8OPTS = -fdefault-real-8 -fdefault-double-8
 
+FOPTS := $(FOPTS) -ffree-line-length-0
+
 ifeq ($(OPT), 1)
-  FOPTS  := $(FOPTS) -w -O2 #-qopt-report=5 -qopt-report-phase=vec,loop
+  FOPTS  := $(FOPTS) -w -O2 -fallow-argument-mismatch -ffree-line-length-none
   CCOPTS := $(CCOPTS) -O
 else
   FOPTS := $(FOPTS) -g 

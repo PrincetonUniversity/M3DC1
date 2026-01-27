@@ -429,7 +429,7 @@ subroutine set_defaults
   call add_var_int("ra_cyc", ra_cyc, 1, "", model_grp)
   call add_var_double("radiff", radiff, 0., "", model_grp)
   call add_var_double("rjra", rjra, 0., "", model_grp)
-  call add_var_int("runaway_characteristics", runaway_characteristics, 0, &
+  call add_var_int("ra_characteristics", ra_characteristics, 0, &
        "1: Use the method of characteristics to advance the RE advection equation", model_grp)
   call add_var_int("imp_bf", imp_bf, 0, &
        "1: Include implicit equation for f", model_grp)
@@ -1288,6 +1288,8 @@ subroutine set_defaults
        "Maximum rho for kinetic particle", particle_grp)
   call add_var_double("vpar_reduce", vpar_reduce, 0.5, &
        "Factor of parallel flow reduction for every timestep", particle_grp)
+  call add_var_int("idiamagnetic_advection", idiamagnetic_advection, 0, &
+       "1: Enable diamagnetic velocity advection term in momentum equation", particle_grp)
   call add_var_int("imode_filter", imode_filter, 0, &
        "Number of toroidal mode to be filtered", particle_grp)
   call add_var_int_array("mode_filter_ntor", mode_filter_ntor, imode_filter_max, 0, &

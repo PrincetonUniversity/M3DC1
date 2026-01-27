@@ -1,0 +1,31 @@
+#!/bin/bash
+#SBATCH -A mp288_g
+#SBATCH -q debug
+#SBATCH -C gpu
+#SBATCH -n 64
+#SBATCH --gpus-per-node=4
+#SBATCH -J regtest_NCSX
+#SBATCH -t 0:30:00
+#SBATCH -o C1stdout
+
+export SLURM_CPU_BIND="cores"
+
+touch started
+
+# partition mesh
+#part_mesh.sh circle-858.smb 8
+#echo $? > mesh_partitioned
+PARTS=8
+$M3DC1_MPIRUN -n $PARTS split_smb circle-858.smb part.smb $PARTS
+echo $? > mesh_partitioned
+
+#${M3DC1_MPIRUN} -n $SLURM_NTASKS m3dc1_3d_st -options_file options_bjacobi.type_mumps
+${M3DC1_MPIRUN} -n $SLURM_NTASKS m3dc1_3d_st -options_file options_bjacobi1 \
+-mhard_mat_type aijkokkos
+
+# Run M3D-C1
+echo $command
+eval $command
+
+touch finished
+

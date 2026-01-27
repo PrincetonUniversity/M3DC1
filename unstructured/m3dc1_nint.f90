@@ -151,6 +151,8 @@ module m3dc1_nint
 !$OMP THREADPRIVATE(nfi79, nfi079)
   vectype, dimension(MAX_PTS, OP_NUM) :: rhof79
 !$OMP THREADPRIVATE(rhof79)
+  vectype, dimension(MAX_PTS, OP_NUM) ::  phstar079, vzstar079, chstar079
+!$OMP THREADPRIVATE(phstar079,vzstar079,chstar079)
 #endif
   vectype, dimension(MAX_PTS, OP_NUM) :: nre079, nre179
 !$OMP THREADPRIVATE(nre079,nre179)
@@ -1781,9 +1783,9 @@ contains
            vipar79 = 0.
         endif
         call eval_ops(itri, rho_field, rhof79, rfac)
-           ! pipar79 = 0.
-           ! piper79 = 0.
-           ! pfi079 = 0.
+           !pipar79 = 0.
+           !piper79 = 0.
+           !pfi079 = 0.
          
         !do ipoint=1,MAX_PTS
         !      if (real(rhof79(ipoint,OP_1))>0.85) then
@@ -1792,7 +1794,12 @@ contains
         !   !nfi79(ipoint,:)=0.
         !   endif
         !enddo
-
+        call eval_ops(itri, ustar_field, phstar079)
+        call eval_ops(itri, vzstar_field, vzstar079)
+        call eval_ops(itri, chistar_field, chstar079)
+        !phstar079=0.
+        !vzstar079=0.
+        !chstar079=0.
     endif
 #endif
 

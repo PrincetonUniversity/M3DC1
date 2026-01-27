@@ -1,0 +1,9 @@
+numBdry 0
+
+useVacuum 2 1 0.1
+vacuumParams 6.2 2.5 0.4 0.0 5.0
+
+numFace 1
+faceBdry 1 1 0.1     ! plasma
+
+outFile iter_fw1

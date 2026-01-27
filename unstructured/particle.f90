@@ -347,6 +347,12 @@ subroutine particle_test
    nrmfac = nrmfac*kinetic_nrmfac_scale
    call update_particle_pressure
 
+   if (kinetic_thermal_ion.eq.1) then
+      call set_s1_0_mat
+      if (idiamagnetic_advection.eq.1) call set_diamagnetic_velocity
+      call set_den_smooth
+   endif
+
    call MPI_Barrier(MPI_COMM_WORLD, ierr)
 end subroutine particle_test
 
@@ -530,6 +536,9 @@ subroutine init_particles(lrestart, ierr)
          mesh_nodes(inode, ielm_global) = inode_global + 1
          call get_node_pos(nodeids(inode), mesh_coord(1,inode,ielm_global), mesh_coord(2,inode,ielm_global),&
             mesh_coord(3,inode,ielm_global))
+         if (inode>3) then
+            if (mesh_coord(2, inode, ielm_global)==0) mesh_coord(2, inode, ielm_global) = toroidal_period
+         endif
       end do
    end do
    call mpi_barrier(mpi_comm_world, ierr)
@@ -1435,10 +1444,11 @@ subroutine rk4(part, dt, last_step, ierr)
    call getBcyl(xtemp, elfieldcoefs(itri), geomterms, B_cyl, deltaB, gradB0, gradB1, dB1)
    B0inv = 1.0/sqrt(dot_product(B_cyl, B_cyl))  !1/magnitude of B
    bhat = B_cyl*B0inv                         !Unit vector in b direction
+   if (abs(dot_product(elfieldcoefs(itri)%rho, geomterms%g))>kinetic_rhomax_particle) part%wt=part%wt*0.1
+   !if (abs(dot_product(elfieldcoefs(itri)%rho, geomterms%g))>0.85) then
+   !if (part%gid==1382540241) then
    !write(0,*) part%gid
-   !if (part%gid==2117425261) then
-   if (abs(dot_product(elfieldcoefs(itri)%rho, geomterms%g))>kinetic_rhomax_particle) part%wt=part%wt*0.9
-   ! write(0,*) (abs(dot_product(elfieldcoefs(itri)%rho, geomterms%g)))
+    !write(0,*) "ccc ",(abs(dot_product(elfieldcoefs(itri)%rho, geomterms%g)))
    !write(0,*) part%v(1)**2+2.*qm_ion*part%v(2)/B0inv, 1./B0inv, part%v(1), itri
    !if (part%x(2)<0) write(0,*) 'cc',dot_product(geomterms%g,elfieldcoefs(itri)%rst),dot_product(geomterms%g,elfieldcoefs(itri)%zst)
    !write(0,*) xtemp(1),xtemp(2),xtemp(3),dot_product(geomterms%g,elfieldcoefs(itri)%Bzv0),itri
@@ -1498,7 +1508,7 @@ subroutine rk4(part, dt, last_step, ierr)
 
     !call evalf0(part%x, part%v(1), sqrt(2.0*qm_ion(part%sps)*part%v(2)/B0inv), elfieldcoefs(itri), geomterms, part%sps, f0, gradcoef, df0de, df0dxi)
     !!call evalf0(part%x, part%v(1), sqrt(2.0*qm_ion(part%sps)*part%v(2)*part%B0), elfieldcoefs(itri), geomterms, part%sps, f0, gradcoef, df0de, df0dxi) ! fluid particle
-    !if (part%f0/f0>10) then
+    !if (part%f0/f0>100) then
     !   !if (floor(mod(part%x(1)*100000,500.0))==0) then
     !      write(0,*) "33333333333333333333",part%f0/f0
     !      part%x=part%x0
@@ -1509,7 +1519,8 @@ subroutine rk4(part, dt, last_step, ierr)
     !      part%kel(:)=itri
     !      !endif
     !endif
-    !if (f0/part%f0>10) then
+    !if (f0/part%f0>100) then
+    !   !if (floor(mod(part%x(1)*100000,500.0))==0) then
     !   part%x=part%x0
     !   part%v=part%v0
     !   part%wt=0.
@@ -1517,6 +1528,7 @@ subroutine rk4(part, dt, last_step, ierr)
     !   part%jel=itri
     !   part%kel(:)=itri
     !   write(0,*) "55555555555555",part%f0/f0
+    !   !endif
     !endif
    endif
 end subroutine rk4
@@ -1550,7 +1562,7 @@ subroutine fdot(x, v, w, dxdt, dvdt, dwdt, dEpdt, itri, kel, f00, ierr, sps, B00
    integer :: itri2
    type(xgeomterms)   :: geomterms, geomterms2
    real, dimension(3) :: x2, B_cyl, B0_cyl, B_cyl2, Jcyl, BxgrdB, deltaB, deltaB2, E_cyl, E_cyl2
-   real, dimension(3) :: bhat, bhat0, svec, svec0, Bstar, Bstar0
+   real, dimension(3) :: bhat, bhat0, svec, svec0, svec2, Bstar, Bstar0
    real, dimension(vspdims)                                  :: v2, vs, vu
    real, dimension(3) :: dBdR, dBdphi, dBdz, dB0dR, dB0dphi, dB0dz, dB1dR, dB1dphi, dB1dz
    real, dimension(3) :: dB0dR2, dB0dphi2, dB0dz2, dB1dR2, dB1dphi2, dB1dz2
@@ -1674,28 +1686,39 @@ subroutine fdot(x, v, w, dxdt, dvdt, dwdt, dEpdt, itri, kel, f00, ierr, sps, B00
          dB1dz = dB1dz + dB1dz2
 
          if (kinetic_thermal_ion_particle.eq.1) then
-            temp(1) = dot_product(geomterms2%dr, elfieldcoefs(kel(ipoint))%pe)
-            temp(3) = dot_product(geomterms2%dz, elfieldcoefs(kel(ipoint))%pe)
+            !temp(1) = dot_product(geomterms2%dr, elfieldcoefs(kel(ipoint))%pe)
+            !temp(3) = dot_product(geomterms2%dz, elfieldcoefs(kel(ipoint))%pe)
+            temp(1) = dot_product(geomterms2%dr, elfieldcoefs(kel(ipoint))%ne)
+            temp(3) = dot_product(geomterms2%dz, elfieldcoefs(kel(ipoint))%ne)
 #ifdef USECOMPLEX
-            temp(2) = dot_product(geomterms2%g, elfieldcoefs(kel(ipoint))%pe)*rfac_particle/x2(1)
+            !temp(2) = dot_product(geomterms2%g, elfieldcoefs(kel(ipoint))%pe)*rfac_particle/x2(1)
+            temp(2) = dot_product(geomterms2%g, elfieldcoefs(kel(ipoint))%ne)*rfac_particle/x2(1)
 #elif defined(USE3D)
-            temp(2) = Rinv2*dot_product(geomterms2%dphi, elfieldcoefs(kel(ipoint))%pe)
+            !temp(2) = Rinv2*dot_product(geomterms2%dphi, elfieldcoefs(kel(ipoint))%pe)
+            temp(2) = Rinv2*dot_product(geomterms2%dphi, elfieldcoefs(kel(ipoint))%ne)
 #else
             temp(2) = 0.
 #endif
+            temp = temp*dot_product(geomterms2%g, elfieldcoefs(kel(ipoint))%te0)
 #ifdef USECOMPLEX
             gradpe = gradpe + real(temp*exp(rfac_particle*x2(2)))
 #else
             gradpe = gradpe + temp
 #endif
-            temp(1) = dot_product(geomterms2%dr, elfieldcoefs(kel(ipoint))%pe0)
-            temp(3) = dot_product(geomterms2%dz, elfieldcoefs(kel(ipoint))%pe0)
+
+            !temp(1) = dot_product(geomterms2%dr, elfieldcoefs(kel(ipoint))%pe0)
+            !temp(3) = dot_product(geomterms2%dz, elfieldcoefs(kel(ipoint))%pe0)
+            temp(1) = dot_product(geomterms2%dr, elfieldcoefs(kel(ipoint))%ne0)
+            temp(3) = dot_product(geomterms2%dz, elfieldcoefs(kel(ipoint))%ne0)
 #ifdef USEST
-            temp(2) = Rinv2*dot_product(geomterms2%dphi, elfieldcoefs(kel(ipoint))%pe0)
+            !temp(2) = Rinv2*dot_product(geomterms2%dphi, elfieldcoefs(kel(ipoint))%pe0)
+            temp(2) = Rinv2*dot_product(geomterms2%dphi, elfieldcoefs(kel(ipoint))%ne0)
 #else
             temp(2) = 0.
 #endif
-            j0xb = j0xb - dot_product(temp, deltaB2)*B0inv
+            !j0xb = j0xb - dot_product(temp, deltaB2)*B0inv
+            j0xb = j0xb - dot_product(temp, deltaB2)*B0inv*dot_product(geomterms2%g, elfieldcoefs(kel(ipoint))%te0)
+       
          endif
       end do
       E_cyl = E_cyl/4.
@@ -1767,12 +1790,20 @@ subroutine fdot(x, v, w, dxdt, dvdt, dwdt, dEpdt, itri, kel, f00, ierr, sps, B00
    Binv = 1.0/sqrt(dot_product(B_cyl, B_cyl))  !1/magnitude of B
    bhat = B_cyl*Binv                         !Unit vector in b direction
 
-   if (particle_linear_particle .eq. 1) then
-      E_cyl=E_cyl-dot_product(E_cyl,B0_cyl)*B0inv
-   else
-      E_cyl=E_cyl-dot_product(E_cyl,B_cyl)*Binv
+   !if (particle_linear_particle .eq. 1) then
+   !   E_cyl=E_cyl-dot_product(E_cyl,B0_cyl)*B0inv
+   !else
+   !   E_cyl=E_cyl-dot_product(E_cyl,B_cyl)*Binv
+   !endif
+   !E_cyl=0.
+   ne0 = dot_product(geomterms%g, elfieldcoefs(itri)%ne0)
+   if (kinetic_thermal_ion_particle.eq.1) then
+      if (particle_linear_particle .eq. 1) then
+         E_cyl = E_cyl + bhat0*(dot_product(-gradpe,bhat0)+j0xb)/ne0
+      else
+         E_cyl = E_cyl + bhat*(dot_product(-gradpe,bhat)+j0xb)/ne0
+      endif
    endif
-   ! E_cyl=0.
 
    ! Gradient of B0 = grad(B.B)/(2 B0) = (B . grad B)/B0
    gradB0(1) = dot_product(bhat0, dB0dR)
@@ -1807,9 +1838,15 @@ subroutine fdot(x, v, w, dxdt, dvdt, dwdt, dEpdt, itri, kel, f00, ierr, sps, B00
    dxdt0(1) = (v(1)*Bstar0(1) + bhat0(2)*svec0(3) - bhat0(3)*svec0(2))/Bss0
    dxdt0(2) = (v(1)*Bstar0(2) + bhat0(3)*svec0(1) - bhat0(1)*svec0(3))/Bss0
    dxdt0(3) = (v(1)*Bstar0(3) + bhat0(1)*svec0(2) - bhat0(2)*svec0(1))/Bss0
+   !dxdt0(1) = (v(1)*Bstar0(1) + 0*bhat0(2)*svec0(3) - 0*bhat0(3)*svec0(2))/Bss0
+   !dxdt0(2) = (v(1)*Bstar0(2) + 0*bhat0(3)*svec0(1) - 0*bhat0(1)*svec0(3))/Bss0
+   !dxdt0(3) = (v(1)*Bstar0(3) + 0*bhat0(1)*svec0(2) - 0*bhat0(2)*svec0(1))/Bss0
+   !dxdt0(1) = (v(1)*Bstar0(1) + bhat0(2)*svec0(3) - bhat0(3)*svec0(2))/B00 !fluid particle
+   !dxdt0(2) = (v(1)*Bstar0(2) + bhat0(3)*svec0(1) - bhat0(1)*svec0(3))/B00 !fluid particle
+   !dxdt0(3) = (v(1)*Bstar0(3) + bhat0(1)*svec0(2) - bhat0(2)*svec0(1))/B00 !fluid particle
 
    dvdt0(1) = -qm_ion(sps)*dot_product(Bstar0, svec0)/Bss0
-   !dvdt0(1) = -qm_ion*dot_product(bhat0, svec)
+   !dvdt0(1) = -qm_ion(sps)*dot_product(bhat0, svec0)
    !dvdt0(1) = 0 ! fluid particle
    dvdt0(2) = 0. !magnetic moment is conserved.
 
@@ -1859,7 +1896,7 @@ subroutine fdot(x, v, w, dxdt, dvdt, dwdt, dEpdt, itri, kel, f00, ierr, sps, B00
 
    svec = v(2)*gradB ! - g_mks/qm_ion
    svec = svec - E_cyl  ! - g_mks/qm_ion
-   !svec = -E_cyl ! fluid particle
+   !svec2 = -E_cyl ! fluid particle
    !svec = 0.
    !svec = v(2)*gradB0  ! - g_mks/qm_ion
 
@@ -1867,9 +1904,16 @@ subroutine fdot(x, v, w, dxdt, dvdt, dwdt, dEpdt, itri, kel, f00, ierr, sps, B00
       dxdt(1) = (v(1)*Bstar(1) + bhat0(2)*svec(3) - bhat0(3)*svec(2))/Bss0
       dxdt(2) = (v(1)*Bstar(2) + bhat0(3)*svec(1) - bhat0(1)*svec(3))/Bss0
       dxdt(3) = (v(1)*Bstar(3) + bhat0(1)*svec(2) - bhat0(2)*svec(1))/Bss0
+      !dxdt(1) = (v(1)*Bstar(1) + bhat0(2)*svec2(3) - bhat0(3)*svec2(2))/Bss0
+      !dxdt(2) = (v(1)*Bstar(2) + bhat0(3)*svec2(1) - bhat0(1)*svec2(3))/Bss0
+      !dxdt(3) = (v(1)*Bstar(3) + bhat0(1)*svec2(2) - bhat0(2)*svec2(1))/Bss0
+      !dxdt(1) = (v(1)*Bstar(1) + bhat0(2)*svec(3) - bhat0(3)*svec(2))/B00 !fluid particle
+      !dxdt(2) = (v(1)*Bstar(2) + bhat0(3)*svec(1) - bhat0(1)*svec(3))/B00 !fluid particle
+      !dxdt(3) = (v(1)*Bstar(3) + bhat0(1)*svec(2) - bhat0(2)*svec(1))/B00 !fluid particle
 
       dvdt(1) = -qm_ion(sps)*(dot_product(Bstar0, svec)+dot_product(Bstar, svec0)-dot_product(Bstar0,svec0))/Bss0
-      !dvdt(1) = -qm_ion*dot_product(bhat0, svec)
+      !dvdt(1) = -qm_ion(sps)*(dot_product(Bstar0, svec0))/Bss0
+      !dvdt(1) = -qm_ion(sps)*dot_product(bhat0, svec)
       !dvdt(1) = 0
       dvdt(2) = 0. !magnetic moment is conserved.
    else
@@ -1891,7 +1935,7 @@ subroutine fdot(x, v, w, dxdt, dvdt, dwdt, dEpdt, itri, kel, f00, ierr, sps, B00
    spd = sqrt(v(1)*v(1) + 2.0*qm_ion(sps)*v(2)/B0inv)
    weqv1 = dxdt - dxdt0
    weqa1 = dvdt - dvdt0
-   dBdt = dot_product(weqv1, gradB0)+dot_product(dxdt0, gradB-gradB0)
+   dBdt = dot_product(weqv1, gradB0)+0*dot_product(dxdt0, gradB-gradB0)
    dEdt = m_ion(sps)*v(1)*weqa1(1) + q_ion(sps)*v(2)*dBdt
    dxidt = weqa1(1)/spd-v(1)/spd**2*(dEdt/m_ion(sps)/spd)
    !dEdt = 0. ! fluid particle
@@ -1906,10 +1950,10 @@ subroutine fdot(x, v, w, dxdt, dvdt, dwdt, dEpdt, itri, kel, f00, ierr, sps, B00
    tmp2 = tmp1*B0inv
    weqvD1 = tmp2*BxgrdB + tmp1*(Jcyl - dot_product(bhat, Jcyl)*bhat)
 
-   ne0 = dot_product(geomterms%g, elfieldcoefs(itri)%ne0)
+   !ne0 = dot_product(geomterms%g, elfieldcoefs(itri)%ne0)
 
    !if ((kinetic_thermal_ion_particle.eq.1).and.(abs(dot_product(geomterms%g, elfieldcoefs(itri)%tfi))>0)) dEdt = dEdt + 1*q_ion(sps)*v(1)*(dot_product(-gradpe,bhat0)+j0xb)/ne0
-   if (kinetic_thermal_ion_particle.eq.1) dEdt = dEdt + 1*q_ion(sps)*v(1)*(dot_product(-gradpe,bhat0)+j0xb)/ne0
+   !if (kinetic_thermal_ion_particle.eq.1) dEdt = dEdt + 1*q_ion(sps)*v(1)*(dot_product(-gradpe,bhat0)+j0xb)/ne0
 
    ! tmp1=dot_product(-gradpe,bhat)+j0xb
    ! temp(1) = dot_product(geomterms%dr, fhptr%ne)
@@ -4461,8 +4505,7 @@ subroutine hdf5_write_particles_scalar(ierr)
 end subroutine hdf5_write_particles_scalar
 
 
-subroutine set_parallel_velocity
-
+subroutine set_s1_0_mat
    use mesh_mod
    use basic
    use arrays
@@ -4497,7 +4540,7 @@ subroutine set_parallel_velocity
    logical, save :: first_time = .true.
     
 
-     !call matvecmult(d1_0_mat, vel_vec, b1_vel)
+    !call matvecmult(d1_0_mat, vel_vec, b1_vel)
     call create_vector(vel_vec,      numvar)
     call associate_field(u_v,    vel_vec,      1)
     call associate_field(vz_v,  vel_vec,    2)
@@ -4505,9 +4548,8 @@ subroutine set_parallel_velocity
     u_v = u_field(1)
     vz_v = vz_field(1)
     chi_v = chi_field(1)
-   call create_vector(b1_vel, numvar)
-     
-   if (first_time) then
+    call create_vector(b1_vel, numvar)
+   
       call set_matrix_index(s1_0_mat, 172)
        call create_mat(s1_0_mat, numvar, numvar, icomplex, 1)
        u_i = 1
@@ -4563,9 +4605,58 @@ subroutine set_parallel_velocity
 
        call boundary_vel(b1_vel, u_v, vz_v, chi_v, s1_0_mat)
        call finalize(s1_0_mat)
-       first_time = .false.
-    endif
+ 
+end subroutine set_s1_0_mat
 
+subroutine set_parallel_velocity
+
+   use mesh_mod
+   use basic
+   use arrays
+   use sparse
+   use m3dc1_nint
+   use diagnostics
+   use boundary_conditions
+   use matrix_mod
+   use transport_coefficients
+   use gyroviscosity
+   use runaway_mod
+   use auxiliary_fields
+   use newvar_mod
+   use model
+
+   implicit none
+
+   vectype, dimension(dofs_per_element) :: r4
+   integer :: k, itri, izone
+   integer :: ieq(3)
+   integer, dimension(dofs_per_element) :: imask
+   type(vector_type), pointer :: vsource
+   type(field_type) ::   p_v
+   vectype, dimension(dofs_per_element) :: dofs
+   integer :: ierr
+   type(field_type) ::   u_v
+   type(field_type) ::  vz_v
+   type(field_type) :: chi_v
+   type(vector_type) :: vel_vec
+   type(vector_type) :: b1_vel
+   vectype, dimension(dofs_per_element, dofs_per_element) :: tempxx
+   logical, save :: first_time = .true.
+    
+
+     !call matvecmult(d1_0_mat, vel_vec, b1_vel)
+    call create_vector(vel_vec,      numvar)
+    call associate_field(u_v,    vel_vec,      1)
+    call associate_field(vz_v,  vel_vec,    2)
+    call associate_field(chi_v,  vel_vec,    3)
+    u_v = u_field(1)
+    vz_v = vz_field(1)
+    chi_v = chi_field(1)
+   call create_vector(b1_vel, numvar)
+     
+   u_i = 1
+   vz_i = 2
+   chi_i = 3
    ieq(1) = u_i
    ieq(2) = vz_i
    ieq(3) = chi_i
@@ -4729,6 +4820,146 @@ subroutine set_parallel_velocity
 
 
 end subroutine set_parallel_velocity
+
+subroutine set_diamagnetic_velocity
+
+   use mesh_mod
+   use basic
+   use arrays
+   use sparse
+   use m3dc1_nint
+   use diagnostics
+   use boundary_conditions
+   use matrix_mod
+   use transport_coefficients
+   use gyroviscosity
+   use runaway_mod
+   use auxiliary_fields
+   use newvar_mod
+   use model
+
+   implicit none
+
+   vectype, dimension(dofs_per_element) :: r4
+   integer :: k, itri, izone
+   integer :: ieq(3)
+   integer, dimension(dofs_per_element) :: imask
+   type(vector_type), pointer :: vsource
+   type(field_type) ::   p_v
+   vectype, dimension(dofs_per_element) :: dofs
+   integer :: ierr
+   type(field_type) ::   u_v
+   type(field_type) ::  vz_v
+   type(field_type) :: chi_v
+   type(vector_type) :: vel_vec
+   type(vector_type) :: b1_vel
+   vectype, dimension(dofs_per_element, dofs_per_element) :: tempxx
+   logical, save :: first_time = .true.
+    
+
+     !call matvecmult(d1_0_mat, vel_vec, b1_vel)
+    call create_vector(vel_vec,      numvar)
+    call associate_field(u_v,    vel_vec,      1)
+    call associate_field(vz_v,  vel_vec,    2)
+    call associate_field(chi_v,  vel_vec,    3)
+    u_v = u_field(1)
+    vz_v = vz_field(1)
+    chi_v = chi_field(1)
+   call create_vector(b1_vel, numvar)
+     
+   u_i = 1
+   vz_i = 2
+   chi_i = 3
+   ieq(1) = u_i
+   ieq(2) = vz_i
+   ieq(3) = chi_i
+
+   if (isplitstep .ge. 1) then
+      vsource => r4_vec
+   else
+      vsource => q4_vec
+   end if
+   vsource = 0.
+   do itri = 1, local_elements()
+
+      call get_zone(itri, izone)
+
+      call define_element_quadrature(itri, int_pts_main, int_pts_tor)
+      call define_fields(itri, FIELD_PSI + FIELD_I + FIELD_PHI + FIELD_V + FIELD_CHI+FIELD_N+FIELD_NI+FIELD_B2I+FIELD_KIN, 1, 1)
+
+      !call define_fields(itri, FIELD_PSI + FIELD_I + FIELD_P + FIELD_PHI + FIELD_V + FIELD_CHI + FIELD_ETA + FIELD_MU + FIELD_N + FIELD_NI+FIELD_B2I+FIELD_KIN, 1, 1)
+
+      if (linear.eq.1) then
+         pst79 = ps079
+         bzt79 = bz079
+         bfpt79 = bfp079
+      endif
+
+         do k = 1, numvar
+         r4 = 0.
+         if (izone .eq. ZONE_PLASMA) then
+              select case(k)
+              case(1)
+                 r4 = -intx5(mu79(:,:,OP_DR),pfi079(:,OP_DR),bzt79(:,OP_1),b2i79(:,OP_1),ni79(:,OP_1))*db
+                 r4 = r4 - intx5(mu79(:,:,OP_DZ),pfi079(:,OP_DZ),bzt79(:,OP_1),b2i79(:,OP_1),ni79(:,OP_1))*db
+#if defined(USE3D) || defined(USECOMPLEX)
+                 !r4 = 0.
+                 !r4 = r4 + intx6(mu79(:,:,OP_DR),pfi079(:,OP_DP),(ri_79*pst79(:,OP_DZ)+bfpt79(:,OP_DR)),b2i79(:,OP_1),ni79(:,OP_1),r2_79)*db
+                 !r4 = r4 - intx6(mu79(:,:,OP_DZ),pfi079(:,OP_DP),(ri_79*pst79(:,OP_DR)-bfpt79(:,OP_DZ)),b2i79(:,OP_1),ni79(:,OP_1),r2_79)*db
+                 !r4 = r4 + intx4(mu79(:,:,OP_DR),pst79(:,OP_DR)-r_79*bfpt79(:,OP_DZ),temp79a,temp79c)
+                 !r4 = r4 + intx4(mu79(:,:,OP_DZ),pst79(:,OP_DZ)+r_79*bfpt79(:,OP_DR),temp79a,temp79c)
+#else
+                 !r4 = r4 + intx4(mu79(:,:,OP_DR),pst79(:,OP_DR),temp79a,temp79c)
+                 !r4 = r4 + intx4(mu79(:,:,OP_DZ),pst79(:,OP_DZ),temp79a,temp79c)
+#endif
+              case(2)
+                 !r4 = 0.
+                 r4 = intx6(mu79(:,:,OP_1),pfi079(:,OP_DR),(ri_79*pst79(:,OP_DR)-bfpt79(:,OP_DZ)),b2i79(:,OP_1),ni79(:,OP_1),r_79)*db
+                 r4 = r4+intx6(mu79(:,:,OP_1),pfi079(:,OP_DZ),(ri_79*pst79(:,OP_DZ)+bfpt79(:,OP_DR)),b2i79(:,OP_1),ni79(:,OP_1),r_79)*db
+              case(3)
+                 r4 = -intx6(mu79(:,:,OP_DR),pfi079(:,OP_DZ),bzt79(:,OP_1),b2i79(:,OP_1),ni79(:,OP_1),ri3_79)*db
+                 r4 = r4 + intx6(mu79(:,:,OP_DZ),pfi079(:,OP_DR),bzt79(:,OP_1),b2i79(:,OP_1),ni79(:,OP_1),ri3_79)*db
+#if defined(USE3D) || defined(USECOMPLEX)
+                 !r4=0.
+                 !r4 = -intx6(mu79(:,:,OP_DR),pfi079(:,OP_DP),(ri_79*pst79(:,OP_DR)-bfpt79(:,OP_DZ)),b2i79(:,OP_1),ni79(:,OP_1),ri3_79)*db
+                 !r4 = r4 + intx6(mu79(:,:,OP_DZ),pfi079(:,OP_DP),(ri_79*pst79(:,OP_DZ)+bfpt79(:,OP_DR)),b2i79(:,OP_1),ni79(:,OP_1),ri3_79)*db
+                 !r4 = r4+intx5(mu79(:,:,OP_DR),pst79(:,OP_DZ)+r_79*bfpt79(:,OP_DR),temp79a,ri3_79,temp79c)
+                 !r4 = r4-intx5(mu79(:,:,OP_DZ),pst79(:,OP_DR)-r_79*bfpt79(:,OP_DZ),temp79a,ri3_79,temp79c)
+#else
+                 !r4 = r4+intx5(mu79(:,:,OP_DR),pst79(:,OP_DZ),temp79a,ri3_79,temp79c)
+                 !r4 = r4-intx5(mu79(:,:,OP_DZ),pst79(:,OP_DR),temp79a,ri3_79,temp79c)
+#endif
+              end select
+            select case (k)
+            case (1)
+               call get_vor_mask(itri, imask)
+            case (2)
+               call get_vz_mask(itri, imask)
+            case (3)
+               call get_chi_mask(itri, imask)
+            end select
+         end if
+         call apply_boundary_mask_vec(itri, 0, r4, imask)
+         call vector_insert_block(vsource,itri,ieq(k),r4,VEC_ADD)
+      end do
+
+   end do
+   call sum_shared(vsource)
+     b1_vel=r4_vec
+     call boundary_vel(b1_vel, u_v, vz_v, chi_v)
+     call newsolve(s1_0_mat, b1_vel, ierr)
+     vel_vec = b1_vel
+
+     ustar_field=u_v
+     vzstar_field=vz_v
+     chistar_field=chi_v
+     !u_field(1)=u_v
+
+     call destroy_vector(b1_vel)
+     call destroy_vector(vel_vec)
+   vsource=0.
+
+end subroutine set_diamagnetic_velocity
 
 subroutine filter_velocity
 
@@ -5064,6 +5295,16 @@ subroutine set_den_smooth
      call define_fields(itri,FIELD_P+FIELD_TE+FIELD_KIN+FIELD_N+FIELD_NI,1,0)
      temp79a = n179(:,OP_1) + 0.9*(nfi79(:,OP_1)+nf79(:,OP_1)) &
         -0.9*n179(:,OP_1)
+     !temp79a = n179(:,OP_1)
+     !!call define_fields(itri, FIELD_PSI + FIELD_I + FIELD_P +FIELD_N+FIELD_NI+FIELD_KIN, 1, 0)
+     !!temp79a= ((ri_79*ps079(:,OP_DR)-bfp079(:,OP_DZ))*p079(:,OP_DZ) &
+     !!        +(-ri_79*ps079(:,OP_DZ)-bfp079(:,OP_DR))*p079(:,OP_DR) &
+     !!         + ri2_79*bz079(:,OP_1)*p079(:,OP_DP)) &
+     !!       /sqrt(ri2_79* &
+     !!       ((ps079(:,OP_DR)-r_79*bfp079(:,OP_DZ))**2 + (ps079(:,OP_DZ)+r_79*bfp079(:,OP_DR))**2 + bz079(:,OP_1)*bz079(:,OP_1))) &
+     !!       /sqrt(p079(:,OP_DR)**2+p079(:,OP_DZ)**2+ri2_79*p079(:,OP_DP)**2)
+     !temp79a=  sqrt(ri2_79* &
+     !       ((ps079(:,OP_DR)-r_79*bfp079(:,OP_DZ))**2 + (ps079(:,OP_DZ)+r_79*bfp079(:,OP_DR))**2 + bz079(:,OP_1)*bz079(:,OP_1)))
 
      !temp79a=(pipar79(:,OP_1)*0+piper79(:,OP_1)*3)/3.
      !temp79a=nfi79(:,OP_1)*te079(:,OP_1)*2

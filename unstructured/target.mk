@@ -46,6 +46,7 @@ all :
 	make OPT=1 3D=1 MAX_PTS=125 ST=1 PAR=1
 	make a2cc
 	make bin
+	make bin_pic
 
 ### for wenhao's kinetic test only:
 .PHONY: kinetic

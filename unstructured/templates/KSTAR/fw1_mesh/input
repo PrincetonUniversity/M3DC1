@@ -1,0 +1,9 @@
+numBdry 0
+
+useVacuum 2 1 0.025
+vacuumParams 1.8 0.55 0.6 0.0 1.4
+
+numFace 1
+faceBdry 1 1 0.025     ! plasma
+
+outFile kstar_fw1

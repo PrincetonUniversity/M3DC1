@@ -1,0 +1,9 @@
+numBdry 0
+
+useVacuum 2 1 0.04
+vacuumParams 2.85 1.05 0.2 0.2 1.8
+
+numFace 1
+faceBdry 1 1 0.04     ! plasma
+
+outFile jet_fw1

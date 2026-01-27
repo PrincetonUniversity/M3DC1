@@ -3,7 +3,7 @@ CCOPTS  = -c -O -DPETSC_VERSION=319
 R8OPTS = -fdefault-real-8 -fdefault-double-8
 
 ifeq ($(OPT), 1)
-  FOPTS  := $(FOPTS) -O2 -w -fallow-argument-mismatch
+  FOPTS  := $(FOPTS) -O2 -w -fallow-argument-mismatch -ffree-line-length-none
   CCOPTS := $(CCOPTS) -O
 else
   FOPTS := $(FOPTS) -g #not for gcc : noarg_temp_created 

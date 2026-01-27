@@ -13,33 +13,49 @@
    for development modules:
        export M3DC1_CODE_DIR=$HOME/src/M3DC1  [for example]
        module use $M3DC1_CODE_DIR/unstructured/modules/mit
-       module load m3dc1/devel-intel
+       module load m3dc1/devel-gcc
 
    or
-   module use /orcd/nese/psfc/001/software/spack/2023-07-01-physics-rpp/spack/share/spack/modules-test/linux-rocky8-x86_64
-   module load intel-oneapi-mkl/2023.1.0-intel-oneapi-mpi-2021.9.0-gcc-12.2.0-module-seow5nc
+
+   module load openmpi/5.0.8
 
 4. compile code
 
-   make ARCH=mit all
-    (make OPT=1 RL=1 MAX_PTS=25 ARCH=mit
-     make OPT=1 COM=1 MAX_PTS=25 ARCH=mit
-     make 3D=1 OPT=1 MAX_PTS=60 ARCH=mit
-     make 3D=1 OPT=1 MAX_PTS=60 ARCH=mit
+   make ARCH=mit_gcc all
+    (make OPT=1 RL=1 MAX_PTS=25 ARCH=mit_gcc
+     make OPT=1 COM=1 MAX_PTS=25 ARCH=mit_gcc
+     make 3D=1 OPT=1 MAX_PTS=60 ARCH=mit_gcc
+     make 3D=1 OPT=1 MAX_PTS=60 ARCH=mit_gcc
     )
 
 5. mesh utility
 
 5.1 mesh generation
-  executables are in /orcd/nese/psfc/001/scorec/intelmpi2021.9.0-gcc-12.2.0/2025.0-250318dev/bin
+  /orcd/nese/psfc/001/scorec/openmpi5.0.8-gcc12.2.0/2025.0-250318dev/bin/m3dc1_meshgen
+
   e.g. salloc -p sched_mit_psfc_r8 --nodes 1 --ntasks-per-node=1 -t 00:10:00
-       srun -n 1 ./m3dc1_meshgen M3DC1/meshgen/test/data/circle-input
-       srun -n 1 ./m3dc1_mfmgen M3DC1/meshgen/test/data/input7
+       srun -n 1 ./m3dc1_meshgen M3DC1/unstructured/tutorials/Meshgen/input7
+  
+  The input file must use the multi-region model format, which begins with "numBdry".
+
+  Model files (.txt) generated using the old (deprecated) format are not compatible with M3DC1 and will fail to run.
+  To convert an existing old-format model file to the new format, append the following lines to the end of the file:
+
+  [FIXED WALL MODELS] 
+  1
+  1 1 1
+
+
+  [RESISTIVE WALL MODELS] 
+  3
+  1 1 1
+  2 2 1 2
+  3 2 2 3
 
   For more details, see readme and M3DC1 User's Guide (M3DC1/doc/M3DC1.tex)
 
 5.2 mesh partitioning and merging
-  see $SCOREC_UTIL_DIR in mit.mk
+  see $SCOREC_UTIL_DIR in mit_gcc.mk
 
 6. options_bjacobi for 3D
 

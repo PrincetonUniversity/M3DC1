@@ -1,0 +1,18 @@
+#!/bin/bash
+#SBATCH -J M3DC1_regtest_KPRAD_2D
+#SBATCH -A ece
+#SBATCH -N 1
+#SBATCH --ntasks-per-node=48
+#SBATCH --cpus-per-task=2
+#SBATCH -t 00:30:00
+#SBATCH -o C1stdout
+
+touch started
+
+PARTS=$SLURM_NTASKS
+$M3DC1_MPIRUN -n $PARTS split_smb analytic-2K.smb part.smb $PARTS
+echo $? > mesh_partitioned
+
+$M3DC1_MPIRUN -n $PARTS m3dc1_2d #-pc_factor_mat_solver_type mumps -mat_mumps_icntl_14 100
+
+touch finished

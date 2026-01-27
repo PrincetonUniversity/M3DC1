@@ -344,6 +344,9 @@ Program Reducedquintic
   ! mark the fields necessary for solution transfer
   if (ispradapt .eq. 1) call marker
   
+  if(myrank.eq.0 .and. iprint.ge.1) print *, ' Initializing timestep'
+  call initialize_timestep
+
 #ifdef USEPARTICLES
   if (kinetic.eq.1) then
      call particle_test
@@ -357,10 +360,7 @@ Program Reducedquintic
   ! if there are no timesteps to calculate, then skip time loop
   if(ntimemax.le.ntime) call safestop(0)
 
-  if(myrank.eq.0 .and. iprint.ge.1) print *, ' Initializing timestep'
-  call initialize_timestep
-
-  if ((irunaway.ge.1).and.(runaway_characteristics.eq.1)) call runaway_advection_initialize
+  if ((irunaway.ge.1).and.(ra_characteristics.eq.1)) call runaway_advection_initialize
 
   ! main time loop
   ! ~~~~~~~~~~~~~~
@@ -1474,6 +1474,9 @@ endif
      call create_field(pfi_field)
      call create_field(densmooth_field)
      call create_field(vparsmooth_field)
+     call create_field(ustar_field)
+     call create_field(vzstar_field)
+     call create_field(chistar_field)
 #endif
 
      call create_auxiliary_fields

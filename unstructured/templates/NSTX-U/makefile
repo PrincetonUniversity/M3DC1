@@ -1,16 +1,13 @@
-dirs = fw1_adapt fw1_response fw1_stability \
- rw1_adapt rw1_response rw1_stability
+dirs = fw1_mesh rw1_mesh
 
-.PHONY : $(dirs) clean all
+.PHONY : $(dirs) clean all fetch
 
 all : $(dirs)
-	cp fw1_adapt/nstxu.txt fw1_response
-	cp fw1_adapt/nstxu.txt fw1_stability
-	cp rw1_adapt/nstxu-0.02-2.2-4.0.txt rw1_response
-	cp rw1_adapt/nstxu-0.02-2.2-4.0.txt rw1_stability
 
-$(dirs) : 
-	cd $@ ; $(MAKE) $(MAKECMDGOALS)
+fetch : $(dirs)
+
+$(dirs) :
+	$(MAKE) -C $@ $(MAKECMDGOALS)
 
 clean : $(dirs)
 	rm -f *~

@@ -1,0 +1,20 @@
+#!/bin/bash
+#SBATCH -J M3DC1_regtest_RMP_nonlin
+#SBATCH -A ece
+#SBATCH -N 1
+#SBATCH --ntasks-per-node=64
+#SBATCH --cpus-per-task=2
+#SBATCH -t 0:30:00
+#SBATCH -o C1stdout
+
+touch started
+
+# partition mesh
+PARTS=16
+$M3DC1_MPIRUN -n $PARTS split_smb circle-0.10-0.0-0.0-1K.smb part.smb $PARTS
+echo $? > mesh_partitioned
+
+# Run M3D-C1
+$M3DC1_MPIRUN -n $SLURM_NTASKS m3dc1_3d -options_file options_bjacobi.type_superludist
+
+touch finished

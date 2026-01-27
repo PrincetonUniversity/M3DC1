@@ -8,7 +8,7 @@ module basicq
   real, private :: kappa_qp, kappae_qp, coolrate_qp, v0_qp, v1_qp, beta_qp
   integer, private :: myrank_qp, iprint_qp, itaylor_qp
 
-  integer, private, parameter :: nint=1000  !  (number of intervals)
+  integer, private, parameter :: nint=10000  !  (number of intervals)
   real, private, dimension (0:nint) :: bpsi, btor, bpolor, psi, jphi, jthor, gradpor, equor, pary, vary
 
 

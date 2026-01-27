@@ -1,0 +1,9 @@
+numBdry 0
+
+useVacuum 2 1 0.025
+vacuumParams 1.75 0.75 0.6 0.0 1.45
+
+numFace 1
+faceBdry 1 1 0.025     ! plasma
+
+outFile diii-d_fw1

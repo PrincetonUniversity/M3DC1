@@ -12,6 +12,7 @@ module model
   type(matrix_type), target :: s1_mat, d1_mat, q1_mat, r14_mat
   type(matrix_type), target :: o1_mat, p1_mat
   type(matrix_type), target :: q42_mat, r42_mat, q43_mat, r43_mat
+  type(matrix_type), target :: q44_mat, r44_mat
   type(matrix_type), target :: s2_mat, d2_mat, r2_mat, q2_mat, o2_mat, o3_mat
   type(matrix_type), target :: s8_mat, d8_mat, r8_mat, q8_mat
   type(matrix_type), target :: s9_mat, d9_mat, r9_mat, q9_mat, o9_mat
@@ -727,6 +728,10 @@ subroutine boundary_te(rhs, te_v, mat)
 
         if(idiff .gt. 0) temp = 0.
 
+        call set_dirichlet_bc(i_n,rhs,temp,normal,curv,izonedim,mat)
+     else if(iconst_t.eq.2) then
+        temp = 0.
+        if(eqsubtract.eq.0 .and. idiff.eq.0) temp(1) = tedge
         call set_dirichlet_bc(i_n,rhs,temp,normal,curv,izonedim,mat)
      else if(iconst_p.ge.1) then
         call get_node_data(pe_field(1), i, temp)

@@ -1,0 +1,9 @@
+numBdry 0
+
+useVacuum 2 1 0.025
+vacuumParams 0.9 0.6 0.4 0. 1.6
+
+numFace 1
+faceBdry 1 1 0.025     ! plasma
+
+outFile nstx-u_fw1

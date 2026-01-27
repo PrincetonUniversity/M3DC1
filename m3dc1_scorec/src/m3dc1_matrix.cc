@@ -60,6 +60,76 @@ void printMemStat() {
       << PCU_Comm_Self() << " current " << mem / 1e6 << std::endl;
 }
 
+int copyField2PetscVec_5(FieldID field_id, Vec petscVec, int scalar_type)
+{
+  int num_own_ent= m3dc1_mesh::instance()->num_own_ent[0];
+  int num_own_dof=0, vertex_type=0;
+  m3dc1_field_getnumowndof(&field_id, &num_own_dof);
+  int dofPerEnt=0;
+
+  PetscFunctionBeginUser;
+
+  if (num_own_ent) dofPerEnt = num_own_dof/num_own_ent;
+
+        if (!PCU_Comm_Self())
+          std::cout<<"[M3DC1 INFO] "<<__func__<<": MatCreateVecs\n";
+/*int ierr = VecCreateMPI(MPI_COMM_WORLD, num_own_dof, PETSC_DECIDE, &petscVec); 
+  int ierr = VecCreate(MPI_COMM_WORLD, &petscVec); CHKERRQ(ierr);
+  ierr=VecSetBlockSize(petscVec, dofPerEnt); // the blocksize=dofPerEnt, but the stridesize=dofPerEnt/3
+  ierr = VecSetSizes(petscVec, num_own_dof, PETSC_DECIDE); CHKERRQ(ierr);
+ * */
+  int ierr = VecSetFromOptions(petscVec);CHKERRQ(ierr);
+  VecAssemblyBegin(petscVec);
+
+  int num_vtx=m3dc1_mesh::instance()->num_local_ent[0];
+
+  double dof_data[FIXSIZEBUFF];
+  assert(sizeof(dof_data)>=dofPerEnt*2*sizeof(double));
+  int nodeCounter=0;
+
+  apf::Mesh2* mesh = m3dc1_mesh::instance()->mesh;
+  apf::MeshEntity* ent;
+  int inode;
+  apf::MeshIterator* ent_it = mesh->begin(0);
+  while ((ent = mesh->iterate(ent_it)))
+  {
+    inode = getMdsIndex(mesh, ent);
+    if (!is_ent_original(mesh,ent)) continue;
+    nodeCounter+=1;
+    int num_dof;
+    m3dc1_ent_getdofdata (&vertex_type, &inode, &field_id, &num_dof, dof_data);
+    assert(num_dof*(1+scalar_type)<=sizeof(dof_data)/sizeof(double));
+    int start_global_dof_id, end_global_dof_id_plus_one;
+    m3dc1_ent_getglobaldofid (&vertex_type, &inode, &field_id, &start_global_dof_id, &end_global_dof_id_plus_one);
+    int startIdx=0;
+    for (int i=0; i<dofPerEnt; ++i)
+    { 
+      PetscScalar value;
+      if (scalar_type == M3DC1_REAL) value = dof_data[startIdx++];
+      else 
+      {
+#ifdef PETSC_USE_COMPLEX
+        value = complex<double>(dof_data[startIdx*2],dof_data[startIdx*2+1]);
+#else
+        if (!PCU_Comm_Self())
+          std::cout<<"[M3DC1 ERROR] "<<__func__<<": PETSc is not configured with --with-scalar-type=complex\n";
+        abort();
+#endif
+        startIdx+=1;
+      } 
+      ierr = VecSetValue(petscVec, start_global_dof_id+i, value, INSERT_VALUES);
+      CHKERRQ(ierr);
+    }
+  }
+  mesh->end(ent_it);
+
+  assert(nodeCounter==num_own_ent);
+  ierr=VecAssemblyEnd(petscVec);
+  CHKERRQ(ierr);
+  PetscFunctionReturn(PETSC_SUCCESS);
+//  return 0;
+}
+
 int copyField2PetscVec(FieldID field_id, Vec petscVec, int scalar_type) {
   int num_own_ent = m3dc1_mesh::instance()->num_own_ent[0];
   int num_own_dof = 0, vertex_type = 0;
@@ -613,6 +683,7 @@ int m3dc1_matrix::setupParaMat() {
 
   ierr = MatSetType(_A, MATMPIAIJ);
   CHKERRQ(ierr);
+  ierr= MatSetOptionsPrefix(_A,"mhard_");
   ierr = MatSetFromOptions(_A);
   CHKERRQ(ierr);
   // cj  if (!PCU_Comm_Self()) std::cout<<"[M3DC1 INFO] "<<__func__<<":
@@ -1220,7 +1291,7 @@ int matrix_solve::solve(FieldID field_id) {
   Vec x, b;
   int ierr;
   ierr=MatCreateVecs(_A, &x, &b);
-  copyField2PetscVec(field_id, b, get_scalar_type());
+  copyField2PetscVec_5(field_id, b, get_scalar_type());
   //int ierr;= VecDuplicate(b, &x);
   //CHKERRQ(ierr);
 
@@ -1557,6 +1628,7 @@ int matrix_solve::setBgmgType() {
 
   for (int level = 0; level < mg_nlevels - 1; level++) {
     ierr = MatCreate(PETSC_COMM_WORLD, &mg_interp_mat[level]);
+    ierr= MatSetOptionsPrefix(mg_interp_mat[level],"mhard_");
 
     ierr = MatSetSizes(
         mg_interp_mat[level], mg_num_own_ent[level + 1] * dofPerEnt,

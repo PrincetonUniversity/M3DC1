@@ -1,0 +1,35 @@
+#!/bin/bash
+#SBATCH -A mp288_g
+#SBATCH -q debug
+#SBATCH -C gpu
+#SBATCH -n 16 
+#SBATCH -J m3dc1_regtest_adapt
+#SBATCH -t 0:10:00
+#SBATCH -o C1stdout
+#SBATCH --gpus-per-node=4
+
+export SLURM_CPU_BIND="cores"
+echo $SLURM_CPUS_ON_NODE
+
+export MPICH_GPU_SUPPORT_ENABLED=1
+export CRAY_ACCEL_TARGET=nvidia80
+
+touch started
+
+#partition mesh
+#part_mesh.sh circle-0.02-0.0-0.0-2K.smb 16
+PARTS=$SLURM_NTASKS
+$M3DC1_MPIRUN -n $PARTS split_smb circle-0.02-0.0-0.0-2K.smb part.smb $PARTS
+echo $? > mesh_partitioned
+
+
+# Run M3D-C1
+$M3DC1_MPIRUN -n $PARTS m3dc1_2d -pc_factor_mat_solver_type mumps -malloc_debug
+$M3DC1_MPIRUN -n $PARTS collapse circle-0.02-0.0-0.0.dmg ts0-adapted.smb mesh.smb $PARTS
+
+if ! [ -f mesh0.smb ]; then
+    echo 0 > C1ke
+fi
+
+touch finished
+

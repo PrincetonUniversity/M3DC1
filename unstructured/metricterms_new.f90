@@ -286,6 +286,38 @@ function v1uun(e,f,g,h)
   v1uun = temp
 end function v1uun
 
+function v1uun1(e,f,g,h)
+
+  use basic
+  use m3dc1_nint
+
+  implicit none
+
+  vectype, dimension(dofs_per_element) :: v1uun1
+  vectype, intent(in), dimension(dofs_per_element,MAX_PTS,OP_NUM) :: e
+  vectype, intent(in), dimension(MAX_PTS,OP_NUM) :: f,g,h
+  vectype, dimension(dofs_per_element) :: temp
+
+  if(inertia.eq.0) then
+     v1uun1 = 0.
+     return
+  end if
+
+  temp = -intx5(e(:,:,OP_DZ),r3_79,f(:,OP_DR),g(:,OP_LP),h(:,OP_1)) &
+       +  intx5(e(:,:,OP_DR),r3_79,f(:,OP_DZ),g(:,OP_LP),h(:,OP_1)) &
+       -  intx5(e(:,:,OP_DR),r3_79,f(:,OP_DR),g(:,OP_DRZ),h(:,OP_1)) &
+       -  intx5(e(:,:,OP_DR),r3_79,f(:,OP_DZ),g(:,OP_DZZ),h(:,OP_1)) &
+       +  intx5(e(:,:,OP_DZ),r3_79,f(:,OP_DR),g(:,OP_DRR),h(:,OP_1)) &
+       +  intx5(e(:,:,OP_DZ),r3_79,f(:,OP_DZ),g(:,OP_DRZ),h(:,OP_1))
+
+  if(itor.eq.1) then
+     temp = temp &
+          + intx5(e(:,:,OP_DZ),r2_79,f(:,OP_DZ),g(:,OP_DZ),h(:,OP_1)) &
+          + intx5(e(:,:,OP_DZ),r2_79,f(:,OP_DR),g(:,OP_DR),h(:,OP_1))
+  end if
+
+  v1uun1 = temp
+end function v1uun1
 
 ! V1uvn
 ! =====
@@ -315,7 +347,6 @@ function v1uvn(e,f,g,h)
 #endif
   v1uvn = temp
 end function v1uvn
-
 
 ! v1uchin
 ! =======
@@ -357,6 +388,75 @@ function v1uchin(e,f,g,h)
   v1uchin = temp
 end function v1uchin
 
+function v1uchin1(e,f,g,h)
+
+  use basic
+  use m3dc1_nint
+
+  implicit none
+
+  vectype, dimension(dofs_per_element) :: v1uchin1
+  vectype, intent(in), dimension(dofs_per_element,MAX_PTS,OP_NUM) :: e
+  vectype, intent(in), dimension(MAX_PTS,OP_NUM) :: f,g,h
+  vectype, dimension(dofs_per_element) :: temp
+
+  if(inertia.eq.0) then
+     v1uchin1 = 0.
+     return
+  end if
+
+
+  temp79a = (f(:,OP_DZ)*g(:,OP_DRR) - f(:,OP_DR)*g(:,OP_DRZ))
+  temp79b = (f(:,OP_DZ)*g(:,OP_DRZ) - f(:,OP_DR)*g(:,OP_DZZ))
+  temp = -  intx3(e(:,:,OP_DZ),temp79a,h(:,OP_1)) &
+       +  intx3(e(:,:,OP_DR),temp79b,h(:,OP_1))
+
+  if(itor.eq.1) then
+     temp = temp &
+          - 1.*intx5(e(:,:,OP_DR),ri_79,f(:,OP_DR),g(:,OP_DR),h(:,OP_1))&
+          - 1.*intx5(e(:,:,OP_DR),ri_79,f(:,OP_DZ),g(:,OP_DZ),h(:,OP_1))&
+          + intx5(e(:,:,OP_DZ),ri_79,f(:,OP_DZ),g(:,OP_DR),h(:,OP_1)) &
+          - intx5(e(:,:,OP_DZ),ri_79,f(:,OP_DR),g(:,OP_DZ),h(:,OP_1))
+  end if
+
+  v1uchin1 = temp
+end function v1uchin1
+
+function v1uchin2(e,f,g,h)
+
+  use basic
+  use m3dc1_nint
+
+  implicit none
+
+  vectype, dimension(dofs_per_element) :: v1uchin2
+  vectype, intent(in), dimension(dofs_per_element,MAX_PTS,OP_NUM) :: e
+  vectype, intent(in), dimension(MAX_PTS,OP_NUM) :: f,g,h
+  vectype, dimension(dofs_per_element) :: temp
+
+  if(inertia.eq.0) then
+     v1uchin2 = 0.
+     return
+  end if
+
+
+  temp79a = (f(:,OP_DRZ)*g(:,OP_DR) - f(:,OP_DRR)*g(:,OP_DZ))
+  temp79b = (f(:,OP_DZZ)*g(:,OP_DR) - f(:,OP_DRZ)*g(:,OP_DZ))
+  temp = -intx4(e(:,:,OP_DR),f(:,OP_GS),g(:,OP_DR),h(:,OP_1)) &
+       -  intx4(e(:,:,OP_DZ),f(:,OP_GS),g(:,OP_DZ),h(:,OP_1)) &
+       -  intx3(e(:,:,OP_DZ),temp79a,h(:,OP_1)) &
+       +  intx3(e(:,:,OP_DR),temp79b,h(:,OP_1))
+
+  if(itor.eq.1) then
+     temp = temp &
+          - 1.*intx5(e(:,:,OP_DR),ri_79,f(:,OP_DR),g(:,OP_DR),h(:,OP_1))&
+          - 1.*intx5(e(:,:,OP_DR),ri_79,f(:,OP_DZ),g(:,OP_DZ),h(:,OP_1))&
+          + intx5(e(:,:,OP_DZ),ri_79,f(:,OP_DZ),g(:,OP_DR),h(:,OP_1)) &
+          - intx5(e(:,:,OP_DZ),ri_79,f(:,OP_DR),g(:,OP_DZ),h(:,OP_1))
+  end if
+
+  v1uchin2 = temp
+end function v1uchin2
 
 ! V1vvn
 ! =====
@@ -447,6 +547,37 @@ function v1chichin(e,f,g,h)
   
   v1chichin = temp
 end function v1chichin
+
+function v1chichin1(e,f,g,h)
+
+  use basic
+  use m3dc1_nint
+
+  implicit none
+
+  vectype, dimension(dofs_per_element) :: v1chichin1
+  vectype, intent(in), dimension(dofs_per_element,MAX_PTS,OP_NUM) :: e
+  vectype, intent(in), dimension(MAX_PTS,OP_NUM) :: f,g,h
+  vectype, dimension(dofs_per_element) :: temp
+
+  if(inertia.eq.0) then
+     v1chichin1 = 0.
+     return
+  end if
+
+  temp = -intx5(e(:,:,OP_DR),ri3_79,f(:,OP_DZ),g(:,OP_DZZ),h(:,OP_1)) &
+       -  intx5(e(:,:,OP_DR),ri3_79,f(:,OP_DR),g(:,OP_DRR),h(:,OP_1)) &
+       +  intx5(e(:,:,OP_DZ),ri3_79,f(:,OP_DZ),g(:,OP_DRZ),h(:,OP_1)) &
+       -  intx5(e(:,:,OP_DZ),ri3_79,f(:,OP_DR),g(:,OP_DRR),h(:,OP_1))
+
+  if(itor.eq.1) then
+     temp = temp + 2.*&
+          (intx5(e(:,:,OP_DZ),ri4_79,f(:,OP_DZ),g(:,OP_DZ),h(:,OP_1)) & 
+          +intx5(e(:,:,OP_DR),ri4_79,f(:,OP_DR),g(:,OP_DZ),h(:,OP_1)))
+  end if
+  
+  v1chichin1 = temp
+end function v1chichin1
 
 
 
@@ -2130,7 +2261,6 @@ function v2vun(e,f,g,h)
 
   v2vun = temp
 end function v2vun
-
 
 ! V2vvn
 ! =====
@@ -4887,7 +5017,6 @@ function v3uun(e,f,g,h)
   v3uun = temp
 end function v3uun
 
-
 ! V3uvn
 ! =====
 function v3uvn(e,f,g,h)
@@ -4917,8 +5046,6 @@ function v3uvn(e,f,g,h)
 
   v3uvn = temp
 end function v3uvn
-
-
 
 ! V3vvn
 ! =====
@@ -4991,6 +5118,79 @@ function v3uchin(e,f,g,h)
   v3uchin = temp
 end function v3uchin
 
+function v3uchin1(e,f,g,h)
+
+  use basic
+  use m3dc1_nint
+
+  implicit none
+
+  vectype, dimension(dofs_per_element) :: v3uchin1
+  vectype, intent(in), dimension(dofs_per_element,MAX_PTS,OP_NUM) :: e
+  vectype, intent(in), dimension(MAX_PTS,OP_NUM) :: f, g, h
+  vectype, dimension(dofs_per_element) :: temp
+
+  if(inertia.eq.0) then
+     v3uchin1 = 0.
+     return
+  end if
+
+
+     temp79a = g(:,OP_DZZ)*f(:,OP_DR) - g(:,OP_DRZ)*f(:,OP_DZ)
+     temp79b = g(:,OP_DRZ)*f(:,OP_DR) - g(:,OP_DRR)*f(:,OP_DZ)
+
+     temp = intx4(e(:,:,OP_DZ),ri3_79,temp79a,h(:,OP_1)) &
+          + intx4(e(:,:,OP_DR),ri3_79,temp79b,h(:,OP_1))
+
+     if(itor.eq.1) then
+        temp79a = f(:,OP_DZ)*g(:,OP_DZ) + f(:,OP_DR)*g(:,OP_DR)
+        temp79b = f(:,OP_DZ)*g(:,OP_DR) - f(:,OP_DR)*g(:,OP_DZ)
+
+        temp = temp + &
+             1.*intx4(e(:,:,OP_DZ),ri4_79,temp79a,h(:,OP_1)) &
+             +  intx4(e(:,:,OP_DR),ri4_79,temp79b,h(:,OP_1))
+     end if
+  
+  v3uchin1 = temp
+end function v3uchin1
+
+function v3uchin2(e,f,g,h)
+
+  use basic
+  use m3dc1_nint
+
+  implicit none
+
+  vectype, dimension(dofs_per_element) :: v3uchin2
+  vectype, intent(in), dimension(dofs_per_element,MAX_PTS,OP_NUM) :: e
+  vectype, intent(in), dimension(MAX_PTS,OP_NUM) :: f, g, h
+  vectype, dimension(dofs_per_element) :: temp
+
+  if(inertia.eq.0) then
+     v3uchin2 = 0.
+     return
+  end if
+
+
+     temp79a = g(:,OP_DZ)*f(:,OP_DRZ) - g(:,OP_DR)*f(:,OP_DZZ)
+     temp79b = g(:,OP_DZ)*f(:,OP_DRR) - g(:,OP_DR)*f(:,OP_DRZ)
+
+     temp = intx4(e(:,:,OP_DZ),ri3_79,temp79a,h(:,OP_1)) &
+          + intx4(e(:,:,OP_DR),ri3_79,temp79b,h(:,OP_1)) &
+          + intx5(e(:,:,OP_DZ),ri3_79,f(:,OP_GS),g(:,OP_DR),h(:,OP_1)) &
+          - intx5(e(:,:,OP_DR),ri3_79,f(:,OP_GS),g(:,OP_DZ),h(:,OP_1))
+
+     if(itor.eq.1) then
+        temp79a = f(:,OP_DZ)*g(:,OP_DZ) + f(:,OP_DR)*g(:,OP_DR)
+        temp79b = f(:,OP_DZ)*g(:,OP_DR) - f(:,OP_DR)*g(:,OP_DZ)
+
+        temp = temp + &
+             1.*intx4(e(:,:,OP_DZ),ri4_79,temp79a,h(:,OP_1)) &
+             +  intx4(e(:,:,OP_DR),ri4_79,temp79b,h(:,OP_1))
+     end if
+  
+  v3uchin2 = temp
+end function v3uchin2
 
 ! V3vchin
 ! =======
@@ -5641,6 +5841,9 @@ function b1psid(e,f,g)
 
   temp = intx3(e(:,:,OP_1),f(:,OP_GS),g(:,OP_1))
 
+#ifdef USEPARTICLES
+  temp = 0.
+#endif
   b1psid = temp*me_mp*mass_ratio*db**2
 end function b1psid
 
@@ -7193,6 +7396,43 @@ function b1psi2bfpe(e,f,g,h,i,j)
   b1psi2bfpe = temp
 end function b1psi2bfpe
 
+function b1psi2bfn(e,f,g,h,i,j)
+  use basic
+  use m3dc1_nint
+
+  implicit none
+
+  vectype, dimension(dofs_per_element) :: b1psi2bfn
+  vectype, intent(in), dimension(dofs_per_element,MAX_PTS,OP_NUM) :: e
+  vectype, intent(in), dimension(MAX_PTS,OP_NUM) :: f,g,h,i,j
+  vectype, dimension(dofs_per_element) :: temp
+  temp = 0.
+
+  temp79a = ri_79*(j(:,OP_DZ)*f(:,OP_DR) - j(:,OP_DR)*f(:,OP_DZ))
+#if defined(USE3D) || defined(USECOMPLEX)
+  temp79a = temp79a - (j(:,OP_DR)*i(:,OP_DR) + j(:,OP_DZ)*i(:,OP_DZ))   &
+                    + ri2_79*h(:,OP_1)*j(:,OP_DP)
+#endif
+  temp79a = temp79a*b2i79(:,OP_1)*ri2_79*ni79(:,OP_1)*te079(:,OP_1)
+
+
+  if(jadv.eq.0) then
+     temp = 0.
+  else
+     temp = intx3(e(:,:,OP_GS),temp79a,h(:,OP_1))
+#if defined(USE3D) || defined(USECOMPLEX)
+     temp = temp &
+          - intx4(e(:,:,OP_DZP),ri_79,temp79a,g(:,OP_DR))   &
+          + intx4(e(:,:,OP_DRP),ri_79,temp79a,g(:,OP_DZ))   &
+          + intx3(e(:,:,OP_DRP),temp79a,i(:,OP_DR))        &
+          + intx3(e(:,:,OP_DZP),temp79a,i(:,OP_DZ))
+#endif
+  end if
+
+  b1psi2bfn = temp
+end function b1psi2bfn
+
+
 
 !==============================================================================
 ! B2 TERMS
@@ -7597,6 +7837,9 @@ function b2bd(e,f,g)
        (intx4(e(:,:,OP_DZ),ri2_79,f(:,OP_DZ),g(:,OP_1)) &
        +intx4(e(:,:,OP_DR),ri2_79,f(:,OP_DR),g(:,OP_1)))
 
+#ifdef USEPARTICLES
+  temp = 0.
+#endif
   b2bd = temp*me_mp*mass_ratio*db**2
 end function b2bd
 
@@ -8037,6 +8280,36 @@ function b2psi2bfpe(e,f,g,h,i,j)
 
   b2psi2bfpe = temp
 end function b2psi2bfpe
+
+function b2psi2bfn(e,f,g,h,i,j)
+  use basic
+  use m3dc1_nint
+
+  implicit none
+
+  vectype, dimension(dofs_per_element) :: b2psi2bfn
+  vectype, intent(in), dimension(dofs_per_element,MAX_PTS,OP_NUM) :: e
+  vectype, intent(in), dimension(MAX_PTS,OP_NUM) :: f,g,h,i,j
+  vectype, dimension(dofs_per_element) :: temp
+  temp = 0.
+
+  temp79a = ri_79*(j(:,OP_DZ)*f(:,OP_DR) - j(:,OP_DR)*f(:,OP_DZ))
+#if defined(USE3D) || defined(USECOMPLEX)
+  temp79a = temp79a - (j(:,OP_DR)*i(:,OP_DR) + j(:,OP_DZ)*i(:,OP_DZ))   &
+                    + ri2_79*h(:,OP_1)*j(:,OP_DP)
+#endif
+  temp79a = temp79a*b2i79(:,OP_1)*ni79(:,OP_1)*te079(:,OP_1)
+
+
+  temp = intx4(e(:,:,OP_DR),ri2_79,temp79a,g(:,OP_DR))    &
+       + intx4(e(:,:,OP_DZ),ri2_79,temp79a,g(:,OP_DZ))
+#if defined(USE3D) || defined(USECOMPLEX)
+  temp = temp + intx4(e(:,:,OP_DZ),ri_79,temp79a,i(:,OP_DR))   &
+       - intx4(e(:,:,OP_DR),ri_79,temp79a,i(:,OP_DZ))
+#endif
+
+  b2psi2bfn = temp
+end function b2psi2bfn
 !=============================================================================
 ! B3 TERMS
 !=============================================================================
@@ -8969,6 +9242,52 @@ function nre1nreu(e,f,g)
 
   nre1nreu = temp
 end function nre1nreu
+
+! NRE1nrev
+! ====
+function nre1nrev(e,f,g)
+
+  use basic
+  use m3dc1_nint
+
+  implicit none
+
+  vectype, dimension(dofs_per_element) :: nre1nrev
+  vectype, intent(in), dimension(dofs_per_element,MAX_PTS,OP_NUM) :: e
+  vectype, intent(in), dimension(MAX_PTS,OP_NUM) :: f,g
+  vectype, dimension(dofs_per_element) :: temp
+
+#if defined(USE3D) || defined(USECOMPLEX)
+  temp = -intx3(e(:,:,OP_1),f(:,OP_1 ),g(:,OP_DP)) &
+       -  intx3(e(:,:,OP_1),f(:,OP_DP),g(:,OP_1 ))
+
+  nre1nrev = temp
+#else
+  nre1nrev = 0.
+#endif
+end function nre1nrev
+
+! NRE1nrechi
+! ======
+function nre1nrechi(e,f,g)
+
+  use basic
+  use m3dc1_nint
+
+  implicit none
+
+  vectype, dimension(dofs_per_element) :: nre1nrechi
+  vectype, intent(in), dimension(dofs_per_element,MAX_PTS,OP_NUM) :: e
+  vectype, intent(in), dimension(MAX_PTS,OP_NUM) :: f,g
+  vectype, dimension(dofs_per_element) :: temp
+
+  temp = intx4(e(:,:,OP_DZ),ri2_79,f(:,OP_1),g(:,OP_DZ)) &
+       + intx4(e(:,:,OP_DR),ri2_79,f(:,OP_1),g(:,OP_DR))
+
+  nre1nrechi = temp
+end function nre1nrechi
+
+
 
 !============================================================================
 ! P1 TERMS

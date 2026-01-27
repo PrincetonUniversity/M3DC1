@@ -100,9 +100,9 @@ ifeq ($(OMP), 1)
   BIN_POSTFIX := $(BIN_POSTFIX)-omp
 endif
 
-# ifeq ($(ACC), 1)
-#   BIN_POSTFIX := $(BIN_POSTFIX)-acc
-# endif
+ ifeq ($(ACC), 1)
+   BIN_POSTFIX := $(BIN_POSTFIX)-acc
+ endif
 
 OOPTS := $(OPTS) -DPETSC_FORTRAN_PETSCTRUTH_INT #-DCJ_MATRIX_DUMP
 
@@ -204,7 +204,7 @@ OBJS := fftw_fortran.o read_namelist.o gsl_wrapper.o \
 	get_pc_skip_count.o \
 	parse_solver_options.o
 
-ifneq (,$(findstring gpu,$(ARCH)))
+ifeq ($(ACC), 1)
 	OBJS := $(OBJS:metricterms_new.o=metricterms_new_gpu.o)
 	OBJS := $(OBJS:ludef_t.o=ludef_t_gpu.o)
 endif
@@ -334,6 +334,7 @@ bin : a2cc mackenbach_profiles
 	ln -s $(SRCDIR)/sbin/part_mesh.sh bin
 
 bin_pic :
-	ln -s $(SRCDIR)/_$(ARCH)-complex-pic-opt-25/m3dc1_2d_complex bin/m3dc1_2d_complex_pic
+	ln -s $(SRCDIR)/_$(ARCH)-complex-pic-opt-25/m3dc1_2d_complex_pic bin
+	ln -s $(SRCDIR)/_$(ARCH)-3d-st-pic-opt-125/m3dc1_3d_st_pic bin
 
 endif

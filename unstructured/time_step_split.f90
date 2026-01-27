@@ -10,6 +10,7 @@ module time_step_split
   type(vector_type), private :: den_vec, denold_vec, ne_vec, neold_vec
   type(vector_type), private :: pret_vec
   type(vector_type), private :: nre_vec, nreold_vec
+  type(vector_type), private :: densmooth_vec
 
   ! the following pointers point to the vector containing the named field.
   ! set by assign_variables()
@@ -27,6 +28,7 @@ module time_step_split
   type(field_type), private ::  ti_v
   type(field_type), private ::  ne_v
   type(field_type), private :: nre_v
+  type(field_type), private :: densmooth_v
 
   integer :: vecsize_vel, vecsize_phi, vecsize_n, vecsize_p, vecsize_t
 
@@ -118,11 +120,13 @@ if (ispradapt .eq. 1) then
     call create_vector(ne_vec,     1, "ne_vec")
     call create_vector(neold_vec,  1, "neold_vec")
     call create_vector(qn4_vec,    vecsize_n, "qn4_vec")
+    call create_vector(densmooth_vec,    vecsize_n, "densmooth_vec")
     call mark_vector_for_solutiontransfer(den_vec)
     call mark_vector_for_solutiontransfer(denold_vec)
     call mark_vector_for_solutiontransfer(ne_vec)
     call mark_vector_for_solutiontransfer(neold_vec)
     call mark_vector_for_solutiontransfer(qn4_vec)
+    call mark_vector_for_solutiontransfer(densmooth_vec)
 
     if(irunaway .gt. 0) then
       call create_vector(nre_vec,    vecsize_n, "nre_vec")
@@ -164,6 +168,7 @@ else
     call create_vector(ne_vec,     1)
     call create_vector(neold_vec,  1)
     call create_vector(qn4_vec,    vecsize_n)
+    call create_vector(densmooth_vec,    vecsize_n)
 
     if(irunaway .gt. 0) then
       call create_vector(nre_vec,    vecsize_n)
@@ -447,6 +452,9 @@ call PetscLogStagePop(jer)
     call associate_field(den_v,  den_vec,    den_i)
     call associate_field(ne_v,    ne_vec,        1)
     if(irunaway.gt.0) call associate_field(nre_v,  nre_vec,    nre_i)
+#ifdef USEPARTICLES
+    if(itwofluid.gt.0) call associate_field(densmooth_v,  densmooth_vec,    den_i)
+#endif
     
     if((jadv.eq.0).or.(jadv.eq.1 .and. imp_hyper.ge.1)) then
        call associate_field(e_v, phi_vec, e_i)
@@ -707,8 +715,11 @@ subroutine import_time_advance_vectors_split
   den_v = den_field(1)
   ne_v = ne_field(1)
   if(irunaway .eq. 2) call runaway_advance
-  if((irunaway .ge. 1).and.(runaway_characteristics.eq.1)) call runaway_advection_step(dt*t0_norm)
+  if((irunaway .ge. 1).and.(ra_characteristics.eq.1)) call runaway_advection_step(dt*t0_norm)
   if(irunaway .gt. 0) nre_v = nre_field(1)
+#ifdef USEPARTICLES
+  if(itwofluid .gt. 0) densmooth_v = densmooth_field
+#endif
   if(imp_bf.eq.1) bfp_v = bfp_field(1)
   if((jadv.eq.0) .or. (jadv.eq.1 .and. imp_hyper.ge.1)) e_v = e_field(1)
 
@@ -1299,6 +1310,13 @@ call PetscLogStagePop(jer)
 
      ! Inculde density terms
      if(idens.eq.1) then
+#ifdef USEPARTICLES
+        call matvecmult(r42_mat,densmooth_vec,b2_phi)
+        call mult(b2_phi,-1.)
+        call add(b1_phi, b2_phi)
+        call matvecmult(q42_mat,densmooth_vec,b2_phi)
+        call add(b1_phi, b2_phi)
+#else
         call matvecmult(r42_mat,ne_vec,b2_phi)
         call add(b1_phi, b2_phi)
         call matvecmult(q42_mat,neold_vec,b2_phi)
@@ -1307,6 +1325,7 @@ call PetscLogStagePop(jer)
 !!$        call add(b1_phi, b2_phi)
 !!$        call matvecmult(q42_mat,denold_vec,b2_phi)
 !!$        call add(b1_phi, b2_phi)
+#endif
      end if
 
      ! Include RE density terms
@@ -1424,10 +1443,18 @@ call PetscLogStagePop(jer)
       
         ! Include density terms
         if(idens.eq.1) then
+#ifdef USEPARTICLES
+           call matvecmult(r42_mat,densmooth_vec,b2_phi)
+           call mult(b1_phi,-1.)
+           call add(b1_phi, b2_phi)
+           call matvecmult(q42_mat,densmooth_vec,b2_phi)
+           call add(b1_phi, b2_phi)
+#else
            call matvecmult(r42_mat,den_vec,b2_phi)
            call add(b1_phi, b2_phi)
            call matvecmult(q42_mat,denold_vec,b2_phi)
            call add(b1_phi, b2_phi)
+#endif
         end if
 
         ! Include linear f terms

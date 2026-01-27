@@ -1217,8 +1217,8 @@ subroutine output_fields(time_group_id, equilibrium, error)
         endif
         if(ibootstrap.eq.3) then
           call write_field(group_id, "Jbs_ftrap", Jbs_ftrap_field, nelms, error,.true.)
-          call write_field(group_id, "Jbs_qR", Jbs_ftrap_field, nelms, error,.true.)
-          call write_field(group_id, "Jbs_invAspectRatio", Jbs_ftrap_field, nelms, error,.true.)
+          call write_field(group_id, "Jbs_qR", Jbs_qR_field, nelms, error,.true.)
+          call write_field(group_id, "Jbs_invAspectRatio", Jbs_invAspectRatio_field, nelms, error,.true.)
         endif
      endif
   end if !(iwrite_transport_coeffs.eq.1)

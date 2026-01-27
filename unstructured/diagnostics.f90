@@ -2310,7 +2310,11 @@ subroutine calculate_rho(itri)
   integer :: i
 
 #ifdef USEPARTICLES
-  rho79 = n079
+  if (eqsubtract.eq.1) then
+    rho79 = n079
+  else
+    rho79 = nt79
+  endif
 #else
   rho79 = nt79
 #endif
