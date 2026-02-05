@@ -26,31 +26,6 @@ module runaway_mod
   integer, parameter :: dp = kind(1.0d0)
 
   real, dimension(MAX_PTS) :: re_j79
-  
-  
-  ! CONSTANTS FOR AVALNCHING CALUCLATION (RiD) !
-  
-  ! --- NEON DATA (Size 10) ---
-  real(dp), parameter, dimension(10) :: Ne_ln_aBar_const = (/ &
-       4.7064_dp, 4.6097_dp, 4.5028_dp, 4.3858_dp, 4.2638_dp, &
-       4.1266_dp, 3.9568_dp, 3.6810_dp, 3.1777_dp, 3.1278_dp /)
-       
-  real(dp), parameter, dimension(10) :: Ne_ln_I_const = (/ &
-      -8.2227_dp, -8.0370_dp, -7.8614_dp, -7.6837_dp, -7.4994_dp, &
-      -7.2788_dp, -6.9808_dp, -6.5976_dp, -5.8933_dp, -5.8320_dp /)
-
-  ! --- ARGON DATA (Size 18) ---
-  real(dp), parameter, dimension(18) :: Ar_ln_aBar_const = (/ &
-       4.5677_dp, 4.5007_dp, 4.4289_dp, 4.3513_dp, 4.2698_dp, &
-       4.1815_dp, 4.0829_dp, 3.9748_dp, 3.8511_dp, 3.7882_dp, &
-       3.7203_dp, 3.6436_dp, 3.5579_dp, 3.4525_dp, 3.3093_dp, &
-       3.0503_dp, 2.5578_dp, 2.5332_dp /)
-
-  real(dp), parameter, dimension(18) :: Ar_ln_I_const = (/ &
-      -7.9050_dp, -7.7532_dp, -7.6076_dp, -7.4626_dp, -7.3178_dp, &
-      -7.1665_dp, -7.0055_dp, -6.8020_dp, -6.5538_dp, -6.4647_dp, &
-      -6.3644_dp, -6.2465_dp, -6.1070_dp, -5.9219_dp, -5.6535_dp, &
-      -5.3213_dp, -4.6937_dp, -4.6598_dp /)
 
 contains
 
@@ -140,8 +115,9 @@ contains
     sa = 0. ! Avalanche
     sbeta = 0. ! Tritium Beta
 	scomp = 0. ! Gamma Compton source
-
-
+	
+    
+    
     dt_si = dt * t0_norm
     nrel = nre
     nl = 10
@@ -176,13 +152,12 @@ contains
           x = (abs(re_epar)*ec*Temp)/(Ecrit*me*c**2) ! Epar / ED
           Ed = abs(re_epar)/Ecrit ! RiD: Normalized electric field / CH field = E_star
           if(Ed < 1) Ed = 1
-          if(abs(re_epar).gt.Ecrit) then ! E-field must be greater than Critical Field for RE generation
-			! ***** DREICER GENERATION ****** !
+          if(abs(re_epar).gt.Ecrit) then
 			! Dreicer Source 1 = Classical, 2 = Parial Screening, 0 = off
 			  if (iDreicer.eq.1) then ! Classical Dreicer
 				sd = Dens1*nu*x**(-3.D0*(1.D0+Zeff)/1.6D1) &
                  *exp(-1.D0/(4*x)-sqrt((1.D0+Zeff)/x)) ! Dreicer Source [per cubic m per s]
-              endif ! End Classical Dreicer 
+              endif
               if (iDreicer.eq.2) then ! Partially Screened Dreicer
                     if ((x < 0.01) .or. (Dens_ion<1.D16)) then ! Lower Limit of Neural Network is x = 0.01
                               sd = 0.0
@@ -192,7 +167,7 @@ contains
 						ZmaxImp = 1.0 ! Atomic no. of Impurity [-]
 						! Update nI, neI, ZI and ZmaxI if using KPRAD
 						IF(ikprad.ne.0) then
-									ZmaxImp = 1.0 *  real(kprad_z) ! Impurity atomic no.
+									ZmaxImp = 1.0 *  kprad_z ! Impurity atomic no.
 									Zimp = (Dens1 - &
 											1.0*Dens_ion)/Dens_imp ! Impurity Ionization
 									Zimp = min(ZmaxImp,Zimp) ! Maximum Impurity Ionization = ZmaxImp
@@ -202,7 +177,9 @@ contains
 						endif
 						sd = getDreicerHesslow(Dens_ion,Dens_imp,&
 												ZmaxImp,ZImp,x,Temp) ! [per cubic m per s]
-!~ 							!! *** PRINT FOR DEBGGING ***** !!					
+                               ! IF (sd*cre*ec*va*dt_si>abs(epar)/eta) THEN ! Cannot produce negative E-field dt_si is too large!
+                               !         sd = 1e-1 * abs(epar)/eta  / (cre * ec * va * dt_si) 
+                               ! END IF
 !~                         IF (myrank.eq.1) THEN ! Printing
 !~ 							print *, "Dens_ion, Dens_imp [per cubic m] = ", Dens_ion, Dens_imp
 !~ 							print *, "ZmaxImp, ZImp = ", ZmaxImp, ZImp
@@ -210,13 +187,9 @@ contains
 !~ 							print *, "E/Ed [-] = ", x
 !~ 							print *, "sd [per cubic m per s] = ", sd
 !~                         ENDIF
-!~ 							!! ******************* !!
 					endif
-              endif ! End Classical Dreicer 
-              ! ***** END OF DREICER GENERATION ****** !
-              
-              ! ***** ACTIVATED SOURCES ****** !
-              ! Tritium Beta Source - by defualt assumes 0.5*ni is Tritium
+              endif
+              ! Tritium Beta Source
               if (iTritBeta.eq.1) then ! Tritium Beta Calculation
 				sbeta = 0.5 * Dens_ion * beta_source(Ed) ! Tritium beta source [per cubic m per s]
               endif
@@ -232,9 +205,7 @@ contains
 					scomp = 1e-3 * scomp ! RiD: Reduce compton contribution when temp. < 2 keV 
 				endif
 			  endif
-			  ! ***** END OF ACTIVATED SOURCES ****** !
-			  
-			  ! ***** AVALANCHING MODEL  ****** !
+			  ! AVALANCHING MODEL !
               ! avalanche growth only when epar and nre have opposite sign
               if (re_epar*nre<0) then
 				if (iAvalanche.eq.1) then ! Avalanche Term Calculation (RP Model)
@@ -242,7 +213,7 @@ contains
                     1/sqrt(1-1/Ed+4*pi*(Zeff+1)**2/3/gamma/(Zeff+5)&
                     /(Ed**2+4/gamma**2-1)) 
                 else if (iAvalanche.eq.2) then ! Hesslow 2019 Model 
-					Zval = (/1., real(kprad_z) /) ! Max Ionization
+					Zval = (/1., kprad_z /) ! Max Ionization
 					Zimp = (Dens1 - Dens_ion)/Dens_imp ! Avg. impurity ionization
 					Z0val = (/1.,  Zimp/)
 					nj = (/Dens_ion, Dens_imp /) ! Density [per cubic m]
@@ -251,19 +222,14 @@ contains
 					Ech = ec**3 * ne_free * lnAc / (me * c**2 * 4.0_dp * pi * eps0**2) ! Connor Hastie Field [V/m]
 					Estar = abs(re_epar)/Ech ! Normalized E-field [-]
 					! Interpolation !
-					Z0high = (/1.,  real(CEILING(Zimp))/)
-					Z0low = (/1.,  real(FLOOR(Zimp))/)
-					weight = Zimp - real(FLOOR(Zimp))
-					
-					Ylow = 0.0 ! Avalanching rates
-					Yhigh = 0.0
-					
-					call getHesslowAvalanchingRate(Estar,Zval,Z0low,nj, &
-						2,Temp,"Ne",btoroidal*ri,Ylow)
-					call getHesslowAvalanchingRate(Estar,Zval,Z0high,nj, &
-						2,Temp,"Ne",btoroidal*ri,Yhigh)
-					sa = (1.0_dp - weight) * Ylow + weight * Yhigh ! Combine [per second]
-!~ 					!! ****** RiD: For Debugging *****!!
+					Z0high = (/1.,  CEILING(Zimp)/)
+					Z0low = (/1.,  FLOOR(Zimp)/)
+					weight = Zimp - FLOOR(Zimp)
+					Ylow = getHesslowAvalanchingRate(Estar,Zval,Z0low,nj, &
+						2,Temp,"Ne",btoroidal*ri)
+					Yhigh = getHesslowAvalanchingRate(Estar,Zval,Z0high,nj, &
+						2,Temp,"Ne",btoroidal*ri)
+					sa = (1 - weight) * Ylow + weight * Yhigh ! Combine [per second]
 !~ 					if (myrank.eq.8) then ! Printing
 !~ 						print *, "Yava [s-1] = ", sa
 !~ 						print *, "ne, ni, nz = ", Dens1, Dens_ion, Dens_imp
@@ -274,7 +240,6 @@ contains
 !~ 						print *, "z = ", z
 !~                        print *, "rank = ", myrank
 !~                     end if
-!~                     !! ********** !!
 					sa = nra * sa 
 				else if (iAvalanche.eq.3) then ! Simple RP Model
 					lnAc = 14.6_dp + 0.5_dp * log( Temp / (Dens1/1e20_dp)) ! Coul. Log
@@ -291,25 +256,22 @@ contains
 !~ 						print *, "Temp = ", Temp
 !~ 					end if
 					sa = nra * sa 
-                endif  ! Ending avalanching options iAvalanche
+                endif
               else
                       sa = 0.
-              endif ! ending if (re_epar*nre<0)
-              
+              endif
               dndt = (sd*esign + &
 					sbeta*esign + &
 					scomp*esign + sa)*cre*ec*va ! Combining all sources
-					
-              nrel = nre + dndt*dt_si 
-                 
-          else !  the next section executes when the e-field is less than Ecrit
+                 nrel = nre + dndt*dt_si
+          else
               nrel = nre 
               dndt = 0.
-          end if ! ending if(abs(re_epar).gt.Ecrit);
+          end if
 
        else
            nrel = nre
-       endif ! ending if (Temp.ge.teval .and. mr.eq.0)
+       endif
     
        re_79 = nrel
        re_j79 = nre
@@ -340,6 +302,8 @@ contains
     vectype, dimension(dofs_per_element) :: dofs
     integer, dimension(MAX_PTS) :: mr, tmp
     
+    ! For Partially Screened Dreicer
+    ! vectype, dimension(MAX_PTS) :: nImp, neImp, ZImp
 
 
     if(irunaway.eq.0 .or. izone.ne.1) return
@@ -668,24 +632,31 @@ contains
 		character(len=*), intent(in) :: element
 		real(dp) :: Eceff_out
 
-		real(dp) :: ln_aBar(18), ln_I(18)
+		real(dp), allocatable :: ln_aBar(:), ln_I(:)
 		real(dp) :: ne_free, ntot, Zeff, Zfulleff, lnLStar
 		real(dp) :: nuD0, nuD1, nuS0, nuS1
-		real(dp) :: Ne(nSpecies)
+		real(dp), allocatable :: Ne(:)
 		real(dp) :: tauRadInv, ALPHA, bremsprefactor, phib1, phib2
 		real(dp) :: pc0, Ectot, Eceff0, delta0, delta1, EceffOverEctot
 		integer :: i
 		
 		! pick the element
 		if (trim(element) == "Ne") then
-			ln_aBar(1:10) = Ne_ln_aBar_const
-			ln_I(1:10)    = Ne_ln_I_const
+			allocate(ln_aBar(10), ln_I(10))
+			ln_aBar = (/4.7064_dp,4.6097_dp,4.5028_dp,4.3858_dp,4.2638_dp,4.1266_dp,3.9568_dp,3.6810_dp, &
+						3.1777_dp,3.1278_dp/)
+			ln_I    = (/-8.2227_dp,-8.0370_dp,-7.8614_dp,-7.6837_dp,-7.4994_dp,-7.2788_dp, &
+						 -6.9808_dp,-6.5976_dp,-5.8933_dp,-5.8320_dp/)
 		else if (trim(element) == "Ar") then
-			ln_aBar(1:18) = Ar_ln_aBar_const
-			ln_I(1:18)    = Ar_ln_I_const
+			allocate(ln_aBar(18), ln_I(18))
+			ln_aBar = (/4.5677_dp,4.5007_dp,4.4289_dp,4.3513_dp,4.2698_dp,4.1815_dp,4.0829_dp,3.9748_dp, &
+						3.8511_dp,3.7882_dp,3.7203_dp,3.6436_dp,3.5579_dp,3.4525_dp,3.3093_dp,3.0503_dp, &
+						2.5578_dp,2.5332_dp/)
+			ln_I    = (/-7.9050_dp,-7.7532_dp,-7.6076_dp,-7.4626_dp,-7.3178_dp,-7.1665_dp,-7.0055_dp, &
+						-6.8020_dp,-6.5538_dp,-6.4647_dp,-6.3644_dp,-6.2465_dp,-6.1070_dp,-5.9219_dp, &
+						-5.6535_dp,-5.3213_dp,-4.6937_dp,-4.6598_dp/)
 		else
-			Eceff_out = 0.0_dp
-			return
+			print *, "ERROR: element must be 'Ne' or 'Ar'"
 		end if
 		
 		! free and total electron densities
@@ -732,11 +703,16 @@ contains
 		Ectot = sum(Z*nj) * e**3 * lnLStar /(4.0_dp*pi*epsilon0**2 * me * c**2)
 
 		Eceff_out = Ectot * EceffOverEctot
+
+		if (allocated(ln_aBar)) deallocate(ln_aBar)
+		if (allocated(ln_I))    deallocate(ln_I)
+		if (allocated(Ne))      deallocate(Ne)	
+		
 	
 	end function getEc_eff
 	
 	! Collison Frequencies and Effective Momentum !
-	pure subroutine get_nuD_nuS(p,Z,Z0,nj,nSpecies,T,element,nuD,nuS)
+	subroutine get_nuD_nuS(p,Z,Z0,nj,nSpecies,T,element,nuD,nuS)
 !~ 	    # Outputs the deflection, slowing down freq (Hesslow 2018)
 !~ 		# p = normalized momentum
 !~ 		# Z = max. ionization
@@ -759,10 +735,10 @@ contains
 		character(len=*), intent(in) :: element
 		real(dp), intent(out) :: nuD, nuS
 
-		real(dp) :: ln_aBar(18), ln_I(18)
-		real(dp) :: aBar_Ne(18), I_Ne(18)
+		real(dp), allocatable :: ln_aBar(:), ln_I(:)
+		real(dp), allocatable :: aBar_Ne(:), I_Ne(:)
 		real(dp) :: ne_free, Zeff
-		real(dp) :: Ne(nSpecies)
+		real(dp), allocatable :: Ne(:)
 		real(dp) :: gamma_rel, beta
 		real(dp) :: PT, lnAc, lnA0, lnAee, lnAei
 		real(dp) :: hj, F1j, pabar1p5
@@ -770,20 +746,29 @@ contains
 		real(dp), parameter :: k = 5.0_dp
 
 		if (trim(element) == "Ne") then
-			ln_aBar(1:10) = Ne_ln_aBar_const
-			ln_I(1:10)    = Ne_ln_I_const
+			allocate(ln_aBar(10), ln_I(10))
+			ln_aBar = (/4.7064_dp,4.6097_dp,4.5028_dp,4.3858_dp,4.2638_dp,4.1266_dp,3.9568_dp,3.6810_dp, &
+						3.1777_dp,3.1278_dp/)
+			ln_I    = (/-8.2227_dp,-8.0370_dp,-7.8614_dp,-7.6837_dp,-7.4994_dp,-7.2788_dp, &
+						-6.9808_dp,-6.5976_dp,-5.8933_dp,-5.8320_dp/)
 		else if (trim(element) == "Ar") then
-			ln_aBar(1:18) = Ar_ln_aBar_const
-			ln_I(1:18)    = Ar_ln_I_const
+			allocate(ln_aBar(18), ln_I(18))
+			ln_aBar = (/4.5677_dp,4.5007_dp,4.4289_dp,4.3513_dp,4.2698_dp,4.1815_dp,4.0829_dp,3.9748_dp, &
+						3.8511_dp,3.7882_dp,3.7203_dp,3.6436_dp,3.5579_dp,3.4525_dp,3.3093_dp,3.0503_dp, &
+						2.5578_dp,2.5332_dp/)
+			ln_I    = (/-7.9050_dp,-7.7532_dp,-7.6076_dp,-7.4626_dp,-7.3178_dp,-7.1665_dp,-7.0055_dp, &
+						-6.8020_dp,-6.5538_dp,-6.4647_dp,-6.3644_dp,-6.2465_dp,-6.1070_dp,-5.9219_dp, &
+						-5.6535_dp,-5.3213_dp,-4.6937_dp,-4.6598_dp/)
 		else
-			nuD = 1.0_dp + sum((Z0**2)*nj) / sum(Z0*nj) ! Just use the fully screened frequencies
-			nuS = 1.0_dp
-			return
+			print *, "ERROR: element must be 'Ne' or 'Ar'"
+			stop
 		end if
 
+		allocate(aBar_Ne(size(ln_aBar)), I_Ne(size(ln_I)))
 		aBar_Ne = exp(ln_aBar)
 		I_Ne    = exp(ln_I)
 
+		allocate(Ne(nSpecies))
 		Ne = Z - Z0
 		ne_free = sum(Z0*nj)
 		Zeff = sum((Z0**2)*nj) / ne_free
@@ -819,10 +804,15 @@ contains
 		nuS = nuS / lnAc
 		nuD = nuD / lnAc
 
+		if (allocated(ln_aBar)) deallocate(ln_aBar)
+		if (allocated(ln_I))    deallocate(ln_I)
+		if (allocated(aBar_Ne)) deallocate(aBar_Ne)
+		if (allocated(I_Ne))    deallocate(I_Ne)
+		if (allocated(Ne))      deallocate(Ne)
 
   end subroutine get_nuD_nuS
   
-  pure function fn(pstar, Estar, Z, Z0, nj, nSpecies, T, element) result(val)
+  function fn(pstar, Estar, Z, Z0, nj, nSpecies, T, element) result(val)
 !~ 	   # This describes the function to solve critical momentum
 !~     # T [eV]
 !~     # Pstar = normalized momentum
@@ -839,7 +829,7 @@ contains
     val = pstar * sqrt(Estar) - (nuS * nuD)**0.25_dp
   end function fn
   
-  pure subroutine get_pstar(E_star, Z, Z0, nj, nSpecies, T, element, pstar)
+  subroutine get_pstar(E_star, Z, Z0, nj, nSpecies, T, element, pstar)
   ! Calculates effective momentum using Newton's method
     implicit none
     ! Inputs
@@ -893,17 +883,15 @@ contains
 
    end subroutine get_pstar
 
-  pure subroutine getHesslowAvalanchingRate(E_star,Z,Z0,nj,nSpecies,T,element,B,Yav)
+  function getHesslowAvalanchingRate(E_star,Z,Z0,nj,nSpecies,T,element,B) result(Yav)
 !~ 	# Returns the avalanching rate in per second
 !~ 	# E_star [-] = Parallel E-field / E_CH (E_CH = Connor Hastie Electric field)
-!~ 	# Z = max. ionization; first element of array is deuterium, next is Impurity (Ne or Ar)
+!~ 	# Z = max. ionization; first element of array is deuterium, next is Neon
 !~ 	# Z0 = ionization level; first element of array is 1, next is Neon ionization
 !~ 	# nj = density of each species [per cubic m]
 !~ 	# T = temperature [eV]
 !~ 	# element = either 'Ar' or 'Ne'
-!~  # Yav = output rate [per s]
 
-	implicit none
 	integer, parameter :: dp = kind(1.0d0)
 	real(dp), parameter :: e = 1.602176634d-19
 	real(dp), parameter :: epsilon0 = 8.8541878128d-12
@@ -915,7 +903,7 @@ contains
     real(dp), intent(in) :: Z(nSpecies), Z0(nSpecies), nj(nSpecies)
     integer, intent(in) :: nSpecies
     character(len=*), intent(in) :: element
-    real(dp), intent(out) :: Yav
+    real(dp) :: Yav
 
     real(dp) :: ne_free, ntot, lnAc
     real(dp) :: Ec, Epar, Eceff
@@ -948,7 +936,7 @@ contains
 		Yav = 0.0
 	end if
 
-  end subroutine getHesslowAvalanchingRate
+  end function getHesslowAvalanchingRate
 
      
 end module runaway_mod

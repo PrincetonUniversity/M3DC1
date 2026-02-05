@@ -298,7 +298,7 @@ module basic
   integer :: ra_cyc      ! runaway subcycle
   real :: radiff         ! runaway diffusion
   real :: rjra           ! jra/j0
-  integer :: ra_characteristics           ! use method of characteristics
+  integer :: runaway_characteristics           ! use method of characteristics
   integer :: iDreicer ! 1 = Classical, 2 = Partially Screened, 0 = Off
   integer :: iTritBeta ! Toggles Tritium Source
   integer :: iAvalanche ! 1 = RP; 2 = Hesslow Model; 3 = Modified RP
@@ -322,7 +322,6 @@ module basic
   integer :: particle_substeps
   integer :: particle_subcycles
   integer :: particle_couple
-  integer :: particle_nodelete
   integer :: iconst_f0
   real :: fast_ion_mass, fast_ion_z
   integer :: fast_ion_dist
@@ -330,14 +329,10 @@ module basic
   integer :: num_par_max
   real, dimension(2) :: num_par_scale
   real, dimension(2) :: kinetic_nrmfac_scale
-  integer :: idiamagnetic_advection
   integer :: ikinetic_vpar
   real :: kinetic_rhomax
   real :: vpar_reduce
-  integer, parameter :: imode_filter_max = 100
-  integer :: imode_filter
-  integer, dimension(imode_filter_max) :: mode_filter_ntor
-  real :: smooth_par, smooth_dens_parallel
+  real :: smooth_par, smooth_pres
 #endif
 
   integer :: iohmic_heating  ! 1 = include ohmic heating
@@ -506,7 +501,7 @@ module basic
   real :: xnull2, znull2    ! coordinates of the limiting x-point
   real :: psinull, psinull2
   integer :: mod_null_rs, mod_null_rs2  ! if 1, modify xnull,znull or xnull2,znull2 at restart
-  real :: temax, temax_readin      ! maximum temperature, reading in for ibootstrap=3
+  real :: temax            ! maximum temperature
 
   integer :: isolve_with_guess=0 ! (=0; use zero initial guess); (=1; use previous step value as non-zero initial guess)
 
@@ -551,9 +546,9 @@ module arrays
   type(field_type) :: sigma_field, Fphi_field, Q_field, cd_field
   type(field_type) :: Totrad_field, Linerad_field, Bremrad_field, Ionrad_field, Reckrad_field, Recprad_field
   type(field_type) :: visc_field, visc_c_field, visc_e_field, pforce_field, pmach_field
-  type(field_type) :: Jbs_L31_field, Jbs_L32_field, Jbs_L34_field, Jbs_alpha_field, Jbs_fluxavg_iBsq_field &
-  , Jbs_fluxavg_G_field, Jbs_dtedpsit_field
-  type(field_type) :: Jbs_ftrap_field,Jbs_qR_field,Jbs_invAspectRatio_field 
+  type(field_type) :: Jbs_L31_field, Jbs_L32_field, Jbs_L34_field, Jbs_alpha_field, Jbs_fluxavg_iBsq_field, &
+          Jbs_fluxavg_G_field, Jbs_dtedpsit_field
+  
   type(field_type) :: temporary_field
   
   type(field_type) :: psi_coil_field
@@ -588,7 +583,7 @@ module arrays
 #endif
 #ifdef USEPARTICLES
   type(field_type) :: rho_field, nf_field, tf_field, pf_field, vfpar0_field
-  type(field_type) :: nfi_field, tfi_field, pfi_field, densmooth_field, vparsmooth_field
+  type(field_type) :: nfi_field, tfi_field, pfi_field, psmooth_field, vparsmooth_field
   type(field_type) :: epar_field, den2_field
 
   type(field_type) :: p_f_par, p_f_perp  !Kinetic pressure tensor components
@@ -596,7 +591,6 @@ module arrays
   type(field_type) :: den_i_0, den_i_1, den_f_0, den_f_1
   type(field_type) :: v_i_par
   type(field_type) :: v_f_par
-  type(field_type) :: ustar_field, vzstar_field, chistar_field
 #endif
 
   ! the following pointers point to the locations of the named field within
