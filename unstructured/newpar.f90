@@ -29,6 +29,7 @@ Program Reducedquintic
   use m3dc1_vel_prof
   use hypervisc
   use runaway_advection
+  use rmp
 #ifdef _OPENACC
   use openacc
 #endif
@@ -383,6 +384,15 @@ Program Reducedquintic
      if(myrank.eq.0 .and. iprint.ge.1) print *, " Calling onestep"
      if(myrank.eq.0 .and. itimer.eq.1) call second(tstart)
      call onestep
+     !!!!! ** RiD: Recalculate REMC Vacuum Field Every Time Step if iScaleREMC = 1 ** !!!!
+     if (irmp.eq.3 .and. iScaleREMC.eq.1) then
+		call rmp_per
+		if (myrank.eq.0) then
+                 print *, "Recalculated REMC, totcur =", totcur
+                 print *, "remc_fac = ", (1.0-totcur*795217/init_current)
+                endif
+     endif
+    !!!!! 
      if(myrank.eq.0 .and. itimer.eq.1) then
         call second(tend)
         t_onestep = t_onestep + tend - tstart

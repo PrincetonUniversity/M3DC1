@@ -2,6 +2,7 @@ module rmp
 
   use coils
   use read_schaffer_field
+  use diagnostics ! required for plasma current (totcur)
 
   implicit none
 
@@ -194,6 +195,7 @@ subroutine rmp_field(n, nt, np, x, phi, z, br, bphi, bz, p)
   use basic
   use coils
   use gradshafranov
+  use diagnostics
 
   implicit none
 
@@ -223,6 +225,8 @@ subroutine rmp_field(n, nt, np, x, phi, z, br, bphi, bz, p)
   real, dimension(n) :: tilt_co, tilt_sn
   real, dimension(n) :: shift_co, shift_sn
 #endif
+  real :: Z_remc, R_remc, remc_fac, curr_now, phi_now
+  complex :: I_remc
 
   br = 0.
   bphi = 0.
@@ -312,6 +316,123 @@ subroutine rmp_field(n, nt, np, x, phi, z, br, bphi, bz, p)
         bz = -real(brv)*sin(theta) - real(bthetav)*cos(theta)
 #endif
      end if
+     
+     !!!!!! RiD: SPARC REMC !!!!!
+     case(3)
+		 fr   = 0.    ! B_R
+		 fphi = 0.    ! B_phi
+		 fz   = 0.    ! B_Z
+		 
+                ! Calculate the REMC Current Scale Factor
+                ! totcur is the plasma curreny in m3dc1 units
+                if (iScaleREMC.eq.1) then
+                        curr_now = 1.0 * totcur * 795217.0 ! Ip in Amperes
+                        remc_fac = 1.0 - abs(curr_now/init_current)
+                        if (curr_now<1e-1) remc_fac = 0.0
+                else
+                        remc_fac = 1.0
+                end if
+
+		 I_remc = remc_fac * ic_na(1) ! REMC Current and position
+		 Z_remc = 1.0 * zc_na(1)
+		 R_remc = 1.0 * xc_na(1)
+		 
+                ! if(myrank.eq.0) print *, 'Ip (A) = ', (totcur*795217.0)
+                ! if(myrank.eq.0) print *, 'remc_fac = ', (remc_fac)
+                 
+		 
+             
+        do i=1, nt
+        
+			fr   = 0.    ! B_R
+			fphi = 0.    ! B_phi
+			fz   = 0.    ! B_Z
+			
+			! *tanh((phi((i-1)*np+1)-3.141)/0.5)
+			! Z_remc = cos(phi((i-1)*np+1)) * zc_na(1)
+			if (phi((i-1)*np+1).lt.twopi/2) then
+				Z_remc = -1.0 * zc_na(1)
+			else
+				Z_remc = 1.0 * zc_na(1)
+			end if
+        
+!~ 			call pane(I_remc,R_remc,R_remc,&
+!~ 			Z_remc,&
+!~ 			zc_na(2),np,x,z,ntor,fr,fphi,fz) ! RiD: Calculating B-field
+
+			call coil(I_remc,R_remc,Z_remc,&
+			np,x,z,0,fr,fphi,fz) ! RiD: Calculating B-field
+			
+			
+! 			if(myrank.eq.1) print *, &
+! 			'Z_remc, phi = ', Z_remc,&
+! 			 phi((i-1)*np+1)
+        
+			br((i-1)*np+1:i*np) = real(fr(1:np))
+			bphi((i-1)*np+1:i*np) = real(fphi(1:np))
+			bz((i-1)*np+1:i*np) = real(fz(1:np))
+		 end do
+
+
+		 br = -twopi*br
+		 bphi = -twopi*bphi
+		 bz = -twopi*bz
+		 if(present(p)) p = 0. 
+
+        !!!!!! RiD: Trying a n = 1 + n = 2  REMC !!!!!
+     case(4)
+                 fr   = 0.    ! B_R
+                 fphi = 0.    ! B_phi
+                 fz   = 0.    ! B_Z
+
+                ! Calculate the REMC Current Scale Factor
+                ! totcur is the plasma curreny in m3dc1 units
+                if (iScaleREMC.eq.1) then
+                        curr_now = 1.0 * totcur * 795217.0 ! Ip in Amperes
+                        remc_fac = 1.0 - abs(curr_now/init_current)
+                        if (curr_now<1e-1) remc_fac = 0.0
+                else
+                        remc_fac = 1.0
+                end if
+
+                 I_remc = remc_fac * ic_na(1) ! REMC Current and position
+                 Z_remc = 1.0 * zc_na(1)
+                 R_remc = 1.0 * xc_na(1)
+
+                
+                 do i=1, nt
+                        fr   = 0.    ! B_R
+                        fphi = 0.    ! B_phi
+                        fz   = 0.    ! B_Z
+
+                        phi_now = phi((i-1)*np+1)
+
+                        if ((phi_now.ge.0.0*twopi).and.(phi_now.lt.0.25*twopi)) then
+                                Z_remc = -1.0 * zc_na(1)
+                        else if ((phi_now.ge.0.25*twopi).and.(phi_now.lt.0.5*twopi)) then
+                                Z_remc = 0.6 * zc_na(1)
+                        else if ((phi_now.ge.0.5*twopi).and.(phi_now.lt.0.75*twopi)) then
+                                Z_remc =-0.6 * zc_na(1)
+                        else
+                                Z_remc = 1.0 * zc_na(1)
+                        end if
+
+
+                        call coil(I_remc,R_remc,Z_remc,&
+                        np,x,z,0,fr,fphi,fz) ! RiD: Calculating B-field
+
+                
+
+                        br((i-1)*np+1:i*np) = real(fr(1:np))
+                        bphi((i-1)*np+1:i*np) = real(fphi(1:np))
+                        bz((i-1)*np+1:i*np) = real(fz(1:np))
+                 end do
+
+                 br = -twopi*br
+                 bphi = -twopi*bphi
+                 bz = -twopi*bz
+                 if(present(p)) p = 0.
+
 
   case default
      if(myrank.eq.0) print *, 'Error: Option not recognized: irmp = ', irmp
@@ -419,6 +540,7 @@ subroutine calculate_external_fields(ilin)
   use newvar_mod
   use boundary_conditions
   use gradshafranov
+  use diagnostics
 
   implicit none
 
@@ -445,7 +567,7 @@ subroutine calculate_external_fields(ilin)
      il = ilin
   end if
 
-  if(irmp.eq.1) then
+  if ((irmp .eq. 1) .or. (irmp .ge. 3)) then
      call load_coils(xc_na, zc_na, ic_na, nc_na, &
           'rmp_coil.dat', 'rmp_current.dat')
   end if
@@ -671,8 +793,13 @@ subroutine calculate_external_fields(ilin)
      call mult(bz_field(il), -1.)
   end if
   if(iflip_j.eq.1) then
-     call mult(psi_field(il), -1.)
-     call mult(bfp_field(il), -1.)
+     if (irmp.ge.3) then ! RiD - This was flipping the current
+        call mult(psi_field(il), 1.)
+        call mult(bfp_field(il), 1.)
+     else
+        call mult(psi_field(il), -1.)
+        call mult(bfp_field(il), -1.)
+     end if
   end if
 
   call destroy_vector(psi_vec)
