@@ -1330,9 +1330,10 @@ int matrix_solve::solve(FieldID field_id) {
 // solve with non-zero initial guess
 int matrix_solve::solve_with_guess(FieldID field_id, FieldID xVec_guess) {
   Vec x, b;
-  copyField2PetscVec(field_id, b, get_scalar_type());
-  copyField2PetscVec(xVec_guess, x, get_scalar_type());
   int ierr;
+  ierr=MatCreateVecs(_A, &x, &b);
+  copyField2PetscVec_5(field_id, b, get_scalar_type());
+  copyField2PetscVec_5(xVec_guess, x, get_scalar_type());
   KSPType ksptype;
 
   if (!_kspSet)
