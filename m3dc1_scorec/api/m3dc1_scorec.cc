@@ -1737,6 +1737,36 @@ int m3dc1_ent_getgeomclass (int* /* in */ ent_dim, int* /* in */ ent_id,
 }
 
 //*******************************************************
+int m3dc1_set_nodes_orientation(int* nodes_array)
+//*******************************************************
+{
+  double node0[3], node1[3], node2[3];
+  m3dc1_node_getcoord(&nodes_array[0], node0);
+  m3dc1_node_getcoord(&nodes_array[1], node1);
+  m3dc1_node_getcoord(&nodes_array[2], node2);
+
+  // Same logic as used in FORTRAN side of the code for consistency
+  double x2 = node1[0] - node0[0];
+  double z2 = node1[1] - node0[1];
+  double x3 = node2[0] - node0[0];
+  double z3 = node2[1] - node0[1];
+
+  double hi = 1.0/sqrt(x2*x2 + z2*z2);
+  double co = x2*hi;
+  double sn = z2*hi;
+  
+  double z3p = -sn*x3 + co*z3;
+
+  if (z3p <= 0.0)
+  {
+    int temp = nodes_array[1];
+    nodes_array[1] = nodes_array[2];
+    nodes_array[2] = temp;
+  }
+  return M3DC1_SUCCESS;
+}
+
+//*******************************************************
 int m3dc1_ent_getadj (int* /* in */ ent_dim, int* /* in */ ent_id, 
                       int* /* in */ adj_dim, int* /* out */ adj_ent, 
                       int* /* in */ adj_ent_allocated_size, int* /* out */ adj_ent_size)
@@ -1749,7 +1779,6 @@ int m3dc1_ent_getadj (int* /* in */ ent_dim, int* /* in */ ent_id,
     print_ent_error(__func__, *ent_dim, *ent_id);
 #endif
   assert(e);
-
   if (*adj_dim>*ent_dim) // upward
   {
     apf::Adjacent adjacent;
@@ -1778,6 +1807,11 @@ int m3dc1_ent_getadj (int* /* in */ ent_dim, int* /* in */ ent_id,
     }
     for (int i=0; i<*adj_ent_size; ++i)
       adj_ent[i] = getMdsIndex(mesh, downward[i]);
+ 
+    // Check nodes ordering and fix it if needed
+    if (*ent_dim == 2 && *adj_dim == 0)
+      m3dc1_set_nodes_orientation(adj_ent);
+
     //adjust the order to work with m3dc1
     if (mesh->getDimension()==3 && *ent_dim==3 &&*adj_dim==0 &&adj_ent[0]>adj_ent[3])
     {
@@ -2013,7 +2047,16 @@ int m3dc1_node_getcoord (int* /* in */ node_id, double* /* out */ coord)
   apf::Vector3 xyz;
   m3dc1_mesh::instance()->mesh->getPoint(e, 0, xyz);
   for (int i=0; i<3; ++i)
-    coord[i] = xyz[i]; 
+    coord[i] = xyz[i];
+
+  // Check the plane(If RZ, convert them to XY)
+  double tolerance = 1e-8;
+  if (fabs(coord[1]) <  tolerance)  // Its in RZ plane. change to XY
+  {
+    double temp = coord[1];
+    coord[1] = coord[2];
+    coord[2] = temp;
+  }
   return M3DC1_SUCCESS;
 }
 
@@ -2057,10 +2100,10 @@ int m3dc1_node_getnormvec (int* /* in */ node_id, double* /* out */ xyzt)
       return M3DC1_SUCCESS;
     }
     else 
-    {
+    {/*
       std::cout << "Warning: In case of .dmg models, normal vectors are only provided at \n";
       std::cout << "predefined boundaries while creating mesh, make sure this function is \n";
-      std::cout << "called at the correct model edges at correct boundary loop\n";
+      std::cout << "called at the correct model edges at correct boundary loop\n";*/
 
       // Dummy to return normals so code doesn't crash in case 
       xyzt[0] = 1.0;
@@ -2157,10 +2200,10 @@ int m3dc1_node_getcurv (int* /* in */ node_id, double* /* out */ curv)
       return M3DC1_SUCCESS;
     }
     else 
-    {
+    {/*
       std::cout << "Warning: In case of .dmg models, curvatures are only provided at \n";
       std::cout << "predefined boundaries while creating mesh, make sure this function is \n";
-      std::cout << "called at the correct model edges at correct boundary loop\n";
+      std::cout << "called at the correct model edges at correct boundary loop\n";*/
 
       // Dummy to return normals so code doesn't crash in case 
       *curv = 0.0;
