@@ -49,8 +49,8 @@ module scorec_mesh_mod
   integer, parameter :: BOUND_FIRSTWALL = 1
   integer, parameter :: BOUND_DOMAIN = 2
 
-  integer, parameter :: max_bounds = 20
-  integer, parameter :: max_zones = 20
+  integer, parameter :: max_bounds = 200
+  integer, parameter :: max_zones = 100
   integer :: boundary_type(max_bounds)
   integer :: zone_type(max_zones)
 
@@ -81,6 +81,8 @@ contains
     real, allocatable :: xvals(:)
     integer :: nvals
 #endif
+    integer :: model_type, nedges, i
+    integer, dimension(max_bounds) :: edges
 
     ! load mesh
     call MPI_Comm_size(MPI_COMM_WORLD,maxrank,ier)
@@ -219,6 +221,38 @@ contains
 #endif
     call update_nodes_owned
 
+    call m3dc1_model_getmodeltype(model_type)
+
+    ! For *.dmg model (model_type == 1),
+    ! find edges associated with first wall and computational domain boundary
+    if(model_type.eq.2) then
+       ! Find edges associated with first wall
+       call m3dc1_model_getgeometricloop(edges, nedges, 0)
+       if(myrank.eq.0) &
+            print *, 'nedges for first wall: ', nedges
+       if(nedges.gt.max_bounds) then
+          if(myrank.eq.0) &
+               print *, 'Error: nedges > max_bounds for first wall'
+          call safestop(184)
+       end if
+       do i=1, nedges
+          boundary_type(edges(i)) = BOUND_FIRSTWALL
+       end do
+
+       ! Find edges associated with computational domain boundary
+       call m3dc1_model_getgeometricloop(edges, nedges, 1)
+       if(myrank.eq.0) &
+            print *, 'nedges for domain boundary: ', nedges
+       if(nedges.gt.max_bounds) then
+          if(myrank.eq.0) &
+               print *, 'Error: nedges > max_bounds for domain boundary'
+          call safestop(185)
+       end if
+       do i=1, nedges
+          boundary_type(edges(i)) = BOUND_DOMAIN
+       end do
+    end if
+    
     initialized = .true.
   end subroutine load_mesh
 
