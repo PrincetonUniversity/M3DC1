@@ -97,7 +97,7 @@ contains
     f_field = 0.
   end subroutine runaway_init
   
-  elemental subroutine runaway_current(nre,epar,Temp,Dens,&
+  impure elemental subroutine runaway_current(nre,epar,Temp,Dens,&
                                        Zeff,eta,Ecrit,re_79,&
                                        re_j79,re_epar,dndt,&
                                        mr,bz,bi,ri,z,&
@@ -170,7 +170,7 @@ contains
           vth = sqrt(2*ec*Temp/me) ! Thermal Velocity
           nu = Dens1*ec**4*Clog/(4*pi*eps0**2*me**2*vth**3)
           tau = me*c/ec/Ecrit
-          a = sqrt((1/ri-xmag)**2+(z-zmag)**2)
+          a = sqrt((1/ri-xmag)**2+(z-zmag)**2) ! RiD: ri = 1/R
           r = sqrt(1/ri**2+z**2)
           gamma = 1/(1+1.46*sqrt(a/r)+1.72*a/r) 
           x = (abs(re_epar)*ec*Temp)/(Ecrit*me*c**2) ! Epar / ED
@@ -298,13 +298,22 @@ contains
               
               dndt = (sd*esign + &
 					sbeta*esign + &
-					scomp*esign + sa)*cre*ec*va ! Combining all sources
+					scomp*esign + sa)*cre*ec*va + jre_const/(ri*xmag) ! Combining all sources
 					
               nrel = nre + dndt*dt_si 
+              
+			  if (myrank.eq.16) then ! Printing for debugging
+				 print *, "E-field was more than Ecrit"
+			  endif
                  
           else !  the next section executes when the e-field is less than Ecrit
-              nrel = nre 
-              dndt = 0.
+			if (myrank.eq.16) then ! Printing for debugging
+				print *, "E-field is less than Ecrit"
+				print *, "ri = ", ri
+			endif
+			
+              nrel = nre + jre_const/(ri*xmag) * dt_si  ! RiD Adding jre_const [A/m2/s]
+              dndt = 0. + jre_const/(ri*xmag)  ! RiD Adding jre_const [A/m2/s]
           end if ! ending if(abs(re_epar).gt.Ecrit);
 
        else

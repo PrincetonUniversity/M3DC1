@@ -433,6 +433,7 @@ subroutine set_defaults
   call add_var_int("iTritBeta", iTritBeta, 0, "", model_grp)
   call add_var_int("iCompton", iCompton, 0, "", model_grp)
   call add_var_int("iAvalanche", iAvalanche, 1, "", model_grp)
+  call add_var_double("jre_const", jre_const, 0., "", model_grp)
   call add_var_int("iScaleREMC", iScaleREMC, 0, "", model_grp)
   call add_var_double("init_current", init_current, 1., "", model_grp)
   call add_var_int("ra_characteristics", ra_characteristics, 0, &

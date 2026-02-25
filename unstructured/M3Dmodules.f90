@@ -303,6 +303,7 @@ module basic
   integer :: iTritBeta ! Toggles Tritium Source
   integer :: iAvalanche ! 1 = RP; 2 = Hesslow Model; 3 = Modified RP
   integer :: iCompton ! Toggles Compton RE term
+  real :: jre_const ! Constant RE generation rate [A/m2/s]; default = 0.0
   integer :: iScaleREMC ! If 1 scales the REMC current with plasma current
   real :: init_current ! Current for REMC current scaling (irmp=3)
   integer :: iflip       ! 1 = flip handedness
