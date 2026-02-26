@@ -49,7 +49,7 @@ module scorec_mesh_mod
   integer, parameter :: BOUND_FIRSTWALL = 1
   integer, parameter :: BOUND_DOMAIN = 2
 
-  integer, parameter :: max_bounds = 200
+  integer, parameter :: max_bounds = 1000
   integer, parameter :: max_zones = 100
   integer :: boundary_type(max_bounds)
   integer :: zone_type(max_zones)
@@ -223,9 +223,11 @@ contains
 
     call m3dc1_model_getmodeltype(model_type)
 
-    ! For *.dmg model (model_type == 1),
+    ! For *.dmg model (model_type == 2),
     ! find edges associated with first wall and computational domain boundary
     if(model_type.eq.2) then
+       boundary_type(:) = BOUND_UNKNOWN
+
        ! Find edges associated with first wall
        call m3dc1_model_getgeometricloop(edges, nedges, 0)
        if(myrank.eq.0) &
@@ -236,6 +238,11 @@ contains
           call safestop(184)
        end if
        do i=1, nedges
+          if(edges(i).gt.max_bounds) then
+             if(myrank.eq.0) &
+                  print *, 'Firstwall edge greater than max_bounds', edges(i)
+             call safestop(185)
+          end if
           boundary_type(edges(i)) = BOUND_FIRSTWALL
        end do
 
@@ -246,9 +253,14 @@ contains
        if(nedges.gt.max_bounds) then
           if(myrank.eq.0) &
                print *, 'Error: nedges > max_bounds for domain boundary'
-          call safestop(185)
+          call safestop(186)
        end if
        do i=1, nedges
+          if(edges(i).gt.max_bounds) then
+             if(myrank.eq.0) &
+                  print *, 'Domain edge greater than max_bounds', edges(i)
+             call safestop(187)
+          end if
           boundary_type(edges(i)) = BOUND_DOMAIN
        end do
     end if
