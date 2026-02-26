@@ -854,9 +854,9 @@ subroutine output_mesh(time_group_id, nelms, error)
      if(iadapt.eq.0) call boundary_edge(i, is_edge, normal, idim)
 
      bound = 0.
-     if(is_edge(1).ne.0) bound = bound + 1. + (is_edge(1)-1)*2**3
-     if(is_edge(2).ne.0) bound = bound + 2. + (is_edge(2)-1)*2**7
-     if(is_edge(3).ne.0) bound = bound + 4. + (is_edge(3)-1)*2**11
+     if(is_edge(1).ne.0) bound = bound + 1. + boundary_type(is_edge(1))*2**3
+     if(is_edge(2).ne.0) bound = bound + 2. + boundary_type(is_edge(2))*2**7
+     if(is_edge(3).ne.0) bound = bound + 4. + boundary_type(is_edge(3))*2**11
 
      call get_element_data(i, d)
 
