@@ -306,7 +306,7 @@ subroutine init_particles(lrestart, ierr)
    real :: f1, f2, f3, f4, f5, f6
    integer :: ran_size
    integer, allocatable :: seed(:)
-   integer :: locparts2, izone, ipart
+   integer :: locparts2, izone, ipart, gid_min, gid_max
    real, dimension(:, :, :), allocatable :: mesh_coord_temp
    integer, dimension(:, :), allocatable :: mesh_nodes_temp
    integer, dimension(:), allocatable :: mesh_zone_temp
@@ -452,7 +452,7 @@ subroutine init_particles(lrestart, ierr)
    call get_field_coefs(1)
    !call MPI_Win_fence(0, win_elfieldcoefs)
 
-   npar=nelms_global*npoints
+   npar=nelms_global*npoints*1.1/nrows
 
    !Allocate local storage for particle data
    disp_unit = 1
@@ -494,6 +494,7 @@ subroutine init_particles(lrestart, ierr)
       locparts = 0
       locparts2 = 0
       ipart_begin=0; ipart_end=0
+      gid_min = 1e9; gid_max = 0
 
       !allocate(ran(npar*5))
       !call random_number(ran)
@@ -566,26 +567,31 @@ subroutine init_particles(lrestart, ierr)
                dpar%f0=dot_product(geomterms%g, elfieldcoefs(itri)%nrev1)
                locparts2 = (itri-1)*npoints+ipar
                dpar%gid = locparts2
+               locparts2 = locparts2-(ielm_min-1)*npoints
+               if (gid_min>locparts2) gid_min=locparts2
+               if (gid_max<locparts2) gid_max=locparts2
                locparts = locparts + 1
                pdata(locparts2) = dpar
             endif
          end do !iz
       end do
 
-      allocate (recvcounts(ncols))
-      allocate (displs(ncols))
-      sendcount = locparts
-      recvcounts(hostrank + 1) = sendcount
-      call MPI_ALLGATHER(sendcount, 1, MPI_INTEGER, recvcounts, 1, MPI_INTEGER, hostcomm, ierr)
+      !allocate (recvcounts(ncols))
+      !allocate (displs(ncols))
+      !sendcount = locparts
+      !recvcounts(hostrank + 1) = sendcount
+      !call MPI_ALLGATHER(sendcount, 1, MPI_INTEGER, recvcounts, 1, MPI_INTEGER, hostcomm, ierr)
+      !ipart_begin = 1
+      !ipart_end = sum(recvcounts)
+      call mpi_allreduce(gid_min, ipart_begin, 1, MPI_INTEGER, MPI_MIN, hostcomm, ierr)
+      call mpi_allreduce(gid_max, ipart_end, 1, MPI_INTEGER, MPI_MAX, hostcomm, ierr)
       call mpi_barrier(mpi_comm_world, ierr)
-      ipart_begin = 1
-      ipart_end = sum(recvcounts)
       if (hostrank == 0) then
          write(0,*) ipart_begin, ipart_end
          do  ipart = ipart_begin, ipart_end
             itri=int((pdata(ipart)%gid-1)/npoints)+1
             ipar=mod((pdata(ipart)%gid-1),npoints)+1
-            !write(0,*) ipar,itri,ipart
+            ! write(0,*) ipar,itri,ipart
             particle_map(ipar,itri)=ipart
          end do
       end if
