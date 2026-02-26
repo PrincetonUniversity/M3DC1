@@ -296,24 +296,17 @@ contains
                       sa = 0.
               endif ! ending if (re_epar*nre<0)
               
-              dndt = (sd*esign + &
+              dndt = ((sd*esign + &
 					sbeta*esign + &
-					scomp*esign + sa)*cre*ec*va + jre_const/(ri*xmag) ! Combining all sources
+					scomp*esign + sa)*cre*ec*va + jre_const) ! Combining all sources
 					
               nrel = nre + dndt*dt_si 
               
-			  if (myrank.eq.16) then ! Printing for debugging
-				 print *, "E-field was more than Ecrit"
-			  endif
                  
           else !  the next section executes when the e-field is less than Ecrit
-			if (myrank.eq.16) then ! Printing for debugging
-				print *, "E-field is less than Ecrit"
-				print *, "ri = ", ri
-			endif
 			
-              nrel = nre + jre_const/(ri*xmag) * dt_si  ! RiD Adding jre_const [A/m2/s]
-              dndt = 0. + jre_const/(ri*xmag)  ! RiD Adding jre_const [A/m2/s]
+              nrel = nre + jre_const * dt_si  ! RiD Adding jre_const [A/m2/s]
+              dndt = 0. + jre_const  ! RiD Adding jre_const [A/m2/s]
           end if ! ending if(abs(re_epar).gt.Ecrit);
 
        else
