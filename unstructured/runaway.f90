@@ -8,6 +8,7 @@ module runaway_mod
   use kprad_m3dc1
   use auxiliary_fields
 
+
   implicit none
 
   type(field_type), private :: dnre_field1,dndt_field,f_field
@@ -319,6 +320,10 @@ contains
        if (abs(re_j79) .ge. abs(ri*bz)) then
             dndt = 0.
        endif
+
+       if (isnan(dndt)) then ! RiD: Check for physical values
+           dndt = 0.
+       end if
 
   end subroutine runaway_current
 
