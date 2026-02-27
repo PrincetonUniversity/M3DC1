@@ -256,6 +256,7 @@ void load_model(const char* filename)
     int loop; // loop ID
     fscanf(fp,"%d %d\n", &loop, &numE);
     loop_ids[i] = loop;
+    m3dc1_model::instance()->numModelEdges += numE;
     // first read all vtx on the loop
     for( int j=0; j<numE; j++)
     {

@@ -949,7 +949,12 @@ int m3dc1_modelinfo_load(char* /* in */ modelInfo_file)
   m3dc1_model::instance()->boundingBox[1]= z_min;
   m3dc1_model::instance()->boundingBox[2]= r_max;
   m3dc1_model::instance()->boundingBox[3]= z_max;
-  
+
+  // Read total number of edges on the model
+  int numModelEdges = 0;
+  ifs >> numModelEdges;
+  m3dc1_model::instance()->numModelEdges = numModelEdges;
+
   // Read innermost loop
   int numEdges = 0;
   ifs >> numEdges;
@@ -968,6 +973,13 @@ int m3dc1_modelinfo_load(char* /* in */ modelInfo_file)
     ifs >> edgeId;
     m3dc1_model::instance()->outerLoop.push_back(edgeId);
   } 
+}
+
+// ****************************************************
+void m3dc1_model_getnumedges(int* numedges)
+// ****************************************************
+{
+  *numedges = m3dc1_model::instance()->numModelEdges;
 }
 
 // ****************************************************

@@ -104,6 +104,7 @@ public:
   int modelType = 1;  // = 1 for analytical, = 2 for PUMI (.dmg) model
   std::vector <int> innerLoop;
   std::vector <int> outerLoop;
+  int numModelEdges = 0;
   double* phi;
   int numEntOrig[3];
   double boundingBox[4];

@@ -61,6 +61,7 @@ int m3dc1_plane_getphi(int* planeid, double* phi);
 /** model functions */
 int m3dc1_model_load(char* /* in */ model_file);
 int m3dc1_modelinfo_load(char* /* in */ modelInfo_file);
+void m3dc1_model_getnumedges(int* numedges);
 void m3dc1_model_getgeometricloop(int* modelEdges, int* numberOfEdges, int* loopType);
 void m3dc1_model_getmodeltype(int* modeltype);
 int m3dc1_model_print();
