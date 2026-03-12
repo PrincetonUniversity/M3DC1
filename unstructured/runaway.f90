@@ -116,7 +116,7 @@ contains
     real, intent(in) :: Temp ! [eV]
     real, intent(in) :: Dens ! Total Elec. Density [1/m^3]
     real, intent(in) :: Dens_ion ! Ion Density [1/m^3]
-    real, intent(in) :: Dens_imp ! Impurity Density [1/m^3]
+    real, intent(inout) :: Dens_imp ! Impurity Density [1/m^3]
     real, intent(in) :: btoroidal ! Toroidal Field * R [Tesla - m]
     real, intent(in) :: Zeff ! [1]
     real, intent(in) :: bz
@@ -244,7 +244,18 @@ contains
                     /(Ed**2+4/gamma**2-1)) 
                 else if (iAvalanche.eq.2) then ! Hesslow 2019 Model 
 					Zval = (/1., real(kprad_z) /) ! Max Ionization
-					Zimp = (Dens1 - Dens_ion)/Dens_imp ! Avg. impurity ionization
+					
+					if (Dens_imp < 1.e-3 * Dens_ion) then! Note this sets the minimum impurity density to affect the avalanching rate
+						Zimp = 0.0
+						Dens_imp = 0.0 
+					else
+						Zimp = (Dens1 - Dens_ion)/Dens_imp ! Avg. impurity ionization
+					endif
+					
+					if (Zimp > Zval(2)) then ! Check on imp. ionization level
+						Zimp = Zval(2)
+					endif
+					
 					Z0val = (/1.,  Zimp/)
 					nj = (/Dens_ion, Dens_imp /) ! Density [per cubic m]
 					ne_free = sum(Z0val * nj) ! Free elec. density [per cubic m]
@@ -265,16 +276,16 @@ contains
 						2,Temp,"Ne",btoroidal*ri,Yhigh)
 					sa = (1.0_dp - weight) * Ylow + weight * Yhigh ! Combine [per second]
 !~ 					!! ****** RiD: For Debugging *****!!
-!~ 					if (myrank.eq.8) then ! Printing
-!~ 						print *, "Yava [s-1] = ", sa
-!~ 						print *, "ne, ni, nz = ", Dens1, Dens_ion, Dens_imp
-!~ 						print *, "Estar = ", Estar
-!~ 						print *, "Temp = ", Temp
-!~ 						print *, "Btor = ", btoroidal
-!~ 						print *, "ri = ", ri
-!~ 						print *, "z = ", z
-!~                        print *, "rank = ", myrank
-!~                     end if
+!~ 					!if (true) then ! Printing
+!~ 					print *, "Yava [s-1] = ", sa
+!~ 					print *, "ne, ni, nz, nfree = ", Dens1, Dens_ion, Dens_imp, ne_free
+!~ 					print *, "Zval, Zimp = ", Zval(2), Zimp
+!~ 					print *, "Estar = ", Estar
+!~ 					print *, "Temp = ", Temp
+!~ 					print *, "Btor = ", btoroidal
+!~ 					print *, "ri = ", ri
+!~ 					print *, "z = ", z
+!~                     !end if
 !~                     !! ********** !!
 					sa = nra * sa 
 				else if (iAvalanche.eq.3) then ! Simple RP Model
@@ -282,7 +293,18 @@ contains
 					Ech = ec**3 * Dens1 * lnAc / (me * c**2 * 4.0_dp * pi * eps0**2) ! Connor Hastie Field [V/m]
 					Estar = abs(re_epar)/Ech ! Normalized E-field [-]
 					ntot = Dens_ion * 1.0 + Dens_imp * kprad_z ! Total e density
-					Zimp = (Dens1 - Dens_ion)/Dens_imp ! Avg. impurity ionization
+					
+					if (Dens_imp < 1.e-3 * Dens_ion) then! Note this sets the minimum impurity density to affect the avalanching rate
+						Zimp = 0.0
+						Dens_imp = 0.0 
+					else
+						Zimp = (Dens1 - Dens_ion)/Dens_imp ! Avg. impurity ionization
+					endif
+					
+					if (Zimp > real(kprad_z)) then ! Check on imp. ionization level
+						Zimp = real(kprad_z)
+					endif
+					
 					Zeff_val = (Dens_ion * 1**2 + Dens_imp * Zimp**2)/Dens1
 					sa = 1 * (ntot/Dens1) * ec/(me*c*lnAc) * Ech/sqrt(Zeff_val+5) * (Estar-1)
 !~ 					if (myrank.eq.1) then
@@ -938,7 +960,7 @@ contains
     Ec = e**3 * ne_free * lnAc / (me * c**2 * 4.0_dp * pi * epsilon0**2) ! Connor Hastie Field [V/m]
     Epar = Ec * E_star ! Parallel Electric Field [V/m]
 
-    if (abs(ne_free - ntot) < 1.0e-5_dp) then ! Check if fully ionized
+    if (abs(ne_free - ntot) < 1.0e10) then ! Check if fully ionized
         Zeff = sum((Z0**2)*nj) / ne_free ! Use Rosenbluth-Putvinski Model
         Eceff = Ec
         nuD = 1.0_dp + Zeff
