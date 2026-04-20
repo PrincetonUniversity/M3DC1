@@ -104,6 +104,10 @@ endif
    BIN_POSTFIX := $(BIN_POSTFIX)-acc
  endif
 
+ifeq ($(KOKKOS), 1)
+  BIN_POSTFIX := $(BIN_POSTFIX)-kokkos
+endif
+
 OOPTS := $(OPTS) -DPETSC_FORTRAN_PETSCTRUTH_INT #-DCJ_MATRIX_DUMP
 
 # add date stamp
@@ -119,6 +123,7 @@ export USE3D
 export USERW
 export TAU
 export HPCTK
+export KOKKOS
 include target.mk
 
 else
@@ -139,6 +144,11 @@ endif
 
 
 include $(SRCDIR)/$(ARCH).mk
+# Default: compile kokkos_gemm.cc with the regular C++ compiler.
+# GPU .mk files override this with nvcc -x cu -ccbin CC.
+# GPU .mk files override these with nvcc -x cu -ccbin CC and nvcc-safe flags.
+KOKKOS_CPP ?= $(CPP)
+KOKKOS_CCOPTS ?= $(CCOPTS)
 BIN = m3dc1
 
 ifeq ($(3D), 1)
@@ -209,6 +219,10 @@ ifeq ($(ACC), 1)
 	OBJS := $(OBJS:ludef_t.o=ludef_t_gpu.o)
 endif
 
+ifeq ($(KOKKOS), 1)
+	OBJS += kokkos_gemm.o
+endif
+
 S2V_OBJS = subp.o math.o element.o scorec_mesh.o struct2vac.o
 A2CC_OBJS = readaeqdsk.o a2cc.o
 
@@ -217,6 +231,13 @@ $(BIN): $(OBJS)
 
 m3dc1 : $(BIN)
 	ln -s $< $@
+
+# kokkos_gemm.cc needs Kokkos-specific C++ flags beyond the default CCOPTS.
+# This rule lives here (after $(BIN)) so it never becomes the default goal.
+ifeq ($(KOKKOS), 1)
+kokkos_gemm.o : $(SRCDIR)/kokkos_gemm.cc
+	$(KOKKOS_CPP) $(KOKKOS_CCOPTS) $(KOKKOS_CXXFLAGS) $(INCLUDE) $< -o $@
+endif
 
 readgato :  $(READGATO_OBJS)
 	$(F90) $(READGATO_OBJS) -L$(PSPLINE_DIR)/lib -lpspline -o $@

@@ -339,12 +339,27 @@ contains
 
   subroutine define_basis(itri)
     use basic
+    use iso_c_binding, only: c_int, c_double
     implicit none
+
+#ifdef USEKOKKOS
+    ! Interface to Kokkos GEMM kernel in kokkos_gemm.cc
+    ! Computes C(M x N) = A(M x K) * B^T(K x N), column-major arrays.
+    interface
+      subroutine kokkos_dgemm_nt(M, N, K, A, B, C) &
+                 bind(C, name='kokkos_dgemm_nt')
+        use iso_c_binding
+        integer(c_int), value, intent(in) :: M, N, K
+        real(c_double), intent(in)        :: A(*), B(*)
+        real(c_double), intent(out)       :: C(*)
+      end subroutine
+    end interface
+#endif
 
     integer, intent(in) :: itri
     real, dimension(dofs_per_element,coeffs_per_element) :: cl
     integer :: i
-#ifndef USEBLAS
+#if !defined(USEBLAS) && !defined(USEKOKKOS)
     integer :: p, op
 #elif defined(USECOMPLEX)
     real, dimension(dofs_per_element, MAX_PTS, OP_NUM) :: real_mu
@@ -354,9 +369,20 @@ contains
        cl = ctri(:,:,itri)
     else
        call local_coeff_vector(itri, cl)
-    endif 
+    endif
 
-#ifdef USEBLAS
+#ifdef USEKOKKOS
+
+#ifdef USECOMPLEX
+    call kokkos_dgemm_nt(dofs_per_element, MAX_PTS*OP_NUM, coeffs_per_element, &
+                         cl, fterm, real_mu)
+    mu79 = real_mu
+#else
+    call kokkos_dgemm_nt(dofs_per_element, MAX_PTS*OP_NUM, coeffs_per_element, &
+                         cl, fterm, mu79)
+#endif
+
+#elif defined(USEBLAS)
 
 #ifdef USECOMPLEX
     call dgemm('N','T',dofs_per_element,MAX_PTS*OP_NUM,coeffs_per_element, &
@@ -369,7 +395,7 @@ contains
                0.,mu79,dofs_per_element)
 #endif
 
-#else ! USEBLAS not defined
+#else ! neither USEKOKKOS nor USEBLAS: reference loop
     mu79 = 0.
     do op=1, OP_NUM
        do i=1, dofs_per_element

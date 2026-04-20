@@ -1,4 +1,8 @@
-FOPTS = -c -fdefault-real-8 -fdefault-double-8 -cpp -DPETSC_VERSION=319 -DUSEBLAS $(OPTS) 
+ifeq ($(KOKKOS), 1)
+  FOPTS = -c -fdefault-real-8 -fdefault-double-8 -cpp -DPETSC_VERSION=319 -DUSEKOKKOS $(OPTS)
+else
+  FOPTS = -c -fdefault-real-8 -fdefault-double-8 -cpp -DPETSC_VERSION=319 -DUSEBLAS $(OPTS)
+endif
 CCOPTS  = -c -O -DPETSC_VERSION=319
 R8OPTS = -fdefault-real-8 -fdefault-double-8
 
@@ -40,8 +44,8 @@ F77OPTS = $(F77FLAGS) $(FOPTS)
 
 PETSC_DIR=/global/cfs/cdirs/mp288/jinchen/PETSC/production/petsc.20230606
 ifeq ($(COM), 1)
-  PETSC_ARCH=perlmuttercpu-gnu-cplx-860
-  PETSC_WITH_EXTERNAL_LIB = -Wl,-rpath,/global/cfs/cdirs/mp288/jinchen/PETSC/production/petsc.20230606/perlmuttercpu-gnu-cplx/lib -L/global/cfs/cdirs/mp288/jinchen/PETSC/production/petsc.20230606/perlmuttercpu-gnu-cplx/lib -Wl,-rpath,/opt/cray/pe/mpich/8.1.30/ofi/gnu/12.3/lib -L/opt/cray/pe/mpich/8.1.30/ofi/gnu/12.3/lib -Wl,-rpath,/opt/cray/pe/libsci/24.07.0/GNU/12.3/x86_64/lib -L/opt/cray/pe/libsci/24.07.0/GNU/12.3/x86_64/lib -Wl,-rpath,/opt/cray/pe/fftw/3.3.10.6/x86_milan/lib -L/opt/cray/pe/fftw/3.3.10.6/x86_milan/lib -Wl,-rpath,/opt/cray/pe/netcdf-hdf5parallel/4.9.0.9/gnu/12.3/lib -L/opt/cray/pe/netcdf-hdf5parallel/4.9.0.9/gnu/12.3/lib -Wl,-rpath,/opt/cray/pe/hdf5-parallel/1.12.2.9/gnu/12.3/lib -L/opt/cray/pe/hdf5-parallel/1.12.2.9/gnu/12.3/lib -Wl,-rpath,/global/common/software/nersc9/darshan/3.4.6-gcc-13.2.1/lib -L/global/common/software/nersc9/darshan/3.4.6-gcc-13.2.1/lib -Wl,-rpath,/opt/cray/pe/dsmml/0.3.0/dsmml/lib -L/opt/cray/pe/dsmml/0.3.0/dsmml/lib -Wl,-rpath,/usr/lib64/gcc/x86_64-suse-linux/13 -L/usr/lib64/gcc/x86_64-suse-linux/13 -Wl,-rpath,/usr/x86_64-suse-linux/lib -L/usr/x86_64-suse-linux/lib -lpetsc -lzmumps -lmumps_common -lpord -lpthread -lscalapack -lsuperlu_dist -lsuperlu -lzoltan -lparmetis -lmetis -lgsl -lgslcblas -ldarshan -llustreapi -lz -ldl -lxpmem -lgfortran -lm -lhdf5_hl_parallel -lhdf5_parallel -lhdf5hl_fortran_parallel -lhdf5_fortran_parallel -lfftw3f_mpi -lfftw3f_threads -lfftw3f -lfftw3_mpi -lfftw3_threads -lfftw3 -lnetcdf -lnetcdff -lmpifort_gnu_123 -lsci_gnu_mpi -lmpi_gnu_123 -lsci_gnu -ldsmml -lgfortran -lquadmath -lpthread -lm -lgcc_s -lstdc++ -lquadmath
+  PETSC_ARCH=perlmuttercpu-gnu-cplx-860-kokkos
+  PETSC_WITH_EXTERNAL_LIB = -Wl,-rpath,/global/cfs/cdirs/mp288/jinchen/PETSC/production/petsc.20230606/perlmuttercpu-gnu-cplx-860-kokkos/lib -L/global/cfs/cdirs/mp288/jinchen/PETSC/production/petsc.20230606/perlmuttercpu-gnu-cplx-860-kokkos/lib -Wl,-rpath,/opt/cray/pe/perftools/24.07.0/lib64 -L/opt/cray/pe/perftools/24.07.0/lib64 -Wl,-rpath,/opt/cray/pe/mpich/9.0.1/ofi/gnu/12.3/lib -L/opt/cray/pe/mpich/9.0.1/ofi/gnu/12.3/lib -Wl,-rpath,/opt/cray/pe/libsci/25.09.0/GNU/12.3/x86_64/lib -L/opt/cray/pe/libsci/25.09.0/GNU/12.3/x86_64/lib -Wl,-rpath,/opt/cray/pe/fftw/3.3.10.11/x86_milan/lib -L/opt/cray/pe/fftw/3.3.10.11/x86_milan/lib -Wl,-rpath,/opt/cray/pe/netcdf-hdf5parallel/4.9.2.1/gnu/12.3/lib -L/opt/cray/pe/netcdf-hdf5parallel/4.9.2.1/gnu/12.3/lib -Wl,-rpath,/opt/cray/pe/hdf5-parallel/1.14.3.7/gnu/12.3/lib -L/opt/cray/pe/hdf5-parallel/1.14.3.7/gnu/12.3/lib -Wl,-rpath,/opt/cray/pe/dsmml/0.3.1/dsmml/lib -L/opt/cray/pe/dsmml/0.3.1/dsmml/lib -Wl,-rpath,/opt/cray/pe/perftools/24.07.0/libexec64 -L/opt/cray/pe/perftools/24.07.0/libexec64 -Wl,-rpath,/usr/lib64/gcc/x86_64-suse-linux/14 -L/usr/lib64/gcc/x86_64-suse-linux/14 -Wl,-rpath,/usr/x86_64-suse-linux/lib -L/usr/x86_64-suse-linux/lib -lpetsc -lzmumps -lmumps_common -lpord -lpthread -lscalapack -lsuperlu_dist -lsuperlu -lkokkoskernels -lkokkoscontainers -lkokkoscore -lkokkossimd -lzoltan -lparmetis -lmetis -lgsl -lgslcblas -ldl -lxpmem -lgfortran -lm -lhdf5_hl_parallel -lhdf5_parallel -lhdf5hl_fortran_parallel -lhdf5_fortran_parallel -lfftw3f_mpi -lfftw3f_threads -lfftw3f -lfftw3_mpi -lfftw3_threads -lfftw3 -lnetcdf -lnetcdff -lmpifort_gnu_123 -lsci_gnu_mpi -lmpi_gnu_123 -lsci_gnu -ldsmml -lgfortran -lquadmath -lpthread -lm -lgcc_s -lstdc++ -lquadmath
 else
   PETSC_ARCH=perlmuttercpu-gnu-860
   PETSC_WITH_EXTERNAL_LIB = -Wl,-rpath,/global/cfs/cdirs/mp288/jinchen/PETSC/production/petsc.20230606/perlmuttercpu-gnu/lib -L/global/cfs/cdirs/mp288/jinchen/PETSC/production/petsc.20230606/perlmuttercpu-gnu/lib -Wl,-rpath,/opt/cray/pe/mpich/8.1.30/ofi/gnu/12.3/lib -L/opt/cray/pe/mpich/8.1.30/ofi/gnu/12.3/lib -Wl,-rpath,/opt/cray/pe/libsci/24.07.0/GNU/12.3/x86_64/lib -L/opt/cray/pe/libsci/24.07.0/GNU/12.3/x86_64/lib -Wl,-rpath,/opt/cray/pe/fftw/3.3.10.6/x86_milan/lib -L/opt/cray/pe/fftw/3.3.10.6/x86_milan/lib -Wl,-rpath,/opt/cray/pe/netcdf-hdf5parallel/4.9.0.9/gnu/12.3/lib -L/opt/cray/pe/netcdf-hdf5parallel/4.9.0.9/gnu/12.3/lib -Wl,-rpath,/opt/cray/pe/hdf5-parallel/1.12.2.9/gnu/12.3/lib -L/opt/cray/pe/hdf5-parallel/1.12.2.9/gnu/12.3/lib -Wl,-rpath,/global/common/software/nersc9/darshan/3.4.6-gcc-13.2.1/lib -L/global/common/software/nersc9/darshan/3.4.6-gcc-13.2.1/lib -Wl,-rpath,/opt/cray/pe/dsmml/0.3.0/dsmml/lib -L/opt/cray/pe/dsmml/0.3.0/dsmml/lib -Wl,-rpath,/usr/lib64/gcc/x86_64-suse-linux/13 -L/usr/lib64/gcc/x86_64-suse-linux/13 -Wl,-rpath,/usr/x86_64-suse-linux/lib -L/usr/x86_64-suse-linux/lib -lpetsc -ldmumps -lmumps_common -lpord -lpthread -lscalapack -lsuperlu_dist -lsuperlu -lkokkoskernels -lkokkoscontainers -lkokkoscore -lkokkossimd -lzoltan -lparmetis -lmetis -lgsl -lgslcblas -ldarshan -llustreapi -lz -ldl -lxpmem -lgfortran -lm -lhdf5_hl_parallel -lhdf5_parallel -lhdf5hl_fortran_parallel -lhdf5_fortran_parallel -lfftw3f_mpi -lfftw3f_threads -lfftw3f -lfftw3_mpi -lfftw3_threads -lfftw3 -lnetcdf -lnetcdff -lmpifort_gnu_123 -lsci_gnu_mpi -lmpi_gnu_123 -lsci_gnu -ldsmml -lgfortran -lquadmath -lpthread -lm -lgcc_s -lstdc++ -lquadmath
@@ -85,6 +89,13 @@ ifeq ($(ST), 1)
   INCLUDE += -I$(HDF5_DIR)/include -I$(NETCDF_DIR)/include
 endif
 
+
+# Kokkos (Serial/CPU backend).  Kokkos headers and libs are provided by PETSc
+# on Perlmutter (already in PETSC_ARCH/include and PETSC_WITH_EXTERNAL_LIB).
+KOKKOS_CXXFLAGS =
+ifeq ($(KOKKOS), 1)
+  KOKKOS_CXXFLAGS = -std=c++17
+endif
 
 %.o : %.c
 	$(CC)  $(CCOPTS) $(INCLUDE) $< -o $@
