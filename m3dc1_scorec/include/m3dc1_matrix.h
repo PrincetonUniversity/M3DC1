@@ -99,8 +99,6 @@ public:
   int solve_with_guess(FieldID field_id, FieldID xVec_guess);
   int set_bc(int row);
   int set_row(int row, int numVals, int *colums, double *vals);
-  int add_blockvalues(int rbsize, PetscInt *rows, int cbsize, PetscInt *columns,
-                      double *values);
   int reset_values();
   int update_values();
   virtual int get_type() const { return 1; }
@@ -110,11 +108,9 @@ public:
   PetscInt its;
 
 private:
-  int setUpRemoteAStruct();
   int setKspType();
   int _kspSet;
   KSP _ksp;
-  Mat remoteA;
 
   // block mg in toroidal direction
   int _BgmgSet;         // only for mymatrix_id=5 or 17, the hard ones
@@ -125,11 +121,6 @@ private:
   PC *mg_level_pc;
   int setBgmgType();
   int mapping(int, int, int, int, int, int, int, int, int *, int *, int *);
-
-  // remoteA related data
-  std::set<int> *remotePidOwned;
-  std::map<int, std::map<int, int>> *remoteNodeRow; // <pid, <locnode>, numAdj >
-  std::map<int, int> *remoteNodeRowSize;
 };
 
 class m3dc1_solver {

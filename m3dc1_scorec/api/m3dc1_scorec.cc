@@ -3806,14 +3806,9 @@ int m3dc1_matrix_insertblock(int* matrix_id, int * ielm,
   else
   {
     matrix_solve* smat = dynamic_cast<matrix_solve*> (mat);
-    int nodeOwner[6];
-    PetscInt columns_bloc[6], rows_bloc[6];
     for (int inode=0; inode<nodes_per_element; inode++)
     {
-      m3dc1_ent_getownpartid (&ent_dim, nodes+inode, nodeOwner+inode);
       m3dc1_ent_getglobaldofid (&ent_dim, nodes+inode, &field, &start_global_dof_id, &end_global_dof_id_plus_one);
-      rows_bloc[inode]=nodes[inode]*numVar+*rowIdx;
-      columns_bloc[inode]=nodes[inode]*numVar+*columnIdx;
       for (int i=0; i<dofPerVar; i++)
       {
         rows[inode*dofPerVar+i]=start_global_dof_id+(*rowIdx)*dofPerVar+i;
@@ -3824,10 +3819,7 @@ int m3dc1_matrix_insertblock(int* matrix_id, int * ielm,
     int offset=0;
     for (int inode=0; inode<nodes_per_element; inode++)
     {
-      if (nodeOwner[inode]!=PCU_Comm_Self()&&!m3dc1_solver::instance()->assembleOption)
-        smat->add_blockvalues(1, rows_bloc+inode, nodes_per_element, columns_bloc, values+offset);
-      else 
-        smat->add_values(dofPerVar, rows+dofPerVar*inode, dofPerVar*nodes_per_element, columns, values+offset);
+      smat->add_values(dofPerVar, rows+dofPerVar*inode, dofPerVar*nodes_per_element, columns, values+offset);
       offset+=numValuesNode;
     }
   }
