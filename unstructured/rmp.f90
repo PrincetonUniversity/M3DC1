@@ -410,9 +410,9 @@ subroutine rmp_field(n, nt, np, x, phi, z, br, bphi, bz, p)
                         if ((phi_now.ge.0.0*twopi).and.(phi_now.lt.0.25*twopi)) then
                                 Z_remc = -1.0 * zc_na(1)
                         else if ((phi_now.ge.0.25*twopi).and.(phi_now.lt.0.5*twopi)) then
-                                Z_remc = 0.6 * zc_na(1)
+                                Z_remc = 0.0 * zc_na(1)
                         else if ((phi_now.ge.0.5*twopi).and.(phi_now.lt.0.75*twopi)) then
-                                Z_remc =-0.6 * zc_na(1)
+                                Z_remc =-0.0 * zc_na(1)
                         else
                                 Z_remc = 1.0 * zc_na(1)
                         end if
