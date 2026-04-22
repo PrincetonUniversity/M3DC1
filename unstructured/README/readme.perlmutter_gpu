@@ -12,24 +12,30 @@
    git push origin master
 
 3. load modules and set environment
-   for development modules:
+   for development modules using PrgEnv-nvidia:
        export M3DC1_CODE_DIR=$HOME/src/M3DC1  [for example]
        module use $M3DC1_CODE_DIR/unstructured/modules/perlmutter
        module load m3dc1/devel-gpu
 
-   or 
-      module load PrgEnv-nvidia/8.3.3 fast-mkl-amd darshan
+   for development modules using PrgEnv-gnu:
+       export M3DC1_CODE_DIR=$HOME/src/M3DC1  [for example]
+       module use $M3DC1_CODE_DIR/unstructured/modules/perlmutter
+       module load m3dc1/devel-gpu-gcc
 
 4. compile code
 
+   using PrgEnv-nvidia
    make ARCH=perlmutter_gpu all
     (make OPT=1 RL=1 MAX_PTS=25 ARCH=perlmutter_gpu
      make OPT=1 COM=1 MAX_PTS=25 ARCH=perlmutter_gpu
+     make OPT=1 COM=1 MAX_PTS=25 ARCH=perlmutter_gpu PAR=1
      make 3D=1 OPT=1 MAX_PTS=60 ARCH=perlmutter_gpu
      make 3D=1 OPT=1 MAX_PTS=60 ARCH=perlmutter_gpu ST=1
-     (These modules crashes at restart: cray-hdf5-parallel/1.12.0.7 cray-netcdf-hdf5parallel/4.7.4.7
-      So rebuilt hdf5, netcdf-c, netcdf-fortran on 2/15/2022.)
+     make 3D=1 OPT=1 MAX_PTS=60 ARCH=perlmutter_gpu ST=1 PAR=1
     )
+
+   using PrgEnv-gnu
+   make ARCH=perlmutter_gpu_gcc all
 
 5. mesh utility
    see $SCOREC_UTIL_DIR in perlmutter_gpu.mk
@@ -75,7 +81,7 @@
   srun ... (see 7.2)
 
 7.2 batch mode
-   sample slurm script "batchjob.perlmutter_gpu"
+   sample slurm script "batchjob.perlmutter_gpu_gcc"
 
    #!/bin/bash
    #SBATCH -A mp288
@@ -92,6 +98,53 @@
    srun -n 32 m3dc1_2d_complex -pc_factor_mat_solver_type mumps
    srun -n 32 m3dc1_2d -pc_factor_mat_solver_type mumps
    srun -n 32 m3dc1_3d -options_file options_bjacobi.type_mumps
+
+7.3.1 batch mode using nvidia MPS service on 1 node
+   doc: https://docs.nersc.gov/systems/perlmutter/running-jobs/
+
+   #!/bin/bash
+   #SBATCH -A mp288
+   #SBATCH -p debug
+   #SBATCH -C gpu
+   #SBATCH -n 48
+   #SBATCH --gpus-per-node=4
+   #SBATCH -J Stellarator
+   #SBATCH -t 0:30:00
+   #SBATCH -o C1stdout
+
+   export SLURM_CPU_BIND="cores"
+
+   # To run job on one node, use 
+   	nvidia-cuda-mps-control -d
+   # to start mps service, then start your run as usual
+
+   $M3DC1_MPIRUN -n $SLURM_NTASKS m3dc1_3d_st -options_file options_bjacobi1 -mhard_mat_type aijkokkos
+
+   # Please note the additional runtime option "-mhard_mat_type aijkokkos". In the end of run, using 
+   	echo quit | nvidia-cuda-mps-control
+   # to shutdown mps service
+
+7.3.2 batch mode using nvidia MPS service on 1 node
+   doc: https://docs.nersc.gov/systems/perlmutter/running-jobs/
+
+   #!/bin/bash
+   #SBATCH -A mp288
+   #SBATCH -p debug
+   #SBATCH -C gpu
+   #SBATCH -n 256
+   #SBATCH --gpus-per-node=4
+   #SBATCH -J Stellarator
+   #SBATCH -t 0:30:00
+   #SBATCH -o C1stdout
+
+   export SLURM_CPU_BIND="cores"
+
+   # To run jobs on multiple nodes,
+   # use mps-wrapper.sh to start and stop the MPS service.
+   # A copy of mps-wrapper.sh has been saved as:
+   # $M3DC1_CODE_DIR/unstructured/regtest/mps-wrapper.sh
+
+   $M3DC1_MPIRUN -n $SLURM_NTASKS ./mps-wrapper.sh m3dc1_3d_st -options_file options_bjacobi1 -mhard_mat_type aijkokkos
 
 8. regression tests
    cd unstructured

@@ -30,8 +30,7 @@ from m3dc1.time_trace_fast      import plot_gamma_n
 from m3dc1.time_trace_fast      import write_gamma_n
 #from m3dc1.time_trace_fast      import eval_growth_n
 from m3dc1.time_trace_fast      import compare_gamma_n
-from m3dc1.time_trace_fast      import omegastari
-
+from m3dc1.omegastari           import omegastari
 
 from m3dc1.unit_conv            import unit_conv
 from m3dc1.compensate_renorm    import compensate_renorm
@@ -60,6 +59,8 @@ from m3dc1.gamma_file           import Gamma_file
 from m3dc1.extract_profiles     import extract_profiles
 from m3dc1.extract_profiles     import convert_p
 
+from m3dc1.get_plasma_params    import get_collisionality
+from m3dc1.get_plasma_params    import get_pedestal_structure
 
 from m3dc1.poincare             import run_trace
 from m3dc1.poincare             import plot_poincare

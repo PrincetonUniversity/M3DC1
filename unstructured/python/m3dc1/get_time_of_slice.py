@@ -14,7 +14,7 @@ from m3dc1.read_h5 import readParameter
 
 def get_time_of_slice(time,sim=None,filename='C1.h5',units='mks',millisec=False,quiet=False):
     """
-    Return time of time slice in s or M3D-C1 units.
+    Return time of time slice in seconds or M3D-C1 units.
     
     Arguments:
 

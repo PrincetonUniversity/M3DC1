@@ -190,8 +190,9 @@ def plot_shape(sim=None, filename='C1.h5', gfile=None, time=-1, phi=0, res=250, 
         #try:
         #print(times[i])
         #print(si.get_time_trace('xmag'))
-        R_magax = si.get_time_trace('xmag').values[times[i]]
-        Z_magax = si.get_time_trace('zmag').values[times[i]]
+        timestep = fpyl.get_ntimesteps(si.timeslice)
+        R_magax = si.get_time_trace('xmag').values[timestep]
+        Z_magax = si.get_time_trace('zmag').values[timestep]
         axs.plot(R_magax,Z_magax,lw=0,marker='+',markersize=10,color=pltcol)
         #except:
         #    fpyl.printerr('ERROR: not able to read magnetic axis location.')
@@ -225,7 +226,7 @@ def plot_shape(sim=None, filename='C1.h5', gfile=None, time=-1, phi=0, res=250, 
         axs.tick_params(labelsize=ticklblfs)
         axs.grid(True,zorder=10,alpha=0.5) #There seems to be a bug in matplotlib that ignores the zorder of the grid
         
-        if len(filename)>1:
+        if (isinstance(filename,(tuple,list)) and len(filename)>1) or gfile is not None:
             plt.legend(handles=legproxy,ncol=1,fontsize=legfs)
         
         plt.rcParams["axes.axisbelow"] = False #Allows mesh to be on top of contour plot. This option conflicts with zorder (matplotlib

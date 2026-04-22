@@ -136,6 +136,8 @@ contains
        ikprad_in = 0
     end if
 
+    if ((irunaway.gt.0).or.(kinetic.eq.1)) call read_real_attr(root_id, "bzsign", bzsign, error)
+
     ! Read Scalars
     call h5gopen_f(root_id, "scalars", scalar_group_id, error)
 
@@ -451,6 +453,7 @@ contains
     call h5r_read_field(group_id, "ti",  ti_field(ilin),  nelms, error)
 
 #ifdef USEPARTICLES
+    call h5r_read_field(group_id, "rhof", rho_field, nelms, error)
     if ((kinetic.eq.1).and.(ilin.eq.1)) then
        !call h5r_read_field(group_id, "p_f_par",   p_f_par, nelms, error)
        !call h5r_read_field(group_id, "p_f_perp",  p_f_perp, nelms, error)
@@ -460,7 +463,6 @@ contains
        !call h5r_read_field(group_id, "p_i_perp",  p_i_perp, nelms, error)
        !call h5r_read_field(group_id, "den_i_0",   den_i_0, nelms, error)
        !call h5r_read_field(group_id, "den_i_1",   den_i_1, nelms, error)
-       call h5r_read_field(group_id, "rhof", rho_field, nelms, error)
        call h5r_read_field(group_id, "nf",   nf_field, nelms, error)
        call h5r_read_field(group_id, "tf",   tf_field, nelms, error)
        call h5r_read_field(group_id, "pf",   pf_field, nelms, error)

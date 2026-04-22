@@ -102,12 +102,12 @@ def plot_poincare(time=None,fignum=None,pub=False,Rlim=[None,None],Zlim=[None,No
         linew = 1
     
     #Change to correct directory if time is specified
-    pwd = os.getcwd()
+    cwd = os.getcwd()
     change_dir=False
     if time is not None:
-        if not 'poincare/time_' in pwd:
+        if not 'poincare/time_' in cwd:
             change_dir=True
-            if 'poincare' in pwd:
+            if 'poincare' in cwd:
                 os.chdir('time_'+str(time).zfill(3))
             else:
                 os.chdir('poincare/time_'+str(time).zfill(3))
@@ -131,7 +131,7 @@ def plot_poincare(time=None,fignum=None,pub=False,Rlim=[None,None],Zlim=[None,No
     plt.ylabel(r'$Z$',fontsize=axlblfs)
     
     if time is None:
-        time = pwd.split('/')[-1][-3:]
+        time = cwd.split('/')[-1][-3:]
 
     unitlabel = 'ms'
     figtitle = 'time='+"{0:.2f}".format(get_time_of_slice(int(time),filename='../../C1.h5',units='mks',millisec=True,quiet=True))+' '+unitlabel
@@ -147,7 +147,7 @@ def plot_poincare(time=None,fignum=None,pub=False,Rlim=[None,None],Zlim=[None,No
         plt.savefig(savepath+'time_'+str(time).zfill(3)+'.pdf', format='pdf',bbox_inches='tight')
     
     if change_dir:
-        os.chdir(pwd)
+        os.chdir(cwd)
     return fig
 
 
@@ -173,8 +173,8 @@ def poincare_movie(pub=False,Rlim=[None,None],Zlim=[None,None],short_title=False
     If True, only time will shown in title. If False, time slice and time will
     be shown.
     """
-    pwd = os.getcwd()
-    if not 'poincare' in pwd:
+    cwd = os.getcwd()
+    if not 'poincare' in cwd:
         os.chdir('poincare')
     
     if not os.path.isdir('movie'):

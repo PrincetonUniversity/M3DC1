@@ -49,7 +49,7 @@ module runaway_advection
       vectype                  :: f0
       integer                  :: gid         !Unique global particle index
       integer                  :: jel         !Predicted element of residence
-      logical                  :: deleted, deleted2
+      logical                  :: deleted,deleted2,deleted3,deleted4
    end type particle
 
    type(particle), dimension(:), pointer :: pdata  !Particle arrays
@@ -103,15 +103,15 @@ subroutine define_mpi_particle(ierr)
    include 'mpif.h'
 
    integer, intent(out) :: ierr
-   integer, parameter :: pnvars = 8
-   integer, dimension(pnvars), parameter :: pblklen = (/3, vspdims, 1, 1, 1, 1, 1, 1/)
+   integer, parameter :: pnvars = 10
+   integer, dimension(pnvars), parameter :: pblklen = (/3, vspdims, 1, 1, 1, 1, 1, 1, 1, 1/)
    integer(kind=MPI_ADDRESS_KIND), dimension(pnvars) :: pdspls
 #ifdef USECOMPLEX
    integer, dimension(pnvars), parameter :: ptyps = (/MPI_DOUBLE_PRECISION, MPI_DOUBLE_PRECISION, &
- MPI_DOUBLE_COMPLEX, MPI_DOUBLE_COMPLEX, MPI_INTEGER, MPI_INTEGER, MPI_LOGICAL, MPI_LOGICAL/)
+ MPI_DOUBLE_COMPLEX, MPI_DOUBLE_COMPLEX, MPI_INTEGER, MPI_INTEGER, MPI_LOGICAL, MPI_LOGICAL, MPI_LOGICAL,MPI_LOGICAL/)
 #else
    integer, dimension(pnvars), parameter :: ptyps = (/MPI_DOUBLE_PRECISION, MPI_DOUBLE_PRECISION, &
- MPI_DOUBLE_PRECISION, MPI_DOUBLE_PRECISION, MPI_INTEGER, MPI_INTEGER, MPI_LOGICAL, MPI_LOGICAL/)
+ MPI_DOUBLE_PRECISION, MPI_DOUBLE_PRECISION, MPI_INTEGER, MPI_INTEGER, MPI_LOGICAL, MPI_LOGICAL, MPI_LOGICAL,MPI_LOGICAL/)
 #endif
 
    type(particle) :: dum_par
@@ -132,6 +132,10 @@ subroutine define_mpi_particle(ierr)
    pdspls(7) = pdspls(7) - pdspls(1)
    call mpi_get_address(dum_par%deleted2, pdspls(8), ierr)
    pdspls(8) = pdspls(8) - pdspls(1)
+   call mpi_get_address(dum_par%deleted3, pdspls(9), ierr)
+   pdspls(9) = pdspls(9) - pdspls(1)
+   call mpi_get_address(dum_par%deleted4, pdspls(10), ierr)
+   pdspls(10) = pdspls(10) - pdspls(1)
    pdspls(1) = 0
 
    call mpi_type_create_struct(pnvars, pblklen, pdspls, ptyps, mpi_particle, ierr)
@@ -274,6 +278,7 @@ subroutine init_particles(lrestart, ierr)
    integer :: gfx, isghost, xid, nle = 0, nge = 0
    integer :: ie, imu, pperrow
    character(len=32) :: part_file_name
+   type(particle), dimension(:), allocatable :: pdata_local  !Particle arrays
    type(element_data) :: eldat
    real :: xi, zi, eta, xi2, eta2
    vectype, dimension(dofs_per_element, dofs_per_element) :: tempxx
@@ -312,8 +317,6 @@ subroutine init_particles(lrestart, ierr)
    integer, dimension(:), allocatable :: mesh_zone_temp
    integer :: nelm_row_temp
    integer :: ielm_min_temp, ielm_max_temp
-
-
 
    call m3dc1_mesh_getnumglobalent(0, nnodes_global)
 #ifdef USE3D
@@ -452,7 +455,7 @@ subroutine init_particles(lrestart, ierr)
    call get_field_coefs(1)
    !call MPI_Win_fence(0, win_elfieldcoefs)
 
-   npar=nelms_global*npoints*1.1/nrows
+   npar=nelms_global*npoints*2.1/nrows
 
    !Allocate local storage for particle data
    disp_unit = 1
@@ -495,6 +498,8 @@ subroutine init_particles(lrestart, ierr)
       locparts2 = 0
       ipart_begin=0; ipart_end=0
       gid_min = 1e9; gid_max = 0
+      allocate (pdata_local(npar/ncols*10))
+
 
       !allocate(ran(npar*5))
       !call random_number(ran)
@@ -557,42 +562,64 @@ subroutine init_particles(lrestart, ierr)
                dpar%x(3) = z_79(ipar)
                dpar%x(2) = phi_79(ipar)
                dpar%jel = itri
-               dpar%v(1) =  v0_norm/100*cre
+               dpar%v(1) =  v0_norm/100*cre*bzsign
                dpar%v(2) = 0.
                !pdata(ielm)%ion(ip)%v(1) = 100000.                        !v_parallel
 
                dpar%wt = 0.
                dpar%f0 = 0.
+               dpar%deleted = .false.
                call get_geom_terms(dpar%x, itri, geomterms, .false., ierr)
                dpar%f0=dot_product(geomterms%g, elfieldcoefs(itri)%nrev1)
                locparts2 = (itri-1)*npoints+ipar
                dpar%gid = locparts2
-               locparts2 = locparts2-(ielm_min-1)*npoints
-               if (gid_min>locparts2) gid_min=locparts2
-               if (gid_max<locparts2) gid_max=locparts2
+               !locparts2 = locparts2-(ielm_min-1)*npoints
+               !if (gid_min>locparts2) gid_min=locparts2
+               !if (gid_max<locparts2) gid_max=locparts2
                locparts = locparts + 1
-               pdata(locparts2) = dpar
+               !pdata(locparts2) = dpar
+               pdata_local(locparts) = dpar
+            else
+               !locparts2 = (itri-1)*npoints+ipar
+               !dpar%gid = locparts2
+               !locparts2 = locparts2-(ielm_min-1)*npoints
+               !dpar%deleted = .true.
+               !pdata(locparts2) = dpar
             endif
          end do !iz
       end do
 
-      !allocate (recvcounts(ncols))
-      !allocate (displs(ncols))
-      !sendcount = locparts
-      !recvcounts(hostrank + 1) = sendcount
-      !call MPI_ALLGATHER(sendcount, 1, MPI_INTEGER, recvcounts, 1, MPI_INTEGER, hostcomm, ierr)
-      !ipart_begin = 1
-      !ipart_end = sum(recvcounts)
-      call mpi_allreduce(gid_min, ipart_begin, 1, MPI_INTEGER, MPI_MIN, hostcomm, ierr)
-      call mpi_allreduce(gid_max, ipart_end, 1, MPI_INTEGER, MPI_MAX, hostcomm, ierr)
+      allocate (recvcounts(ncols))
+      allocate (displs(ncols))
+      sendcount = locparts
+      recvcounts(hostrank + 1) = sendcount
+      call MPI_ALLGATHER(sendcount, 1, MPI_INTEGER, recvcounts, 1, MPI_INTEGER, hostcomm, ierr)
+      displs(1) = 0
+      do icol = 2, ncols
+         displs(icol) = displs(icol - 1) + recvcounts(icol - 1)
+      end do
+      call MPI_GATHERV(pdata_local(1:locparts), sendcount, MPI_particle, pdata,&
+         recvcounts, displs, MPI_particle, 0, hostcomm, ierr)
+      ipart_begin = 1
+      ipart_end = sum(recvcounts)
+      nparticles = sum(recvcounts)
+      deallocate (recvcounts)
+      deallocate (displs)
+      deallocate (pdata_local)
+
+      !call mpi_allreduce(gid_min, ipart_begin, 1, MPI_INTEGER, MPI_MIN, hostcomm, ierr)
+      !call mpi_allreduce(gid_max, ipart_end, 1, MPI_INTEGER, MPI_MAX, hostcomm, ierr)
       call mpi_barrier(mpi_comm_world, ierr)
+      particle_map(:,:)=1
       if (hostrank == 0) then
          write(0,*) ipart_begin, ipart_end
          do  ipart = ipart_begin, ipart_end
-            itri=int((pdata(ipart)%gid-1)/npoints)+1
-            ipar=mod((pdata(ipart)%gid-1),npoints)+1
-            ! write(0,*) ipar,itri,ipart
-            particle_map(ipar,itri)=ipart
+            if (.not.pdata(ipart)%deleted) then
+               itri=int((pdata(ipart)%gid-1)/npoints)+1
+               ipar=mod((pdata(ipart)%gid-1),npoints)+1
+               ! write(0,*) ipar,itri,ipart
+               particle_map(ipar,itri)=ipart
+            endif
          end do
       end if
       call mpi_barrier(mpi_comm_world, ierr)
@@ -612,7 +639,7 @@ subroutine init_particles(lrestart, ierr)
 #endif
 
    call create_field(nre_vec)
-   call set_matrix_index(diff2_mat, 75)
+   call set_matrix_index(diff2_mat, 175)
    call create_mat(diff2_mat, 1, 1, icomplex, 1)
    !call create_newvar_matrix(diff_mat, NV_NOBOUND, NV_I_MATRIX, 1)
    do itri=1,nelms
@@ -675,7 +702,8 @@ subroutine advance_particles(tinc)
 !$omp parallel do default(none) shared(pdata,tinc,nparticles,starty,endy,psubsteps,istep) PRIVATE(ierr)
 #endif
 !$acc parallel loop present(pdata(starty:endy))
-      do ipart = starty, endy
+      !do ipart = starty, endy
+      do ipart = ipart_begin+hostrank, ipart_end, ncols
          if (pdata(ipart)%deleted) cycle  !Skip if element is empty
          !call rk4(pdata(ielm)%ion(ipart), tinc, itri, ierr)
          call rk4(pdata(ipart), tinc, istep .eq. psubsteps, ierr)
@@ -1021,6 +1049,8 @@ subroutine fdot(x, v, w, dxdt, dvdt, dwdt, dEpdt, itri, ierr)
    !else
    !dwdt = dwdt * (f00-w)
    !endif
+   else
+      dwdt = 0.
    endif
    if (linear_particle .eq. 1) then
       dxdt = -dxdt0

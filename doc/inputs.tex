@@ -551,6 +551,9 @@ In all cases, the angular velocity is then determined by:
   \texttt{ksp\_max}     & 10000 & max number of ksp iterations before repeating time step \\
   \texttt{ksp\_min}     & 1200  & increase dt if ksp < ksp\_min  \\
   \texttt{ksp\_warn}    & 1600  & decrease dt if ksp > ksp\_warn \\
+  \texttt{gamma\_gr\_stop}    & 0  & 1: if linear, terminate simulation as soon as growth rate gamma is converged \\
+  \texttt{nt\_gamma\_gr}    & 10  & number of time steps considered for gamma convergence check \\
+  \texttt{gamma\_gr\_stop\_std}    & 0.01  & standard deviation under which gamma is considered converged \\
 \end{tabular}
 
 \subsection{Mesh}
@@ -706,7 +709,10 @@ In all cases, the angular velocity is then determined by:
  \texttt{irestart\_slice}  & -1 & if set to an integer, restart from that time slice \\
  \texttt{itimer}           & 0 & 1: output internal timeing data \\
  \texttt{iwrite\_transport\_coefs}  & 1 & 1: output transport coefficients fields \\
- \texttt{iwrite\_aux\_vars}         & 1 & 1:output auxiliary variable fields \\
+ \texttt{iwrite\_aux\_vars}         & 1 & 1: output auxiliary variable fields \\
+ \texttt{write\_ts\_on\_job\_timeout}         & 0 & 1: Write time slice and stop simulation before Slurm job is terminated due to timeout or preemption. This option requires the following line in the batch script:\\
+                         &   & \texttt{\#SBATCH --signal=SIGUSR1@600}\\
+                         &   & The last number is the time before the scheduled end of the job (in seconds), i.e. when the termination signal will be sent by Slurm. This should be long enough to finish current time step and write output.\\
 
 \end{tabular}
 

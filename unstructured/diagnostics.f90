@@ -3105,21 +3105,22 @@ subroutine ke_I1(NMAX, k, N, i1ck, i1sk)
   
   if(k==0) then
      call m3dc1_plane_getphi(nplanes-1, xm)
-     if(itor.eq.0) xm = xm*2.*pi/toroidal_period
-     xm = xm - 2.*pi
+     xm = xm - toroidal_period
   else
      call m3dc1_plane_getphi(k-1, xm)
-     if(itor.eq.0) xm = xm*2.*pi/toroidal_period
   endif
   call m3dc1_plane_getphi(k, x0)
-  if(itor.eq.0) x0 = x0*2.*pi/toroidal_period
   if(k==nplanes-1) then
      call m3dc1_plane_getphi(0, xp)
-     if(itor.eq.0) xp = xp*2.*pi/toroidal_period
-     xp = xp + 2.*pi
+     ! xp = xp + 2.*pi/nperiods
+     xp = xp + toroidal_period
   else
      call m3dc1_plane_getphi(k+1, xp)
-     if(itor.eq.0) xp = xp*2.*pi/toroidal_period
+  endif
+  if(itor.eq.0) then
+    xm = xm*2.*pi/nperiods/toroidal_period
+    x0 = x0*2.*pi/nperiods/toroidal_period
+    xp = xp*2.*pi/nperiods/toroidal_period
   endif
   hm = x0 - xm
   hp = xp - x0
@@ -3162,21 +3163,21 @@ subroutine ke_I2(NMAX, k, N, i2ck, i2sk)
   
   if(k==0) then
      call m3dc1_plane_getphi(nplanes-1, xm)
-     if(itor.eq.0) xm = xm*2.*pi/toroidal_period
-     xm = xm - 2.*pi
+     xm = xm - toroidal_period
   else
      call m3dc1_plane_getphi(k-1, xm)
-     if(itor.eq.0) xm = xm*2.*pi/toroidal_period
   endif
   call m3dc1_plane_getphi(k, x0)
-  if(itor.eq.0) x0 = x0*2.*pi/toroidal_period
   if(k==nplanes-1) then
      call m3dc1_plane_getphi(0, xp)
-     if(itor.eq.0) xp = xp*2.*pi/toroidal_period
-     xp = xp + 2.*pi
+     xp = xp + toroidal_period
   else
      call m3dc1_plane_getphi(k+1, xp)
-     if(itor.eq.0) xp = xp*2.*pi/toroidal_period
+  endif
+  if(itor.eq.0) then
+    xm = xm*2.*pi/nperiods/toroidal_period
+    x0 = x0*2.*pi/nperiods/toroidal_period
+    xp = xp*2.*pi/nperiods/toroidal_period
   endif
   hm = x0 - xm
   hp = xp - x0

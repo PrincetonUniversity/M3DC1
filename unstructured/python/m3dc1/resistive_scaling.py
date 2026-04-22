@@ -15,12 +15,12 @@ import m3dc1.fpylib as fpyl
 from m3dc1.gamma_file import Gamma_file
 
 
-def resistive_scaling(dirs,eta_fac_list,Sval,ntor,gamma_list=None,col='C1',mk='.',ls='-',logscale=None,fignum=1,figsize=None,max_fit=-1,plot_analytical=True,connect_fit_data=True,label='',in_plot_txt=None,fit_guess=[0.12,-3/5]):
+def resistive_scaling(dirs,eta_fac_list,Sval,ntor,gamma_list=None,col='C1',mk='.',ls='-',logscale=None,fignum=1,figsize=None,max_fit=-1,plot_analytical=True,connect_fit_data=True,label='',in_plot_txt=None,fit_guess=[0.12,-3/5],export=False,txtname=None):
     
     gammas = []
     
     if dirs is not None:
-        pwd = os.getcwd()
+        cwd = os.getcwd()
         
         for i,d in enumerate(dirs):
             os.chdir(d)
@@ -36,7 +36,7 @@ def resistive_scaling(dirs,eta_fac_list,Sval,ntor,gamma_list=None,col='C1',mk='.
                 results = Gamma_file(f)
             else:
                 fpyl.printerr('ERROR: no growth rates found for ' + str(d))
-                os.chdir(pwd)
+                os.chdir(cwd)
                 return
             
             # Identify simulations where the growth rate was not calculated reliably. These are highlighted in the plot.
@@ -55,7 +55,7 @@ def resistive_scaling(dirs,eta_fac_list,Sval,ntor,gamma_list=None,col='C1',mk='.
                     #else:
                     gammas.append(results.gamma_list[n_ind])
             
-            os.chdir(pwd)
+            os.chdir(cwd)
     elif gamma_list is not None:
         for i,g in enumerate(gamma_list):
             gammas.append(g[ntor-1])
@@ -128,6 +128,12 @@ def resistive_scaling(dirs,eta_fac_list,Sval,ntor,gamma_list=None,col='C1',mk='.
         plt.text(0.06, 0.9,in_plot_txt, ha='center', va='center', transform=ax.transAxes,fontsize=20)
     
     plt.tight_layout() #adjusts white spaces around the figure to tightly fit everything in the window
+    
+    if export:
+        plot_data = np.column_stack([Slist,gammas])
+        np.savetxt(txtname+'_simulation',plot_data,delimiter='   ')
+        plot_data = np.column_stack([xlist,ylist])
+        np.savetxt(txtname+'_fit',plot_data,delimiter='   ')
     return
 
 
@@ -146,7 +152,7 @@ def plot_gamma_etafac(dirs,ntor,logscale=True,fignum=1,figsize=None,calculate_sc
     gammas = []
     etalist = []
     
-    pwd = os.getcwd()
+    cwd = os.getcwd()
     print(dirs)
     for i,d in enumerate(dirs):
         print(dirs)
@@ -188,7 +194,7 @@ def plot_gamma_etafac(dirs,ntor,logscale=True,fignum=1,figsize=None,calculate_sc
                 #else:
                 gammas.append(results.gamma_list[n_ind])
         
-        os.chdir(pwd)
+        os.chdir(cwd)
     
     if calculate_scaling:
         a = [0.12,-3/5]

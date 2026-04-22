@@ -256,7 +256,8 @@ subroutine den_eq
   real, dimension(MAX_PTS) :: n, p
   integer :: ip, izone
   
-  if((idenfunc.eq.0 .or. idenfunc.eq.4) .and. .not.(ipellet.gt.0 .and. linear.eq.1) .and. .not.(iread_ne.eq.22)) return
+  if((idenfunc.eq.0 .or. idenfunc.eq.4) .and. .not.(ipellet.gt.0 .and. linear.eq.1) &
+                             .and. .not.(iread_ne.eq.22).and. .not.(iread_ne.eq.23)) return
   if(ipellet.ne.0) then
      if(ipellet_z.ne.0 .and. all(pellet_mix.eq.0.)) return
   end if
@@ -279,6 +280,19 @@ subroutine den_eq
      end if
      den_vec=0.
    endif
+  if (iread_ne .eq. 23) then
+     nvals = 0
+      call read_ascii_column('n_profile_vs_p', xvals, nvals, icol=1)
+      call read_ascii_column('n_profile_vs_p', yvals, nvals, icol=2)
+      if(nvals.eq.0) call safestop(5)
+      yvals = yvals / 1e6 / n0_norm !normalized density
+      xvals = xvals * 10 / p0_norm  !normalized Pr
+     if(allocated(yvals)) then
+        call create_spline(den_spline, nvals, xvals, yvals)
+        deallocate(xvals, yvals)
+     end if
+     den_vec=0.
+   endif   
 #endif
 
   numelms = local_elements()
@@ -335,6 +349,21 @@ subroutine den_eq
               call evaluate_spline(den_spline,temp79b(j),val)
               n079(j,OP_1) = val
         end do
+#endif 
+      elseif(iread_ne .eq. 23) then
+#ifdef USEST
+         
+#ifndef USECOMPLEX
+         do ip = 1, MAX_PTS
+            temp79b(ip) = max(p079(ip,OP_1), 0.)
+         end do
+#endif            
+         n079(:,OP_1) = 0.
+         do j=1, npoints
+               !call evaluate_spline(den_spline,real(temp79b(j)),val,extrapolate=1)
+               call evaluate_spline(den_spline,real(temp79b(j)),val,extrapolate=0)
+               n079(j,OP_1) = max(val,0.)
+         end do 
 #endif 
       endif
 
@@ -650,24 +679,29 @@ subroutine nre_eq
   use pellet
 
   implicit none
+  include 'mpif.h'
 
   type(field_type) :: nre_vec
   integer :: itri, numelms, def_fields
   real :: rate, nr_a, nr_b, nr_w
   vectype, dimension(dofs_per_element) :: dofs
   real, dimension(MAX_PTS) :: n, rr, mask, nr_f1, nr_f2
+  real :: bzsign_temp
+  integer :: ierr
 
   if(myrank.eq.0 .and. iprint.ge.1) print *, ' Defining RE equilibrium'
   call create_field(nre_vec)
 
-  def_fields = FIELD_PSI + FIELD_RE
+  def_fields = FIELD_PSI + FIELD_I + FIELD_B2I + FIELD_RE
 
+  bzsign_temp=0
   numelms = local_elements()
   do itri=1,numelms
      call define_element_quadrature(itri,int_pts_main,int_pts_tor)
      call define_fields(itri,def_fields,1,0,1)
 
-     nre079(:,OP_1) = 1.0*ri_79*ps079(:,OP_GS)/1.000
+     !nre079(:,OP_1) = 1.0*ri_79*ps079(:,OP_GS)/1.000
+     nre079(:,OP_1) = rjra*ps079(:,OP_GS)/bz079(:,OP_1)/bi79(:,OP_1)
      !if(irunaway == 1) nre079(:,OP_1) = 0.8e-0*nre079(:,OP_1)
      !rr=sqrt((x_79-10.5)**2+z_79**2)
      !nre079(:,OP_1) = nre079(:,OP_1)*exp(-rr**2/0.04)
@@ -677,7 +711,14 @@ subroutine nre_eq
 
      dofs = intx2(mu79(:,:,OP_1),nre079(:,OP_1))
      call vector_insert_block(nre_vec%vec,itri,1,dofs,VEC_ADD)
+
+     if ((xmag<maxval(x_79)).and.(xmag>minval(x_79)).and.(zmag>minval(z_79)).and.(zmag<maxval(z_79)) &
+        .and.(minval(phi_79)<=0)) then
+        write(0,*) real(sum(ps079(:,OP_GS))*sum(bz079(:,OP_1)))
+        bzsign_temp=sign(1.0, real(sum(ps079(:,OP_GS))*sum(bz079(:,OP_1))))
+     endif
   end do
+  call mpi_allreduce(bzsign_temp, bzsign, 1, MPI_DOUBLE_PRECISION, MPI_SUM, MPI_COMM_WORLD, ierr)
 
   call newvar_solve(nre_vec%vec,mass_mat_lhs)
   nre_field(0) = nre_vec

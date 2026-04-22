@@ -14,7 +14,7 @@ from labellines import labelLines
 
 def plot_coils(filename='coil.dat',angleUnits='deg',cycle_col=False,ax=None,print_coil_pos=False,show_labels=False,pick=False,fignum=None,pub=False):
     """
-    Plots a field in the R,Z plane.
+    Plots the position of the coils specified in filename.
     
     Arguments:
 
@@ -155,10 +155,14 @@ def plot_coils(filename='coil.dat',angleUnits='deg',cycle_col=False,ax=None,prin
                 return False, dict()
             xdata = line.get_xdata()
             ydata = line.get_ydata()
-            maxd = 0.001
+            maxd = 0.01
             d = np.sqrt((xdata - mouseevent.xdata)**2. + (ydata - mouseevent.ydata)**2.)
-
+            
             ind = np.nonzero(np.less_equal(d, maxd))
+            #In newer numpy versions nonzero returns a tuple with an array as its first element instead of an array
+            if isinstance(ind, tuple):
+                ind = ind[0]
+            
             if len(ind):
                 pickx = np.take(xdata, ind)
                 picky = np.take(ydata, ind)
@@ -168,7 +172,7 @@ def plot_coils(filename='coil.dat',angleUnits='deg',cycle_col=False,ax=None,prin
                 return False, dict()
 
         def onpick2(event):
-            print(event.pickx[0][0], event.picky[0][0])
+            print(event.pickx[0], event.picky[0])
         
         #Need to print markers separately outside of above loop, because otherwise it will loop through click events
         for ax in axarray:

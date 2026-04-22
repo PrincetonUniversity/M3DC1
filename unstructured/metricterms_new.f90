@@ -9191,7 +9191,7 @@ function nre1nrepsi(e,f,g,h)
 
   temp = intx5(e(:,:,OP_DZ),ri_79,f(:,OP_1),g(:,OP_1),h(:,OP_DR)) &
        - intx5(e(:,:,OP_DR),ri_79,f(:,OP_1),g(:,OP_1),h(:,OP_DZ))
-  temp = temp * 1.000 * cre 
+  temp = temp * 1.000 * cre * bzsign
 
   nre1nrepsi = temp
 end function nre1nrepsi
@@ -9218,7 +9218,7 @@ function nre1nreb(e,f,g,h)
 #elif defined(USECOMPLEX)
   temp = -intx5(e(:,:,OP_1),ri2_79,f(:,OP_DP),g(:,OP_1),h(:,OP_1))
 #endif
-  temp = temp * 1.000 * cre
+  temp = temp * 1.000 * cre * bzsign
 
   nre1nreb = temp
 end function nre1nreb

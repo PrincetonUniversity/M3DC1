@@ -196,13 +196,21 @@ contains
     character(LEN=*), intent(in) :: name
     real, intent(out)  :: value
     integer, intent(out) :: error
+    logical :: attr_exists
 
     integer(HID_T) :: attr_id
     integer(HSIZE_T), dimension(1) :: dims = 1
 
-    call h5aopen_name_f(parent_id, name, attr_id, error)
-    call h5aread_f(attr_id, H5T_NATIVE_DOUBLE, value, dims, error)
-    call h5aclose_f(attr_id, error)
+    ! call h5aopen_name_f(parent_id, name, attr_id, error)
+    ! call h5aread_f(attr_id, H5T_NATIVE_DOUBLE, value, dims, error)
+    ! call h5aclose_f(attr_id, error)
+
+    call h5aexists_f(parent_id, name, attr_exists, error)
+    if (error == 0 .and. attr_exists) then
+       call h5aopen_name_f(parent_id, name, attr_id, error)
+       call h5aread_f(attr_id, H5T_NATIVE_DOUBLE, value, dims, error)
+       call h5aclose_f(attr_id, error)
+    end if
 
   end subroutine read_real_attr
 

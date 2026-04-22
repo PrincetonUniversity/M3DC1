@@ -11,7 +11,6 @@ import os
 import glob
 from pathlib import Path
 import re
-import math
 import matplotlib.pyplot as plt
 from matplotlib import rc
 import matplotlib.gridspec as gridspec
@@ -31,7 +30,6 @@ import fpy
 import m3dc1.fpylib as fpyl
 from m3dc1.unit_conv import unit_conv
 from m3dc1.plot_field  import plot_field
-from m3dc1.read_h5 import readC1File
 from m3dc1.read_h5 import readParameter
 from m3dc1.gamma_file import Gamma_file
 from m3dc1.gamma_data import Gamma_data
@@ -41,6 +39,7 @@ from m3dc1.get_time_of_slice import get_time_of_slice
 from m3dc1.pedestal_finder      import get_ped_structure
 
 from m3dc1.get_timetrace import get_timetrace
+from m3dc1.get_ped_param import get_ped_param
 
 #from m3dc1.flux_coordinates import flux_coordinates
 from m3dc1.eigenfunction import eigenfunction
@@ -121,7 +120,7 @@ def avg_time_trace(trace,units='m3dc1',sim=None,filename='C1.h5',
 
 
 
-def growth_rate(n=None,units='m3dc1',sim=None,filename='C1.h5',
+def growth_rate(n=None,units='m3dc1',sim=None,filename='C1.h5',start=None,
                 time_low_lim=500,slurm=True,plottrace=False,pub=False):
     """
     Evaluates kinetic energy growth rate. The growth rate is the mean of the logarithmic derivative of ke.
@@ -158,31 +157,37 @@ def growth_rate(n=None,units='m3dc1',sim=None,filename='C1.h5',
     if not isinstance(sim,fpy.sim_data):
         sim = fpy.sim_data(filename=filename)
     
+    gamma_stop = False
+    
     if slurm:
-        #try:
-        # Read Slurm log files. Should there be multiple log files in the directory, choose the file with largest Slurm Job ID
-        C1inputfiles = glob.glob(os.getcwd()+"/C1input")
-        if len(C1inputfiles) > 1:
-            fpyl.printwarn('WARNING: More than 1 C1input file found. Using the latest one.')
-            slurmfiles.sort(key=os.path.getmtime,reverse=True)
-        C1inputfile = C1inputfiles[0]
+        C1inputfile = fpyl.get_input_parameter_file()
         
         # Read n from Slurm log file
         with open(C1inputfile, 'r') as sf:
             for line in sf:
-                if 'ntor   ' in line:
+                if 'ntor ' in line or 'ntor=' in line:
                     ntorline = line.split()
                     n = int(ntorline[2])
                     break
+        gamma_stop = fpyl.str_in_file(C1inputfile,"Growth rate gamma has converged.")
         #except:
         #    n = fpyl.prompt('Not able to detemine ntor. Please enter value for n : ',int)
     else:
         n = readParameter('ntor',sim=sim,listc=False)
         fpyl.printnote('Using n=ntor='+"{:d}".format(n)+' as read from C1.h5 file.')
     
+    if gamma_stop:
+        time_low_lim = 0
+        with open(C1inputfile, 'r') as sf:
+            for line in sf:
+                if 'nt_gamma_gr' in line:
+                    nt_gamma_gr = int(line.split()[2])
+                    break
+        ntime = sim.ntime-1
+        ntimestep = readParameter('ntimestep',fname='time_'+str(ntime).zfill(3)+'.h5',sim=None,listc=False)
+        start = ntimestep - nt_gamma_gr
     
-    
-    gamma, dgamma,time,gamma_trace = avg_time_trace('ke',units,sim=sim,growth=True,renorm=True,start=None,time_low_lim=time_low_lim)
+    gamma, dgamma,time,gamma_trace = avg_time_trace('ke',units,sim=sim,growth=True,renorm=True,start=start,time_low_lim=time_low_lim)
     print(n,gamma,dgamma)
     
     not_noisy = 1
@@ -517,7 +522,7 @@ def scan_n(nmin=1,nmax=20,nstep=1,units='m3dc1',filename='C1.h5',time_low_lim=50
 
 
 
-def create_plot_gamma_n(n_list, gamma_list,norm_dia=False,fignum=None,figsize=None,lw=1,c=None,ls=None,marker=None,ms=36,lbl=None,units='m3dc1',xtick_min=None, xtick_step=1,legfs=None,leglblspace=None,leghandlen=None,title=None,export=False,txtname=None,pub=False):
+def create_plot_gamma_n(n_list, gamma_list,norm_dia=False,fignum=None,figsize=None,lw=1,c=None,ls=None,marker=None,ms=36,lbl=None,units='m3dc1',xtick_min=None, xtick_step=1,legfs=None,leglblspace=None,leghandlen=None,title=None,pub=False,export=False,txtname=None):
     
     # Set font sizes and plot style parameters
     if pub:
@@ -588,9 +593,7 @@ def create_plot_gamma_n(n_list, gamma_list,norm_dia=False,fignum=None,figsize=No
     
     if export:
         data_points = temp[0].get_data()
-        print(np.transpose(data_points))
         np.savetxt(txtname,data_points,delimiter='   ')
-        print(txtname)
     return
 
 
@@ -667,7 +670,7 @@ def compare_gamma_n(dirs,nmin=1,nmax=20,nstep=1,norm_dia=False,units='m3dc1',lab
         if len(dirs)!=len(labels):
             fpyl.printerr('ERROR: Number of directories not equal to number of labels.')
             return
-    pwd = os.getcwd()
+    cwd = os.getcwd()
     for i,d in enumerate(dirs):
         if os.path.isdir(d):
             os.chdir(d)
@@ -697,7 +700,7 @@ def compare_gamma_n(dirs,nmin=1,nmax=20,nstep=1,norm_dia=False,units='m3dc1',lab
         else:
             mark = '.'
         plot_gamma_n(nmin,nmax,nstep,norm_dia=norm_dia,units=units,fignum=fignum,figsize=figsize,xtick_min=xtick_min,xtick_step=xtick_step,c=c,lw=lw,ls=ls,mark=mark,plot_crosses=plot_crosses,lbl=lbl,slurm=True,plottrace=False,legfs=legfs,leglblspace=leglblspace,leghandlen=leghandlen,ylimits=ylimits,title=title,export=export,txtname='gamma_'+d.replace('/','')+'.txt',no_prompt=no_prompt,pub=pub)
-        os.chdir(pwd)
+        os.chdir(cwd)
     
     return
 
@@ -710,8 +713,8 @@ def write_gamma_n(results,ped_param, ipres, psin_ped_top,ped_structure=None,unit
     #elif (nmin < 0 and nmax < 0) and (results is None):
     #    raise Exception('nmin and nmax must be >=0 with nmax > nmin.')
     
-    pwd = os.getcwd()
-    pathdirs = pwd.split('/')
+    cwd = os.getcwd()
+    pathdirs = cwd.split('/')
     vpnum = pathdirs[-2]
     if vpnum == 'convergence_study':
         vpnum = pathdirs[-3]
@@ -789,135 +792,6 @@ def write_gamma_n(results,ped_param, ipres, psin_ped_top,ped_structure=None,unit
 
 
 
-def omegastari(sim=None,filename='C1.h5',time=None,units='mks',points=400,n=1,pion=False,fcoords='pest',makeplot=False):
-    #Calculates ion diamagnetic frequency
-    if not isinstance(sim,fpy.sim_data):
-        sim = fpy.sim_data(filename=filename)
-    psin,psi = flux_average('psi',coord='scalar',sim=sim, fcoords=fcoords, linear=False, deriv=0, points=points, phit=0.0, filename=filename, time=time, psin_range=None, units='mks')
-    psi = psi*2*math.pi # Because psi is the poloidal flux per radiant as in B = grad(psi) x grad(phi) + B_phi
-    ni = flux_average('ni',coord='scalar',sim=sim, fcoords=fcoords, linear=False, deriv=0, points=points, phit=0.0, filename=filename, time=time, psin_range=None, units='mks')[1]
-    if pion:
-        pi = flux_average('pi',coord='scalar',sim=sim, fcoords=fcoords, linear=False, deriv=0, points=points, phit=0.0, filename=filename, time=time, psin_range=None, units='mks')[1]
-    else:
-        pi = 0.5*flux_average('p',coord='scalar',sim=sim, fcoords=fcoords, linear=False, deriv=0, points=points, phit=0.0, filename=filename, time=time, psin_range=None, units='mks')[1]
-    
-    #print(psi)
-    #print(ni)
-    #print(pi)
-    dpidpsi = fpyl.deriv(pi,psi)
-    
-    Zeff = readParameter('z_ion',sim=sim,listc=False)
-    ei = Zeff*1.602176634E-19
-    
-    omegasi = (n / (ei * ni))*dpidpsi
-    if units=='m3dc1':
-        omegasi = unit_conv(omegasi,arr_dim='mks',sim=sim,time=-1)
-    if makeplot:
-        plt.figure()
-        plt.plot(psin,omegasi,lw=2)
-        ax = plt.gca()
-        ax.grid(True,zorder=10,alpha=0.5) #There seems to be a bug in matplotlib that ignores the zorder of the grid #Uncomment for CLT paper
-        plt.xlabel(r'$\psi_N$',fontsize=12)
-        plt.ylabel(r'$\omega_{*i}$',fontsize=12)
-        plt.tight_layout() #adjusts white spaces around the figure to tightly fit everything in the window
-    
-    return psin, omegasi
-
-
-
-def get_ped_param(sim,filename='C1.h5',time=None,points=400,pion=False,fcoords='pest',psin_ped_top=0.86,psin_var_j=0.85,use_max_j=False,device=None):
-    if not isinstance(sim,fpy.sim_data):
-        sim = fpy.sim_data(filename=filename)
-    #psinedgelim = 0.86 #Min value of psin that is considered edge region
-    print('get_ped_param time:'+str(time))
-    # Determine pedestal alpha
-    psi_a,alpha = flux_average('alpha', coord='scalar', sim=sim, time=time, fcoords=fcoords, points=points, units='m3dc1')
-    psinedge = fpyl.find_nearest(psi_a,psin_ped_top)
-    psinedge_ind = fpyl.get_ind_at_val(psi_a,psinedge)
-    alpha_max = np.amax(alpha[psinedge_ind:])
-    #Check if it's really a local maximum inside the pedestal:
-    alpha_max_ind = fpyl.get_ind_at_val(alpha,alpha_max)
-    #print(alpha_max_ind,psi_a[alpha_max_ind])
-    if (alpha_max_ind < len(alpha)-1 and (alpha_max >= alpha[alpha_max_ind-1]) and (alpha_max >= alpha[alpha_max_ind+1])) or (alpha_max_ind==len(alpha)-1): #Check if the maximum is a relative maximum or occurs at the lcfs
-        #print('PEDESTAL ALPHA IS ABSOLUTE MAXIMUM')
-        print('Pedestal alpha = '+str(alpha_max))
-    else:
-        alpha_short = alpha[psinedge_ind:]
-        psin_a_short = psi_a[psinedge_ind:]
-        alpha_rel_max = signal.argrelmax(alpha_short)
-        if len(alpha_rel_max)==0:
-            fpyl.printwarn('WARNING: maximum of alpha not found!')
-            return None,None,None,None
-        maxima = np.take(alpha_short,alpha_rel_max)
-        maxima_pos = np.take(psin_a_short,alpha_rel_max)
-        alpha_max = np.amax(maxima)
-        #print(maxima,maxima_pos)
-        #print('PEDESTAL ALPHA IS RELATIVE MAXIMUM')
-        print('Pedestal alpha = '+str(alpha_max))
-    
-    # Determine pedestal average toroidal current density
-    psi_j,j = flux_average('j', coord='phi', sim=sim, time=time, fcoords=fcoords, points=points, units='m3dc1')
-    psinedge = fpyl.find_nearest(psi_j,psin_ped_top)
-    psinedge_ind = fpyl.get_ind_at_val(psi_j,psinedge)
-    j_max = np.amax(j[psinedge_ind:])
-    #Check if it's really a local maximum inside the pedestal:
-    j_max_ind = fpyl.get_ind_at_val(j,j_max)
-    if j_max_ind < len(j)-1 and (j_max >= j[j_max_ind-1]) and (j_max >= j[j_max_ind+1]):
-        print('Pedestal j_max = '+str(j_max))
-    else:
-        j_max = -1
-        fpyl.printwarn('WARNING: j_max has no maximum inside the pedestal!')
-        #return None,None,None,None
-    
-    #Calculate pedestal parallel current density as in ELITE:
-    jav = flux_average('jav', coord='scalar', sim=sim, time=time, fcoords=fcoords, points=points, units='mks')[1]
-    psi_j,jelite = flux_average('jelite', coord='scalar', sim=sim, time=time, fcoords=fcoords, points=points, units='mks',device=device)
-    psinedge = fpyl.find_nearest(psi_j,psin_ped_top)
-    psinedge_ind = fpyl.get_ind_at_val(psi_j,psinedge)
-    
-    if use_max_j:
-        #If maximum jelite inside the pedestal region is to be used:
-        jelite_max = np.amax(jelite[psinedge_ind:])
-    else:
-        #Check if jelite peaks inside the pedestal. If it does, take peak value as jelite. If it does
-        #not peak, then use jelite(psin=psin_var_j).
-        #Calculate absolute maximum in pedestal region:
-        jelite_max = np.amax(jelite[psinedge_ind:])
-        jelite_max_ind = fpyl.get_ind_at_val(jelite,jelite_max)
-        #print(jelite_max_ind, psi_j[jelite_max_ind], jelite_max,jelite[jelite_max_ind-1],jelite[jelite_max_ind+1])
-        #If local maximum
-        if jelite_max_ind < len(jelite)-1 and (jelite_max >= jelite[jelite_max_ind-1]) and (jelite_max >= jelite[jelite_max_ind+1]):
-            jelite_rel_max = jelite_max
-            fpyl.printnote('Used MAXIMUM for jelite')
-        else:
-            jelite_rel_max = 0.0
-        #Calculate average value in pedestal region
-        jelite_avg = np.average(jelite[psinedge_ind:])
-        #print(jelite_rel_max,jelite_avg)
-        j_threshold=1.2
-        #If jelite_rel_max > j_threshold*jelite_avg then we consider a peak inside the pedestal.
-        #Otherwise, use jelite(psin=psin_var_j):
-        if not jelite_rel_max > j_threshold*jelite_avg:
-            psinj = fpyl.find_nearest(psi_j,psin_var_j)
-            psinj_ind = fpyl.get_ind_at_val(psi_j,psinj)
-            jelite_max = jelite[psinj_ind]
-            fpyl.printwarn('Used psin_var_j for jelite')
-    jelite_sep = jelite[-1]
-    jelite_N = (jelite_max+jelite_sep)/(2.0*jav[-1])
-    print('Current density jelite = '+str(jelite_N))
-    
-    
-    # Determine diamagnetic frequency
-    psi_o,omegsti = omegastari(sim=sim,time=time,units='m3dc1',n=1,points=points,pion=pion,fcoords=fcoords,makeplot=False)
-    psinedge = fpyl.find_nearest(psi_o,psin_ped_top)
-    psinedge_ind = fpyl.get_ind_at_val(psi_o,psinedge)
-    omegsti_max = np.amax(omegsti[psinedge_ind:]) #ToDo: Check if it's really a local maximum
-    print('Ion diamagnetic frequency = '+str(omegsti_max))
-    ped_param = [alpha_max,j_max,jelite_N,omegsti_max]
-    return ped_param
-
-
-
 
 
 
@@ -977,14 +851,14 @@ def create_plot_time_trace_fast(time,scalar,trace,units='mks',millisec=False,sim
             if units=='mks':
                 #scalar = unit_conv(scalar, arr_dim='M3DC1', filename=filename, energy=1)
                 if growth:
-                    plt.ylabel(r'$\gamma$ $[s^{-1}]$')
+                    plt.ylabel(r'$\gamma$ $[s^{-1}]$',fontsize=axlblfs)
                 else:
-                    plt.ylabel(r'Kinetic energy $[J]$')
+                    plt.ylabel(r'Kinetic energy $[J]$',fontsize=axlblfs)
             elif units.lower()=='m3dc1':
                 if growth:
-                    plt.ylabel(r'$\gamma/\omega_A$')
+                    plt.ylabel(r'$\gamma/\omega_A$',fontsize=axlblfs)
                 else:
-                    plt.ylabel(r'Kinetic energy (M3DC1 units)')
+                    plt.ylabel(r'Kinetic energy (M3DC1 units)',fontsize=axlblfs)
         else:
             plt.ylabel(ylbl,fontsize=axlblfs)
     
@@ -1062,7 +936,6 @@ def create_plot_time_trace_fast(time,scalar,trace,units='mks',millisec=False,sim
         plt.savefig(tracestr+'_n'+"{:d}".format(ntor)+'.pdf', format='pdf',bbox_inches='tight')
         
     if export:
-        print(plot_data)
         np.savetxt(txtname,plot_data,delimiter='   ')
     return
 
@@ -1260,6 +1133,8 @@ def plot_time_trace_fast(trace,units='mks',millisec=False,sim=None,filename='C1.
     When plotting energy spectrum, do not plot energy for n=0 mode.
 
     """
+    yscale='linear' if yscale=='lin' else yscale
+    
     if not isinstance(sim,fpy.sim_data):
         sim = fpy.sim_data(filename)
     time,y_axis,label, unitlabel = get_timetrace(trace,sim=sim,units=units,growth=growth,diff=diff,renorm=renorm,unitlabel=unitlabel,fac=fac)
@@ -1369,5 +1244,4 @@ def integrate_time_trace(trace,nts=None,method=None,units='mks',sim=None,
         trace_integrated = scalar_int
     
     return trace_integrated
-
 

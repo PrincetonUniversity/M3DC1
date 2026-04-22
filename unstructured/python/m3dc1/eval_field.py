@@ -252,22 +252,37 @@ def eval_m3dc1_field_deriv(field_name, R, phi, Z, sim=None, filename='C1.h5', ti
     field = sim.get_field(field_name,time)
     
     
-    # We check if the field is a scalar or vector field
+    # Check if the field is a scalar or vector field
     check_coord = (R.flatten()[0], phi.flatten()[0], Z.flatten()[0]) 
     length = len(field.evaluate(check_coord))
     
-    # We create the output array, and evaluate the field
+    # Create the output array, and evaluate the field
     if length == 1:#scalar field
-        field_array_R   = np.zeros_like(R)
-        field_array_phi = np.zeros_like(phi)
-        field_array_Z   = np.zeros_like(Z)
-        for (idx, r) in np.ndenumerate(R):
-            field_tuple = field.evaluate_deriv((R[idx],phi[idx],Z[idx]))
-            #print(len(field_tuple))
-            field_array_R[idx]   = field_tuple[0]
-            field_array_phi[idx] = field_tuple[1]
-            field_array_Z[idx]   = field_tuple[2]
-        return np.asarray([field_array_R, field_array_phi, field_array_Z])
+        #print(R.shape)
+        if np.isscalar(R) and np.isscalar(phi) and np.isscalar(Z):
+            deriv = field.evaluate_deriv((R, phi, Z))
+            return np.array([deriv[0], deriv[1], deriv[2]])
+
+        # Handle 3D arrays
+        assert R.shape == phi.shape == Z.shape, "R, phi, Z must have the same shape"
+
+        shape = R.shape
+        field_array_R   = np.zeros(shape)
+        field_array_phi = np.zeros(shape)
+        field_array_Z   = np.zeros(shape)
+
+        for idx, _ in np.ndenumerate(R):
+            r_val   = R[idx]
+            phi_val = phi[idx]
+            z_val   = Z[idx]
+
+            deriv = np.asarray(field.evaluate_deriv((r_val, phi_val, z_val))).flatten()
+            
+            field_array_R[idx]   = deriv[0]
+            field_array_phi[idx] = deriv[1]
+            field_array_Z[idx]   = deriv[2]
+
+        return np.array([field_array_R, field_array_phi, field_array_Z])
     elif length == 3:#vector field
         field_array_RR     = np.zeros_like(R)
         field_array_phiR   = np.zeros_like(phi)

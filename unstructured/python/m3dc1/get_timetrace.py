@@ -254,19 +254,11 @@ def get_timetrace(trace,sim=None,filename='C1.h5',units='m3dc1',ipellet=0,diff=F
         label = r'Internal inductance: $l_i(3)$'
         unitlabel = None
 
-    elif trace in ['kprad_n0','kprad_n']:
-        scalar = sim.get_time_trace(trace)*1.0E20
-        label = None
-        unitlabel = None
-        custom = None
-
     elif trace in ['IZ','M_IZ']:
         scalar = sim.get_time_trace('M_IZ')/sim.get_time_trace('toroidal_current_p')
         label = None
         unitlabel = None
         custom = None
-
-
 
     elif trace == 'Wcond':
         Wcond = integrate_time_trace('Flux_thermal',nts=None,method='cumtrapz',units=units,sim=sim,growth=False,renorm=False,makeplot=False)
@@ -407,7 +399,12 @@ def get_timetrace(trace,sim=None,filename='C1.h5',units='m3dc1',ipellet=0,diff=F
     values = scalar.values
     
     if growth:
-        values = 1.0/values[1:] * np.diff(values)/np.diff(time) #Used until 2021-05-12
+        if values.ndim == 1:
+            values = 1.0/values[1:] * np.diff(values)/np.diff(time) #Used until 2021-05-1
+        elif values.ndim == 2:
+            values = 1.0/values[1:] * np.diff(values, axis=0)/np.diff(time)[:, None]
+        else:
+            raise ValueError("timetrace data must be 1D or 2D")
         #values = 1.0/values[1:] * fpyl.deriv(values,time)
         time = time[:-1]
     

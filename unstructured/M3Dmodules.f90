@@ -225,6 +225,7 @@ module basic
   integer :: igs_extend_p ! extend p past psi=1 using te and ne profiles
   integer :: igs_extend_diamag ! extend diamagnetic rotation past psi=1
   integer :: nv1equ   ! if set to 1, use numvar equilibrium for numvar > 1
+  real    :: psifrac
   real :: xmag, zmag  ! position of magnetic axis
 #ifdef USEST
   real :: xmagp, zmagp  ! physical position of magnetic axis
@@ -298,6 +299,7 @@ module basic
   integer :: ra_cyc      ! runaway subcycle
   real :: radiff         ! runaway diffusion
   real :: rjra           ! jra/j0
+  real :: bzsign
   integer :: ra_characteristics           ! use method of characteristics
   integer :: iDreicer ! 1 = Classical, 2 = Partially Screened, 0 = Off
   integer :: iTritBeta ! Toggles Tritium Source
@@ -325,6 +327,7 @@ module basic
   integer :: particle_couple
   integer :: particle_nodelete
   integer :: iconst_f0
+  integer :: ifullf
   real :: fast_ion_mass, fast_ion_z
   integer :: fast_ion_dist
   real :: fast_ion_max_energy
@@ -374,6 +377,8 @@ module basic
   integer :: max_repeat  ! max number of times time-step is repeated
   integer :: ksp_warn    ! time step is  reduced  if max Petsc iterations > ksp_warn
   integer :: ksp_min     ! time step is increased if max Petsc iterations < ksp_min
+  integer :: gamma_gr_stop  ! stop linear simulation when gamma is converged
+  integer :: nt_gamma_gr    ! number of time steps considered for gamma convergence check
   real :: dt, dtold      ! timestep (present and previous)
   real :: dtmin,dtmax,dtkecrit,dtfrac  ! quantities used in variable_timestep option
   real :: ddt            ! change in timestep per timestep
@@ -384,6 +389,7 @@ module basic
   real :: chiiner        ! factor to multiply chi inertial terms
   real :: harned_mikic   ! coefficient of harned-mikic 2f stabilization term
   real :: gamma_gr       ! growth rate based on kinetic energy -- used in variable_timestep
+  real :: gamma_gr_stop_std ! standard deviation under which gamma is considered converged
   real :: pe_floor, pi_floor
   real :: te_floor, ti_floor
   real :: ne_floor, ni_floor
@@ -464,6 +470,7 @@ module basic
   integer :: iheat_sink   !  add a sink term in p equation (initially for itaylor=27)
   integer :: iread_neo      ! 1 = read velocity profiles from NEO output
   integer :: ineo_subtract_diamag ! 1 = subtract v* from input v profile
+  integer :: write_ts_on_job_timeout ! 1: Write time slice and stop code before job hits timeout or is preempted
 
   ! adaptation options
   integer :: iadapt     ! 1,2 = adapts mesh after initialization
@@ -515,6 +522,9 @@ module basic
   type(pid_control), save :: i_control, n_control
 
   integer :: ntime, ntime0
+
+  integer :: gamma_converged_flag, gamma_idx
+  real, allocatable :: gamma_buffer(:) 
 
   ! Deprecated
   real :: zeff_xxx       ! Effective Z of ion fluid
