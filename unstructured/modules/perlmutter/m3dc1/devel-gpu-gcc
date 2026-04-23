@@ -67,5 +67,5 @@ setenv          M3DC1_DIR       $root
 setenv		M3DC1_ARCH	perlmutter_gpu_gcc
 setenv		M3DC1_MPIRUN	srun
 
-prepend-path    PATH             $root/unstructured/_perlmutter_gpu/bin
+prepend-path    PATH             $root/unstructured/_perlmutter_gpu_gcc/bin
 prepend-path    IDL_PATH         $root/unstructured/idl
