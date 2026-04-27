@@ -57,7 +57,6 @@ def field_spectrum(
     dpsi0_dx=None,
     dpsi0_dz=None,
     filename="C1.h5",
-    slice: int = 0,
     **kwargs,
 ) -> FieldSpectrumResult:
     """
@@ -68,8 +67,11 @@ def field_spectrum(
         raise TypeError("field_spectrum() accepts only one of 'psi_norm', 'phi_norm', or 'rho'.")
     param_kwargs = {k: v for k, v in kwargs.items() if k in {"cgs", "mks"}}
     if fc is None:
+        coord_kwargs = dict(kwargs)
+        if "slice" not in coord_kwargs:
+            coord_linear = bool(read_parameter("linear", filename=filename, **param_kwargs))
+            coord_kwargs["slice"] = -1 if coord_linear else 0
         fc = flux_coordinates(
-            slice=slice,
             psi0=psi0,
             i0=i0,
             x=x,
@@ -77,7 +79,7 @@ def field_spectrum(
             filename=filename,
             dpsi0_dx=dpsi0_dx,
             dpsi0_dz=dpsi0_dz,
-            **kwargs,
+            **coord_kwargs,
         )
 
     a = _map_field_to_flux(field, x, z, fc)
@@ -97,13 +99,8 @@ def field_spectrum(
 
     nn = int(b.shape[0])
     if nn > 1:
-        ctor = np.fft.fft(d, axis=0)
-        nt = nn // 2 + 1
-        n = np.arange(nt, dtype=int)
-        dout = np.array(ctor[:nt, :, :], copy=True)
-        for i in range(1, (nn - 1) // 2 + 1):
-            dout[i, :, :] = ctor[i, :, :] + ctor[nn - i, :, :]
-        d = dout[:nt, :, :]
+        d = np.fft.fft(d, axis=0)
+        n = np.arange(nn, dtype=int)
     else:
         d = np.asarray(d, dtype=np.complex128)
         n = np.asarray([int(read_parameter("ntor", filename=filename, **param_kwargs))], dtype=int)

@@ -17,7 +17,7 @@ from .plot_flux_contour import plot_flux_contour
 from .plot_lcfs import plot_lcfs
 from .plot_mesh import plot_mesh
 from .plot_wall_regions import plot_wall_regions
-from .read_field import read_field
+from .read_field import FieldResult, read_field
 
 _READ_FIELD_KW = set(inspect.signature(read_field).parameters.keys())
 
@@ -78,6 +78,8 @@ def plot_field(
     colorbar: bool = True,
     phase: bool = False,
     abs: bool = False,
+    real: bool = False,
+    imaginary: bool = False,
     operation: int = 1,
     magcoord: bool = False,
     outfile: str | Path | None = None,
@@ -95,12 +97,15 @@ def plot_field(
     """
     if timeslices is None:
         timeslices = 0
-    if "time" in kwargs:
-        raise TypeError("plot_field() got an unexpected keyword argument 'time'. Use 'timeslices'.")
     if "x" in kwargs or "y" in kwargs:
         raise TypeError("plot_field() no longer accepts 'x'/'y' arguments.")
     if cmap is None and "cmap" in kwargs:
         cmap = kwargs.pop("cmap")
+    input_r = kwargs.pop("r", None)
+    input_z = kwargs.pop("z", None)
+    input_symbol = kwargs.pop("symbol", None)
+    input_mask = kwargs.pop("mask", None)
+    input_time = kwargs.pop("time", kwargs.pop("realtime", None))
     notitle = title is None
     read_kwargs = {k: v for k, v in kwargs.items() if k in _READ_FIELD_KW}
     plot_kwargs = dict(kwargs)
@@ -113,35 +118,56 @@ def plot_field(
     main_timeslices = timeslices
     primary_slice = _primary_timeslice(timeslices)
 
-    complex_flag = bool(phase or abs)
-    if not isinstance(name, str):
-        raise TypeError("plot_field expects field name as string.")
-    meta = read_field(
-        name,
-        timeslices=main_timeslices,
-        points=points,
-        xrange=xrange,
-        yrange=yrange,
-        linear=linear,
-        phi=phi,
-        logical=logical,
-        operation=operation,
-        complex=complex_flag,
-        filename=filename,
-        linfac=linfac,
-        fac=fac,
-        return_meta=True,
-        **read_kwargs,
-    )
-    field = np.asarray(meta.data)
-    xvec = np.asarray(meta.r, dtype=float).reshape(-1)
-    yvec = np.asarray(meta.z, dtype=float).reshape(-1)
-    mask = meta.mask
-    fieldname = str(meta.symbol)
-    if units is None:
-        units = str(meta.units)
-    if realtime is None:
-        realtime = meta.time
+    complex_flag = bool(phase or abs or real or imaginary)
+    if isinstance(name, str):
+        meta = read_field(
+            name,
+            timeslices=main_timeslices,
+            points=points,
+            xrange=xrange,
+            yrange=yrange,
+            linear=linear,
+            phi=phi,
+            logical=logical,
+            operation=operation,
+            complex=complex_flag,
+            filename=filename,
+            linfac=linfac,
+            fac=fac,
+            return_meta=True,
+            **read_kwargs,
+        )
+        field = np.asarray(meta.data)
+        xvec = np.asarray(meta.r, dtype=float).reshape(-1)
+        yvec = np.asarray(meta.z, dtype=float).reshape(-1)
+        mask = meta.mask
+        fieldname = str(meta.symbol)
+        if units is None:
+            units = str(meta.units)
+        if realtime is None:
+            realtime = meta.time
+    elif isinstance(name, FieldResult):
+        field = np.asarray(name.data)
+        xvec = np.asarray(name.r, dtype=float).reshape(-1)
+        yvec = np.asarray(name.z, dtype=float).reshape(-1)
+        mask = name.mask if input_mask is None else input_mask
+        fieldname = str(name.symbol) if input_symbol is None else str(input_symbol)
+        if units is None:
+            units = str(name.units)
+        if realtime is None:
+            realtime = name.time
+    else:
+        if input_r is None or input_z is None:
+            raise TypeError("plot_field requires 'r' and 'z' when plotting precomputed field data.")
+        field = np.asarray(name)
+        if field.ndim != 2:
+            raise TypeError("plot_field array input must be a 2D array.")
+        xvec = np.asarray(input_r, dtype=float).reshape(-1)
+        yvec = np.asarray(input_z, dtype=float).reshape(-1)
+        mask = input_mask
+        fieldname = "" if input_symbol is None else str(input_symbol)
+        if realtime is None:
+            realtime = input_time
 
     f3 = _as_3d(field)
 
@@ -151,6 +177,10 @@ def plot_field(
         fieldname = f"Phase({fieldname})"
     elif abs:
         f3 = np.abs(f3)
+    elif real:
+        f3 = np.real(f3)
+    elif imaginary:
+        f3 = np.imag(f3)
 
     if realtime is not None:
         print(f"time = {realtime}")
@@ -165,7 +195,8 @@ def plot_field(
         for k in range(f3.shape[0]):
             f3[k, :, :] = f3[k, :, :] - m * (f3[k, :, :] - float(mask_val))
 
-    f3 = np.real(f3)
+    if not (phase or abs or real or imaginary):
+        f3 = np.real(f3)
 
     if notitle:
         title = fieldname

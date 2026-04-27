@@ -431,6 +431,7 @@ subroutine set_defaults
   call add_var_double("rjra", rjra, 1., "", model_grp)
   call add_var_int("ra_characteristics", ra_characteristics, 0, &
        "1: Use the method of characteristics to advance the RE advection equation", model_grp)
+  call add_var_double("bzsign", bzsign, 0., "", model_grp)
   call add_var_int("imp_bf", imp_bf, 0, &
        "1: Include implicit equation for f", model_grp)
   call add_var_int("imp_temp", imp_temp, 0, &

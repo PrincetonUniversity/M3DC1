@@ -316,7 +316,7 @@ subroutine hdf5_write_parameters(error)
   call write_real_attr(root_id, "zlim2"      , zlim2,       error)
   call write_int_attr (root_id, "ikprad"     , ikprad,      error)
   call write_int_attr (root_id, "kprad_z"    , kprad_z,     error)
-  call write_real_attr(root_id, "bzsign"    , bzsign,       error)
+  call write_real_attr(root_id, "bzsign"     , bzsign,       error)
 
   call h5gclose_f(root_id, error)
 

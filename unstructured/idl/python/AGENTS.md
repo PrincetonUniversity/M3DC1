@@ -110,18 +110,34 @@
   - In `plot_flux_average.py`, use a tolerance of `0.001` for sign/near-zero decisions.
   - `plot_flux_average('q', timeslices)` should build flux coordinates using the requested `timeslices` value, not silently fall back to slice `0`.
   - For `eqsubtract=1` files, flux-coordinate construction for `plot_flux_average('q', timeslices)` should use total fields at the requested slice, which means `read_field` combines the perturbation at `timeslices` with equilibrium slice `-1`.
-  - `flux_average.py` should preload `psi` for flux-coordinate construction with `equilibrium=False` and pass `slice=int(timeslices or 0)` into `flux_coordinates(...)`.
+  - `flux_average.py` should own the `flux_coordinates(...)` slice choice:
+    - do not use the public `linear` argument for this decision
+    - read the file parameter `linear`
+    - when file `linear=1`, use `slice=-1`
+    - when file `linear=0`, use the requested `timeslices`
+  - `plot_flux_average.py` should rely on `flux_average.py` for that flux-coordinate slice logic.
 - `flux_average_field.py` correctness fix:
   - Do not transpose the `field_at_point(...)` output before flux-surface averaging.
 - `field_spectrum.py` / `read_field_spectrum.py` / `plot_field_spectrum.py` conventions:
   - Default to reading fields with `complex=True` for spectrum calculations, with fallback to real data if the complex companion field is missing.
-  - `read_field_spectrum.py` defaults to `pest=True` if none of `pest`, `boozer`, `hamada`, or `fast` is selected.
+  - `read_field_spectrum.py` coordinate-mode defaults depend on `itor` when none of `pest`, `boozer`, `hamada`, or `fast` is selected:
+    - `itor=1` defaults to `pest=True`
+    - `itor=0` defaults to `pest=False` and `fast=False`
+  - `read_field_spectrum.py` should construct `flux_coordinates(...)` itself and pass `fc` into `field_spectrum.py`.
+  - `read_field_spectrum.py` should choose the flux-coordinate slice from the file parameter `linear`, not from the function call's `linear` argument:
+    - file `linear=1` -> equilibrium slice `-1`
+    - file `linear=0` -> requested `timeslices`
+  - `field_spectrum.py` should not take a public `timeslice` argument; when it has to build `fc` internally, it should use the same file-parameter `linear` rule for the default slice.
   - `field_spectrum.py` and `read_field_spectrum.py` support `m_val`; `read_field_spectrum.py` also accepts `m_vals` as an alias.
   - `field_spectrum.py` supports x-axis selection via `psi_norm`, `phi_norm`, and `rho`.
   - `plot_field_spectrum.py` should use Matplotlib default `axes.prop_cycle` colors.
   - If `m_val` is not provided to `plot_field_spectrum.py`, choose the 5 `m` values with the largest maximum absolute amplitudes and plot those.
   - When auto-selecting `m` values in `plot_field_spectrum.py`, ignore `NaN` amplitudes and rank using finite amplitudes across both positive and negative `m`.
   - For each `q_target` in `plot_field_spectrum.py`, draw vertical resonance lines for all profile crossings, not just one interpolated crossing.
+  - Other helper callers that build `flux_coordinates(...)` without an explicit slice should follow the same file-parameter `linear` rule:
+    - `flux_at_q.py`
+    - `schaffer_plot.py`
+    - `flux_coord_field.py`
 - `read_scalar.py` / `plot_scalar.py` interface update:
   - Use public argument name `growth` instead of `growth_rate`.
   - Keep `growth_rate` only as a backward-compatible alias when needed.
@@ -146,6 +162,16 @@
     - `fill=False` should draw contour lines only and skip the colorbar path.
 - `plot_field.py` interface update:
   - Add `colorbar` argument; when `colorbar=False`, do not create a colorbar for the contour plot.
+  - Accept field input as a field name `str`, a 2D array, or a `FieldResult`.
+  - For 2D array input, require explicit `r` and `z` plotting grids.
+- `read_field_ntor.py` / `plot_field_ntor.py` conventions:
+  - `read_field_ntor.py` returns toroidal Fourier components on the original 2D `(r, z)` grid without flux-coordinate remapping and without a poloidal (`m`) Fourier transform.
+  - `read_field_ntor.py` only supports files with `3d=1`; otherwise it should raise an error.
+  - `read_field_ntor.py` reads the 3D toroidal stack as real data and applies the complex toroidal FFT in Python.
+  - `read_field_ntor.py` accepts `ntor` as `None`, a scalar, or an array; `None` returns all toroidal FFT bins and the corresponding `n` array.
+  - `read_field_ntor.py` accepts `phi` and applies a toroidal phase factor `exp(i n phi)` to the returned harmonic(s), using degrees when `itor=1`.
+  - `plot_field_ntor.py` should build a `FieldResult` from `read_field_ntor(...)` output and call `plot_field(...)`.
+  - `plot_field_ntor.py` should accept plotting arguments from `plot_field.py` such as `boundary`, `lcfs`, `mesh`, `axis`, `coils`, and `wall_regions`, and must filter kwargs so plotting-only arguments are not forwarded into `read_field_ntor(...)`.
 - LCFS helper behavior:
   - `get_lcfs.py` must filter kwargs before forwarding to `read_field(...)` and `read_lcfs(...)`, so plotting-only kwargs like `lines` do not break LCFS reads.
 - `flux_average.py` / `flux_average_field.py` return-meta behavior:
@@ -157,6 +183,7 @@
   - Build `rho` from a clipped nonnegative normalized toroidal flux to avoid all-`NaN` output when the last toroidal-flux point is invalid.
   - When `slice >= 0`, `flux_coordinates.py` should read `psi`, `psi_r`, `psi_z`, and `I` with `equilibrium=False` so total-field reconstruction works correctly for `eqsubtract=1`.
   - When `slice < 0`, `flux_coordinates.py` should still use `equilibrium=True` for equilibrium-only reads.
+  - `flux_coordinates.py` should pass its `slice` argument through to `lcfs(...)` so LCFS quantities are read from the matching time slice.
 - `read_field.py` equilibrium handling:
   - For `equilibrium=True` with `eqsubtract=1`, force reads to slice `-1` to avoid recursive total-field reconstruction loops.
   - `flux_coordinates.py` should pass its `slice` argument through to `lcfs(...)` so LCFS quantities are read from the matching time slice.

@@ -20,6 +20,7 @@ from .make_units import make_units
 from .parse_units import parse_units
 from .laplacian import laplacian
 from .read_field import read_field
+from .read_field_ntor import read_field_ntor
 from .read_field_spectrum import read_field_spectrum
 from .read_hmn import read_hmn
 from .read_lcfs import read_lcfs
@@ -48,6 +49,7 @@ from .plot_wall_regions import plot_wall_regions
 from .plot_coils import plot_coils
 from .plot_mag_probes import plot_mag_probes
 from .plot_field import plot_field
+from .plot_field_ntor import plot_field_ntor
 from .plot_field_spectrum import plot_field_spectrum
 from .plot_scalar import plot_scalar
 from .plot_hmn import plot_hmn
@@ -84,6 +86,7 @@ __all__ = [
     "parse_units",
     "laplacian",
     "read_field",
+    "read_field_ntor",
     "read_field_spectrum",
     "read_hmn",
     "read_lcfs",
@@ -113,6 +116,7 @@ __all__ = [
     "plot_legend",
     "plot_mag_probes",
     "plot_field",
+    "plot_field_ntor",
     "plot_field_spectrum",
     "plot_scalar",
     "plot_hmn",

@@ -317,6 +317,7 @@ subroutine init_particles(lrestart, ierr)
    integer, dimension(:), allocatable :: mesh_zone_temp
    integer :: nelm_row_temp
    integer :: ielm_min_temp, ielm_max_temp
+   real :: bzsign_temp
 
    call m3dc1_mesh_getnumglobalent(0, nnodes_global)
 #ifdef USE3D
@@ -487,6 +488,27 @@ subroutine init_particles(lrestart, ierr)
    ra_cyc = 1
    !linear_particle=0
 
+   if (bzsign.eq.0) then
+      dpar%x(1) = xmag
+      dpar%x(3) = zmag
+      dpar%x(2) = 0.
+      itri = 0
+      bzsign_temp = 0.
+      call get_geom_terms(dpar%x, itri, geomterms, .false., ierr)
+      if (localmeshid(itri)>0) then
+         write(0,*) itri
+         ielm=localmeshid(itri)
+         call get_zone(ielm, izone)
+         call define_element_quadrature(ielm, int_pts_main, int_pts_tor)
+         call define_fields(ielm, FIELD_PSI+FIELD_I, 1, 0)
+         call eval_ops(ielm, psi_field(0), ps079)
+         call eval_ops(ielm, bz_field(0), bz079)
+         bzsign_temp=sign(1.0, real(sum(ps079(:,OP_GS))*sum(bz079(:,OP_1))))
+      endif
+      call mpi_allreduce(bzsign_temp, bzsign, 1, MPI_DOUBLE_PRECISION, MPI_SUM, MPI_COMM_WORLD, ierr)
+      bzsign=sign(1.0, bzsign)
+   endif
+
    ! if (lrestart) then
    !    write (part_file_name, '("ions_",I4.4,".h5")') times_output
    !    write (0, *) part_file_name
@@ -609,8 +631,8 @@ subroutine init_particles(lrestart, ierr)
 
       !call mpi_allreduce(gid_min, ipart_begin, 1, MPI_INTEGER, MPI_MIN, hostcomm, ierr)
       !call mpi_allreduce(gid_max, ipart_end, 1, MPI_INTEGER, MPI_MAX, hostcomm, ierr)
-      call mpi_barrier(mpi_comm_world, ierr)
       particle_map(:,:)=1
+      call mpi_barrier(mpi_comm_world, ierr)
       if (hostrank == 0) then
          write(0,*) ipart_begin, ipart_end
          do  ipart = ipart_begin, ipart_end
