@@ -14,8 +14,12 @@ from matplotlib import path
 #from scipy.io import loadmat
 from scipy.interpolate import griddata
 from scipy.interpolate import interp1d
-from scipy.integrate import trapz
-from scipy.integrate import cumtrapz
+try:
+    from scipy.integrate import trapezoid as trapz
+    from scipy.integrate import cumulative_trapezoid as cumtrapz
+except ImportError:
+    from scipy.integrate import trapz
+    from scipy.integrate import cumtrapz
 import m3dc1.fpylib as fpyl
 
 
@@ -740,4 +744,3 @@ def flux_average_gfile(gf):
     fa.q95 = q_interp(0.95)
     
     return fa
-
