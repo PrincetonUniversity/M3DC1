@@ -81,7 +81,7 @@ contains
     real, allocatable :: xvals(:)
     integer :: nvals
 #endif
-    integer :: model_type, nedges, i
+    integer :: model_type, nedges, j
     integer, dimension(max_bounds) :: edges
 
     ! load mesh
@@ -237,13 +237,13 @@ contains
                print *, 'Error: nedges > max_bounds for first wall'
           call safestop(184)
        end if
-       do i=1, nedges
-          if(edges(i).gt.max_bounds) then
+       do j=1, nedges
+          if(edges(j).gt.max_bounds) then
              if(myrank.eq.0) &
-                  print *, 'Firstwall edge greater than max_bounds', edges(i)
+                  print *, 'Firstwall edge greater than max_bounds', edges(j)
              call safestop(185)
           end if
-          boundary_type(edges(i)) = BOUND_FIRSTWALL
+          boundary_type(edges(j)) = BOUND_FIRSTWALL
        end do
 
        ! Find edges associated with computational domain boundary
@@ -255,13 +255,13 @@ contains
                print *, 'Error: nedges > max_bounds for domain boundary'
           call safestop(186)
        end if
-       do i=1, nedges
-          if(edges(i).gt.max_bounds) then
+       do j=1, nedges
+          if(edges(j).gt.max_bounds) then
              if(myrank.eq.0) &
-                  print *, 'Domain edge greater than max_bounds', edges(i)
+                  print *, 'Domain edge greater than max_bounds', edges(j)
              call safestop(187)
           end if
-          boundary_type(edges(i)) = BOUND_DOMAIN
+          boundary_type(edges(j)) = BOUND_DOMAIN
        end do
     end if
     
