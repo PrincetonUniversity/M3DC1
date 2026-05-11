@@ -671,9 +671,10 @@ subroutine init_particles(lrestart, ierr)
          call define_fields(ielm, FIELD_PSI+FIELD_I, 1, 0)
          call eval_ops(ielm, psi_field(0), ps079)
          call eval_ops(ielm, bz_field(0), bz079)
-         bzsign_temp=sum(ps079(:,OP_GS))*sum(bz079(:,OP_1))
+         bzsign_temp=sign(1.0, real(sum(ps079(:,OP_GS))*sum(bz079(:,OP_1))))
       endif
       call mpi_allreduce(bzsign_temp, bzsign, 1, MPI_DOUBLE_PRECISION, MPI_SUM, MPI_COMM_WORLD, ierr)
+      bzsign=sign(1.0, bzsign)
       if (bzsign>0) then
          allocate(f_array2(num_energy,num_pitch,num_r))
          do pitch_i=1,num_pitch
@@ -777,9 +778,11 @@ subroutine init_particles(lrestart, ierr)
          itri = itri + 1
          x_min = minval(mesh_coord(1, :, itri))
          x_max = maxval(mesh_coord(1, :, itri))
+#ifdef USE3D
          phi_min = mesh_coord(2, 1, itri)
          phi_max = mesh_coord(2, 4, itri)
          if (phi_max == 0) phi_max = toroidal_period
+#endif
          z_min = minval(mesh_coord(3, :, itri))
          z_max = maxval(mesh_coord(3, :, itri))
 
@@ -1302,7 +1305,7 @@ subroutine rk4(part, dt, last_step, ierr)
             if (vspdims .eq. 2) then
                lr = lr/sqrt(dot_product(lr, lr))*sqrt(2.0*qm_ion(part%sps)*part%v(2)/B0inv)/qm_ion(part%sps)*B0inv
             else
-               lr = lr/sqrt(dot_product(lr, lr))*sqrt(2.0*qm_ion(part%sps)*part%v(5)/B0inv)/qm_ion(part%sps)*B0inv
+               !lr = lr/sqrt(dot_product(lr, lr))*sqrt(2.0*qm_ion(part%sps)*part%v(5)/B0inv)/qm_ion(part%sps)*B0inv
             end if
             lr(2) = lr(2)/x2(1)
             x2 = x2 + lr
@@ -1778,14 +1781,14 @@ subroutine fdot(x, v, w, dxdt, dvdt, dwdt, dEpdt, itri, kel, f00, ierr, sps, B00
    !dEdt = 0. ! fluid particle
    !dxidt = 0. ! fluid particle
 
-   ! vD = (1/(e B**3))(M_i U**2 + mu B)(B x grad B) + ((M_i U**2)/(eB**2))*J_perp
-   tmp1 = (v(1)*v(1))*(B0inv*B0inv)/qm_ion(sps)
-   tmp2 = tmp1*B0inv + v(2)*(B0inv*B0inv)
-   weqvD = tmp2*BxgrdB + tmp1*(Jcyl - dot_product(bhat, Jcyl)*bhat)
-   weqv0 = v(1)*bhat + weqvD
-   tmp2 = (v(4)*v(4))*(B0inv*B0inv)/qm_ion(sps)*B0inv
-   tmp2 = tmp1*B0inv
-   weqvD1 = tmp2*BxgrdB + tmp1*(Jcyl - dot_product(bhat, Jcyl)*bhat)
+   !! vD = (1/(e B**3))(M_i U**2 + mu B)(B x grad B) + ((M_i U**2)/(eB**2))*J_perp
+   !tmp1 = (v(1)*v(1))*(B0inv*B0inv)/qm_ion(sps)
+   !tmp2 = tmp1*B0inv + v(2)*(B0inv*B0inv)
+   !weqvD = tmp2*BxgrdB + tmp1*(Jcyl - dot_product(bhat, Jcyl)*bhat)
+   !weqv0 = v(1)*bhat + weqvD
+   !tmp2 = (v(4)*v(4))*(B0inv*B0inv)/qm_ion(sps)*B0inv
+   !tmp2 = tmp1*B0inv
+   !weqvD1 = tmp2*BxgrdB + tmp1*(Jcyl - dot_product(bhat, Jcyl)*bhat)
 
    !ne0 = dot_product(geomterms%g, elfieldcoefs(itri)%ne0)
 
@@ -3370,16 +3373,16 @@ subroutine particle_pressure_rhs
             vpar = pdata(ipart)%v(1)
             pperp = q_ion(pdata(ipart)%sps)*pdata(ipart)%v(2)*B0
          else !full orbit: v_|| = v.B/|B|,  v_perp = v - v_||
-            if (B0 .gt. 0.0) then !non-degenerate
-               !vpar = dot_product(pdata(ipart)%v, B_part(1:vspdims))/B0
-               vpar = pdata(ipart)%v(4)
-               !vperp = pdata(ipart)%v - (vpar/B0)*B_part(1:vspdims)
-               pperp = q_ion(pdata(ipart)%sps)*pdata(ipart)%v(5)*B0
-            else !degenerate case: no B field, pressure is scalar
-               !vpar = 0.0
-               !vperp = pdata(ipart)%v
-            end if !degenerate?
-            !pperp = 0.5 * m_ion * dot_product(vperp, vperp)
+            !if (B0 .gt. 0.0) then !non-degenerate
+            !   !vpar = dot_product(pdata(ipart)%v, B_part(1:vspdims))/B0
+            !   vpar = pdata(ipart)%v(4)
+            !   !vperp = pdata(ipart)%v - (vpar/B0)*B_part(1:vspdims)
+            !   pperp = q_ion(pdata(ipart)%sps)*pdata(ipart)%v(5)*B0
+            !else !degenerate case: no B field, pressure is scalar
+            !   !vpar = 0.0
+            !   !vperp = pdata(ipart)%v
+            !end if !degenerate?
+            !!pperp = 0.5 * m_ion * dot_product(vperp, vperp)
          end if !full-orbit?
          ppar = m_ion(pdata(ipart)%sps)*vpar**2
          if (particle_linear == 1) then
@@ -3768,8 +3771,8 @@ subroutine hdf5_write_particles(ierr)
          values(7, ipart) = pdata(pindex)%v(1)
          values(8, ipart) = pdata(pindex)%v(2)
          if (vspdims == 5) then
-            values(9, ipart) = pdata(pindex)%v(3)
-            values(10, ipart) = pdata(pindex)%v(4)
+            !values(9, ipart) = pdata(pindex)%v(3)
+            !values(10, ipart) = pdata(pindex)%v(4)
          end if
          ! values(pdims, ipart) = pdata(pindex)%v(vspdims)
          values(9, ipart) = pdata(pindex)%f0
@@ -3985,8 +3988,8 @@ subroutine hdf5_read_particles(filename, ierr)
                      !if (mod(dpar%gid,2)==1) dpar%v(1) = -valbuf(7,ipart)
                      dpar%v(2) = valbuf(8, ipart)
                      if (vspdims == 5) then
-                        dpar%v(3) = valbuf(9, ipart)
-                        dpar%v(4) = valbuf(10, ipart)
+                        !dpar%v(3) = valbuf(9, ipart)
+                        !dpar%v(4) = valbuf(10, ipart)
                      end if
                      ! dpar%v(vspdims) = valbuf(ldim, ipart)
                      dpar%f0 = valbuf(9, ipart)
@@ -4582,7 +4585,7 @@ subroutine filter_velocity
    integer :: i, ntor_i
    integer, dimension(dofs_per_element) :: imask
    type(vector_type), pointer :: vsource
-   type(field_type) ::   phi_v, bz_v
+   type(field_type) ::   phi_v, bz_v, psi_v
    vectype, dimension(dofs_per_element) :: dofs
    integer :: ierr
    type(field_type) ::   u_v
@@ -4592,8 +4595,8 @@ subroutine filter_velocity
    type(vector_type) :: b1_vel
    vectype, dimension(dofs_per_element, dofs_per_element) :: tempxx
    type(matrix_type) :: diff_tor_mat
-   type(field_type) ::  prcos_v, prsin_v, pzcos_v, pzsin_v, phcos_v, phsin_v, bzcos_v, bzsin_v
-  vectype, dimension(MAX_PTS, OP_NUM) :: prcos79, prsin79, pzcos79, pzsin79, phcos79, phsin79, bzcos79, bzsin79
+   type(field_type) ::  pscos_v, pssin_v, pzcos_v, pzsin_v, phcos_v, phsin_v, bzcos_v, bzsin_v
+  vectype, dimension(MAX_PTS, OP_NUM) :: pscos79, pssin79, pzcos79, pzsin79, phcos79, phsin79, bzcos79, bzsin79
 
    logical, save :: first_time = .true.
     
@@ -4611,11 +4614,17 @@ subroutine filter_velocity
       bzcos_v = 0.
       bzsin_v = 0.
 
+      call create_field(pscos_v)
+      call create_field(pssin_v)
+      pscos_v = 0.
+      pssin_v = 0.
+
+
       do itri = 1, local_elements()
          call get_zone(itri, izone)
 
          call define_element_quadrature(itri, int_pts_main, int_pts_tor)
-         call define_fields(itri, FIELD_PHI + FIELD_I, 1, 0)
+         call define_fields(itri, FIELD_PHI + FIELD_I + FIELD_PSI , 1, 0)
 
          temp79a = ph179(:, OP_1) * cos(ntor_i * phi_79)
          dofs = intx2(mu79(:, :, OP_1), temp79a)
@@ -4632,17 +4641,29 @@ subroutine filter_velocity
          temp79a = bz179(:, OP_1) * sin(ntor_i * phi_79)
          dofs = intx2(mu79(:, :, OP_1), temp79a)
          call vector_insert_block(bzsin_v%vec, itri, 1, dofs, VEC_ADD)
+
+         temp79a = ps179(:, OP_1) * cos(ntor_i * phi_79)
+         dofs = intx2(mu79(:, :, OP_1), temp79a)
+         call vector_insert_block(pscos_v%vec, itri, 1, dofs, VEC_ADD)
+
+         temp79a = ps179(:, OP_1) * sin(ntor_i * phi_79)
+         dofs = intx2(mu79(:, :, OP_1), temp79a)
+         call vector_insert_block(pssin_v%vec, itri, 1, dofs, VEC_ADD)
       end do
 
       call newvar_solve(phcos_v%vec, mass_mat_lhs)
       call newvar_solve(phsin_v%vec, mass_mat_lhs)
       call newvar_solve(bzcos_v%vec, mass_mat_lhs)
       call newvar_solve(bzsin_v%vec, mass_mat_lhs)
+      call newvar_solve(pscos_v%vec, mass_mat_lhs)
+      call newvar_solve(pssin_v%vec, mass_mat_lhs)
 
       call get_axi(phcos_v)
       call get_axi(phsin_v)
       call get_axi(bzcos_v)
       call get_axi(bzsin_v)
+      call get_axi(pscos_v)
+      call get_axi(pssin_v)
 
       ! ieq(1) = u_i
       ! ieq(2) = vz_i
@@ -4661,16 +4682,21 @@ subroutine filter_velocity
       call create_field(bz_v)
       bz_v = 0.
 
+      call create_field(psi_v)
+      psi_v = 0.
+
       do itri = 1, local_elements()
          call get_zone(itri, izone)
 
          call define_element_quadrature(itri, int_pts_main, int_pts_tor)
-         call define_fields(itri, FIELD_PHI + FIELD_V + FIELD_CHI + FIELD_I, 1, 0)
+         call define_fields(itri, FIELD_PHI + FIELD_I + FIELD_PSI, 1, 0)
 
          call eval_ops(itri, phcos_v, phcos79)
          call eval_ops(itri, phsin_v, phsin79)
          call eval_ops(itri, bzcos_v, bzcos79)
          call eval_ops(itri, bzsin_v, bzsin79)
+         call eval_ops(itri, pscos_v, pscos79)
+         call eval_ops(itri, pssin_v, pssin79)
 
          ph179(:, OP_1) = ph179(:, OP_1)                                &
             - phcos79(:, OP_1) * cos(ntor_i * phi_79)                   &
@@ -4680,11 +4706,18 @@ subroutine filter_velocity
             - bzcos79(:, OP_1) * cos(ntor_i * phi_79)                   &
             - bzsin79(:, OP_1) * sin(ntor_i * phi_79)
 
+         ps179(:, OP_1) = ps179(:, OP_1)                                &
+            - pscos79(:, OP_1) * cos(ntor_i * phi_79)                   &
+            - pssin79(:, OP_1) * sin(ntor_i * phi_79)
+
          dofs = intx2(mu79(:, :, OP_1), ph179(:, OP_1))
          call vector_insert_block(phi_v%vec, itri, 1, dofs, VEC_ADD)
 
          dofs = intx2(mu79(:, :, OP_1), bz179(:, OP_1))
          call vector_insert_block(bz_v%vec, itri, 1, dofs, VEC_ADD)
+
+         dofs = intx2(mu79(:, :, OP_1), ps179(:, OP_1))
+         call vector_insert_block(psi_v%vec, itri, 1, dofs, VEC_ADD)
       end do
 
       call newvar_solve(phi_v%vec, mass_mat_lhs)
@@ -4693,12 +4726,18 @@ subroutine filter_velocity
       call newvar_solve(bz_v%vec, mass_mat_lhs)
       bz_field(1) = bz_v
 
+      call newvar_solve(psi_v%vec, mass_mat_lhs)
+      psi_field(1) = psi_v
+
       call destroy_field(phcos_v)
       call destroy_field(phsin_v)
       call destroy_field(phi_v)
       call destroy_field(bzcos_v)
       call destroy_field(bzsin_v)
       call destroy_field(bz_v)
+      call destroy_field(pscos_v)
+      call destroy_field(pssin_v)
+      call destroy_field(psi_v)
    end do
 
 end subroutine filter_velocity

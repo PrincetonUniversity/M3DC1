@@ -665,17 +665,16 @@ contains
 
 #ifdef USEST
   subroutine check(istatus)
-  use netcdf
   implicit none
 
   integer, intent (in) :: istatus
-  if (istatus.ne.nf90_noerr) then
+  if (istatus.ne.0) then
      call safestop(53)
   end if
   end subroutine check
 
   subroutine load_mgrid_field(sf, mgrid_filename, vmec_filename, error)
-    use netcdf
+    use iso_c_binding
     use math
     implicit none
 
@@ -684,72 +683,132 @@ contains
     integer, intent(out) :: error
 
     integer :: ll, ii, kk
-    integer :: ncid, ncid_vmec, istatus
+    integer(c_int) :: ncid, ncid_vmec, istatus
     real :: curfac, dr, dz, dphi
     real :: per
 
 ! Dimension IDs
-    integer :: radDimID, phiDimID, zeeDimID
+    integer(c_int) :: radDimID, phiDimID, zeeDimID
 ! Variable IDs
-    integer :: rminID, rmaxID, zminID, zmaxID, nfpID, nextcurID, modeID, extcurID, rawcurID
+    integer(c_int) :: rminID, rmaxID, zminID, zmaxID, nfpID, nextcurID, modeID, extcurID, rawcurID
 ! Variable values
     real :: rmin, rmax, zmin, zmax
     real, allocatable :: extcur(:)
     integer :: nfp, nextcur
-    character :: mgrid_mode 
+    character :: mgrid_mode
 ! Magnetic field
-    integer :: varID
+    integer(c_int) :: varID
     character(len=30) :: var
     real, allocatable :: brtemp(:,:,:), bphitemp(:,:,:), bztemp(:,:,:), temp(:,:,:)
+
+    integer(c_int), parameter :: NC_NOWRITE = 0
+    integer(c_size_t) :: dimlen
+    character(kind=c_char, len=257) :: c_filename
+
+    interface
+      function nc_open(path, omode, ncidp) bind(C, name="nc_open") result(r)
+        use iso_c_binding
+        integer(c_int) :: r
+        character(c_char), intent(in) :: path(*)
+        integer(c_int), value :: omode
+        integer(c_int), intent(out) :: ncidp
+      end function
+
+      function nc_inq_dimid(ncid, name, idp) bind(C, name="nc_inq_dimid") result(r)
+        use iso_c_binding
+        integer(c_int) :: r
+        integer(c_int), value :: ncid
+        character(c_char), intent(in) :: name(*)
+        integer(c_int), intent(out) :: idp
+      end function
+
+      function nc_inq_dimlen(ncid, dimid, lenp) bind(C, name="nc_inq_dimlen") result(r)
+        use iso_c_binding
+        integer(c_int) :: r
+        integer(c_int), value :: ncid, dimid
+        integer(c_size_t), intent(out) :: lenp
+      end function
+
+      function nc_inq_varid(ncid, name, varidp) bind(C, name="nc_inq_varid") result(r)
+        use iso_c_binding
+        integer(c_int) :: r
+        integer(c_int), value :: ncid
+        character(c_char), intent(in) :: name(*)
+        integer(c_int), intent(out) :: varidp
+      end function
+
+      function nc_get_var_int(ncid, varid, ip) bind(C, name="nc_get_var_int") result(r)
+        use iso_c_binding
+        integer(c_int) :: r
+        integer(c_int), value :: ncid, varid
+        integer(c_int), intent(out) :: ip
+      end function
+
+      function nc_get_var_double(ncid, varid, dp) bind(C, name="nc_get_var_double") result(r)
+        use iso_c_binding
+        integer(c_int) :: r
+        integer(c_int), value :: ncid, varid
+        real(c_double), intent(out) :: dp
+      end function
+
+      function nc_get_var_text(ncid, varid, tp) bind(C, name="nc_get_var_text") result(r)
+        use iso_c_binding
+        integer(c_int) :: r
+        integer(c_int), value :: ncid, varid
+        character(c_char), intent(out) :: tp(*)
+      end function
+    end interface
 
     error = 0
 
 ! Check extension
     ll = len_trim(mgrid_filename)
     if (mgrid_filename(ll-2:ll).eq.'.nc') then
-       call check(nf90_open(trim(mgrid_filename), nf90_nowrite, ncid))
+       c_filename = trim(mgrid_filename) // c_null_char
+       call check(int(nc_open(c_filename, NC_NOWRITE, ncid)))
 
        ! Get dimensions
-       call check(nf90_inq_dimid(ncid, "rad", radDimID))
-       call check(nf90_inq_dimid(ncid, "phi", phiDimID))
-       call check(nf90_inq_dimid(ncid, "zee", zeeDimID))
-       call check(nf90_inquire_dimension(ncid, radDimID, len=sf%nr))
-       call check(nf90_inquire_dimension(ncid, phiDimID, len=sf%nphi))
-       call check(nf90_inquire_dimension(ncid, zeeDimID, len=sf%nz))
+       call check(int(nc_inq_dimid(ncid, "rad"//c_null_char, radDimID)))
+       call check(int(nc_inq_dimid(ncid, "phi"//c_null_char, phiDimID)))
+       call check(int(nc_inq_dimid(ncid, "zee"//c_null_char, zeeDimID)))
+       call check(int(nc_inq_dimlen(ncid, radDimID, dimlen))); sf%nr   = int(dimlen)
+       call check(int(nc_inq_dimlen(ncid, phiDimID, dimlen))); sf%nphi = int(dimlen)
+       call check(int(nc_inq_dimlen(ncid, zeeDimID, dimlen))); sf%nz   = int(dimlen)
 
        ! Get variable values
-       call check(nf90_inq_varid(ncid, "rmin", rminID))
-       call check(nf90_inq_varid(ncid, "rmax", rmaxID))
-       call check(nf90_inq_varid(ncid, "zmin", zminID))
-       call check(nf90_inq_varid(ncid, "zmax", zmaxID))
-       call check(nf90_inq_varid(ncid, "nfp", nfpID))
-       call check(nf90_inq_varid(ncid, "nextcur", nextcurID))
-       call check(nf90_inq_varid(ncid, "mgrid_mode", modeID))
+       call check(int(nc_inq_varid(ncid, "rmin"//c_null_char, rminID)))
+       call check(int(nc_inq_varid(ncid, "rmax"//c_null_char, rmaxID)))
+       call check(int(nc_inq_varid(ncid, "zmin"//c_null_char, zminID)))
+       call check(int(nc_inq_varid(ncid, "zmax"//c_null_char, zmaxID)))
+       call check(int(nc_inq_varid(ncid, "nfp"//c_null_char, nfpID)))
+       call check(int(nc_inq_varid(ncid, "nextcur"//c_null_char, nextcurID)))
+       call check(int(nc_inq_varid(ncid, "mgrid_mode"//c_null_char, modeID)))
 
-       call check(nf90_get_var(ncid,rminID,rmin))
-       call check(nf90_get_var(ncid,rmaxID,rmax))
-       call check(nf90_get_var(ncid,zminID,zmin))
-       call check(nf90_get_var(ncid,zmaxID,zmax))
-       call check(nf90_get_var(ncid,nfpID,nfp))
-       call check(nf90_get_var(ncid,nextcurID,nextcur))
-       call check(nf90_get_var(ncid,modeID,mgrid_mode))
+       call check(int(nc_get_var_double(ncid, rminID, rmin)))
+       call check(int(nc_get_var_double(ncid, rmaxID, rmax)))
+       call check(int(nc_get_var_double(ncid, zminID, zmin)))
+       call check(int(nc_get_var_double(ncid, zmaxID, zmax)))
+       call check(int(nc_get_var_int(ncid, nfpID, nfp)))
+       call check(int(nc_get_var_int(ncid, nextcurID, nextcur)))
+       call check(int(nc_get_var_text(ncid, modeID, mgrid_mode)))
 
        ! Check mgrid_mode
        allocate(extcur(nextcur))
        if (mgrid_mode.eq.'S') then
           print *, 'Coil currents are SCALED...'
           print *, 'Opening vmec file'
-          call check(nf90_open(trim(vmec_filename), nf90_nowrite, ncid_vmec))
-          istatus = nf90_inq_varid(ncid_vmec, "extcur", extcurID)
-          if(istatus.eq.nf90_noerr) then
+          c_filename = trim(vmec_filename) // c_null_char
+          call check(int(nc_open(c_filename, NC_NOWRITE, ncid_vmec)))
+          istatus = nc_inq_varid(ncid_vmec, "extcur"//c_null_char, extcurID)
+          if(istatus.eq.0) then
              print *, 'Reading external currents from VMEC file.'
-             call check(nf90_get_var(ncid_vmec,extcurID,extcur))
+             call check(int(nc_get_var_double(ncid_vmec, extcurID, extcur(1))))
           else
              print *, 'External currents not found in VMEC file.'
              print *, 'Looking for external currents in MGRID file.'
-             call check(nf90_inq_varid(ncid, "raw_coil_cur", rawcurID))
+             call check(int(nc_inq_varid(ncid, "raw_coil_cur"//c_null_char, rawcurID)))
              print *, 'Reading external currents from MGRID file.'
-             call check(nf90_get_var(ncid,rawcurID,extcur))
+             call check(int(nc_get_var_double(ncid, rawcurID, extcur(1))))
              print *, 'extcur = ', extcur
           end if
        else if (mgrid_mode.eq.'R') then
@@ -773,23 +832,23 @@ contains
 8001   format(a,'_',i3.3)
        do ii = 1, nextcur, 1
           write(var,8001) 'br', ii
-          call check(nf90_inq_varid(ncid, var, varID))
-          call check(nf90_get_var(ncid,varID,temp))
+          call check(int(nc_inq_varid(ncid, trim(var)//c_null_char, varID)))
+          call check(int(nc_get_var_double(ncid, varID, temp(1,1,1))))
           brtemp = brtemp + extcur(ii)*temp
 
           write(var,8001) 'bp', ii
-          call check(nf90_inq_varid(ncid, var, varID))
-          call check(nf90_get_var(ncid,varID,temp))
+          call check(int(nc_inq_varid(ncid, trim(var)//c_null_char, varID)))
+          call check(int(nc_get_var_double(ncid, varID, temp(1,1,1))))
           bphitemp = bphitemp + extcur(ii)*temp
 
           write(var,8001) 'bz', ii
-          call check(nf90_inq_varid(ncid, var, varID))
-          call check(nf90_get_var(ncid,varID,temp))
+          call check(int(nc_inq_varid(ncid, trim(var)//c_null_char, varID)))
+          call check(int(nc_get_var_double(ncid, varID, temp(1,1,1))))
           bztemp = bztemp + extcur(ii)*temp
        end do
        deallocate(temp)
 
-! Schaffer field needs 1 more toroidal grid point than MGRID! 
+! Schaffer field needs 1 more toroidal grid point than MGRID!
        sf%nphi = sf%nphi + 1
        if(.not. sf%initialized) then
          allocate(sf%br(sf%nphi,sf%nr,sf%nz))
@@ -800,12 +859,12 @@ contains
          allocate(sf%phi(sf%nphi))
        end if
 
-! Transpose (r,z,phi) -> (phi,r,z)      
+! Transpose (r,z,phi) -> (phi,r,z)
        do kk = 1, sf%nphi-1
           sf%br(kk,:,:) = brtemp(:,:,kk)
           sf%bphi(kk,:,:) = bphitemp(:,:,kk)
           sf%bz(kk,:,:) = bztemp(:,:,kk)
-       end do 
+       end do
 ! Data on extra toroidal grid point
        sf%br(sf%nphi,:,:) = brtemp(:,:,1)
        sf%bphi(sf%nphi,:,:) = bphitemp(:,:,1)
@@ -835,8 +894,8 @@ contains
   end subroutine load_mgrid_field
 
   subroutine load_hint_field(sf, hint_filename, error)
-    use netcdf
-    use math 
+    use iso_c_binding
+    use math
     implicit none
 
     type(schaffer_field), intent(inout) :: sf
@@ -844,73 +903,143 @@ contains
     integer, intent(out) :: error
 
     integer :: ll, ii, kk
-    integer :: ncid 
+    integer(c_int) :: ncid
     real :: dr, dz, dphi
     real :: per
 
 ! Dimension IDs
-    integer :: radDimID, phiDimID, zeeDimID, timeDimID
+    integer(c_int) :: radDimID, phiDimID, zeeDimID, timeDimID
 ! Variable IDs
-    integer :: rminID, rmaxID, zminID, zmaxID, nfpID 
+    integer(c_int) :: rminID, rmaxID, zminID, zmaxID, nfpID
 ! Variable values
     real :: rmin, rmax, zmin, zmax
     integer :: nfp, kstep
 ! Magnetic field
-    integer :: br_varid, bp_varid, bz_varid, p_varid, start4(4), count4(4)
+    integer(c_int) :: br_varid, bp_varid, bz_varid, p_varid
     real, allocatable :: brtemp(:,:,:), bphitemp(:,:,:), bztemp(:,:,:), ptemp(:,:,:)
+
+    integer(c_int), parameter :: NC_NOWRITE = 0
+    integer(c_size_t) :: dimlen
+    integer(c_size_t) :: start_c(4), count_c(4)
+    character(kind=c_char, len=257) :: c_filename
+
+    interface
+      function nc_open(path, omode, ncidp) bind(C, name="nc_open") result(r)
+        use iso_c_binding
+        integer(c_int) :: r
+        character(c_char), intent(in) :: path(*)
+        integer(c_int), value :: omode
+        integer(c_int), intent(out) :: ncidp
+      end function
+
+      function nc_close(ncid) bind(C, name="nc_close") result(r)
+        use iso_c_binding
+        integer(c_int) :: r
+        integer(c_int), value :: ncid
+      end function
+
+      function nc_inq_dimid(ncid, name, idp) bind(C, name="nc_inq_dimid") result(r)
+        use iso_c_binding
+        integer(c_int) :: r
+        integer(c_int), value :: ncid
+        character(c_char), intent(in) :: name(*)
+        integer(c_int), intent(out) :: idp
+      end function
+
+      function nc_inq_dimlen(ncid, dimid, lenp) bind(C, name="nc_inq_dimlen") result(r)
+        use iso_c_binding
+        integer(c_int) :: r
+        integer(c_int), value :: ncid, dimid
+        integer(c_size_t), intent(out) :: lenp
+      end function
+
+      function nc_inq_varid(ncid, name, varidp) bind(C, name="nc_inq_varid") result(r)
+        use iso_c_binding
+        integer(c_int) :: r
+        integer(c_int), value :: ncid
+        character(c_char), intent(in) :: name(*)
+        integer(c_int), intent(out) :: varidp
+      end function
+
+      function nc_get_var_int(ncid, varid, ip) bind(C, name="nc_get_var_int") result(r)
+        use iso_c_binding
+        integer(c_int) :: r
+        integer(c_int), value :: ncid, varid
+        integer(c_int), intent(out) :: ip
+      end function
+
+      function nc_get_var_double(ncid, varid, dp) bind(C, name="nc_get_var_double") result(r)
+        use iso_c_binding
+        integer(c_int) :: r
+        integer(c_int), value :: ncid, varid
+        real(c_double), intent(out) :: dp
+      end function
+
+      function nc_get_vara_double(ncid, varid, startp, countp, ip) &
+          bind(C, name="nc_get_vara_double") result(r)
+        use iso_c_binding
+        integer(c_int) :: r
+        integer(c_int), value :: ncid, varid
+        integer(c_size_t), intent(in) :: startp(*), countp(*)
+        real(c_double), intent(out) :: ip(*)
+      end function
+    end interface
 
     error = 0
 
 ! Check extension
     ll = len_trim(hint_filename)
     if (hint_filename(ll-2:ll).eq.'.nc') then
-       call check(nf90_open(trim(hint_filename), nf90_nowrite, ncid))
+       c_filename = trim(hint_filename) // c_null_char
+       call check(int(nc_open(c_filename, NC_NOWRITE, ncid)))
 
 ! Get dimensions
-       call check(nf90_inq_dimid(ncid, "R", radDimID))
-       call check(nf90_inq_dimid(ncid, "phi", phiDimID))
-       call check(nf90_inq_dimid(ncid, "Z", zeeDimID))
-       call check(nf90_inq_dimid(ncid, "time", timeDimID))
-       call check(nf90_inquire_dimension(ncid, radDimID, len=sf%nr))
-       call check(nf90_inquire_dimension(ncid, phiDimID, len=sf%nphi))
-       call check(nf90_inquire_dimension(ncid, zeeDimID, len=sf%nz))
-       call check(nf90_inquire_dimension(ncid, timeDimID, len=kstep))
+       call check(int(nc_inq_dimid(ncid, "R"//c_null_char, radDimID)))
+       call check(int(nc_inq_dimid(ncid, "phi"//c_null_char, phiDimID)))
+       call check(int(nc_inq_dimid(ncid, "Z"//c_null_char, zeeDimID)))
+       call check(int(nc_inq_dimid(ncid, "time"//c_null_char, timeDimID)))
+       call check(int(nc_inq_dimlen(ncid, radDimID,  dimlen))); sf%nr   = int(dimlen)
+       call check(int(nc_inq_dimlen(ncid, phiDimID,  dimlen))); sf%nphi = int(dimlen)
+       call check(int(nc_inq_dimlen(ncid, zeeDimID,  dimlen))); sf%nz   = int(dimlen)
+       call check(int(nc_inq_dimlen(ncid, timeDimID, dimlen))); kstep   = int(dimlen)
 
 ! Get variable values
-       call check(nf90_inq_varid(ncid, "rminb", rminID))
-       call check(nf90_inq_varid(ncid, "rmaxb", rmaxID))
-       call check(nf90_inq_varid(ncid, "zminb", zminID))
-       call check(nf90_inq_varid(ncid, "zmaxb", zmaxID))
-       call check(nf90_inq_varid(ncid, "mtor", nfpID))
+       call check(int(nc_inq_varid(ncid, "rminb"//c_null_char, rminID)))
+       call check(int(nc_inq_varid(ncid, "rmaxb"//c_null_char, rmaxID)))
+       call check(int(nc_inq_varid(ncid, "zminb"//c_null_char, zminID)))
+       call check(int(nc_inq_varid(ncid, "zmaxb"//c_null_char, zmaxID)))
+       call check(int(nc_inq_varid(ncid, "mtor"//c_null_char, nfpID)))
 
-       call check(nf90_get_var(ncid,rminID,rmin))
-       call check(nf90_get_var(ncid,rmaxID,rmax))
-       call check(nf90_get_var(ncid,zminID,zmin))
-       call check(nf90_get_var(ncid,zmaxID,zmax))
-       call check(nf90_get_var(ncid,nfpID,nfp))
+       call check(int(nc_get_var_double(ncid, rminID, rmin)))
+       call check(int(nc_get_var_double(ncid, rmaxID, rmax)))
+       call check(int(nc_get_var_double(ncid, zminID, zmin)))
+       call check(int(nc_get_var_double(ncid, zmaxID, zmax)))
+       call check(int(nc_get_var_int(ncid, nfpID, nfp)))
 
 ! Allocate temporary arrays
-       allocate(brtemp(sf%nr,sf%nz,sf%nphi)) 
+       allocate(brtemp(sf%nr,sf%nz,sf%nphi))
        allocate(bphitemp(sf%nr,sf%nz,sf%nphi))
        allocate(bztemp(sf%nr,sf%nz,sf%nphi))
        allocate(ptemp(sf%nr,sf%nz,sf%nphi))
 
 ! Get fields (adapted from HINT source code)
-       call check(nf90_inq_varid(ncid, "B_R",   br_varid))
-       call check(nf90_inq_varid(ncid, "B_phi", bp_varid))
-       call check(nf90_inq_varid(ncid, "B_Z",   bz_varid))
-       call check(nf90_inq_varid(ncid, "P",     p_varid))
- 
-       count4 = (/sf%nr, sf%nz, sf%nphi, 1/)
-       start4 = (/1, 1, 1, kstep/)
- 
-       call check(nf90_get_var(ncid, br_varid, brtemp, count=count4, start=start4))
-       call check(nf90_get_var(ncid, bp_varid, bphitemp, count=count4, start=start4))
-       call check(nf90_get_var(ncid, bz_varid, bztemp, count=count4, start=start4))
-       call check(nf90_get_var(ncid, p_varid, ptemp, count=count4, start=start4))
-       call check(nf90_close(ncid))
+       call check(int(nc_inq_varid(ncid, "B_R"//c_null_char,   br_varid)))
+       call check(int(nc_inq_varid(ncid, "B_phi"//c_null_char, bp_varid)))
+       call check(int(nc_inq_varid(ncid, "B_Z"//c_null_char,   bz_varid)))
+       call check(int(nc_inq_varid(ncid, "P"//c_null_char,     p_varid)))
+
+       ! C API uses C-order (reversed) dimensions and 0-based indices.
+       ! Fortran dims: (nr, nz, nphi, time) -> C dims: (time, nphi, nz, nr)
+       count_c = [1_c_size_t, int(sf%nphi,c_size_t), int(sf%nz,c_size_t), int(sf%nr,c_size_t)]
+       start_c = [int(kstep-1,c_size_t), 0_c_size_t, 0_c_size_t, 0_c_size_t]
+
+       call check(int(nc_get_vara_double(ncid, br_varid, start_c, count_c, brtemp)))
+       call check(int(nc_get_vara_double(ncid, bp_varid, start_c, count_c, bphitemp)))
+       call check(int(nc_get_vara_double(ncid, bz_varid, start_c, count_c, bztemp)))
+       call check(int(nc_get_vara_double(ncid, p_varid,  start_c, count_c, ptemp)))
+       call check(int(nc_close(ncid)))
 ! Pressure normalization
-       ptemp = ptemp/(pi*4e-7)  
+       ptemp = ptemp/(pi*4e-7)
 ! Schaffer field needs 1 more toroidal grid point than HINT!
        sf%nphi = sf%nphi + 1
 
@@ -924,13 +1053,13 @@ contains
           allocate(sf%p(sf%nphi,sf%nr,sf%nz))
        end if
 
-! Transpose (r,z,phi) -> (phi,r,z)      
+! Transpose (r,z,phi) -> (phi,r,z)
        do kk = 1, sf%nphi-1
           sf%br(kk,:,:) = brtemp(:,:,kk)
           sf%bphi(kk,:,:) = bphitemp(:,:,kk)
           sf%bz(kk,:,:) = bztemp(:,:,kk)
           sf%p(kk,:,:) = ptemp(:,:,kk)
-       end do 
+       end do
 ! Data on extra toroidal grid point
        sf%br(sf%nphi,:,:) = brtemp(:,:,1)
        sf%bphi(sf%nphi,:,:) = bphitemp(:,:,1)
@@ -953,7 +1082,7 @@ contains
        do kk = 1, sf%nz, 1
           sf%z(kk) = zmin + (kk-1)*dz
        end do
-! Finalize 
+! Finalize
        sf%initialized = .true.
        sf%vmec = .true.
     else

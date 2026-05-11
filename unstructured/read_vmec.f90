@@ -150,126 +150,198 @@ contains
   end subroutine allocate_vmec
 
   subroutine read_vmec_nc(myrank)
-    use netcdf 
+    use iso_c_binding
 
     implicit none
-    
-    integer, intent(in) :: myrank 
-    integer :: ierr , ncid, id 
+
+    integer, intent(in) :: myrank
+    integer(c_int) :: ierr, ncid, id
+    integer(c_size_t) :: dimlen
+    character(kind=c_char, len=257) :: c_filename
+    integer(c_int), parameter :: NC_NOWRITE = 0
+
+    interface
+      function nc_open(path, omode, ncidp) bind(C, name="nc_open") result(r)
+        use iso_c_binding
+        integer(c_int) :: r
+        character(c_char), intent(in) :: path(*)
+        integer(c_int), value :: omode
+        integer(c_int), intent(out) :: ncidp
+      end function
+
+      function nc_close(ncid) bind(C, name="nc_close") result(r)
+        use iso_c_binding
+        integer(c_int) :: r
+        integer(c_int), value :: ncid
+      end function
+
+      function nc_inq_dimid(ncid, name, idp) bind(C, name="nc_inq_dimid") result(r)
+        use iso_c_binding
+        integer(c_int) :: r
+        integer(c_int), value :: ncid
+        character(c_char), intent(in) :: name(*)
+        integer(c_int), intent(out) :: idp
+      end function
+
+      function nc_inq_dimlen(ncid, dimid, lenp) bind(C, name="nc_inq_dimlen") result(r)
+        use iso_c_binding
+        integer(c_int) :: r
+        integer(c_int), value :: ncid, dimid
+        integer(c_size_t), intent(out) :: lenp
+      end function
+
+      function nc_inq_varid(ncid, name, varidp) bind(C, name="nc_inq_varid") result(r)
+        use iso_c_binding
+        integer(c_int) :: r
+        integer(c_int), value :: ncid
+        character(c_char), intent(in) :: name(*)
+        integer(c_int), intent(out) :: varidp
+      end function
+
+      function nc_get_var_int(ncid, varid, ip) bind(C, name="nc_get_var_int") result(r)
+        use iso_c_binding
+        integer(c_int) :: r
+        integer(c_int), value :: ncid, varid
+        integer(c_int), intent(out) :: ip
+      end function
+
+      function nc_get_var_double(ncid, varid, dp) bind(C, name="nc_get_var_double") result(r)
+        use iso_c_binding
+        integer(c_int) :: r
+        integer(c_int), value :: ncid, varid
+        real(c_double), intent(out) :: dp(*)
+      end function
+    end interface
 
     ! Open NetCDF file
     if(myrank.eq.0) print *, 'Opening VMEC file'
-    ierr = nf90_open(trim(vmec_filename), nf90_nowrite, ncid)
-    if(ierr.ne.0) then 
+    c_filename = trim(vmec_filename) // c_null_char
+    ierr = nc_open(c_filename, NC_NOWRITE, ncid)
+    if(ierr.ne.0) then
       if(myrank.eq.0) print *, 'Failed to open VMEC file'
-      call safestop(5)  
+      call safestop(5)
     end if
 
     ! Get dimension data
-    ierr = nf90_inq_dimid(ncid, "mn_mode", id)
-    ierr = ierr + nf90_inquire_dimension(ncid, id, len=mn_mode)
-    if(ierr.ne.0) call safestop(5) 
+    ierr = nc_inq_dimid(ncid, "mn_mode"//c_null_char, id)
+    ierr = ierr + nc_inq_dimlen(ncid, id, dimlen)
+    if(ierr.ne.0) call safestop(5)
+    mn_mode = int(dimlen)
     if(myrank.eq.0) print *, 'mn_mode = ', mn_mode
-     
-    ierr = nf90_inq_dimid(ncid, "mn_mode_nyq", id)
-    ierr = ierr + nf90_inquire_dimension(ncid, id, len=mn_mode_nyq)
-    if(ierr.ne.0) call safestop(5) 
+
+    ierr = nc_inq_dimid(ncid, "mn_mode_nyq"//c_null_char, id)
+    ierr = ierr + nc_inq_dimlen(ncid, id, dimlen)
+    if(ierr.ne.0) call safestop(5)
+    mn_mode_nyq = int(dimlen)
     if(myrank.eq.0) print *, 'mn_mode_nyq = ', mn_mode_nyq
 
     ! Get constants
-    ierr = nf90_inq_varid(ncid, "ns", id)
-    ierr = ierr + nf90_get_var(ncid, id, ns)
-    if(ierr.ne.0) call safestop(5) 
+    ierr = nc_inq_varid(ncid, "ns"//c_null_char, id)
+    ierr = ierr + nc_get_var_int(ncid, id, ns)
+    if(ierr.ne.0) call safestop(5)
     if(myrank.eq.0) print *, 'ns = ', ns
-    
-    ierr = nf90_inq_varid(ncid, "ntor", id)
-    ierr = ierr + nf90_get_var(ncid, id, n_tor)
-    if(ierr.ne.0) call safestop(5) 
+
+    ierr = nc_inq_varid(ncid, "ntor"//c_null_char, id)
+    ierr = ierr + nc_get_var_int(ncid, id, n_tor)
+    if(ierr.ne.0) call safestop(5)
     if(myrank.eq.0) print *, 'n_tor = ', n_tor
 
-    ierr = nf90_inq_varid(ncid, "mpol", id)
-    ierr = ierr + nf90_get_var(ncid, id, m_pol)
-    if(ierr.ne.0) call safestop(5) 
+    ierr = nc_inq_varid(ncid, "mpol"//c_null_char, id)
+    ierr = ierr + nc_get_var_int(ncid, id, m_pol)
+    if(ierr.ne.0) call safestop(5)
     if(myrank.eq.0) print *, 'm_pol = ', m_pol
 
-    ierr = nf90_inq_varid(ncid, "nfp", id)
-    ierr = ierr + nf90_get_var(ncid, id, nfp)
-    if(ierr.ne.0) call safestop(5) 
-    if(myrank.eq.0) print *, 'nfp = ', nfp 
+    ierr = nc_inq_varid(ncid, "nfp"//c_null_char, id)
+    ierr = ierr + nc_get_var_int(ncid, id, nfp)
+    if(ierr.ne.0) call safestop(5)
+    if(myrank.eq.0) print *, 'nfp = ', nfp
 
-    ierr = nf90_inq_varid(ncid, "lasym__logical__", id)
-    ierr = ierr + nf90_get_var(ncid, id, lasym)
-    if(ierr.ne.0) call safestop(5) 
-    if(myrank.eq.0) print *, 'lasym = ', lasym 
+    ierr = nc_inq_varid(ncid, "lasym__logical__"//c_null_char, id)
+    ierr = ierr + nc_get_var_int(ncid, id, lasym)
+    if(ierr.ne.0) call safestop(5)
+    if(myrank.eq.0) print *, 'lasym = ', lasym
 
     call allocate_vmec()
     if(myrank.eq.0) print *, 'n_zer = ', n_zer
     if(myrank.eq.0) print *, 'n_quad = ', n_quad
+
     ! Get 1D arrays xmv & xnv
-    ierr = nf90_inq_varid(ncid, "xm", id)
-    ierr = ierr + nf90_get_var(ncid, id, xmv)
-    if(ierr.ne.0) call safestop(5) 
+    ierr = nc_inq_varid(ncid, "xm"//c_null_char, id)
+    ierr = ierr + nc_get_var_double(ncid, id, xmv)
+    if(ierr.ne.0) call safestop(5)
     if(myrank.eq.0) print *, 'xmv read'
-    ierr = nf90_inq_varid(ncid, "xn", id)
-    ierr = ierr + nf90_get_var(ncid, id, xnv)
-    if(ierr.ne.0) call safestop(5) 
+
+    ierr = nc_inq_varid(ncid, "xn"//c_null_char, id)
+    ierr = ierr + nc_get_var_double(ncid, id, xnv)
+    if(ierr.ne.0) call safestop(5)
     xnv = -xnv ! change sign for consistency
     if(myrank.eq.0) print *, 'xnv read'
-    ierr = nf90_inq_varid(ncid, "xm_nyq", id)
-    ierr = ierr + nf90_get_var(ncid, id, xmv_nyq)
-    if(ierr.ne.0) call safestop(5) 
+
+    ierr = nc_inq_varid(ncid, "xm_nyq"//c_null_char, id)
+    ierr = ierr + nc_get_var_double(ncid, id, xmv_nyq)
+    if(ierr.ne.0) call safestop(5)
     if(myrank.eq.0) print *, 'xmv_nyq read'
-    ierr = nf90_inq_varid(ncid, "xn_nyq", id)
-    ierr = ierr + nf90_get_var(ncid, id, xnv_nyq)
-    if(ierr.ne.0) call safestop(5) 
+
+    ierr = nc_inq_varid(ncid, "xn_nyq"//c_null_char, id)
+    ierr = ierr + nc_get_var_double(ncid, id, xnv_nyq)
+    if(ierr.ne.0) call safestop(5)
     xnv_nyq = -xnv_nyq ! change sign for consistency
     if(myrank.eq.0) print *, 'xnv_nyq read'
 
-    ! Get 1D array presf, phiv, chiv
-    ierr = nf90_inq_varid(ncid, "presf", id)
-    ierr = ierr + nf90_get_var(ncid, id, presf)
-    if(ierr.ne.0) call safestop(5) 
+    ! Get 1D array presf
+    ierr = nc_inq_varid(ncid, "presf"//c_null_char, id)
+    ierr = ierr + nc_get_var_double(ncid, id, presf)
+    if(ierr.ne.0) call safestop(5)
     if(myrank.eq.0) print *, 'presf read'
 
-    ! Get 2D array rmnc, zmns, lmns 
-    ierr = nf90_inq_varid(ncid, "rmnc", id)
-    ierr = ierr + nf90_get_var(ncid, id, rmnc)
-    if(ierr.ne.0) call safestop(5) 
+    ! Get 2D arrays rmnc, zmns
+    ierr = nc_inq_varid(ncid, "rmnc"//c_null_char, id)
+    ierr = ierr + nc_get_var_double(ncid, id, rmnc)
+    if(ierr.ne.0) call safestop(5)
     if(myrank.eq.0) print *, 'rmnc read'
-    ierr = nf90_inq_varid(ncid, "zmns", id)
-    ierr = ierr + nf90_get_var(ncid, id, zmns)
-    if(ierr.ne.0) call safestop(5) 
+
+    ierr = nc_inq_varid(ncid, "zmns"//c_null_char, id)
+    ierr = ierr + nc_get_var_double(ncid, id, zmns)
+    if(ierr.ne.0) call safestop(5)
     if(myrank.eq.0) print *, 'zmns read'
+
     if(lasym.eq.1) then
-      ierr = nf90_inq_varid(ncid, "rmns", id)
-      ierr = ierr + nf90_get_var(ncid, id, rmns)
-      if(ierr.ne.0) call safestop(5) 
+      ierr = nc_inq_varid(ncid, "rmns"//c_null_char, id)
+      ierr = ierr + nc_get_var_double(ncid, id, rmns)
+      if(ierr.ne.0) call safestop(5)
       if(myrank.eq.0) print *, 'rmns read'
-      ierr = nf90_inq_varid(ncid, "zmnc", id)
-      ierr = ierr + nf90_get_var(ncid, id, zmnc)
-      if(ierr.ne.0) call safestop(5) 
+
+      ierr = nc_inq_varid(ncid, "zmnc"//c_null_char, id)
+      ierr = ierr + nc_get_var_double(ncid, id, zmnc)
+      if(ierr.ne.0) call safestop(5)
       if(myrank.eq.0) print *, 'zmnc read'
     endif
 
-    ! Get 2D array gmnc, bsupumnc, bsupsmnv 
-    ierr = nf90_inq_varid(ncid, "bsupumnc", id)
-    ierr = ierr + nf90_get_var(ncid, id, bsupumnc)
-    if(ierr.ne.0) call safestop(5) 
+    ! Get 2D arrays bsupumnc, bsupvmnc
+    ierr = nc_inq_varid(ncid, "bsupumnc"//c_null_char, id)
+    ierr = ierr + nc_get_var_double(ncid, id, bsupumnc)
+    if(ierr.ne.0) call safestop(5)
     if(myrank.eq.0) print *, 'bsupumnc read'
-    ierr = nf90_inq_varid(ncid, "bsupvmnc", id)
-    ierr = ierr + nf90_get_var(ncid, id, bsupvmnc)
-    if(ierr.ne.0) call safestop(5) 
+
+    ierr = nc_inq_varid(ncid, "bsupvmnc"//c_null_char, id)
+    ierr = ierr + nc_get_var_double(ncid, id, bsupvmnc)
+    if(ierr.ne.0) call safestop(5)
     if(myrank.eq.0) print *, 'bsupvmnc read'
+
     if(lasym.eq.1) then
-      ierr = nf90_inq_varid(ncid, "bsupumns", id)
-      ierr = ierr + nf90_get_var(ncid, id, bsupumns)
-      if(ierr.ne.0) call safestop(5) 
+      ierr = nc_inq_varid(ncid, "bsupumns"//c_null_char, id)
+      ierr = ierr + nc_get_var_double(ncid, id, bsupumns)
+      if(ierr.ne.0) call safestop(5)
       if(myrank.eq.0) print *, 'bsupumns read'
-      ierr = nf90_inq_varid(ncid, "bsupvmns", id)
-      ierr = ierr + nf90_get_var(ncid, id, bsupvmns)
-      if(ierr.ne.0) call safestop(5) 
+
+      ierr = nc_inq_varid(ncid, "bsupvmns"//c_null_char, id)
+      ierr = ierr + nc_get_var_double(ncid, id, bsupvmns)
+      if(ierr.ne.0) call safestop(5)
       if(myrank.eq.0) print *, 'bsupvmns read'
     endif
+
+    ierr = nc_close(ncid)
+
   end subroutine read_vmec_nc
 
   ! read boundary geometry from file

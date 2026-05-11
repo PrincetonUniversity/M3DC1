@@ -1,0 +1,48 @@
+#%Module1.0
+##
+
+## Required internal variables
+
+set             name            m3dc1
+set             version         devel
+set             root            $env(M3DC1_CODE_DIR)
+
+## List conflicting modules here
+
+conflict $name
+
+## List prerequisite modules here
+
+set             fullname        M3D-C1
+set             externalurl     https://sites.google.com/pppl.gov/m3d-c1
+set             description     "M3D-C1 is an extended-MHD code"
+
+## Required for "module help ..."
+
+proc ModulesHelp { } {
+  global description externalurl
+  puts stderr "Description - $description"
+  puts stderr "Other Docs  - $externalurl"
+}
+
+## Required for "module display ..." and SWDB
+
+module-whatis                   "$description"
+
+## Software-specific settings exported to user environment
+
+#if { ! [ is-loaded openmpi/5.0.8 ] } {
+#  module load openmpi/5.0.8
+#}
+
+#if { ! [ is-loaded cmake ] } {
+#  module load cmake/3.27.9
+#}
+
+setenv          M3DC1_VERSION   $version
+setenv          M3DC1_DIR       $root
+setenv		M3DC1_ARCH	bb8
+setenv		M3DC1_MPIRUN	mpirun
+
+prepend-path    PATH             $root/unstructured/_bb8/bin
+prepend-path    IDL_PATH         $root/unstructured/idl

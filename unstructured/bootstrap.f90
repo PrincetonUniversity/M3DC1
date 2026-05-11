@@ -1657,8 +1657,8 @@ subroutine calculate_CommonTerm_Lambda_fordtenormdpsit(temp1,temp2,tempAA, tempB
     real(dp):: tempbeta,tempvar,temax3
     real(dp) :: atten_width_edge, atten_width_core 
     real(dp) :: atten_grad
-    real(dp), parameter :: pso_trans_start = 0.99_dp
-    real(dp), parameter :: pso_trans_width = 0.01_dp ! 1.0_dp - 0.99_dp
+    real(dp), parameter :: pso_trans_start = 0.985_dp
+    real(dp), parameter :: pso_trans_width = 1.0_dp - pso_trans_start
     real(dp) :: x_trans, blend_factor, atten_width_local
 
     temp1 = 0.
@@ -1682,7 +1682,7 @@ subroutine calculate_CommonTerm_Lambda_fordtenormdpsit(temp1,temp2,tempAA, tempB
     temax3=0.
 
     atten_width_core=ibootstrap_regular*10.0
-    atten_width_edge=atten_width_core*100.0
+    atten_width_edge=atten_width_core*1000.0
 
     if (ibootstrap_model.eq.1 .or. ibootstrap_model.eq.3) then 
         print *, "Can't Use ibootstrap =3 , not setup yet"
@@ -1785,8 +1785,8 @@ subroutine calculate_CommonTerm_Lambda_fordtenormdpsit(temp1,temp2,tempAA, tempB
                 jbsalpha79(i,OP_1))*(-temax3)*jbs_dtedpsit79(i,OP_1)*(tempCC(i))
 
         
-        if (real(pso(i)) > 0.9995) then
-          x_norm(i) = (MIN(real(pso(i)), 1.0_dp) - 0.9995_dp) / 0.0005_dp
+        if (real(pso(i)) > pso_trans_start) then
+          x_norm(i) = (MIN(real(pso(i)), 1.0_dp) - pso_trans_start) / pso_trans_width
           temp_val(i) = 1.0_dp - (3.0_dp * x_norm(i)**2 - 2.0_dp * x_norm(i)**3)
           
           tempAA(i) = tempAA(i) * temp_val(i)

@@ -3,10 +3,15 @@ from __future__ import annotations
 import numpy as np
 
 from .flux_coordinates import flux_coordinates
+from .read_parameter import read_parameter
 
 
 def _curve_from_fields(filename="C1.h5", points=200, normalized_flux=False, **kwargs):
-    fc = flux_coordinates(filename=filename, points=points, **kwargs)
+    coord_kwargs = dict(kwargs)
+    linear = bool(read_parameter("linear", filename=filename, **{k: v for k, v in coord_kwargs.items() if k in {"cgs", "mks"}}))
+    if "slice" not in coord_kwargs:
+        coord_kwargs["slice"] = -1 if linear else 0
+    fc = flux_coordinates(filename=filename, points=points, **coord_kwargs)
     q = np.abs(np.asarray(fc.q, dtype=float).reshape(-1))
     f = np.asarray(fc.psi_norm if normalized_flux else fc.psi, dtype=float).reshape(-1)
     return q, f

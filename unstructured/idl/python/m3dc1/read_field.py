@@ -270,7 +270,7 @@ def read_field(
     return_meta: bool = False,
 ):
     """Python port of read_field.pro (core recursive behavior)."""
-    del mesh, h_symmetry, v_symmetry, dpsi, dimensions_out, flux_average, tpoints, is_nonlinear, outval
+    del mesh, h_symmetry, v_symmetry, dpsi, dimensions_out, flux_average, is_nonlinear, outval
 
     if isinstance(filename, (list, tuple)):
         files = list(filename)
@@ -414,8 +414,11 @@ def read_field(
     nt = int(read_parameter("ntime", filename=filename))
     itor = int(read_parameter("itor", filename=filename))
     ntor = int(read_parameter("ntor", filename=filename))
+    icomplex = int(read_parameter("icomplex", filename=filename))
     isubeq = int(read_parameter("eqsubtract", filename=filename))
     ilin = int(read_parameter("linear", filename=filename))
+    if complex and icomplex == 0:
+        complex = False
 
     slice_idx = int(timeslices)
     if last:
@@ -442,6 +445,121 @@ def read_field(
         f" linear={int(bool(linear))}; pts={int(points)};"
         f"equilibrium={int(bool(equilibrium))}; complex={int(bool(complex))}; op={int(operation)}"
     )
+
+    phi_arr = np.asarray(phi, dtype=float).reshape(-1)
+    period = 2.0 * np.pi if itor == 1 else 2.0 * np.pi * float(read_parameter("rzero", filename=filename))
+    if tpoints is None:
+        nphi = int(phi_arr.size)
+    else:
+        nphi = int(tpoints)
+    if phi_arr.size == nphi:
+        phis = phi_arr.astype(float, copy=False)
+    else:
+        phis = np.linspace(0.0, period, nphi, endpoint=False)
+        if itor == 1:
+            phis = phis * 180.0 / np.pi
+    print("phi0 = ", phis)
+
+    if nphi > 1:
+        if complex:
+            base = read_field(
+                name,
+                timeslices=slice_idx,
+                filename=filename,
+                points=points,
+                xrange=xrange,
+                yrange=yrange,
+                equilibrium=equilibrium,
+                operation=operation,
+                complex=True,
+                linear=True,
+                cgs=cgs,
+                mks=mks,
+                phi=float(phis[0]),
+                wall_mask=wall_mask,
+                logical=logical,
+                map_r=map_r,
+                map_z=map_z,
+                edge_val=edge_val,
+                return_meta=True,
+            )
+            base_data = np.asarray(base.data, dtype=np.complex128)
+            stacks = np.zeros((nphi,) + base_data.shape, dtype=float)
+            stacks[0, ...] = np.real(base_data)
+            if itor == 1:
+                phase_vals = (np.asarray(phis, dtype=float) - float(phis[0])) * np.pi / 180.0
+            else:
+                phase_vals = np.asarray(phis, dtype=float) - float(phis[0])
+            for i in range(1, nphi):
+                stacks[i, ...] = np.real(base_data * np.exp(1j * ntor * phase_vals[i]))
+            if (not linear) and slice_idx >= 0:
+                eq0 = read_field(
+                    name,
+                    timeslices=-1,
+                    filename=filename,
+                    points=points,
+                    xrange=xrange,
+                    yrange=yrange,
+                    operation=operation,
+                    complex=False,
+                    fac=fac,
+                    cgs=cgs,
+                    mks=mks,
+                    phi=0.0,
+                    wall_mask=wall_mask,
+                    logical=logical,
+                    map_r=map_r,
+                    map_z=map_z,
+                    edge_val=edge_val,
+                    return_meta=True,
+                )
+                eq_data = np.asarray(eq0.data, dtype=float)
+                stacks[:, ...] = stacks[:, ...] + eq_data[None, ...]
+            meta = base
+        else:
+            stacks_list = []
+            meta = None
+            for p0 in phis:
+                r0 = read_field(
+                    name,
+                    timeslices=slice_idx,
+                    filename=filename,
+                    points=points,
+                    xrange=xrange,
+                    yrange=yrange,
+                    equilibrium=equilibrium,
+                    operation=operation,
+                    complex=False,
+                    linear=linear,
+                    cgs=cgs,
+                    mks=mks,
+                    phi=float(p0),
+                    wall_mask=wall_mask,
+                    logical=logical,
+                    map_r=map_r,
+                    map_z=map_z,
+                    edge_val=edge_val,
+                    return_meta=True,
+                )
+                meta = r0
+                stacks_list.append(np.asarray(r0.data))
+            assert meta is not None
+            stacks = np.stack(stacks_list, axis=0)
+        assert meta is not None
+        out = FieldResult(
+            data=stacks,
+            symbol=meta.symbol,
+            units=meta.units,
+            dimensions=meta.dimensions,
+            r=meta.r,
+            z=meta.z,
+            time=meta.time,
+            mask=meta.mask,
+        )
+        return out if return_meta else out.data
+
+    if phi_arr.size > 0:
+        phi = float(phi_arr[0])
 
     if taverage:
         nphi = int(taverage if isinstance(taverage, int) else 16)

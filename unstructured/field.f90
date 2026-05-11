@@ -4,8 +4,8 @@ module field
   implicit none
 
   type field_type
-     type(vector_type), pointer :: vec
-     integer :: index
+     type(vector_type), pointer :: vec => null()  ! Default to null
+     integer :: index = 0                         ! Default to 0
   end type field_type
 
   interface assignment (=)

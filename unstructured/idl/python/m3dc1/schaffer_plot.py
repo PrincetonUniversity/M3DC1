@@ -7,6 +7,7 @@ import numpy as np
 
 from .contour_and_legend import contour_and_legend
 from .field_spectrum import field_spectrum
+from .flux_coordinates import flux_coordinates
 from .get_colors import get_colors
 from .plot_legend import plot_legend
 from .read_field import read_field
@@ -174,11 +175,30 @@ def schaffer_plot(
 
     if ntor is None:
         ntor = int(read_parameter("ntor", filename=filename, **aux_kwargs))
+    coord_linear = bool(read_parameter("linear", filename=filename, **aux_kwargs))
+
+    fc = flux_coordinates(
+        psi0=psi0,
+        i0=i0,
+        x=xv,
+        z=zv,
+        tbins=bins,
+        fbins=bins,
+        pest=pest,
+        boozer=boozer,
+        hamada=hamada,
+        dpsi0_dx=dpsi0_dx,
+        dpsi0_dz=dpsi0_dz,
+        filename=filename,
+        slice=-1 if coord_linear else (-1 if timeslices == -1 else int(timeslices)),
+        **aux_kwargs,
+    )
 
     spec = field_spectrum(
         field_data,
         xv,
         zv,
+        fc=fc,
         psi0=psi0,
         i0=i0,
         tbins=bins,
@@ -189,7 +209,6 @@ def schaffer_plot(
         dpsi0_dx=dpsi0_dx,
         dpsi0_dz=dpsi0_dz,
         filename=filename,
-        slice=-1 if timeslices == -1 else int(timeslices),
         **aux_kwargs,
     )
     d = np.asarray(spec.data, dtype=np.complex128)

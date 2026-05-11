@@ -401,7 +401,7 @@ def plot_flux_average(
                 ymin_pad = ymin - yrange_pad
                 ymax_pad = ymax + yrange_pad
             else:
-                yrange_pad = max(abs(ymin), 1.0) * 0.1
+                yrange_pad = max(builtins.abs(ymin), 1.0) * 0.1
                 ymin_pad = ymin - yrange_pad
                 ymax_pad = ymax + yrange_pad
             plt.ylim(bottom=ymin_pad, top=ymax_pad)

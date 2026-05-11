@@ -4,6 +4,7 @@ import numpy as np
 
 from .field_at_point import field_at_point
 from .flux_coordinates import flux_coordinates
+from .read_parameter import read_parameter
 
 
 def flux_coord_field(
@@ -19,7 +20,7 @@ def flux_coord_field(
     angle=None,
     nflux=None,
     filename="C1.h5",
-    slice=0,
+    slice=None,
     **kwargs,
 ):
     """Map field to flux coordinates using flux_coordinates()."""
@@ -28,8 +29,12 @@ def flux_coord_field(
         fld = fld[None, :, :]
     xv = np.asarray(x, dtype=float).reshape(-1)
     zv = np.asarray(z, dtype=float).reshape(-1)
+    coord_slice = slice
+    if coord_slice is None:
+        coord_linear = bool(read_parameter("linear", filename=filename, **{k: v for k, v in kwargs.items() if k in {"cgs", "mks"}}))
+        coord_slice = -1 if coord_linear else 0
     fc = flux_coordinates(
-        slice=slice,
+        slice=int(coord_slice),
         fbins=fbins,
         tbins=tbins,
         psi0=psi,

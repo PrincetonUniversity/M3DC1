@@ -50,7 +50,15 @@ def flux_average_field(
         if x is None or z is None:
             raise ValueError("x and z must be provided when fc is not provided.")
         b = bins if bins is not None else f.shape[1]
-        fc = flux_coordinates(psi0=psi, x=np.asarray(x), z=np.asarray(z), fbins=int(b), tbins=int(b), filename=filename, **kwargs)
+        fc = flux_coordinates(
+            psi0=psi,
+            x=np.asarray(x),
+            z=np.asarray(z),
+            fbins=int(b),
+            tbins=int(b),
+            filename=filename,
+            **kwargs,
+        )
 
     vals = np.asarray(field_at_point(f, np.asarray(x), np.asarray(z), fc.r, fc.z))
     if vals.ndim == 2:

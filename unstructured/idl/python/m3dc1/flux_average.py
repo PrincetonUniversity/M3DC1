@@ -9,6 +9,7 @@ from .flux_average_field import flux_average_field
 from .flux_coordinates import flux_coordinates
 from .parse_units import parse_units
 from .read_field import read_field
+from .read_parameter import read_parameter
 
 _READ_FIELD_KW = set(inspect.signature(read_field).parameters.keys())
 
@@ -70,6 +71,8 @@ def flux_average(
         raise TypeError("flux_average() accepts only one of 'psi_norm', 'phi_norm', or 'rho'.")
 
     read_kwargs = {k: v for k, v in kwargs.items() if k in _READ_FIELD_KW}
+    coord_linear = bool(read_parameter("linear", filename=filename, cgs=cgs, mks=mks))
+    coord_slice = -1 if coord_linear else int(timeslices or 0)
 
     if fc is None:
         if points is None:
@@ -79,9 +82,9 @@ def flux_average(
             p = read_field(
                 "psi",
                 filename=filename,
-                timeslices=int(timeslices or 0),
+                timeslices=coord_slice,
                 points=int(points),
-                equilibrium=False,
+                equilibrium=(coord_slice < 0),
                 return_meta=True,
                 cgs=cgs,
                 mks=mks,
@@ -95,7 +98,7 @@ def flux_average(
             i0=i0,
             x=x,
             z=z,
-            slice=int(timeslices or 0),
+            slice=coord_slice,
             points=int(points),
             fbins=nb,
             tbins=int(points),
