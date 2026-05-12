@@ -1535,16 +1535,14 @@ void m3dc1_mesh::setCoordinateSystem()
     assert(node);
     apf::Vector3 pos;  //position vector
     m->getPoint(node, 0, pos);
-    if (fabs(pos[1] < tolerance))
+    if (fabs(pos[1]) < tolerance)
       pointsWithZeroY++;
   }
 
+  
   // Step 2: If over 95% points have y == 0, our points are on RZ planes.
   if (static_cast<double>(pointsWithZeroY)/numNodes > 0.95)
     m3dc1_mesh::instance()->coordinateSystem = 1;
-
-  int sys = m3dc1_mesh::instance()->coordinateSystem;
-  std::cout << "The coordinate System is: " << (sys == 0) ? "Cartesian" : "Cylindrical";
 }
 // **********************************************
 
