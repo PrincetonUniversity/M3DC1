@@ -1188,6 +1188,9 @@ int m3dc1_mesh_load(char* mesh_file)
     /* vertex load balancing */
     //Parma_PrintPtnStats(m3dc1_mesh::instance()->mesh, "initial");
 
+    // Find the coordinate system.
+    m3dc1_mesh::instance()->setCoordinateSystem();
+
     // clean-up tag, field and numbering loaded from file
     apf::Mesh2* mesh = m3dc1_mesh::instance()->mesh;
     while(mesh->countFields())
@@ -2062,8 +2065,7 @@ int m3dc1_node_getcoord (int* /* in */ node_id, double* /* out */ coord)
     coord[i] = xyz[i];
 
   // Check the plane(If RZ, convert them to XY)
-  double tolerance = 1e-8;
-  if (fabs(coord[1]) <  tolerance)  // Its in RZ plane. change to XY
+  if (m3dc1_mesh::instance()->coordinateSystem == 1)  // Its in RZ plane. change to Y
   {
     double temp = coord[1];
     coord[1] = coord[2];
