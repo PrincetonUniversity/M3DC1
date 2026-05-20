@@ -332,13 +332,17 @@ subroutine rmp_field(n, nt, np, x, phi, z, br, bphi, bz, p)
                 else
                         remc_fac = 1.0
                 end if
-
-		 I_remc = remc_fac * ic_na(1) ! REMC Current and position
+                
+		! REMC Current and position
+		 I_remc = remc_fac * ic_na(1) ! current * mu0 / (2*pi)
 		 Z_remc = 1.0 * zc_na(1)
 		 R_remc = 1.0 * xc_na(1)
 		 
-                ! if(myrank.eq.0) print *, 'Ip (A) = ', (totcur*795217.0)
-                ! if(myrank.eq.0) print *, 'remc_fac = ', (remc_fac)
+		! ***** Debugging ***** ! 
+        if(myrank.eq.0) print *, 'Ip (MA) = ', (totcur*795217.0/1.e6)
+        if(myrank.eq.0) print *, 'remc_fac = ', (remc_fac)
+        if(myrank.eq.0) print *, 'I_remc [kA] = ', (I_remc * twopi / amu0 *1.e-3)
+        ! ********************* !
                  
 		 
              
