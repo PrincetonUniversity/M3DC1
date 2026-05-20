@@ -339,9 +339,12 @@ subroutine rmp_field(n, nt, np, x, phi, z, br, bphi, bz, p)
 		 R_remc = 1.0 * xc_na(1)
 		 
 		! ***** Debugging ***** ! 
-        if(myrank.eq.0) print *, 'Ip (MA) = ', (totcur*795217.0/1.e6)
-        if(myrank.eq.0) print *, 'remc_fac = ', (remc_fac)
-        if(myrank.eq.0) print *, 'I_remc [kA] = ', (I_remc * twopi / amu0 *1.e-3)
+        if((myrank.eq.0).and.(itri.eq.1))
+			print *, 'In rmp_field: '
+			print *, 'Ip (MA) = ', (totcur*795217.0/1.e6)
+			print *, 'remc_fac = ', (remc_fac)
+			print *, 'I_remc [kA] = ', (I_remc * twopi / amu0 *1.e-3)
+		end if
         ! ********************* !
                  
 		 
