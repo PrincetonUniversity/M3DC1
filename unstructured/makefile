@@ -47,6 +47,13 @@ else
   endif
 endif
 
+ifeq ($(CAD), 1)
+  OPTS := $(OPTS) -DUSECADMODEL
+  USECADMODEL = 1
+else
+  USECADMODEL = 0
+endif
+
 ifeq ($(ST), 1)
   OPTS := $(OPTS) -DUSEST 
   BIN_POSTFIX := $(BIN_POSTFIX)-st

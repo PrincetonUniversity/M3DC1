@@ -214,13 +214,16 @@ contains
     ! to get N-part distributed mesh, run split_smb provided as mesh utilities
     write(name_buff,"(A,A)")  mesh_model(1:len_trim(mesh_model)),0
     call m3dc1_model_load(name_buff)
+#ifdef USECADMODEL
     write(name_buff,"(A,A)")  model_info(1:len_trim(model_info)),0
     call m3dc1_modelinfo_load(name_buff)
+#endif
     write(name_buff,"(A,A)")  mesh_filename(1:len_trim(mesh_filename)),0
     call m3dc1_mesh_load (name_buff)
 #endif
     call update_nodes_owned
 
+#ifdef USECADMODEL
     call m3dc1_model_getmodeltype(model_type)
 
     ! For *.dmg model (model_type == 2),
@@ -264,7 +267,8 @@ contains
           boundary_type(edges(j)) = BOUND_DOMAIN
        end do
     end if
-    
+#endif
+
     initialized = .true.
   end subroutine load_mesh
 
