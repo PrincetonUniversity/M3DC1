@@ -2152,6 +2152,7 @@ int m3dc1_node_getnormvec (int* /* in */ node_id, double* /* out */ xyzt)
       int numEdgePlane=0;
       double normalvec[3]={0.,0.,0.};
       xyzt[0]=xyzt[1]=xyzt[2]=0;
+      if (gEdges.size()<2) 
         std::cout<<"["<<PCU_Comm_Self()<<"] "<<__func__<<" ERROR: #adjEdge of gVertex="
 		 <<gEdges.size()<<" (it should be minimum 2) \n";
       assert(gEdges.size()>=2);
