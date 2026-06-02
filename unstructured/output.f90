@@ -848,10 +848,9 @@ subroutine output_mesh(time_group_id, nelms, error)
   do i=1, nelms
      call get_element_nodes(i,nodeids)
 
-     ! don't call boundary_edge if iadapt != 0
-     ! because bug in scorec software causes crash when querying 
-     ! normal/curvature at newly created boundary nodes
-     if(iadapt.eq.0) call boundary_edge(i, is_edge, normal, idim)
+     ! Since snap operation is default in adapt, it's safe to call
+     ! boundary edge when iadapt != 0
+     call boundary_edge(i, is_edge, normal, idim)
 
      bound = 0.
      if(is_edge(1).ne.0) bound = bound + 1. + boundary_type(is_edge(1))*2**3
