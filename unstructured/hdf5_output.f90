@@ -45,6 +45,8 @@ contains
     integer(HID_T) :: root_id, plist_id
     integer :: info
 
+    logical :: lexist
+
     call h5open_f(error)
     if(error.lt.0) then
        print *, "Error: could not initialize HDF5 library: ", error
@@ -72,47 +74,48 @@ contains
 
        ! for time slice output count
        times_output = 0
-
-       !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-       ! Create new file for particle tracing and set up link in "C1.h5"
-
-!        ! remove the particle group link if it already exists
-!        ! from before a restart
-!        call h5lexists_f(file_id, hdf5_part_groupname, link_exists, error)
-!        if(link_exists) then
-!           call h5gunlink_f(file_id, hdf5_part_groupname, error)
-!        endif
-
-!        ! Set up the file access property list with parallel I/O
-!        call h5pcreate_f(H5P_FILE_ACCESS_F, plist_id, error)
-!        info = MPI_INFO_NULL
-!        call h5pset_fapl_mpio_f(plist_id, MPI_COMM_WORLD, info, error)
-          
-       ! Open the new file
-       call h5fcreate_f(hdf5_part_filename, H5F_ACC_TRUNC_F, ptrace_file_id, error, &
-            access_prp = plist_id)
-       if(error.lt.0) then
-          print *, "Error: could not open ", hdf5_part_filename, &
-               " for HDF5 output.  error = ", error
-          return
-       endif
-
-       ! Add particle_tracing link in main file
-       ! ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-     
-       ! create a link to the "C1.h5" file
-       if(myrank.eq.0) print *, 'linking ', hdf5_part_filename
-       call h5gopen_f(file_id, "/", root_id, error)
-       call h5lcreate_external_f(hdf5_part_filename, "/", root_id, hdf5_part_groupname, &
-            error)
        
-!        ! update number of time slices
-!        if(equilibrium.eq.0) times_output = times_output + 1
-!        call update_int_attr(root_id, "ntime", times_output, error)
-     
-       ! close root group
-       call h5gclose_f(root_id, error)
- 
+       if(itrace==1) then
+          !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+          ! Create new file for particle tracing and set up link in "C1.h5"
+   
+   !        ! remove the particle group link if it already exists
+   !        ! from before a restart
+   !        call h5lexists_f(file_id, hdf5_part_groupname, link_exists, error)
+   !        if(link_exists) then
+   !           call h5gunlink_f(file_id, hdf5_part_groupname, error)
+   !        endif
+   
+   !        ! Set up the file access property list with parallel I/O
+   !        call h5pcreate_f(H5P_FILE_ACCESS_F, plist_id, error)
+   !        info = MPI_INFO_NULL
+   !        call h5pset_fapl_mpio_f(plist_id, MPI_COMM_WORLD, info, error)
+             
+          ! Open the new file
+          call h5fcreate_f(hdf5_part_filename, H5F_ACC_TRUNC_F, ptrace_file_id, error, &
+               access_prp = plist_id)
+          if(error.lt.0) then
+             print *, "Error: could not open ", hdf5_part_filename, &
+                  " for HDF5 output.  error = ", error
+             return
+          endif
+   
+          ! Add particle_tracing link in main file
+          ! ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+        
+          ! create a link to the "C1.h5" file
+          if(myrank.eq.0) print *, 'linking ', hdf5_part_filename
+          call h5gopen_f(file_id, "/", root_id, error)
+          call h5lcreate_external_f(hdf5_part_filename, "/", root_id, hdf5_part_groupname, &
+               error)
+          
+   !        ! update number of time slices
+   !        if(equilibrium.eq.0) times_output = times_output + 1
+   !        call update_int_attr(root_id, "ntime", times_output, error)
+        
+          ! close root group
+          call h5gclose_f(root_id, error)
+       endif
     else
        ! open hdf5 file
        call h5fopen_f(hdf5_filename, H5F_ACC_RDWR_F, file_id, error, &
@@ -129,18 +132,51 @@ contains
        ! overwrite the last time slice
        times_output = times_output - 1
 
-       !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-       ! Create new file for particle tracing and set up link in "C1.h5"
-
-       ! open hdf5 file
-       call h5fopen_f(hdf5_part_filename, H5F_ACC_RDWR_F, ptrace_file_id, error, &
-            access_prp = plist_id)
-       if(error.lt.0) then
-          print *, "Error: could not open ", &
-               hdf5_part_filename, " for HDF5 output: ", error
-       endif
-
-
+       if(itrace==1) then
+          ! Check existence of particle data for restart runs.
+          lexist = .false.      
+          inquire(file=trim(hdf5_part_filename), exist=lexist)
+          if (.not. lexist .and. myrank == 0) then
+              print *, 'Warning: particle_tracing.h5 file not found. Create file.'
+          end if
+        
+          ! Only attempt to read if we want to restart AND the file is actually there
+          if (lexist) then
+              !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+              ! read existing particle_tracing.h5 linked to "C1.h5"
+       
+              ! open hdf5 file
+              call h5fopen_f(hdf5_part_filename, H5F_ACC_RDWR_F, ptrace_file_id, error, &
+                   access_prp = plist_id)
+              if(error.lt.0) then
+                 print *, "Error: could not open ", &
+                      hdf5_part_filename, " for HDF5 output: ", error
+              endif
+          else
+              !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+              ! Create new file for particle tracing and set up link in "C1.h5"
+   
+              ! Open the new file
+              call h5fcreate_f(hdf5_part_filename, H5F_ACC_TRUNC_F, ptrace_file_id, error, &
+                   access_prp = plist_id)
+              if(error.lt.0) then
+                 print *, "Error: could not open ", hdf5_part_filename, &
+                      " for HDF5 output.  error = ", error
+                 return
+              endif
+   
+              ! Add particle_tracing link in main file
+              ! ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+        
+              ! create a link to the "C1.h5" file
+              if(myrank.eq.0) print *, 'linking ', hdf5_part_filename
+              call h5gopen_f(file_id, "/", root_id, error)
+              call h5lcreate_external_f(hdf5_part_filename, "/", root_id, hdf5_part_groupname, &
+                   error)
+              ! close root group
+              call h5gclose_f(root_id, error)
+          endif   ! if particle_tracing.h5 exist
+       endif   ! itrace==1
     endif
 
     call h5pclose_f(plist_id, error)
@@ -154,6 +190,7 @@ contains
   ! =============
   subroutine hdf5_finalize(error)
     use hdf5
+    use basic, only: itrace
 
     implicit none
     
@@ -168,8 +205,10 @@ contains
     if(error .lt. 0) print *, "Error closing hdf5 file"
 
     ! Close the file.
-    call h5fclose_f(ptrace_file_id, error)
-    if(error .lt. 0) print *, "Error closing particle_tracing hdf5 file"
+    if(itrace==1) then
+       call h5fclose_f(ptrace_file_id, error)
+       if(error .lt. 0) print *, "Error closing particle_tracing hdf5 file"
+    endif
 
     call h5close_f(error)
     if(error .lt. 0) print *, "Error closing hdf5 library"

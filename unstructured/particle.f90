@@ -466,6 +466,9 @@ subroutine init_particles(lrestart, ierr)
    integer :: sps
    real :: npar_ratio, npar_ratio_temp, npar_ratio_local, npar_fac
 
+   ! used for kinetic particle restart
+   logical :: lexist
+
    !Allocate particle pressure tensor components
 
    call get_ion_physics_params(maxspeed)
@@ -659,11 +662,26 @@ subroutine init_particles(lrestart, ierr)
       !f_array=f_array2
    endif
 
+   ! Check existence of particle data for restart runs. 
+   lexist = .false.
    if (lrestart) then
       write (part_file_name, '("ions_",I4.4,".h5")') times_output
-      write (0, *) part_file_name
+      inquire(file=trim(part_file_name), exist=lexist)
+      if (.not. lexist .and. myrank == 0) then
+         print *, 'Warning: particle restart file not found, falling back to initialization of kinetic particles.'
+         ! call mpi_barrier(mpi_comm_world, ierr)
+      end if
+   end if
+
+   ! Only attempt to read if we want to restart AND the file is actually there
+   if (lrestart .and. lexist) then
+!    if (lrestart) then
+!       write (part_file_name, '("ions_",I4.4,".h5")') times_output
+!       write (0, *) part_file_name
+
       call hdf5_read_particles(part_file_name, ierr)
       if (myrank .eq. 0) print *, 'read_parts returned with ierr=', ierr
+      ! call mpi_barrier(mpi_comm_world, ierr)
    else
       p_f_par%vec = 0.; p_f_perp%vec = 0.
       p_i_par%vec = 0.; p_i_perp%vec = 0.
@@ -1163,21 +1181,35 @@ elseif(sample_op==2) then
    
    allocate(pdata_trace_readin(pdims_readin,npart_trace))
 
-   !!! input particle information: (r, theta, z, vpara, vperp)
-   pdata_trace_readin = reshape((/ 1.6, 0.0, -0.1, 1.0e6, 1.0e6,  &
-                                   1.6, 0.0, -0.0, 1.0e6, 1.0e6,  &
-                                   1.6, 0.0,  0.1, 1.0e6, 1.0e6,  &
-                                   1.8, 0.0, -0.4, 1.0e6, 1.0e6,  &
-                                   1.8, 0.0,  0.0, 1.0e6, 1.0e6,  &
-                                   1.8, 0.0,  0.4, 1.0e6, 1.0e6,  &
-                                   2.2, 0.0, -0.5, 1.0e6, 1.0e6,  &
-                                   2.2, 0.0,  0.0, 1.0e6, 1.0e6,  &
-                                   2.2, 0.0,  0.5, 1.0e6, 1.0e6 /), &
+   !!! input particle information: (r, theta, z, E_para, E_perp)
+!    ! first example:
+!    pdata_trace_readin = reshape((/ 1.6, 0.0, -0.1, 1.0e6, 1.0e6,  &
+!                                    1.6, 0.0, -0.0, 1.0e6, 1.0e6,  &
+!                                    1.6, 0.0,  0.1, 1.0e6, 1.0e6,  &
+!                                    1.8, 0.0, -0.4, 1.0e6, 1.0e6,  &
+!                                    1.8, 0.0,  0.0, 1.0e6, 1.0e6,  &
+!                                    1.8, 0.0,  0.4, 1.0e6, 1.0e6,  &
+!                                    2.2, 0.0, -0.5, 1.0e6, 1.0e6,  &
+!                                    2.2, 0.0,  0.0, 1.0e6, 1.0e6,  &
+!                                    2.2, 0.0,  0.5, 1.0e6, 1.0e6 /), &
+!                                    shape=[5,9])
+   ! sample RE with 0.4c velocity:
+   ! K.E.: (a). 0.5*me*ve^2 = 4.09e4, 
+   !       (b). (gamma-1)*me*c^2 = 4.67e4
+   pdata_trace_readin = reshape((/ 1.6, 0.0, -0.1, 4.09e4, 0.0e6,  &
+                                   1.6, 0.0, -0.0, 4.09e4, 0.0e6,  &
+                                   1.6, 0.0,  0.1, 4.09e4, 0.0e6,  &
+                                   1.8, 0.0, -0.4, 4.09e4, 0.0e6,  &
+                                   1.8, 0.0,  0.0, 4.09e4, 0.0e6,  &
+                                   1.8, 0.0,  0.4, 4.09e4, 0.0e6,  &
+                                   2.2, 0.0, -0.5, 4.09e4, 0.0e6,  &
+                                   2.2, 0.0,  0.0, 4.09e4, 0.0e6,  &
+                                   2.2, 0.0,  0.5, 4.09e4, 0.0e6 /), &
                                    shape=[5,9])
    allocate(x_in(3,npart_trace),v_in(2,npart_trace),sps_in(npart_trace))
    x_in(:,:) = pdata_trace_readin(1:3,:)
    v_in(:,:) = pdata_trace_readin(4:5,:)
-   sps_in(:) = 1   ! 1: thermal ion  2: fast ion
+   sps_in(:) = 2   ! 1: thermal ion  2: fast ion
 
 ! ion mass = 2. m_p
 ! Zeff = 1.
@@ -1196,6 +1228,7 @@ elseif(sample_op==2) then
    pdata_trace_id(:) = 0
    pdata_trace_id_tmp(:) = 0
    icount=0
+   ielm=-13   ! initialize ielm variable (causing error for 3D version on Perlmutter)
    do i = 1,npart_trace
       call whattri(x_in(1,i), x_in(2,i), x_in(3,i), ielm, xr, zr)  ! return ielm=-1 if not on myrank, local elem. id if found
       if(ielm>0)then
@@ -1242,7 +1275,7 @@ elseif(sample_op==2) then
 ! !          !!!
 ! !          call MPI_Barrier(MPI_COMM_WORLD, ierr)
          icount = icount +1
-      endif
+      endif   ! if(ielm>0)
    enddo
 
    if(icount .ne. 0)then
@@ -2109,7 +2142,7 @@ subroutine delete_particle(exchange)
    end do
    ipart_end = npart
    endif
-   write (0, *) ipart_begin, ipart_end
+   write (0, *) "Finish deleting particles on rowrank ",rowrank, ": ipart0 =", ipart_begin,'ipart1 =', ipart_end
    if (exchange) then
       allocate (recvcounts(nrows))
       allocate (displs(nrows))
@@ -2135,7 +2168,7 @@ subroutine delete_particle(exchange)
       ipart_begin = nparticles/nrows*rowrank + 1
       ipart_end = nparticles/nrows*(rowrank + 1)
       if (rowrank == nrows - 1) ipart_end = nparticles
-      write (0, *) "nparticles", rowrank, ipart_begin, ipart_end
+      write (0, *) "Exchange after deleting particles on rowrank ", rowrank, ": ipart0 =", ipart_begin, "ipart1 =", ipart_end
       deallocate (recvcounts)
       deallocate (displs)
    end if
@@ -3740,6 +3773,8 @@ subroutine hdf5_write_particles(ierr)
 
    !Calculate data size
    call MPI_Bcast(nparticles, 1, MPI_INTEGER, 0, MPI_COMM_WORLD, ierr)
+   ! check if there are kinetic particles for output
+   if(nparticles.le.0) return
 
    !Calculate offset of current process
    if (hostrank == 0) then
@@ -4063,30 +4098,36 @@ subroutine hdf5_read_particles(filename, ierr)
                   !poffset = poffset - locparts
                   poffset = np*myrank
 
-                  if (poffset + np > nparticles) np = nparticles - poffset
+                  if (poffset + np > nparticles) then
+                     np = max(0, nparticles - poffset)   ! set safe bound if particle number is smaller than MPI number
+                     poffset = nparticles - np
+                  endif
                   cdims(1) = ldim; cdims(2) = np
-                  call h5screate_simple_f(2, cdims, memspace, ierr)
-                  off_h5(1) = 0; off_h5(2) = poffset
-                  off_m = off_h5
 
-                  !Read the particle data, assign particles to processors
-                  !do while (np.gt.0)      !For each chunk...
-                  !Set location to read from
-                  !if (np.lt.chunksize) then
-                  !   cdims(2) = np
-                  !   call h5sselect_hyperslab_f(memspace, H5S_SELECT_SET_F, &
-                  !        off_m, cdims, ierr)
-                  !endif
-                  call h5sselect_hyperslab_f(filespace, H5S_SELECT_SET_F, off_h5, &
-                                             cdims, ierr)
-                  if (ierr .lt. 0) return
-                  !off_h5(2) = off_h5(2) + cdims(2)
-
-                  !Read ID, phase space coordinates, weight
-                  call h5dread_f(dset_id, H5T_NATIVE_DOUBLE, valbuf, cdims, ierr, &
-                                 mem_space_id=memspace, file_space_id=filespace)
-
-                  if (ierr .lt. 0) return !Read error
+                  if (np>0) then
+                     call h5screate_simple_f(2, cdims, memspace, ierr)
+                     off_h5(1) = 0; off_h5(2) = poffset
+                     off_m = off_h5
+   
+                     !Read the particle data, assign particles to processors
+                     !do while (np.gt.0)      !For each chunk...
+                     !Set location to read from
+                     !if (np.lt.chunksize) then
+                     !   cdims(2) = np
+                     !   call h5sselect_hyperslab_f(memspace, H5S_SELECT_SET_F, &
+                     !        off_m, cdims, ierr)
+                     !endif
+                     call h5sselect_hyperslab_f(filespace, H5S_SELECT_SET_F, off_h5, &
+                                                cdims, ierr)
+                     if (ierr .lt. 0) return
+                     !off_h5(2) = off_h5(2) + cdims(2)
+   
+                     !Read ID, phase space coordinates, weight
+                     call h5dread_f(dset_id, H5T_NATIVE_DOUBLE, valbuf, cdims, ierr, &
+                                    mem_space_id=memspace, file_space_id=filespace)
+   
+                     if (ierr .lt. 0) return !Read error
+                  endif   ! if (np>0)
 
                   !Assign particles to local domain as needed
                   do ipart = 1, cdims(2)
@@ -4148,8 +4189,8 @@ subroutine hdf5_read_particles(filename, ierr)
                      pdata(ipart + poffset) = dpar
                      locparts = locparts + 1
                   end do
-                  ipart_begin = poffset + 1
-                  ipart_end = poffset + np
+                  ipart_begin = poffset + min(1,np+1)   ! set safe bound if particle number is smaller than MPI number.
+                  ipart_end = poffset + max(0,np)
                   !np = np - chunksize
                   !if (np.lt.pdims(2)-10) exit !TMP!!!
                   !enddo !while
@@ -4160,9 +4201,9 @@ subroutine hdf5_read_particles(filename, ierr)
                         pdims(2), ' particles read, assigned in ', tend - tstart, ' sec.'
                      !print *,'last =', valbuf(1,cdims(2)),valbuf(7,cdims(2))
                   end if
-                  call h5sclose_f(memspace, ierr)
+                  if (np>0) call h5sclose_f(memspace, ierr)
 
-                  print *, myrank, ': ', locparts, ' local particles.'
+                  print *, "On MPI rank ", myrank, 'read in: ', locparts, ' local particles.'
                   !call mpi_reduce(locparts, nparticles, 1, MPI_INTEGER, MPI_SUM, 0, &
                   !     MPI_COMM_WORLD, ierr)
                   !if (nparticles.ne.pdims(2)) then
@@ -4172,6 +4213,7 @@ subroutine hdf5_read_particles(filename, ierr)
                   !   pass = .true.
                   !endif
                   deallocate (valbuf)
+
                end if !Wrong leading dimension
             end if !Wrong number of dimensions
 
@@ -4198,7 +4240,7 @@ subroutine hdf5_read_particles(filename, ierr)
    ipart_end_temp=ipart_end
    call mpi_allreduce(ipart_end_temp, ipart_end, 1, MPI_INTEGER, MPI_MAX, hostcomm, ierr)
    if (hostrank == 0) then
-      write (0, *) rowrank, ipart_begin, ipart_end
+      write (0, *) 'hdf5_read_parts on rowrank ',rowrank,': ipart0 =', ipart_begin, 'ipart1 =', ipart_end
    end if
 
 end subroutine hdf5_read_particles
@@ -4221,6 +4263,7 @@ subroutine hdf5_write_particles_scalar(ierr)
    integer(HSIZE_T), dimension(2) :: global_dims
    integer pindex, i
    real, dimension(:), allocatable :: tmparry_output
+   logical :: lexist
 
 ! !!! for test only:
 ! !   integer, parameter :: npart_trace = 256
@@ -4294,7 +4337,12 @@ subroutine hdf5_write_particles_scalar(ierr)
 
    call h5gopen_f(ptrace_file_id, "/", part_root_id, ierr)
 
-   if(ntime.eq.0 .and. irestart.eq.0) then
+   ! 1. Check if the group exists
+   call h5lexists_f(part_root_id, "particle_tracing_data", lexist, ierr)
+
+   ! 2. logic for creating or opening
+   if (.not. lexist) then
+   !if(ntime.eq.0 .and. irestart.eq.0) then
       call h5gcreate_f(part_root_id, "particle_tracing_data", scalar_group_id, ierr)
       call write_int_attr(scalar_group_id, "ntimestep", ntime, ierr)
       
@@ -4303,7 +4351,6 @@ subroutine hdf5_write_particles_scalar(ierr)
       call write_int_attr(scalar_group_id, "pdims_trace", pdims_trace, ierr)
       call write_vec_attr_int(scalar_group_id, "pdata_trace_id", pdata_trace_id, npart_trace, ierr)
       ! call output_1dextendarr(scalar_group_id, "pdata_trace_id", pdata_trace_id, npart_trace, ntime, ierr)
-
    else
       call h5gopen_f(part_root_id, "particle_tracing_data", scalar_group_id, ierr)
       call update_int_attr(scalar_group_id, "ntimestep", ntime, ierr)
@@ -4333,7 +4380,8 @@ subroutine hdf5_write_particles_scalar(ierr)
    end if
 
    ! Create the dataset ("/data") in the file
-   if(ntime.eq.0 .and. irestart.eq.0) then
+   if (.not. lexist) then
+   !if(ntime.eq.0 .and. irestart.eq.0) then
       if (idouble_out .eq. 1) then
          call h5dcreate_f(scalar_group_id, "pdata", H5T_NATIVE_DOUBLE, filespace, dset_id, ierr)
       else

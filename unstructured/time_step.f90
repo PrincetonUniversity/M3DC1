@@ -100,22 +100,37 @@ subroutine onestep
   integer :: icount, maxiter
 #endif
 
+!!! for part tracing test only: 
+!   ! Determine whether matrices should be re-calculated
+!   if(first_time &
+!        .or. (linear.eq.0 .and. mod(ntime,nskip).eq.0) &
+!        .or. (integrator.eq.1 .and. ntime.eq.1) .or. meshAdapted .eq. 1) then
+!      calc_matrices = 1
+!   else
+!      calc_matrices = 0
+!   endif
+
   ! Determine whether matrices should be re-calculated
-  if(first_time &
-       .or. (linear.eq.0 .and. mod(ntime,nskip).eq.0) &
-       .or. (integrator.eq.1 .and. ntime.eq.1) .or. meshAdapted .eq. 1) then
+  if(first_time) then
      calc_matrices = 1
   else
      calc_matrices = 0
   endif
+!!! 
 
   ! Advance impurity charge states
-  if(myrank.eq.0 .and. itimer.eq.1) call second(tstart)
-  call kprad_ionize(dt)
-  if(myrank.eq.0 .and. itimer.eq.1) then
-     call second(tend)
-     t_kprad = t_kprad + tend - tstart
-  endif
+!!! for particle tracing test only:
+  if(ikprad.eq.1)then
+!!!
+     if(myrank.eq.0 .and. itimer.eq.1) call second(tstart)
+     call kprad_ionize(dt)
+     if(myrank.eq.0 .and. itimer.eq.1) then
+        call second(tend)
+        t_kprad = t_kprad + tend - tstart
+     endif
+!!!
+  endif ! ikprad==1
+!!!
 
   if(myrank.eq.0 .and. iprint.ge.2) print *, "  transport coefficients"
   call define_transport_coefficients
@@ -157,11 +172,13 @@ subroutine onestep
     ! advance time
     if(myrank.eq.0 .and. iprint.ge.1) print *, "Advancing time..."
     if(myrank.eq.0 .and. itimer.eq.1) call second(tstart)
-    if(isplitstep.ge.1) then
-       call step_split(calc_matrices)
-    else
-       call step_unsplit(calc_matrices)
-    end if
+!!! for particle tracing fix-MHD test only:
+!     if(isplitstep.ge.1) then
+!        call step_split(calc_matrices)
+!     else
+!        call step_unsplit(calc_matrices)
+!     end if
+!!!
     if(myrank.eq.0 .and. itimer.eq.1) then 
        call second(tend)
        if(iprint.ge.1) print *, "Time spent in *_step: ", tend-tstart
@@ -225,12 +242,18 @@ subroutine onestep
   if(ipellet_abl.gt.0) call pellet_shrink
 
   ! Advect impurity charge states
-  if(myrank.eq.0 .and. itimer.eq.1) call second(tstart)
-  call kprad_advect(dt)
-  if(myrank.eq.0 .and. itimer.eq.1) then
-     call second(tend)
-     t_kprad = t_kprad + tend - tstart
-  endif
+!!! for particle tracing test only:
+  if(ikprad.eq.1)then
+!!!
+     if(myrank.eq.0 .and. itimer.eq.1) call second(tstart)
+     call kprad_advect(dt)
+     if(myrank.eq.0 .and. itimer.eq.1) then
+        call second(tend)
+        t_kprad = t_kprad + tend - tstart
+     endif
+!!!
+  endif ! ikprad==1
+!!!
 
   ! Conserve toroidal flux
   if(iconstflux.eq.1 .and. numvar.ge.2) then
