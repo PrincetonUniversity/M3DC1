@@ -56,26 +56,29 @@ def Hmode_profiles(edge=0.08, ped=0.4, core=2.5, rgrid=201, expin=1.5, expout=1.
     return val
 
 
+
 def Hmode_profiles_fit(xpsi,edge=0.08, ped=0.4, core=2.5, expin=1.5, expout=1.5, widthp=0.04):
     """
-     This function generates H-mode  density and temperature profiles evenly
-     spaced in your favorite radial coordinate
+    ----------
+    xpsi : list / array
+        List or array of psi_n values.
+    edge : float
+        Value of the profile at the separatrix (edge), default is 0.08.
+    ped : float
+        Value of the profile at the pedestal top, default is 0.4.
+    core : float
+        Value of the profile on-axis (core height), default is 2.5.
+    expin : float
+        Exponent controlling steepness on the inner (core) side of the pedestal, default is 1.5.
+    expout : float
+        Exponent controlling steepness on the outer (edge) side of the pedestal, default is 1.5.
+    widthp : float
+        Width of the pedestal region in normalized radial coordinates, default is 0.04.
 
-    :param edge: (float) separatrix height
-
-    :param ped: (float) pedestal height
-
-    :param core: (float) on-axis profile height
-
-    :param rgrid: (int) number of radial grid pointsx
-
-    :param expin: (float) inner core exponent for H-mode pedestal profile
-
-    :param expout (float) outer core exponent for H-mode pedestal profile
-
-    :param width: (float) width of pedestal
-
-    :param xphalf: (float) position of tanh
+    Returns
+    -------
+    numpy.ndarray
+        Array of shape xpsi containing the fitted H-mode profile.
     """
     fac=1.0
     rgrid=len(xpsi)
@@ -104,6 +107,8 @@ def Hmode_profiles_fit(xpsi,edge=0.08, ped=0.4, core=2.5, expin=1.5, expout=1.5,
             val[i] = val[i] + (core - coretanh) * (1.0 - xtoped[i] ** expin) ** expout
 
     return val
+
+
 
 def pedestal_finder(profile, psi_norm=None, eped_definition=False, return_fit=False, doPlot=False, ngrid=201):
     from scipy import optimize, interpolate

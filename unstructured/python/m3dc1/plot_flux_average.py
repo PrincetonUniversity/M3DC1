@@ -7,6 +7,7 @@
 # Ralf Mackenbach:    rmackenb@pppl.gov
 # Chris Smiet    :    csmiet@pppl.gov
 
+import numpy as np
 import fpy
 import matplotlib.pyplot as plt
 #from matplotlib import rc
@@ -17,7 +18,7 @@ from m3dc1.flux_average import flux_average
 #ToDo: Add rms
 def plot_flux_average(field, sim=None, coord='scalar', fcoords='pest', deriv=0, points=200, filename='C1.h5', time=0, device=None, units='m3dc1',
                       fac=1, phit=0, rms=False,pub=False,c=None,ls='-',xlimits=[None,None],ylimits=[None,None],show_legend=False,leglbl=None,
-                      shortlbl=False,fignum=None,figsize=None):
+                      shortlbl=False,fignum=None,figsize=None,export=False,txtname=None):
     """
     Plots flux surfaces
     
@@ -121,11 +122,15 @@ def plot_flux_average(field, sim=None, coord='scalar', fcoords='pest', deriv=0, 
         
     plt.ylabel(ylbl,fontsize=axlblfs)
     ax.tick_params(axis='both', which='major', labelsize=ticklblfs)
+    ax.yaxis.get_offset_text().set_fontsize(ticklblfs-2)
     
     if show_legend:
         if leglbl is not None:
             plt.legend(loc=0,fontsize=legfs,handlelength=leghandlen)
     plt.tight_layout() #adjusts white spaces around the figure to tightly fit everything in the window
     
+    if export:
+        plot_data = np.column_stack([flux, fa*fac])
+        np.savetxt(txtname,plot_data,delimiter='   ')
     
     return

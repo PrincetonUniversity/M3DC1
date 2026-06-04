@@ -126,7 +126,7 @@ int copyField2PetscVec_5(FieldID field_id, Vec petscVec, int scalar_type)
   assert(nodeCounter==num_own_ent);
   ierr=VecAssemblyEnd(petscVec);
   CHKERRQ(ierr);
-  PetscFunctionReturn(PETSC_SUCCESS);
+  PetscFunctionReturn(0);  // PETSC_SUCCESS (0) to indicate success
 //  return 0;
 }
 
@@ -1330,9 +1330,10 @@ int matrix_solve::solve(FieldID field_id) {
 // solve with non-zero initial guess
 int matrix_solve::solve_with_guess(FieldID field_id, FieldID xVec_guess) {
   Vec x, b;
-  copyField2PetscVec(field_id, b, get_scalar_type());
-  copyField2PetscVec(xVec_guess, x, get_scalar_type());
   int ierr;
+  ierr=MatCreateVecs(_A, &x, &b);
+  copyField2PetscVec_5(field_id, b, get_scalar_type());
+  copyField2PetscVec_5(xVec_guess, x, get_scalar_type());
   KSPType ksptype;
 
   if (!_kspSet)
@@ -1447,9 +1448,10 @@ int matrix_solve::setKspType() {
            ierr=PCBJacobiSetTotalBlocks(pc, nplane, blks);
            ierr=PetscFree(blks);
            */
-    if (mymatrix_id == 5)
+    if (mymatrix_id == 5) {
       ierr = KSPSetOptionsPrefix(_ksp, "hard_");
       ierr = MatViewFromOptions(_A, NULL, "-A_view");
+    }
   }
 
   ierr = KSPSetFromOptions(_ksp);

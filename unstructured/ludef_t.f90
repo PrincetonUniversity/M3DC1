@@ -2048,6 +2048,9 @@ subroutine flux_lin(trialx, lin, ssterm, ddterm, q_ni, r_bf, q_bf, izone)
 
      endif
 
+     !tempx = b1jrebeta    (trialx,lin,bz179,eta79,bi79) !for numvar=1 and eqsubtract=0
+     !     ssterm(:,nre_g) = ssterm(:,nre_g) -     thimpb     *dt*tempx
+     !     ddterm(:,nre_g) = ddterm(:,nre_g) + (1.-thimpb*bdf)*dt*tempx
      if(numvar.ge.2) then
         tempx = b1bu  (trialx,lin,ph179) &
              + b1bv  (trialx,lin,vz179) &
@@ -5389,6 +5392,8 @@ subroutine ludefphi_n(itri)
      bv0 => d1_mat
      bn1 => s1_mat
      bn0 => d1_mat
+     bnre1 => s1_mat
+     bnre0 => d1_mat
      if(imp_bf.eq.1) then
         bf1 => s1_mat
         bf0 => d1_mat
@@ -6066,7 +6071,7 @@ subroutine ludefnre_n(itri)
 
   integer :: i, j, izone
   vectype, dimension(dofs_per_element, dofs_per_element) :: ssterm, ddterm
-  vectype, dimension(dofs_per_element, dofs_per_element, 3) :: qqterm, kkterm
+  vectype, dimension(dofs_per_element, dofs_per_element, 3) :: qqterm, rrterm, kkterm
   vectype, dimension(dofs_per_element) :: oterm
 
   vectype, dimension(dofs_per_element) :: tempx
@@ -6075,7 +6080,7 @@ subroutine ludefnre_n(itri)
 
   vectype :: freq_fac
 
-  type(matrix_type), pointer :: nrenre1, nrenre0, nreb0, nrev0
+  type(matrix_type), pointer :: nrenre1, nrenre0, nreb0, nreb1, nrev0, nrev1
   type(vector_type), pointer :: nresource
   real :: thimpb, thimp2
   integer :: imask(dofs_per_element)
@@ -6103,12 +6108,22 @@ subroutine ludefnre_n(itri)
      nrenre0 => d15_mat
      nreb0 => q15_mat
      nrev0   => k15_mat
-     nresource => qn5_vec
+     !nresource => qn5_vec
+     !nsource => qn4_vec
+  else
+     nrenre1 => s1_mat
+     nrenre0 => d1_mat
+     nreb1 => s1_mat
+     nreb0 => d1_mat
+     nrev1   => s1_mat
+     nrev0   => d1_mat
+     !nsource => q4_vec
   endif
 
   ssterm = 0.
   ddterm = 0.
   qqterm = 0.
+  rrterm = 0.
   kkterm = 0.
   oterm = 0.
 
@@ -6126,7 +6141,7 @@ subroutine ludefnre_n(itri)
   if(itime_independent.eq.0) ddterm = ddterm + tempxx*bdf
 
   thimp2=thimp
-  thimp2=0.5
+  !thimp2=0.5
 
   do j=1,dofs_per_element
 
@@ -6146,7 +6161,12 @@ subroutine ludefnre_n(itri)
 
      if(eqsubtract.eq.1) then
         tempx = nre1nrepsi(mu79,nre079,bi79,nu79(j,:,:))/ra_cyc
-        qqterm(:,j,1) = qqterm(:,j,1) + dt*tempx
+        if (isplitstep==0) then
+           rrterm(:,j,1) = rrterm(:,j,1) +     thimp2     *dt*tempx
+           qqterm(:,j,1) = qqterm(:,j,1) + (1.-thimp2*bdf)*dt*tempx
+        else
+           qqterm(:,j,1) = qqterm(:,j,1) + dt*tempx
+        endif
 
         tempx = nre1nreu(mu79,nre079,nu79(j,:,:))/ra_cyc
         kkterm(:,j,1) = kkterm(:,j,1) + dt*tempx
@@ -6185,11 +6205,11 @@ subroutine ludefnre_n(itri)
   ! Source term
   ! ~~~~~~~~~~~~ 
 
-    oterm = 0.
+    !oterm = 0.
 
 401 continue
 
-  !if(isplitstep.eq.0) rrterm = -rrterm
+  if(isplitstep.eq.0) rrterm = -rrterm
   if(idiff .gt. 0) ddterm = ddterm - ssterm
 
 
@@ -6199,6 +6219,7 @@ subroutine ludefnre_n(itri)
   call apply_boundary_mask(itri, 0, ddterm, imask)
   do i=1, 3
      call apply_boundary_mask(itri, 0, qqterm(:,:,i), imask)
+     call apply_boundary_mask(itri, 0, rrterm(:,:,i), imask)
      call apply_boundary_mask(itri, 0, kkterm(:,:,i), imask)
   end do
   call apply_boundary_mask_vec(itri, 0, oterm, imask)
@@ -6209,6 +6230,7 @@ subroutine ludefnre_n(itri)
   call insert_block(nrenre1,itri,nre_i,nre_i,ssterm,MAT_ADD)
   call insert_block(nrenre0,itri,nre_i,nre_i,ddterm,MAT_ADD)
   call insert_block(nreb0,itri,nre_i,psi_i,qqterm(:,:,1),MAT_ADD)
+  if (isplitstep==0) call insert_block(nreb1,itri,nre_i,psi_i,rrterm(:,:,1),MAT_ADD)
   call insert_block(nrev0,itri,nre_i,u_i,kkterm(:,:,1),MAT_ADD)
 
   if(numvar.ge.2) then
@@ -6220,7 +6242,7 @@ subroutine ludefnre_n(itri)
      call insert_block(nrev0,itri,nre_i,chi_i,kkterm(:,:,3),MAT_ADD)
   endif
 
-  call vector_insert_block(nresource,itri,nre_i,oterm,VEC_ADD)
+  !call vector_insert_block(nresource,itri,nre_i,oterm,VEC_ADD)
 !!$OMP END CRITICAL
 end subroutine ludefnre_n
 

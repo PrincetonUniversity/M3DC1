@@ -121,6 +121,8 @@ def plot_time_trace_fast(trace,units='mks',millisec=False,sim=None,filename='C1.
     When plotting energy spectrum, do not plot energy for n=0 mode.
 
     """
+    yscale='linear' if yscale=='lin' else yscale
+    
     if not isinstance(sim,fpy.sim_data):
         sim = fpy.sim_data(filename)
     time,y_axis,label, unitlabel = get_timetrace(trace,sim=sim,units=units,growth=growth,diff=diff,renorm=renorm,unitlabel=unitlabel,fac=fac)
@@ -197,14 +199,14 @@ def create_plot_time_trace_fast(time,scalar,trace,units='mks',millisec=False,sim
             if units=='mks':
                 #scalar = unit_conv(scalar, arr_dim='M3DC1', filename=filename, energy=1)
                 if growth:
-                    plt.ylabel(r'$\gamma$ $[s^{-1}]$')
+                    plt.ylabel(r'$\gamma$ $[s^{-1}]$',fontsize=axlblfs)
                 else:
-                    plt.ylabel(r'Kinetic energy $[J]$')
+                    plt.ylabel(r'Kinetic energy $[J]$',fontsize=axlblfs)
             elif units.lower()=='m3dc1':
                 if growth:
-                    plt.ylabel(r'$\gamma/\omega_A$')
+                    plt.ylabel(r'$\gamma/\omega_A$',fontsize=axlblfs)
                 else:
-                    plt.ylabel(r'Kinetic energy (M3DC1 units)')
+                    plt.ylabel(r'Kinetic energy (M3DC1 units)',fontsize=axlblfs)
         else:
             plt.ylabel(ylbl,fontsize=axlblfs)
     

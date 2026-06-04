@@ -47,6 +47,13 @@ else
   endif
 endif
 
+ifeq ($(CAD), 1)
+  OPTS := $(OPTS) -DUSECADMODEL
+  USECADMODEL = 1
+else
+  USECADMODEL = 0
+endif
+
 ifeq ($(ST), 1)
   OPTS := $(OPTS) -DUSEST 
   BIN_POSTFIX := $(BIN_POSTFIX)-st
@@ -171,7 +178,7 @@ ifeq ($(USEADAS), 1)
 endif
 
 OBJS := fftw_fortran.o read_namelist.o gsl_wrapper.o \
-	random.o spline.o region.o \
+	random.o spline.o region.o signal_handler.o \
 	math.o read_ascii.o interpolate.o control.o \
 	iterdb.o read_gyro.o read_neo.o radiation.o \
 	element.o read_vmec.o physical_mesh.o $(V_OBJ) field.o nintegrate_mod.o \

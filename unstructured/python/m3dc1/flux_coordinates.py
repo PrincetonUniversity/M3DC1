@@ -8,7 +8,6 @@
 import fpy
 import numpy as np
 from scipy.interpolate import interp1d
-import h5py
 import matplotlib.pyplot as plt
 import matplotlib.gridspec as gridspec
 import m3dc1.fpylib as fpyl
@@ -85,11 +84,11 @@ def flux_coordinates(sim=None, filename='C1.h5', time=0, fcoords='', phit=0.0, p
     
     period = 2.*np.pi*r0 if itor==0 else 2.*np.pi
 
-    if points is None:
-        if(x is None or z is None): #ToDo: x and y are currently not input parameters, either remove or add as input parameters
-            points=200
-        else:
-            points=sqrt(len(x)*len(z))
+    #if points is None:
+    #    if(x is None or z is None): #ToDo: x and y are currently not input parameters, either remove or add as input parameters
+    #        points=200
+    #    else:
+    #        points=np.sqrt(len(x)*len(z))
     if fbins is None or fbins==0:
         fbins=points
     if tbins is None or tbins==0:
@@ -120,7 +119,10 @@ def flux_coordinates(sim=None, filename='C1.h5', time=0, fcoords='', phit=0.0, p
 
     # Get flux on axis and lcfs and magnetic axis position at the given time slice
     timeslice = sim.timeslice
+    if filename == 'C1.h5':
+        filename = sim.filename
     tsfilename = '/'.join(filename.split('/')[:-1])
+    
     if len(tsfilename)>0:
         tsfilename=tsfilename+'/'
     if timeslice<0:
@@ -324,7 +326,6 @@ def flux_coordinates(sim=None, filename='C1.h5', time=0, fcoords='', phit=0.0, p
         for kk in range(len(rpath[:,j])):
             br[kk] = -field_at_point('psi0_z',rpath[kk,j],phit,zpath[kk,j])/rp[kk,j]
             bz[kk] = field_at_point('psi0_r',rpath[kk,j],phit,zpath[kk,j])/rp[kk,j]
-        
         
         
         if fcoords.lower()=='canonical':

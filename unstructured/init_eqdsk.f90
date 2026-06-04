@@ -175,7 +175,7 @@ subroutine eqdsk_init()
      write(*,'(A,2F12.4)') 'Setting bzero, rzero = ', bzero, rzero
   end if
 
-  if(igs.gt.0) then
+  if(igs.ne.0) then
      if(iread_eqdsk.eq.2) then
         call default_profiles
      else

@@ -223,10 +223,17 @@ function bootstrapCoeff_func(col_number)
          !using normalized temperature That = 1 - Te/Temax
             if(temax .le. 1e-8) then              
               ! pso = 1. - abs(pet79(j,OP_1)/net79(j,OP_1))/temax_readin
-               pso = 1. - MAX(real(pet79(j,OP_1)/net79(j,OP_1)),regular**2)/temax_readin
-            else                      
+               pso =1. - MIN( MAX(real(pet79(j,OP_1) / MAX(real(net79(j,OP_1)), regular**2)), regular**2), &
+                                                 temax_readin)/temax_readin
+               !pso = 1. - MAX(real(pet79(j,OP_1)/net79(j,OP_1)),regular**2)/temax_readin
+            else    
+               if(ntime.eq.0)then
                !pso=1. - abs(pet79(j,OP_1)/net79(j,OP_1))/(temax)
-               pso = 1. - MAX(real(pet79(j,OP_1)/net79(j,OP_1)),regular**2)/temax   
+                  pso =1. -MIN(MAX(real(pet79(j,OP_1) / MAX(real(net79(j,OP_1)), regular**2)), regular**2), temax)
+                  !pso = 1. - MAX(real(pet79(j,OP_1)/net79(j,OP_1)),regular**2)/temax   
+               else
+                  pso = 1. - MAX(real(tet79(j,OP_1)),regular**2)/temax 
+               endif
             endif
          endif 
          
@@ -981,7 +988,7 @@ function resistivity_func(izone_index)
   vectype, dimension(dofs_per_element) :: resistivity_func
   integer, intent(in) :: izone_index
   real :: tmin
-  integer :: nvals, j, mr, iz
+  integer :: nvals, j, mr
   real, allocatable :: xvals(:), yvals(:)
   real :: val, valp, valpp, pso, psib
   integer :: izone
@@ -1088,7 +1095,7 @@ function resistivity_func(izone_index)
 
      end select
   else if(izone.eq.ZONE_CONDUCTOR) then
-     izarr = iz
+     izarr = izone_index
      temp79a = wall_resistivity(x_79,phi_79,z_79,izarr) - etar*eta_fac
   else if(izone.eq.ZONE_VACUUM) then
      temp79a = eta_vac - etar*eta_fac

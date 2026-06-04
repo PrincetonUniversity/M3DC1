@@ -89,6 +89,9 @@ public:
   apf::MeshTag* num_global_adj_node_tag;
   apf::MeshTag* num_own_adj_node_tag;
 
+  // Plane Type (0 means XY (default), 1 means RZ)
+  int coordinateSystem = 0;
+  void setCoordinateSystem();
 private:
   static m3dc1_mesh* _instance;
 };

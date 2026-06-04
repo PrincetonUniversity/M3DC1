@@ -428,9 +428,10 @@ subroutine set_defaults
   call add_var_int("cre", cre, 0, "", model_grp)
   call add_var_int("ra_cyc", ra_cyc, 1, "", model_grp)
   call add_var_double("radiff", radiff, 0., "", model_grp)
-  call add_var_double("rjra", rjra, 0., "", model_grp)
+  call add_var_double("rjra", rjra, 1., "", model_grp)
   call add_var_int("ra_characteristics", ra_characteristics, 0, &
        "1: Use the method of characteristics to advance the RE advection equation", model_grp)
+  call add_var_double("bzsign", bzsign, 0., "", model_grp)
   call add_var_int("imp_bf", imp_bf, 0, &
        "1: Include implicit equation for f", model_grp)
   call add_var_int("imp_temp", imp_temp, 0, &
@@ -496,13 +497,18 @@ subroutine set_defaults
   call add_var_double("frequency", frequency, 0., &
        "Frequency in time-independent calculations", time_grp)
 
+  call add_var_int("gamma_gr_stop", gamma_gr_stop, 0, "Stop linear simulation when growth rate gamma is converged", time_grp)
+  call add_var_int("nt_gamma_gr", nt_gamma_gr, 10, "Number of time steps considered for gamma convergence check", time_grp)
+  call add_var_double("gamma_gr_stop_std", gamma_gr_stop_std, 0.01, "Standard deviation under which gamma is considered converged", time_grp)
+
+
   ! variable_timestep parameters
 
   call add_var_double("dtmin",dtmin,4.0,"minimum time step",time_grp)
   call add_var_double("dtmax",dtmax,40.,"maximum time step",time_grp)
   call add_var_double("dtkecrit",dtkecrit,0.0,"ekin limit on timestep",time_grp)
   call add_var_double("dtfrac",dtfrac,0.1,"fractional change of time step",time_grp)
-  call add_var_int("max_repeat", max_repeat, 3, &
+  call add_var_int("max_repeat", max_repeat, 1, &
        "maximum number of times a time step can be attempted", time_grp)
   call add_var_int("ksp_max", ksp_max, 10000, &
        "maximum number of ksp iterations without repeating time step", time_grp)
@@ -669,6 +675,7 @@ subroutine set_defaults
   call add_var_double("zlim2", zlim2, 0., &
        "Z-coordinate of limiter #2", gs_grp)
   call add_var_double("rzero", rzero, -1., "", gs_grp)
+  call add_var_double("psifrac", psifrac, 1., "Fraction of poloidal flux from psimin to psibound used for the mesh", gs_grp)
   call add_var_double("libetap", libetap, 1.2, "", gs_grp)
   call add_var_double("p0", p0, 0.01, "", gs_grp)
   call add_var_double("pi0", pi0, 0.005, "", gs_grp)
@@ -1059,6 +1066,8 @@ subroutine set_defaults
        "1: Output auxiliary variable fields", output_grp)
   call add_var_int("iwrite_adjacency", iwrite_adjacency, 1, &
        "1: Output mesh adjacency info", output_grp)
+  call add_var_int("iwrite_quad_points", iwrite_quad_points, 0, &
+       "1: Output integration quadrature points", output_grp)
   call add_var_int("itemp_plot", itemp_plot, 0, &
        "1: Output additional temperature plots", output_grp)
   call add_var_int("ibdgp", ibdgp, 0, &
@@ -1070,6 +1079,9 @@ subroutine set_defaults
 
   call add_var_int("iveldif", iveldif, 0, &
        "ne.0: veldif plot contains only partial results ", output_grp)
+  call add_var_int("write_ts_on_job_timeout", write_ts_on_job_timeout, 0, &
+       "1: Write time slice and stop code before job hits timeout or is preempted", output_grp)
+
   ! diagnostics
   call add_var_int("xray_detector_enabled", xray_detector_enabled, 0, &
        "1: enable xray detector", diagnostic_grp)
@@ -1199,6 +1211,8 @@ subroutine set_defaults
        "", mesh_grp)
   call add_var_string("mesh_model", mesh_model, 256, "struct.dmg", &
        "", mesh_grp)
+  call add_var_string("model_info", model_info, 256, "dummyInfo", &
+        "", mesh_grp)
   call add_var_int("ipartitioned",ipartitioned,0,&
        "1 = the input mesh is partitioned", mesh_grp)
   call add_var_int("imatassemble", imatassemble, 0, &
@@ -1267,6 +1281,8 @@ subroutine set_defaults
        "Do not call delete_particle, keep particles' order", particle_grp)
   call add_var_int("iconst_f0", iconst_f0, 0, &
        "Use a constant f0 for delta-f equation", particle_grp)
+  call add_var_int("ifullf", ifullf, 0, &
+       "Do full-f simulation", particle_grp)
   call add_var_double("fast_ion_mass", fast_ion_mass, 0., &
        "Fast ion mass (in units of m_p)", particle_grp)
   call add_var_double("fast_ion_z", fast_ion_z, 0., &
@@ -1753,6 +1769,10 @@ subroutine validate_input
 
 #ifdef USEPARTICLES
   if(particle_linear.eq.-1) particle_linear=linear
+
+  if(eqsubtract.eq.0) ifullf=1
+
+  if(ifullf.eq.1) particle_linear=0
 
   if(fast_ion_mass.eq.0) fast_ion_mass=ion_mass
 

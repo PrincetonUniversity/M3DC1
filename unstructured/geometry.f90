@@ -29,9 +29,7 @@ contains
 
     ! Define coordinate mappings to be solved for 
     call create_field(rst)
-    rst = 0.
     call create_field(zst)
-    zst = 0.
 
     ! Create a matrix for solving geometry 
     call set_matrix_index(st_matrix, st_mat_index)

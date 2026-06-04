@@ -7,6 +7,7 @@ module time_step_unsplit
   type(vector_type), private :: vel_vec, veln_vec
   type(vector_type), private :: pres_vec
   type(vector_type), private :: den_vec
+  type(vector_type), private :: nre_vec
   type(vector_type), private :: pret_vec
 
   ! the following pointers point to the vector containing the named field.
@@ -18,6 +19,7 @@ module time_step_unsplit
   type(field_type), private ::  bz_v
   type(field_type), private ::  pe_v
   type(field_type), private :: den_v
+  type(field_type), private :: nre_v
   type(field_type), private ::   p_v
   type(field_type), private ::   e_v
   type(field_type), private ::  bfp_v
@@ -36,7 +38,7 @@ contains
     use basic
     implicit none
 
-    vecsize_phi  = numvar*2 + idens + ipres + imp_bf
+    vecsize_phi  = numvar*2 + idens + irunaway + ipres + imp_bf
     
     ! add electrostatic potential equation
     if((jadv.eq.0 .and. i3d.eq.1).or.(jadv.eq.1 .and. imp_hyper.ge.1)) &
@@ -96,19 +98,20 @@ contains
     vz_i = 3
     bz_i = 4
     chi_i = 5
-    den_i = 2*numvar+1
+    den_i = 2*numvar+idens
+    nre_i = 2*numvar+idens+irunaway
     if(numvar.ge.3) then
        p_i = 6
-       if(ipres.eq.1) pe_i = 2*numvar+idens+1
+       if(ipres.eq.1) pe_i = 2*numvar+idens+irunaway+1
     else
-       if(ipres.eq.1) p_i = 2*numvar+idens+1
+       if(ipres.eq.1) p_i = 2*numvar+idens+irunaway+1
     end if
     if(imp_bf.eq.1) then
-       bf_i = 2*numvar+idens+ipres+1
-       e_i = 2*numvar+idens+ipres+2
+       bf_i = 2*numvar+idens+irunaway+ipres+1
+       e_i = 2*numvar+idens+irunaway+ipres+2
     else
        bf_i = 1
-       e_i = 2*numvar+idens+ipres+1
+       e_i = 2*numvar+idens+irunaway+ipres+1
     end if
 
     call associate_field(u_v,    phi_vec,      u_i)
@@ -132,6 +135,10 @@ contains
     
     if(idens.eq.1) then
        call associate_field(den_v,  phi_vec,    den_i)
+    end if
+
+    if(irunaway.eq.1) then
+       call associate_field(nre_v,  phi_vec,    nre_i)
     end if
 
     if(imp_bf.eq.1) then
@@ -199,6 +206,7 @@ subroutine import_time_advance_vectors_unsplit
   end if
 
   if(idens.eq.1) den_v = den_field(1)
+  if(irunaway.eq.1) nre_v = nre_field(1)
   if(imp_bf.eq.1) bfp_v = bfp_field(1)
 end subroutine import_time_advance_vectors_unsplit
 
@@ -247,6 +255,7 @@ subroutine export_time_advance_vectors_unsplit
   end if
 
   if(idens.eq.1) den_field(1) = den_v
+  if(irunaway.eq.1) nre_field(1) = nre_v
   if(imp_bf.eq.1) bfp_field(1) = bfp_v
 end subroutine export_time_advance_vectors_unsplit
 
@@ -298,6 +307,7 @@ subroutine step_unsplit(calc_matrices)
      call boundary_mag(b1_phi, psi_v, bz_v, bfp_v, e_v, s1_mat)
      call boundary_vel(b1_phi, u_v, vz_v, chi_v, s1_mat)
      if(idens.eq.1) call boundary_den(b1_phi, den_v, s1_mat)
+     if(irunaway.eq.1) call boundary_nre(b1_phi, nre_v, s1_mat)
      if(ipres.eq.1 .and. numvar.ge.3) call boundary_pe(b1_phi, pe_v, s1_mat)
      if(ipres.eq.1 .or. numvar.ge.3) call boundary_p(b1_phi, p_v, s1_mat)
      call finalize(s1_mat)
@@ -305,6 +315,7 @@ subroutine step_unsplit(calc_matrices)
      call boundary_mag(b1_phi, psi_v, bz_v, bfp_v, e_v)
      call boundary_vel(b1_phi, u_v, vz_v, chi_v)
      if(idens.eq.1) call boundary_den(b1_phi, den_v)
+     if(irunaway.eq.1) call boundary_nre(b1_phi, nre_v)
      if(ipres.eq.1 .and. numvar.ge.3) call boundary_pe(b1_phi, pe_v)
      if(ipres.eq.1 .or. numvar.ge.3)  call boundary_p(b1_phi, p_v)
   endif
