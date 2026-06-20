@@ -508,13 +508,7 @@ call PetscLogStagePush(stageA,jer)
 call PetscLogStagePop(jer)
 
     
-    if(mod(ntime,pskip)==0) then
-        if(myrank.eq.0) print *, " clear_mat s2_mat",ntime, s2_mat%imatrix
-        call clear_mat(s2_mat)
-    else
-        if(myrank.eq.0) print *, " zero_mat  s2_mat",ntime, s2_mat%imatrix
-        call zero_mat(s2_mat)
-    endif
+    call clear_mat(s2_mat)
     call clear_mat(d2_mat)
     call clear_mat(r2_mat)
     call clear_mat(q2_mat)
@@ -533,26 +527,14 @@ call PetscLogStagePop(jer)
     q4_vec = 0.
     
     if(idens.eq.1) then
-       if(mod(ntime,pskip)==0) then
-           if(myrank.eq.0) print *, " clear_mat s8_mat",ntime, s8_mat%imatrix
-           call clear_mat(s8_mat)
-       else
-           if(myrank.eq.0) print *, " zero_mat  s8_mat",ntime, s8_mat%imatrix
-           call zero_mat(s8_mat)
-       endif
+       call clear_mat(s8_mat)
        call clear_mat(d8_mat)
        call clear_mat(r8_mat)
        call clear_mat(q8_mat)
        qn4_vec = 0.
     end if
     if(irunaway .gt. 0) then
-       if(mod(ntime,pskip)==0) then
-           if(myrank.eq.0) print *, " clear_mat s15_mat",ntime, s15_mat%imatrix
-           call clear_mat(s15_mat)
-       else
-           if(myrank.eq.0) print *, " zero_mat  s15_mat",ntime, s15_mat%imatrix
-           call zero_mat(s15_mat)
-       endif 
+       call clear_mat(s15_mat)
        call clear_mat(d15_mat)
        call clear_mat(r15_mat)
        call clear_mat(q15_mat)
@@ -561,13 +543,7 @@ call PetscLogStagePop(jer)
     end if    
 
     if(ipres.eq.1 .or. ipressplit.eq.1) then
-       if(mod(ntime,pskip)==0) then
-           if(myrank.eq.0) print *, " clear_mat s9_mat",ntime, s9_mat%imatrix
-           call clear_mat(s9_mat)
-       else
-           if(myrank.eq.0) print *, " zero_mat  s9_mat",ntime, s9_mat%imatrix
-           call zero_mat(s9_mat)
-       endif
+       call clear_mat(s9_mat)
        call clear_mat(d9_mat)
        call clear_mat(r9_mat)
        call clear_mat(q9_mat)
@@ -1518,7 +1494,6 @@ call PetscLogStagePop(jer)
 
   end if
 end subroutine step_split
-
 
 subroutine subtract_axi
 

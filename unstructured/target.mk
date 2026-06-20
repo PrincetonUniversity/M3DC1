@@ -50,9 +50,12 @@ all :
 ### for wenhao's kinetic test only:
 .PHONY: kinetic
 kinetic : 
-	rm -fr _$(ARCH)-complex*
+	#rm -fr _$(ARCH)-complex*
 	make OPT=1 COM=1 PAR=1
 
+kinetic_3d :
+	make OPT=1 3D=1 MAX_PTS=60 PAR=1
+	
 .PHONY: kineticall
 kineticall : 
 	make OPT=1 PAR=1

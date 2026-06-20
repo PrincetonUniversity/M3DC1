@@ -1304,7 +1304,9 @@ subroutine set_defaults
         2: with default position and velocity; 3: with input file", particle_grp)
   call add_var_int("npart_trace_input", npart_trace_input, 9, &
        "1: trace sampled particles for time history", particle_grp)
-
+  call add_var_int("ifix_mhd", ifix_mhd, 0, &
+       "1: fix the MHD equation time evolution and matrix calculation", particle_grp)
+ 
 #endif
 
   ! Deprecated
