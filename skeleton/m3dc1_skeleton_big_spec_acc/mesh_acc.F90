@@ -132,11 +132,11 @@ contains
   end subroutine create_rectangular_mesh
 
   subroutine load_mesh(isize)
+    use mpi
     use math
 
     implicit none
 
-    include "mpif.h"
 
     integer :: isize, new_mesh_size
     integer :: num_global_elements

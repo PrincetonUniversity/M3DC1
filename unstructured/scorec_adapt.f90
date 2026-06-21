@@ -1,5 +1,5 @@
 module scorec_adapt
-  use vector_mod
+  use scorec_vector_mod
   implicit none
   !adaptation control parameters
   integer :: iadapt_writevtk, iadapt_writesmb
@@ -12,7 +12,7 @@ module scorec_adapt
     use error_estimate
     use scorec_mesh_mod
     use basic
-    use mesh_mod
+    use scorec_mesh_mod
     use arrays
     use newvar_mod
     use sparse
@@ -44,7 +44,7 @@ module scorec_adapt
     use error_estimate
     use scorec_mesh_mod
     use basic
-    use mesh_mod
+    use scorec_mesh_mod
     use arrays
     use newvar_mod
     use sparse

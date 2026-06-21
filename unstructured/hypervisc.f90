@@ -1,5 +1,5 @@
 module hypervisc
-  use matrix_mod
+  use scorec_matrix_mod
 
   implicit none
 
@@ -24,9 +24,9 @@ contains
     use sparse
     use m3dc1_nint
     use boundary_conditions
-    use vector_mod
-    use matrix_mod
-    use mesh_mod
+    use scorec_vector_mod
+    use scorec_matrix_mod
+    use scorec_mesh_mod
     use model
     
     implicit none
@@ -125,7 +125,7 @@ contains
   ! Apply the hyperviscosity step
   subroutine apply_hyperv(u_f, vz_f, chi_f)
     use basic
-    use vector_mod
+    use scorec_vector_mod
     use field
     use model
     

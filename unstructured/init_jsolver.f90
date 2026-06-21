@@ -17,7 +17,7 @@ subroutine jsolver_init()
   use coils
   use diagnostics
   use jsolver
-  use mesh_mod
+  use scorec_mesh_mod
 
   implicit none
 

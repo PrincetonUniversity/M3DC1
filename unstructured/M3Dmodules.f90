@@ -1,5 +1,5 @@
 module basic
-  use mesh_mod
+  use scorec_mesh_mod
   use pid_controller
   use spline
 
@@ -694,7 +694,7 @@ contains
 end module arrays
   
 module sparse
-  use matrix_mod
+  use scorec_matrix_mod
 
   integer, parameter :: numvar1_numbering = 1
   integer, parameter :: numvar2_numbering = 2
@@ -821,12 +821,7 @@ end module m3dc1_omp
 
 !cj velocity equation profiling
 module m3dc1_vel_prof
-#if PETSC_VERSION >= 39
-#include <petsc/finclude/petscksp.h>
       use petscksp
-#else
-#include <petsc/finclude/petscsysdef.h>
-#endif
       implicit none
-      PetscLogStage  stageA,stageS
+      integer :: stageA, stageS
 end module m3dc1_vel_prof

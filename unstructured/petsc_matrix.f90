@@ -4,8 +4,8 @@ module petsc_matrix_mod
 
   implicit none
 
-#include "finclude/petscmatdef.h"
-#include "finclude/petsckspdef.h"
+!#include <petsc/finclude/petscmatdef.h>
+!#include <petsc/finclude/petsckspdef.h>
 
   type :: petsc_matrix
      Mat :: data
@@ -104,12 +104,12 @@ contains
   ! creates a petsc matrix with index imat and size isize
   !====================================================================
   subroutine petsc_matrix_create(mat, m, n, icomplex, lhs)
-    use mesh_mod
-    use vector_mod
+    use scorec_mesh_mod
+    use scorec_vector_mod
     implicit none
-#include "finclude/petsc.h"
+!#include <petsc/finclude/petsc.h>
 !#ifndef PETSC_31
-!#include "finclude/petscmat.h"
+!#include <petsc/finclude/petscmat.h>
 !#endif
 
     type(petsc_matrix) :: mat
@@ -212,7 +212,7 @@ contains
   !====================================================================
   subroutine petsc_matrix_matvecmult(mat,vin,vout)
 
-    use vector_mod
+    use scorec_vector_mod
 
     implicit none
 
@@ -244,10 +244,10 @@ contains
   ! inserts (or increments) a matrix element
   !====================================================================
   subroutine petsc_matrix_insert_real(mat,val,i,j,iop)
-    use vector_mod
-    use mesh_mod
+    use scorec_vector_mod
+    use scorec_mesh_mod
     implicit none
-#include "finclude/petscvec.h"
+!#include <petsc/finclude/petscvec.h>
 
     type(petsc_matrix), intent(in) :: mat
     real, intent(in) :: val
@@ -280,9 +280,9 @@ contains
   ! inserts (or increments) a matrix element
   !====================================================================
   subroutine petsc_matrix_insert_complex(mat,val,i,j,iop)
-    use vector_mod
+    use scorec_vector_mod
     implicit none
-#include "finclude/petscvec.h"
+!#include <petsc/finclude/petscvec.h>
 
     type(petsc_matrix), intent(in) :: mat
     complex, intent(in) :: val
@@ -314,7 +314,7 @@ contains
   ! linear matrix solve with petsc data structures
   !====================================================================
   subroutine petsc_matrix_solve(mat, v, ierr)
-    use vector_mod
+    use scorec_vector_mod
     
     implicit none
     type(petsc_matrix), intent(in) :: mat
@@ -334,7 +334,7 @@ contains
   !====================================================================
   subroutine petsc_matrix_finalize(mat)
     implicit none
-#include "finclude/petscmat.h"
+!#include <petsc/finclude/petscmat.h>
     type(petsc_matrix) :: mat
     integer :: ierr
 
@@ -349,7 +349,7 @@ contains
   !====================================================================
   subroutine petsc_matrix_flush(mat)
     implicit none
-#include "finclude/petscmat.h"
+!#include <petsc/finclude/petscmat.h>
     type(petsc_matrix) :: mat
     integer :: ierr
 
@@ -367,7 +367,7 @@ contains
   !           with field i
   !======================================================================
   subroutine petsc_matrix_get_element_indices(mat, itri, irow, icol)
-    use vector_mod
+    use scorec_vector_mod
     implicit none
     type(petsc_matrix), intent(in) :: mat
     integer, intent(in) :: itri
@@ -389,7 +389,7 @@ contains
   !           with field i
   !======================================================================
   subroutine petsc_matrix_get_node_indices(mat, inode, irow, icol)
-    use vector_mod
+    use scorec_vector_mod
     implicit none
     type(petsc_matrix), intent(in) :: mat
     integer, intent(in) :: inode
@@ -409,9 +409,9 @@ contains
   ! cols associated with field n dofs of itri
   !======================================================================
   subroutine petsc_matrix_insert_block(mat, itri, m, n, val, iop)
-    use mesh_mod
+    use scorec_mesh_mod
     implicit none
-!#include "finclude/petscvec.h"
+!#include <petsc/finclude/petscvec.h>
 
     type(matrix_type) :: mat
     integer, intent(in) :: itri, m, n, iop
@@ -444,10 +444,10 @@ contains
   end subroutine petsc_matrix_insert_block
 
   subroutine identity_row(mat, irow)
-    use mesh_mod
-    use vector_mod
+    use scorec_mesh_mod
+    use scorec_vector_mod
     implicit none
-#include "finclude/petscvec.h"
+!#include <petsc/finclude/petscvec.h>
 
     type(petsc_matrix) :: mat
     integer, intent(in) :: irow
@@ -462,9 +462,9 @@ contains
   end subroutine identity_row
 
   subroutine set_row_vals(mat, irow, ncols, icols, vals)
-    use mesh_mod
-    use vector_mod
-#include "finclude/petscvec.h"
+    use scorec_mesh_mod
+    use scorec_vector_mod
+!#include <petsc/finclude/petscvec.h>
 
     type(petsc_matrix) :: mat
     integer, intent(in) :: irow, ncols
@@ -485,7 +485,7 @@ contains
 
   subroutine petsc_matrix_write(m, file)
     implicit none
-#include "finclude/petsc.h"    
+!#include <petsc/finclude/petsc.h>    
     type(matrix_type), intent(in) :: m
     character(len=*) :: file
 

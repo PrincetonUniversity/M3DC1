@@ -17,7 +17,7 @@ subroutine eqdsk_init()
   use newvar_mod
   use sparse
   use diagnostics
-  use mesh_mod
+  use scorec_mesh_mod
   use m3dc1_nint
 
   implicit none

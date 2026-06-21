@@ -1,7 +1,7 @@
 module time_step_split
 
   use field
-  use matrix_mod
+  use scorec_matrix_mod
   use model
 
   type(vector_type), private :: phi_vec, phip_vec
@@ -792,9 +792,9 @@ subroutine step_split(calc_matrices)
   use arrays
   use sparse
   use diagnostics
-  use matrix_mod
+  use scorec_matrix_mod
   use boundary_conditions
-  use mesh_mod 
+  use scorec_mesh_mod 
   use model
   use transport_coefficients
   use auxiliary_fields
@@ -1525,7 +1525,7 @@ end subroutine step_split
 subroutine subtract_axi
 
     use basic
-    use mesh_mod
+    use scorec_mesh_mod
     use arrays
     implicit none
     integer:: l,numnodes, icounter_t

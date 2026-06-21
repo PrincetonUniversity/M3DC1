@@ -1,10 +1,10 @@
 program struct2vac
+  use mpi
 
-  use mesh_mod
+  use scorec_mesh_mod
 
   implicit none
 
-  include 'mpif.h'
 
   integer :: inode, ier, num_global_nodes, num_local_nodes
   integer :: i, j, ilast, ifirst, numnodes
@@ -178,7 +178,7 @@ end program struct2vac
 integer function next_node(inode)
 
   use element
-  use mesh_mod
+  use scorec_mesh_mod
 
   implicit none
 

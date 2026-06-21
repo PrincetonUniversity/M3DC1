@@ -622,7 +622,7 @@ contains
   !=====================================================
   subroutine define_fields(itri, fieldi, gdef, ilin, ieqs)
     use basic
-    use mesh_mod
+    use scorec_mesh_mod
     use arrays
     use math
     use resistive_wall

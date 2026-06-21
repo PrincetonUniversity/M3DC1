@@ -1,6 +1,6 @@
 module error_estimate
+  use mpi
   use m3dc1_nint
-#include "mpif.h"
   integer, parameter :: EOP_1 = 1
   integer, parameter :: EOP_DX = 2
   integer, parameter :: EOP_DY = 3
@@ -87,7 +87,7 @@ module error_estimate
     use basic
     use arrays
     use scorec_mesh_mod
-    use vector_mod
+    use scorec_vector_mod
     use m3dc1_nint
     implicit none
     integer :: itri, numelms,numedgs, iedge, ii, node_next, num_get
@@ -380,7 +380,7 @@ fn_eval(1:npoint_int)
 
   subroutine define_fields_error (itri)
     use basic
-    use mesh_mod
+    use scorec_mesh_mod
     use arrays
 
     implicit none
@@ -600,7 +600,7 @@ fn_eval(1:npoint_int)
     use basic
     use arrays
     use scorec_mesh_mod
-    use vector_mod
+    use scorec_vector_mod
     use m3dc1_nint
     implicit none
 

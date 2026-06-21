@@ -35,7 +35,7 @@ contains
 subroutine get_boundary_mask(itri, ibound, imask, tags)
   use basic
   use element
-  use mesh_mod
+  use scorec_mesh_mod
   implicit none
 
   integer, intent(in) :: itri, ibound
@@ -201,8 +201,8 @@ end subroutine apply_boundary_mask_vec
 !======================================================================
 subroutine set_total_bc(ibegin,rhs,bv,normal,curv,izonedim,mat)
   use basic
-  use vector_mod
-  use matrix_mod
+  use scorec_vector_mod
+  use scorec_matrix_mod
   implicit none
 
   type(matrix_type), optional :: mat          ! matrix handle
@@ -235,8 +235,8 @@ end subroutine set_total_bc
 !======================================================================
 subroutine set_clamp_bc(ibegin,rhs,bv,normal,curv,izonedim,mat)
   use basic
-  use vector_mod
-  use matrix_mod
+  use scorec_vector_mod
+  use scorec_matrix_mod
   implicit none
 
   integer, intent(in) :: ibegin               ! first dof of field
@@ -258,8 +258,8 @@ end subroutine set_clamp_bc
 !======================================================================
 subroutine set_dirichlet_bc(ibegin,rhs,bv,normal,curv,izonedim,mat)
   use basic
-  use vector_mod
-  use matrix_mod
+  use scorec_vector_mod
+  use scorec_matrix_mod
   implicit none
 
   integer, intent(in) :: ibegin               ! first dof of field
@@ -288,8 +288,8 @@ end subroutine set_dirichlet_bc
 !======================================================================
 subroutine set_tangent_bc(ibegin,rhs,bv,normal,curv,izonedim,mat)
   use basic
-  use vector_mod
-  use matrix_mod
+  use scorec_vector_mod
+  use scorec_matrix_mod
 
   implicit none
   
@@ -347,8 +347,8 @@ end subroutine set_tangent_bc
 !======================================================================
 subroutine set_normal_bc(ibegin,rhs,bv,normal,curv,izonedim,mat)
   use basic
-  use vector_mod
-  use matrix_mod
+  use scorec_vector_mod
+  use scorec_matrix_mod
 
   implicit none
   
@@ -396,8 +396,8 @@ end subroutine set_normal_bc
 !======================================================================
 subroutine set_np_bc(ibegin,rhs,bv,izonedim,mat)
   use basic
-  use vector_mod
-  use matrix_mod
+  use scorec_vector_mod
+  use scorec_matrix_mod
 
   implicit none
   
@@ -431,8 +431,8 @@ end subroutine set_np_bc
 !======================================================================
 subroutine set_normalp_bc(ibegin,rhs,bv,normal,curv,izonedim,mat)
   use basic
-  use vector_mod
-  use matrix_mod
+  use scorec_vector_mod
+  use scorec_matrix_mod
 
   implicit none
   
@@ -473,8 +473,8 @@ end subroutine set_normalp_bc
 !======================================================================
 subroutine set_laplacian_bc(ibegin,rhs,bv,normal,curv,izonedim,radius,mat)
   use basic
-  use vector_mod
-  use matrix_mod
+  use scorec_vector_mod
+  use scorec_matrix_mod
 
   implicit none
 
@@ -525,8 +525,8 @@ subroutine set_multi_bc(n,ibegin,ibc,coeff,xp,rhs,bv, &
      normal,curv,izonedim,radius,mat)
 
   use basic
-  use vector_mod
-  use matrix_mod
+  use scorec_vector_mod
+  use scorec_matrix_mod
 
   implicit none
 
@@ -659,8 +659,8 @@ end subroutine set_multi_bc
 !=======================================================
 subroutine boundary_dc(rhs, bvec, mat)
   use basic
-  use vector_mod
-  use matrix_mod
+  use scorec_vector_mod
+  use scorec_matrix_mod
   !use geometry
 
   implicit none
@@ -706,8 +706,8 @@ end subroutine boundary_dc
 !=======================================================
 subroutine boundary_nm(rhs, bvec, mat)
   use basic
-  use vector_mod
-  use matrix_mod
+  use scorec_vector_mod
+  use scorec_matrix_mod
 
   implicit none
 
@@ -748,8 +748,8 @@ end subroutine boundary_nm
 !=======================================================
 subroutine boundary_cy(rhs, mat)
   use basic
-  use vector_mod
-  use matrix_mod
+  use scorec_vector_mod
+  use scorec_matrix_mod
 
   implicit none
   
@@ -791,8 +791,8 @@ end subroutine boundary_cy
 subroutine boundary_jphi(rhs, mat)
   use basic
   use arrays
-  use vector_mod
-  use matrix_mod
+  use scorec_vector_mod
+  use scorec_matrix_mod
 
   implicit none
 

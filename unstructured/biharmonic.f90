@@ -61,7 +61,7 @@ contains
     use basic
     use sparse
     use arrays
-    use mesh_mod
+    use scorec_mesh_mod
     use m3dc1_nint
     use boundary_conditions
 
@@ -293,7 +293,7 @@ contains
     use basic
     use boundary_conditions
     use field
-    use matrix_mod
+    use scorec_matrix_mod
 
     implicit none
   

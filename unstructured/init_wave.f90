@@ -13,7 +13,7 @@ subroutine wave_init()
   use math
   use basic
   use arrays
-  use mesh_mod
+  use scorec_mesh_mod
 
   implicit none
 

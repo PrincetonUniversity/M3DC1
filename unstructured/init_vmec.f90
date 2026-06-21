@@ -1,8 +1,8 @@
 ! This module sets up initial conditions using VMEC data
 module init_vmec 
-  use mesh_mod
+  use scorec_mesh_mod
   use basic
-  use matrix_mod
+  use scorec_matrix_mod
   use field
   use arrays 
   use math 
@@ -259,8 +259,8 @@ contains
   end subroutine vmec_init
 
   subroutine boundary_vmec(rhs, mat, vec)
-    use vector_mod
-    use matrix_mod
+    use scorec_vector_mod
+    use scorec_matrix_mod
     use boundary_conditions
   
     implicit none

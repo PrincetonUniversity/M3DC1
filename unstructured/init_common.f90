@@ -30,7 +30,7 @@ subroutine init_random(x,phi,z,outarr)
   use math
   use basic
   use arrays
-  use mesh_mod
+  use scorec_mesh_mod
 
   implicit none
 
@@ -231,7 +231,7 @@ subroutine den_eq
   use arrays
   use diagnostics
   use math
-  use mesh_mod
+  use scorec_mesh_mod
   use m3dc1_nint
   use newvar_mod
   use pellet
@@ -453,7 +453,7 @@ subroutine kinetic_eq
   use arrays
   use diagnostics
   use math
-  use mesh_mod
+  use scorec_mesh_mod
   use m3dc1_nint
   use newvar_mod
   use pellet
@@ -669,17 +669,17 @@ end subroutine kinetic_eq
 #endif     
 
 subroutine nre_eq
+  use mpi
   use basic
   use arrays
   use diagnostics
   use math
-  use mesh_mod
+  use scorec_mesh_mod
   use m3dc1_nint
   use newvar_mod
   use pellet
 
   implicit none
-  include 'mpif.h'
 
   type(field_type) :: nre_vec
   integer :: itri, numelms, def_fields

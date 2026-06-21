@@ -1,5 +1,5 @@
 module adapt
-  use vector_mod
+  use scorec_vector_mod
   use scorec_adapt
   implicit none
   real :: adapt_ke
@@ -28,7 +28,7 @@ module adapt
 
   subroutine adapt_by_psi
     use basic
-    use mesh_mod
+    use scorec_mesh_mod
     use arrays
     use newvar_mod
     use sparse
@@ -307,7 +307,7 @@ module adapt
     use error_estimate
     use scorec_mesh_mod
     use basic
-    use mesh_mod
+    use scorec_mesh_mod
     use arrays
     use newvar_mod
     use sparse
@@ -408,7 +408,7 @@ module adapt
     use error_estimate
     use scorec_mesh_mod
     use basic
-    use mesh_mod
+    use scorec_mesh_mod
     use arrays
     use newvar_mod
     use sparse

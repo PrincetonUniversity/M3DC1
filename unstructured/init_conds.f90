@@ -107,7 +107,7 @@ subroutine random_per(x,phi,z,fac)
   use math
   use basic
   use arrays
-  use mesh_mod
+  use scorec_mesh_mod
 
   implicit none
 
@@ -247,7 +247,7 @@ end subroutine cartesian_to_cylindrical
 subroutine cartesian_to_cylindrical_all()
   use basic
   use arrays
-  use mesh_mod
+  use scorec_mesh_mod
 
   implicit none
 
@@ -485,7 +485,7 @@ end subroutine set_neo_vel
 !=====================================
 subroutine initial_conditions()
   use basic
-  use vector_mod
+  use scorec_vector_mod
   use arrays
 
   use tilting_cylinder
@@ -725,7 +725,7 @@ subroutine kstar_profiles()
 
   use basic
   use math
-  use mesh_mod
+  use scorec_mesh_mod
   use sparse
   use arrays
   use m3dc1_nint

@@ -1,5 +1,5 @@
 module field
-  use vector_mod
+  use scorec_vector_mod
 
   implicit none
 
@@ -249,7 +249,7 @@ contains
   !======================================================================
   subroutine add_real_to_field(f, val)
     use element
-    use mesh_mod
+    use scorec_mesh_mod
 
     implicit none
 
@@ -273,7 +273,7 @@ contains
 #ifdef USECOMPLEX
   subroutine add_complex_to_field(f, val)
     use element
-    use mesh_mod
+    use scorec_mesh_mod
 
     implicit none
 
@@ -301,7 +301,7 @@ contains
   ! adds field fin to fout
   !======================================================================
   subroutine add_field_to_field(fout, fin, factor)
-    use mesh_mod
+    use scorec_mesh_mod
 
     implicit none
 
@@ -332,7 +332,7 @@ contains
   ! multiplies fout by real val
   !======================================================================
   subroutine multiply_field_by_real(f, val)
-    use mesh_mod
+    use scorec_mesh_mod
     implicit none
 
     type(field_type), intent(inout) :: f
@@ -353,7 +353,7 @@ contains
 
 #ifdef USECOMPLEX
   subroutine multiply_field_by_complex(f, val)
-    use mesh_mod
+    use scorec_mesh_mod
 
     implicit none
 
@@ -376,7 +376,7 @@ contains
 
   subroutine raise_field_to_real_power(f, val)
     use element
-    use mesh_mod
+    use scorec_mesh_mod
     implicit none
 
     type(field_type), intent(inout) :: f
@@ -420,7 +420,7 @@ contains
   !======================================================================
   subroutine const_field_real(fout, val)
     use element
-    use mesh_mod
+    use scorec_mesh_mod
 
     implicit none
 
@@ -444,7 +444,7 @@ contains
 #ifdef USECOMPLEX
   subroutine const_field_complex(fout, val)
     use element
-    use mesh_mod
+    use scorec_mesh_mod
 
     implicit none
 
@@ -473,8 +473,8 @@ contains
   !======================================================================
   subroutine copy_field(fout, fin)
     use element
-    use vector_mod
-    use mesh_mod
+    use scorec_vector_mod
+    use scorec_mesh_mod
 
     implicit none
 
@@ -513,7 +513,7 @@ contains
   !===========================================================
   subroutine get_element_dofs(fin, itri, dofs)
     use element
-    use mesh_mod
+    use scorec_mesh_mod
 
     implicit none
 
@@ -541,7 +541,7 @@ contains
   !===========================================================
   subroutine set_element_dofs(fout, itri, dofs)
     use element
-    use mesh_mod
+    use scorec_mesh_mod
 
     implicit none
 
@@ -591,7 +591,7 @@ contains
   ! given the polynomial coefficients avector
   !==========================================================
   subroutine setavector(itri, fout, avector)
-    use mesh_mod
+    use scorec_mesh_mod
     implicit none
     
     integer, intent(in) :: itri
@@ -606,8 +606,8 @@ contains
 
 
   subroutine matvecmult_field_vec(mat,fin,vout)
-    use vector_mod
-    use matrix_mod
+    use scorec_vector_mod
+    use scorec_matrix_mod
 
     implicit none
 
@@ -627,8 +627,8 @@ contains
   end subroutine matvecmult_field_vec
 
   subroutine matvecmult_vec_field(mat,vin,fout)
-    use vector_mod
-    use matrix_mod
+    use scorec_vector_mod
+    use scorec_matrix_mod
 
     implicit none
 
@@ -651,7 +651,7 @@ contains
 
   subroutine check_axisymmetry(fin, name)
     use element
-    use mesh_mod
+    use scorec_mesh_mod
     implicit none
 
     type(field_type), intent(in) :: fin
@@ -692,7 +692,7 @@ contains
   ! rotates dofs at boundary nodes to (R,Z) coordinates
   !======================================================================
   subroutine straighten_field(f)
-    use mesh_mod
+    use scorec_mesh_mod
     implicit none
 
     type(field_type), intent(inout) :: f
@@ -711,7 +711,7 @@ contains
   end subroutine straighten_field
 
   subroutine unstraighten_field(f)
-   use mesh_mod
+   use scorec_mesh_mod
     implicit none
 
     type(field_type), intent(inout) :: f

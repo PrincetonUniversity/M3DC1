@@ -1,8 +1,8 @@
 ! Kinetic energetic ion module, J. Breslau, 2015
 module particles
-   use mesh_mod
+   use scorec_mesh_mod
    use field
-   use matrix_mod
+   use scorec_matrix_mod
    use newvar_mod
    use gradshafranov
    !use mpi_f08
@@ -136,9 +136,9 @@ contains
 ! Note: any changes to the "particle" user-defined datatype must be reflected
 !       in the definitions of pnvars, pblklen, ptyps, and pdspls below.
 subroutine define_mpi_particle(ierr)
+  use mpi
    implicit none
 
-   include 'mpif.h'
 
    integer, intent(out) :: ierr
    integer, parameter :: pnvars = 15
@@ -189,9 +189,9 @@ subroutine define_mpi_particle(ierr)
 end subroutine define_mpi_particle
 
 subroutine define_mpi_elfield(ierr)
+  use mpi
    implicit none
 
-   include 'mpif.h'
 
    integer, intent(out) :: ierr
    integer, parameter :: pnvars = 24
@@ -264,13 +264,13 @@ end subroutine define_mpi_elfield
 
 !---------------------------------------------------------------------------
 subroutine particle_test
+  use mpi
    use basic
    use diagnostics
    use auxiliary_fields
    use m3dc1_nint
    use arrays
    implicit none
-   include 'mpif.h'
 
    integer, parameter :: trunit = 120
    real :: tstart, tend
@@ -376,6 +376,7 @@ real function tri_area(x1, z1, x2, z2, x3, z3)
 end function tri_area
 !---------------------------------------------------------------------------
 subroutine init_particles(lrestart, ierr)
+  use mpi
    use basic
    use arrays
    use hdf5_output
@@ -386,7 +387,6 @@ subroutine init_particles(lrestart, ierr)
    use boundary_conditions
 
    implicit none
-   include 'mpif.h'
 
    logical, intent(in) :: lrestart
    integer, intent(out) :: ierr
@@ -1879,13 +1879,13 @@ subroutine fdot(x, v, w, dxdt, dvdt, dwdt, dEpdt, itri, kel, f00, ierr, sps, B00
 end subroutine fdot
 
 subroutine particle_scaleback(scalefac)
+  use mpi
    use basic
    use field
    use arrays
-   use mesh_mod
+   use scorec_mesh_mod
    implicit none
 
-   include 'mpif.h'
 
    vectype, intent(in) :: scalefac
    integer :: ipart, ielm, ierr
@@ -1916,10 +1916,10 @@ subroutine particle_scaleback(scalefac)
 end subroutine particle_scaleback
 !---------------------------------------------------------------------------
 subroutine delete_particle(exchange)
+  use mpi
    use basic
    use diagnostics
    implicit none
-   include 'mpif.h'
 
    logical, intent(in) :: exchange
    !integer, intent(in) :: ipart
@@ -1994,11 +1994,11 @@ end subroutine delete_particle
 
 !---------------------------------------------------------------------------
 subroutine particle_step(pdt)
+  use mpi
    use basic
    use diagnostics
    use auxiliary_fields
    implicit none
-   include 'mpif.h'
 
    real, intent(in) :: pdt
 
@@ -2057,11 +2057,11 @@ subroutine particle_step(pdt)
 end subroutine particle_step
 !---------------------------------------------------------------------------
 subroutine update_particle_pressure
+  use mpi
    use basic
    use arrays
    use diagnostics
    implicit none
-   include 'mpif.h'
 
    real    :: tstart, tend
    integer :: ierr
@@ -2091,9 +2091,9 @@ subroutine update_particle_pressure
 end subroutine update_particle_pressure
 !---------------------------------------------------------------------------
 subroutine finalize_particles
+  use mpi
    use arrays
    implicit none
-   include 'mpif.h'
 
    !integer :: nelms, ielm
    integer :: ierr
@@ -2595,11 +2595,11 @@ subroutine update_geom_terms_st(gh, fh, ic2)
 end subroutine update_geom_terms_st
 !---------------------------------------------------------------------------
 subroutine get_field_coefs(eq)
+  use mpi
    use arrays
    use basic
    use auxiliary_fields
    implicit none
-   include 'mpif.h'
 
    !type(elfield), intent(out) :: fh  !Field handle
    integer, intent(in) :: eq
@@ -3301,12 +3301,12 @@ subroutine evalf0(x, vpar, vperp, fh, gh, sps, B0, f0, df0dpsi, df0de, df0dxi)
 end subroutine evalf0
 !---------------------------------------------------------------------------
 subroutine particle_pressure_rhs
+  use mpi
    use basic
    use arrays
    use math
    use m3dc1_nint
    implicit none
-   include 'mpif.h'
    intrinsic matmul
 
    real, dimension(dofs_per_element, coeffs_per_element) :: cl
@@ -3593,7 +3593,7 @@ subroutine solve_pi_tensor
    use basic
    use newvar_mod
    use arrays
-   use matrix_mod
+   use scorec_matrix_mod
    implicit none
    integer :: ierr
 
@@ -3628,11 +3628,11 @@ end subroutine solve_pi_tensor
 !---------------------------------------------------------------------------
 ! Dump particle data for current timeslice using parallel HDF5.
 subroutine hdf5_write_particles(ierr)
+  use mpi
    use basic
    use hdf5_output
    implicit none
 
-   include 'mpif.h'
 
    integer, intent(out) :: ierr
 
@@ -3846,11 +3846,11 @@ end subroutine hdf5_write_particles
 !---------------------------------------------------------------------------
 !Read stored HDF5 particle data in parallel.
 subroutine hdf5_read_particles(filename, ierr)
+  use mpi
    use basic
    use diagnostics
    use hdf5_output
    implicit none
-   include 'mpif.h'
 
    character(len=*), intent(in) :: filename
    integer, intent(out) :: ierr
@@ -4092,14 +4092,14 @@ end subroutine hdf5_read_particles
 
 subroutine set_parallel_velocity
 
-   use mesh_mod
+   use scorec_mesh_mod
    use basic
    use arrays
    use sparse
    use m3dc1_nint
    use diagnostics
    use boundary_conditions
-   use matrix_mod
+   use scorec_matrix_mod
    use transport_coefficients
    use gyroviscosity
    use runaway_mod
@@ -4361,14 +4361,14 @@ end subroutine set_parallel_velocity
 
 subroutine set_density
 
-   use mesh_mod
+   use scorec_mesh_mod
    use basic
    use arrays
    use sparse
    use m3dc1_nint
    use diagnostics
    use boundary_conditions
-   use matrix_mod
+   use scorec_matrix_mod
    use transport_coefficients
    use gyroviscosity
    use runaway_mod
@@ -4473,14 +4473,14 @@ end subroutine set_density
 
 subroutine set_den_smooth
 
-   use mesh_mod
+   use scorec_mesh_mod
    use basic
    use arrays
    use sparse
    use m3dc1_nint
    use diagnostics
    use boundary_conditions
-   use matrix_mod
+   use scorec_matrix_mod
    use transport_coefficients
    use gyroviscosity
    use runaway_mod

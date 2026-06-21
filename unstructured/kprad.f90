@@ -83,9 +83,9 @@ contains
   end subroutine kprad_allocate
 
   subroutine kprad_rebase_dt()
+    use mpi
     implicit none
 
-    include 'mpif.h'
 
     integer :: ier
     real :: temp

@@ -12,16 +12,15 @@ contains
   !
   ! reads coil and current data from file
   !======================================================
- subroutine load_coils(xc, zc, ic, numcoils, coil_filename, current_filename, &
-      coil_mask, filaments)
-   use math
-   use read_ascii
+	 subroutine load_coils(xc, zc, ic, numcoils, coil_filename, current_filename, &
+	      coil_mask, filaments)
+	   use math
+	   use read_ascii
+	   use mpi
 
-   implicit none
+	   implicit none
 
-   include 'mpif.h'
-
-   real, intent(out), dimension(maxfilaments) :: xc, zc  ! coordinates of each coil
+	   real, intent(out), dimension(maxfilaments) :: xc, zc  ! coordinates of each coil
    complex, intent(out), dimension(maxfilaments) :: ic   ! current in each coil
    integer, intent(out) :: numcoils                  ! number of coils read
    character*(*) :: coil_filename, current_filename  ! input files
@@ -160,15 +159,13 @@ contains
  subroutine field_from_coils(xc, zc, ic, nc, f, ipole, ierr)
    use basic
    use field
-   use mesh_mod
-   use m3dc1_nint
-   use newvar_mod
+	   use scorec_mesh_mod
+	   use m3dc1_nint
+	   use newvar_mod
 
-   implicit none
+	   implicit none
 
-   include 'mpif.h'
-
-   real, intent(in), dimension(nc) :: xc, zc   ! array of coil positions
+	   real, intent(in), dimension(nc) :: xc, zc   ! array of coil positions
    complex, intent(in), dimension(nc) :: ic    ! array of coil currents
    integer, intent(in) :: nc                   ! number of coils
    type(field_type), intent(inout) :: f        ! poloidal flux field

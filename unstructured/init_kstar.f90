@@ -161,7 +161,7 @@ subroutine kstar_profiles()
 
   use basic
   use math
-  use mesh_mod
+  use scorec_mesh_mod
   use sparse
   use arrays
   use m3dc1_nint

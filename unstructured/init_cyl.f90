@@ -21,13 +21,13 @@ contains
     use basic
     use arrays
     use m3dc1_nint
-    use mesh_mod
+    use scorec_mesh_mod
     use newvar_mod
     use field
     use diagnostics
     use sparse
     use boundary_conditions
-    use matrix_mod
+    use scorec_matrix_mod
     use init_common
     use read_ascii
     use math

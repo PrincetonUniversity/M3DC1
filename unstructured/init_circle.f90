@@ -12,7 +12,7 @@ subroutine circular_field_init()
     use basic
     use arrays
     use m3dc1_nint
-    use mesh_mod
+    use scorec_mesh_mod
     use newvar_mod
     use field
     use diagnostics

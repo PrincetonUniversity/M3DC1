@@ -126,6 +126,7 @@ subroutine gradshafranov_per()
 end subroutine gradshafranov_per
 
 subroutine coil_feedback(itnum)
+  use mpi
   use basic
   use arrays
   use coils
@@ -133,7 +134,6 @@ subroutine coil_feedback(itnum)
 
   implicit none
 
-  include 'mpif.h'
 
   integer, intent(in) :: itnum
 
@@ -1093,21 +1093,21 @@ end subroutine extend_pressure
 
 !============================================================
 subroutine gradshafranov_solve
+  use mpi
 
   use math
-  use mesh_mod
+  use scorec_mesh_mod
   use basic
   use arrays
   use sparse
   use diagnostics
   use newvar_mod
   use m3dc1_nint
-  use matrix_mod
+  use scorec_matrix_mod
   use boundary_conditions
   use model
 
   implicit none
-  include 'mpif.h'
 
   type(field_type) :: b1vecini_vec, b2vecini_vec
   type(field_type) :: b3vecini_vec, b4vecini_vec
@@ -1814,14 +1814,14 @@ endif
 end subroutine gradshafranov_solve
 
 subroutine calculate_error(error, error2, psinew)
+  use mpi
   use basic
   use field
   use boundary_conditions
-  use mesh_mod
+  use scorec_mesh_mod
 
   implicit none
 
-  include 'mpif.h'
 
   real, intent(out) :: error, error2
   type(field_type), intent(in) :: psinew
@@ -1883,15 +1883,15 @@ end subroutine calculate_error
 ! constrain solution to have the specified current, etc.
 !============================================================
 subroutine calculate_gamma(g2, g3, g4)
+  use mpi
   use basic
-  use mesh_mod
+  use scorec_mesh_mod
   use arrays
   use m3dc1_nint
   use math
 
   implicit none
 
-  include 'mpif.h'
 
   real, intent(out) :: g2, g3, g4
 
@@ -2009,8 +2009,9 @@ end subroutine calculate_gamma
 ! sets jout_i =  <mu_i | -val*delta(R-x)delta(Z-z)> 
 ! ===========================================================
 subroutine deltafun(x,z,val,jout)
+  use mpi
 
-  use mesh_mod
+  use scorec_mesh_mod
   use basic
   use arrays
   use field
@@ -2019,7 +2020,6 @@ subroutine deltafun(x,z,val,jout)
 
   implicit none
 
-  include 'mpif.h'
 
   type(element_data) :: d
   real, intent(in) :: x, z, val
@@ -2080,8 +2080,9 @@ end subroutine deltafun
 
 ! ===========================================================
 subroutine gaussianfun(x,z,val,denom,jout)
+  use mpi
 
-  use mesh_mod
+  use scorec_mesh_mod
   use basic
   use arrays
   use field
@@ -2090,7 +2091,6 @@ subroutine gaussianfun(x,z,val,denom,jout)
 
   implicit none
 
-  include 'mpif.h'
 
   real, intent(in) :: x, z, val, denom
   type(field_type), intent(inout) :: jout
@@ -2145,7 +2145,7 @@ subroutine fundef
   use arrays
   use basic
   use diagnostics
-  use mesh_mod
+  use scorec_mesh_mod
   
   implicit none 
   integer :: inode,ii, numnodes
@@ -2371,9 +2371,10 @@ end subroutine fundef
 
 
 subroutine fundef2(error)
+  use mpi
 
   use basic
-  use mesh_mod
+  use scorec_mesh_mod
   use arrays
   use sparse
   use newvar_mod
@@ -2382,7 +2383,6 @@ subroutine fundef2(error)
 
   implicit none
 
-  include 'mpif.h'
 
   real, intent(out) :: error
 
@@ -2878,12 +2878,12 @@ end subroutine readpgfiles
  ! calculates the fractional error in the GS solution
  !=============================================================
  subroutine calculate_gs_error(error)
+   use mpi
    use basic
    use m3dc1_nint
    
    implicit none
    
-   include 'mpif.h'
    
    real, intent(out) :: error
    
@@ -3372,10 +3372,10 @@ end subroutine calc_rotation
 subroutine boundary_gs(rhs, feedfac, mat)
   use basic
   use arrays
-  use mesh_mod
+  use scorec_mesh_mod
   use coils
-  use vector_mod
-  use matrix_mod
+  use scorec_vector_mod
+  use scorec_matrix_mod
   use boundary_conditions
 
   implicit none

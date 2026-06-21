@@ -30,12 +30,12 @@ contains
   ! hdf5_initialize
   ! ===============
   subroutine hdf5_initialize(restart, error)
+    use mpi
     use hdf5
     use basic
 
     implicit none
 
-    include 'mpif.h'
 
     logical, intent(in) :: restart     ! if true, do not overwrite file
     integer, intent(out) :: error
@@ -340,7 +340,7 @@ contains
   ! =================
   subroutine output_field(parent_id, name, values, ndofs, nelms, error)
     use hdf5
-    use mesh_mod
+    use scorec_mesh_mod
     
     implicit none
     
@@ -456,7 +456,7 @@ contains
   ! ================
   subroutine output_field_int(parent_id, name, values, ndofs, nelms, error)
     use hdf5
-    use mesh_mod
+    use scorec_mesh_mod
 
     implicit none
 

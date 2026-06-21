@@ -11,9 +11,9 @@ contains
     use basic
     use arrays
     use sparse
-    use mesh_mod
+    use scorec_mesh_mod
     use m3dc1_nint
-    use matrix_mod
+    use scorec_matrix_mod
     use field
     use boundary_conditions
 
@@ -70,7 +70,7 @@ endif
     use basic
     use field
     use arrays
-    use matrix_mod
+    use scorec_matrix_mod
     use boundary_conditions
     implicit none
     

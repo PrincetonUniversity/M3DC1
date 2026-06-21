@@ -9,6 +9,7 @@ module restart_hdf5
 contains
   
   subroutine rdrestart_hdf5()
+    use mpi
     use basic
     use hdf5_output
     use hdf5
@@ -20,7 +21,6 @@ contains
 
     implicit none
 
-    include 'mpif.h'
 
     integer :: error
     integer(HID_T) :: root_id, scalar_group_id, time_id, eq_time_id, pel_group_id, mesh_id
@@ -369,7 +369,7 @@ contains
     use basic
     use hdf5
     use h5lt
-    use mesh_mod
+    use scorec_mesh_mod
     use field
     use arrays
     use hdf5_output
@@ -506,7 +506,7 @@ contains
     use hdf5
     use field
     use hdf5_output
-    use mesh_mod
+    use scorec_mesh_mod
 
     implicit none
 
@@ -605,7 +605,7 @@ contains
   end subroutine h5r_read_field
 
   subroutine find_plane_and_shift(nplanes_old, phi_old, phi_new, iplane, shift)
-    use mesh_mod
+    use scorec_mesh_mod
     implicit none
 
     integer, intent(in) :: nplanes_old

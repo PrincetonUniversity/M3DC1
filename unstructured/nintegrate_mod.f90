@@ -302,7 +302,7 @@ end subroutine area_to_local
 !======================================================================
 subroutine extrude_quadrature(d, npol, ntor)
   use math
-  use mesh_mod
+  use scorec_mesh_mod
   implicit none
 
   real, intent(in) :: d        ! toroidal extent of element
@@ -375,7 +375,7 @@ end subroutine extrude_quadrature
 ! toroidal direction to form a rectangular surface.
 !======================================================================
 subroutine define_boundary_quadrature(ielm, iedge, npol, ntor, normal, idim)
-  use mesh_mod
+  use scorec_mesh_mod
   
   implicit none
 
@@ -454,7 +454,7 @@ end subroutine define_boundary_quadrature
 ! define_element_quadrature
 !=====================================================
 subroutine define_element_quadrature(ielm, pol_gauss, tor_gauss)
-  use mesh_mod
+  use scorec_mesh_mod
 
   integer, intent(in) :: ielm, pol_gauss, tor_gauss
 

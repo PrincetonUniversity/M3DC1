@@ -223,7 +223,7 @@ contains
     use basic
     use field
     use arrays
-    use matrix_mod
+    use scorec_matrix_mod
     use boundary_conditions
     implicit none
     
@@ -269,15 +269,14 @@ contains
 
   subroutine kprad_advect(dti)
     use basic
-    use matrix_mod
+    use scorec_matrix_mod
     use m3dc1_nint
     use boundary_conditions
     use metricterms_new
     use sparse
+    use mpi
 
     implicit none
-
-    include 'mpif.h'
 
     real, intent(in) :: dti
     type(matrix_type) :: nmat_lhs, nmat_rhs
@@ -730,10 +729,9 @@ contains
     use pellet
     use newvar_mod
     use math
+    use mpi
 
     implicit none
-
-    include 'mpif.h'
 
     integer :: mpierr
     integer, intent(out) :: ierr
@@ -867,16 +865,15 @@ contains
 ! ===========================================================
 subroutine deltafuns(n,x,phi,z,m,val,jout, ier)
 
-  use mesh_mod
+  use scorec_mesh_mod
   use basic
   use arrays
   use field
   use m3dc1_nint
   use math
+  use mpi
 
   implicit none
-
-  include 'mpif.h'
 
   integer, intent(in) :: n, m
   real, intent(in), dimension(n) :: x, phi, z

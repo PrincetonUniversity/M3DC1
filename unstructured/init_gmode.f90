@@ -8,7 +8,7 @@ contains
 subroutine grav_init()
   use basic
   use arrays
-  use mesh_mod
+  use scorec_mesh_mod
 
   implicit none
 
@@ -89,7 +89,7 @@ subroutine grav_per(x, z)
   use math
   use basic
   use arrays
-  use mesh_mod
+  use scorec_mesh_mod
 
   implicit none
 

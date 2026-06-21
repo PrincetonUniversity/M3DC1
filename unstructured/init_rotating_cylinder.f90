@@ -16,7 +16,7 @@ contains
 subroutine rotate_init()
   use basic
   use arrays
-  use mesh_mod
+  use scorec_mesh_mod
 
   implicit none
 

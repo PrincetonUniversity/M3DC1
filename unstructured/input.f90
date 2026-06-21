@@ -97,12 +97,12 @@ end subroutine add_group
 ! reads input namelist
 !=========================
 subroutine input
+  use mpi
   use basic
 
   implicit none
 
   integer :: ierr
-#include "mpif.h"
 
   call set_defaults
 
@@ -135,8 +135,8 @@ subroutine set_defaults
   use neutral_beam
   use element
   use pellet
-  use mesh_mod
-  use vector_mod
+  use scorec_mesh_mod
+  use scorec_vector_mod
   use gradshafranov
   use adapt
   use error_estimate
@@ -150,7 +150,7 @@ subroutine set_defaults
   use kprad_m3dc1
   use kprad
 #ifdef REORDERED
-  use matrix_mod
+  use scorec_matrix_mod
 #endif
 #ifdef USEADAS
   use adas_m3dc1
@@ -1338,7 +1338,7 @@ end subroutine set_defaults
 
 subroutine validate_input
   use basic
-  use mesh_mod
+  use scorec_mesh_mod
   use m3dc1_nint
   use transport_coefficients
   use neutral_beam
@@ -1349,16 +1349,8 @@ subroutine validate_input
   use resistive_wall
   use kprad_m3dc1
 
-#if PETSC_VERSION >= 38
   use petsc
   implicit none
-#elif PETSC_VERSION >= 36
-  implicit none
-#include "petsc/finclude/petsc.h"
-#else
-  implicit none
-#include "finclude/petsc.h"
-#endif
 
   integer :: ier,i
   real :: de
@@ -1871,4 +1863,3 @@ subroutine validate_input
   end if
 
 end subroutine validate_input
-

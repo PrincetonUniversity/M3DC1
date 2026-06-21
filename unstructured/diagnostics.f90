@@ -7,6 +7,8 @@
 
 module diagnostics
 
+  use mpi
+
   implicit none
 
   real :: tflux0
@@ -129,7 +131,6 @@ contains
 
     implicit none
 
-    include 'mpif.h'
     integer :: ier
     integer, parameter :: num_scalars = 14
     real, dimension(num_scalars) :: vin, vout
@@ -295,8 +296,6 @@ contains
     use pellet
 
     implicit none
-
-    include 'mpif.h'
 
     integer, parameter :: num_scalars = 82
     integer :: ier
@@ -502,14 +501,12 @@ contains
 !============================================================
 subroutine evaluate(x,phi,z,ans,fin,itri,ierr)
   
-  use mesh_mod
+  use scorec_mesh_mod
   use basic
   use m3dc1_nint
   use field
 
   implicit none
-
-  include 'mpif.h'
 
   integer, intent(inout) :: itri
   real, intent(in) :: x, phi, z
@@ -622,7 +619,7 @@ end subroutine evaluate
     
     use basic
     use arrays
-    use mesh_mod
+    use scorec_mesh_mod
     use m3dc1_nint
   
     implicit none
@@ -710,7 +707,7 @@ end subroutine tpi_factors
 subroutine calculate_scalars()
 
   use basic
-  use mesh_mod
+  use scorec_mesh_mod
   use arrays
   use m3dc1_nint
   use newvar_mod
@@ -725,8 +722,6 @@ subroutine calculate_scalars()
 
   implicit none
  
-  include 'mpif.h'
-
   integer :: itri, numelms, def_fields, ier
   integer :: is_edge(3)  ! is inode on boundary
   real :: n(2,3),tpifac,tpirzero, t0
@@ -1198,15 +1193,13 @@ end subroutine calculate_scalars
 subroutine calculate_Lor_vol()
 
   use basic
-  use mesh_mod
+  use scorec_mesh_mod
   use m3dc1_nint
   use math
   use pellet
 
   implicit none
  
-  include 'mpif.h'
-
   integer :: itri, numelms, ier
   integer :: is_edge(3)  ! is inode on boundary
   real :: tpifac,tpirzero
@@ -1359,13 +1352,11 @@ end subroutine reset_itris
 !=====================================================
 subroutine magaxis(xguess,zguess,psi,psim,imethod,ier)
   use basic
-  use mesh_mod
+  use scorec_mesh_mod
   use m3dc1_nint
   use field
 
   implicit none
-
-  include 'mpif.h'
 
   real, intent(inout) :: xguess, zguess
   type(field_type), intent(in) :: psi
@@ -1570,13 +1561,11 @@ end subroutine magaxis
 !=====================================================
 subroutine te_max(xguess,zguess,te,tem,imethod,ier)
   use basic
-  use mesh_mod
+  use scorec_mesh_mod
   use m3dc1_nint
   use field
 
   implicit none
-
-  include 'mpif.h'
 
   real, intent(inout) :: xguess, zguess
   type(field_type), intent(in) :: te
@@ -1771,13 +1760,11 @@ end subroutine te_max
 
 subroutine te_max2(xguess,zguess,te,tem,imethod,ier)
   use basic
-  use mesh_mod
+  use scorec_mesh_mod
   use m3dc1_nint
   use field
 
   implicit none
-
-  include 'mpif.h'
 
   real, intent(inout) :: xguess, zguess
   type(field_type), intent(in) :: te
@@ -1830,13 +1817,11 @@ end subroutine te_max2
 !=====================================================
 subroutine te_max3(xguess,zguess,te,tem,imethod,ier)
   use basic
-  use mesh_mod
+  use scorec_mesh_mod
   use m3dc1_nint
   use field
 
   implicit none
-
-  include 'mpif.h'
 
   real, intent(inout) :: xguess, zguess
   type(field_type), intent(in) :: te
@@ -1965,13 +1950,11 @@ end subroutine te_max3
 !=====================================================
 subroutine te_max4(te,tem,ilin,ier)
   use basic
-  use mesh_mod
+  use scorec_mesh_mod
   use m3dc1_nint
   use field
 
   implicit none
-
-  include 'mpif.h'
 
   type(field_type), intent(in) :: te
   integer, intent(in) :: ilin
@@ -2031,14 +2014,12 @@ end subroutine te_max4
 subroutine lcfs(psi, test_wall, findx)
   use arrays
   use basic
-  use mesh_mod
+  use scorec_mesh_mod
   use m3dc1_nint
   use field
   use boundary_conditions
 
   implicit none
-
-  include 'mpif.h'
 
   type(field_type), intent(in) :: psi
   logical, intent(in), optional :: test_wall
@@ -2358,7 +2339,7 @@ end function bremsstrahlung
 subroutine calculate_ke()
 #ifdef USE3D
   use basic
-  use mesh_mod
+  use scorec_mesh_mod
   use arrays
   use m3dc1_nint
   use newvar_mod
@@ -2368,7 +2349,6 @@ subroutine calculate_ke()
   use math
 
   implicit none
-  include 'mpif.h'
   integer :: itri, numelms, def_fields
   real :: ke_N, ketotal, fac
   integer :: ier, k, l, numnodes, N, icounter_t
@@ -2726,7 +2706,7 @@ end subroutine calculate_ke
 subroutine calculate_bh()
 #ifdef USE3D
   use basic
-  use mesh_mod
+  use scorec_mesh_mod
   use arrays
   use m3dc1_nint
   use newvar_mod
@@ -2735,7 +2715,6 @@ subroutine calculate_bh()
   use boundary_conditions
   use math
   implicit none
-  include 'mpif.h'
   integer :: itri, numelms, def_fields
   real:: bh_N, bhtotal, fac
   integer :: ier, k, l, numnodes, N, icounter_t
@@ -3095,7 +3074,7 @@ end subroutine calculate_bh
 subroutine ke_I1(NMAX, k, N, i1ck, i1sk)
   use basic, ONLY: myrank, itor
   use math
-  use mesh_mod
+  use scorec_mesh_mod
   implicit none
   integer:: k, N, NMAX
   real:: i1ck, i1sk
@@ -3153,7 +3132,7 @@ end subroutine ke_I1
 subroutine ke_I2(NMAX, k, N, i2ck, i2sk)
   use basic, ONLY: myrank, itor
   use math
-  use mesh_mod
+  use scorec_mesh_mod
   implicit none
   integer:: k, N, NMAX
   real:: i2ck, i2sk
@@ -3210,13 +3189,11 @@ end subroutine ke_I2
 !=====================================================
 subroutine te_max_dev(xguess,zguess,te,tem,imethod,ier)
   use basic
-  use mesh_mod
+  use scorec_mesh_mod
   use m3dc1_nint
   use field
 
   implicit none
-
-  include 'mpif.h'
 
   real, intent(inout) :: xguess, zguess
   type(field_type), intent(in) :: te
@@ -3483,14 +3460,12 @@ end subroutine te_max_dev
 !============================================================
 subroutine phi_int(x,z,ans,fin,itri,ierr)
   
-  use mesh_mod
+  use scorec_mesh_mod
   use basic
   use m3dc1_nint
   use field
 
   implicit none
-
-  include 'mpif.h'
 
   integer, intent(inout) :: itri
   real, intent(in) :: x, z

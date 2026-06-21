@@ -59,6 +59,7 @@ contains
   !
   ! ======================================================================
   subroutine marker
+    use mpi
     use basic
     use hdf5_output
     use diagnostics
@@ -66,7 +67,6 @@ contains
 
     implicit none
 
-    include 'mpif.h'
 
     integer :: ier,i
     call mark_fields(0);
@@ -80,6 +80,7 @@ contains
   ! writes output and restart files
   ! ======================================================================
   subroutine output
+    use mpi
     use basic
     use hdf5_output
     use diagnostics
@@ -89,7 +90,6 @@ contains
 
     implicit none
 
-    include 'mpif.h'
 
     integer :: ier
     real :: tstart, tend, diff, gamma_std, gamma_mean
@@ -665,13 +665,13 @@ end subroutine hdf5_write_timings
 ! hdf5_write_time_slice
 ! =====================
 subroutine hdf5_write_time_slice(equilibrium, error)
+  use mpi
   use hdf5
   use hdf5_output
   use basic
 
   implicit none
 
-  include 'mpif.h'
   
   integer, intent(out) :: error
   integer, intent(in) :: equilibrium
@@ -792,7 +792,7 @@ end subroutine hdf5_write_time_slice
 subroutine output_mesh(time_group_id, nelms, error)
   use hdf5
   use hdf5_output
-  use mesh_mod
+  use scorec_mesh_mod
   use basic
   use boundary_conditions
   use nintegrate
@@ -1811,7 +1811,7 @@ subroutine hdf5_write_kspits(error)
   use basic
   use diagnostics
   use hdf5_output
-  use matrix_mod, ONLY : maxnumofsolves, kspits
+  use scorec_matrix_mod, ONLY : maxnumofsolves, kspits
 
   implicit none
 

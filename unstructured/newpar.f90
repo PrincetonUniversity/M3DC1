@@ -34,16 +34,8 @@ Program Reducedquintic
   use openacc
 #endif
 
-#if PETSC_VERSION >= 38
   use petsc
   implicit none
-#elif PETSC_VERSION >= 36
-  implicit none
-#include "petsc/finclude/petsc.h"
-#else
-  implicit none
-#include "finclude/petsc.h"
-#endif
 
   integer :: ier, i, adapt_flag
   real :: tstart, tend, dtsave, t_solve, t_compute
@@ -488,7 +480,7 @@ end Program Reducedquintic
 !============================================================
 subroutine init
   use basic
-  use mesh_mod
+  use scorec_mesh_mod
   use basicq
   use runaway_mod
   use kprad_m3dc1
@@ -582,16 +574,8 @@ subroutine safestop(iarg)
   use particles
   use resistive_wall
 
-#if PETSC_VERSION >= 38
   use petsc
   implicit none
-#elif PETSC_VERSION >= 36
-  implicit none
-#include "petsc/finclude/petsc.h"
-#else
-  implicit none
-#include "finclude/petsc.h"
-#endif
       
   integer, intent(in) :: iarg
   integer :: ier
@@ -1030,13 +1014,13 @@ end subroutine rotation
   ! populates the *tri arrays
   !============================================================
   subroutine tridef
+    use mpi
     use basic
     use math
-    use mesh_mod
+    use scorec_mesh_mod
 
     implicit none
 
-    include 'mpif.h'
   
     type(element_data) :: d
     integer :: itri, i, j, k, ii, jj, numelms, numnodes, ndofs, ierr
@@ -1290,7 +1274,7 @@ end subroutine rotation
 subroutine space(ifirstcall)
 
   use element
-  use mesh_mod
+  use scorec_mesh_mod
   use basic
   use arrays
   use sparse
@@ -1599,12 +1583,12 @@ subroutine calculate_qdfac(itri, z)
 end subroutine calculate_qdfac
 
 subroutine print_normal_curv()
+  use mpi
 !  use mpi
   use basic
-  use mesh_mod
+  use scorec_mesh_mod
   implicit none
 
-    include 'mpif.h'
 
   integer :: ierr, i, icounter_t, numnodes
   integer :: izone, izonedim

@@ -14,7 +14,7 @@ contains
 subroutine ftz_init()
   use basic
   use arrays
-  use mesh_mod
+  use scorec_mesh_mod
 
   implicit none
 
@@ -102,7 +102,7 @@ subroutine ftz_per(x, phi, z)
   use basic
   use arrays
   use diagnostics
-  use mesh_mod
+  use scorec_mesh_mod
 
   implicit none
 
