@@ -1123,6 +1123,9 @@ subroutine init_tracing_particles_local(pdata_local, locparts)
    integer :: ierr
 
    integer, dimension(:), allocatable :: pdata_trace_id_tmp
+   character(len=100) :: filename
+   integer :: fid
+   !logical :: ierr
 
    if(myrank.eq.0 .and. iprint.ge.1) print *, 'Begin initializing tracing particles'
 
@@ -1170,42 +1173,117 @@ elseif(sample_op==2) then
 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 
 !!! for particle tracing test only:
-   !!! use the input particle information
-   npart_trace = 9
-   pdims_readin = 5
 
-   !!! initialize particle tracing id array
-   allocate(pdata_trace_id(npart_trace),pdata_trace_id_tmp(npart_trace))
-   pdata_trace_id(:) = 0
-   pdata_trace_id_tmp(:) = 0
-   
-   allocate(pdata_trace_readin(pdims_readin,npart_trace))
-
-   !!! input particle information: (r, theta, z, E_para, E_perp)
-!    ! first example:
-!    pdata_trace_readin = reshape((/ 1.6, 0.0, -0.1, 1.0e6, 1.0e6,  &
-!                                    1.6, 0.0, -0.0, 1.0e6, 1.0e6,  &
-!                                    1.6, 0.0,  0.1, 1.0e6, 1.0e6,  &
-!                                    1.8, 0.0, -0.4, 1.0e6, 1.0e6,  &
-!                                    1.8, 0.0,  0.0, 1.0e6, 1.0e6,  &
-!                                    1.8, 0.0,  0.4, 1.0e6, 1.0e6,  &
-!                                    2.2, 0.0, -0.5, 1.0e6, 1.0e6,  &
-!                                    2.2, 0.0,  0.0, 1.0e6, 1.0e6,  &
-!                                    2.2, 0.0,  0.5, 1.0e6, 1.0e6 /), &
+! !!! Test code: assign 9 particles with specified location, velocity and species.
+! 
+!    !!! use the input particle information
+!    npart_trace = 9
+!    pdims_readin = 5
+! 
+!    !!! initialize particle tracing id array
+!    allocate(pdata_trace_id(npart_trace),pdata_trace_id_tmp(npart_trace))
+!    pdata_trace_id(:) = 0
+!    pdata_trace_id_tmp(:) = 0
+!    
+!    allocate(pdata_trace_readin(pdims_readin,npart_trace))
+! 
+!    !!! input particle information: (r, theta, z, E_para, E_perp)
+! !    ! first example:
+! !    pdata_trace_readin = reshape((/ 1.6, 0.0, -0.1, 1.0e6, 1.0e6,  &
+! !                                    1.6, 0.0, -0.0, 1.0e6, 1.0e6,  &
+! !                                    1.6, 0.0,  0.1, 1.0e6, 1.0e6,  &
+! !                                    1.8, 0.0, -0.4, 1.0e6, 1.0e6,  &
+! !                                    1.8, 0.0,  0.0, 1.0e6, 1.0e6,  &
+! !                                    1.8, 0.0,  0.4, 1.0e6, 1.0e6,  &
+! !                                    2.2, 0.0, -0.5, 1.0e6, 1.0e6,  &
+! !                                    2.2, 0.0,  0.0, 1.0e6, 1.0e6,  &
+! !                                    2.2, 0.0,  0.5, 1.0e6, 1.0e6 /), &
+! !                                    shape=[5,9])
+!    ! sample RE with 0.4c velocity:
+!    ! K.E.: (a). 0.5*me*ve^2 = 4.09e4, 
+!    !       (b). (gamma-1)*me*c^2 = 4.67e4
+!    pdata_trace_readin = reshape((/ 1.6, 0.0, -0.1, 4.09e4, 0.0e6,  &
+!                                    1.6, 0.0, -0.0, 4.09e4, 0.0e6,  &
+!                                    1.6, 0.0,  0.1, 4.09e4, 0.0e6,  &
+!                                    1.8, 0.0, -0.4, 4.09e4, 0.0e6,  &
+!                                    1.8, 0.0,  0.0, 4.09e4, 0.0e6,  &
+!                                    1.8, 0.0,  0.4, 4.09e4, 0.0e6,  &
+!                                    2.2, 0.0, -0.5, 4.09e4, 0.0e6,  &
+!                                    2.2, 0.0,  0.0, 4.09e4, 0.0e6,  &
+!                                    2.2, 0.0,  0.5, 4.09e4, 0.0e6 /), &
 !                                    shape=[5,9])
-   ! sample RE with 0.4c velocity:
-   ! K.E.: (a). 0.5*me*ve^2 = 4.09e4, 
-   !       (b). (gamma-1)*me*c^2 = 4.67e4
-   pdata_trace_readin = reshape((/ 1.6, 0.0, -0.1, 4.09e4, 0.0e6,  &
-                                   1.6, 0.0, -0.0, 4.09e4, 0.0e6,  &
-                                   1.6, 0.0,  0.1, 4.09e4, 0.0e6,  &
-                                   1.8, 0.0, -0.4, 4.09e4, 0.0e6,  &
-                                   1.8, 0.0,  0.0, 4.09e4, 0.0e6,  &
-                                   1.8, 0.0,  0.4, 4.09e4, 0.0e6,  &
-                                   2.2, 0.0, -0.5, 4.09e4, 0.0e6,  &
-                                   2.2, 0.0,  0.0, 4.09e4, 0.0e6,  &
-                                   2.2, 0.0,  0.5, 4.09e4, 0.0e6 /), &
-                                   shape=[5,9])
+
+
+!!! read in particle information from an external ASCII file.
+   filename = 'tracing_particle.dat'
+   pdims_readin = 5
+   npart_trace = 0
+
+   ! 1. Open the file to count lines (particles) dynamically
+   open(newunit=fid, file=trim(filename), status='old', action='read', iostat=ierr)
+   if (ierr /= 0) then
+       print *, "Error: Cannot open particle input file: ", trim(filename)
+       call safestop(6)
+       return
+   end if
+
+   ! 2. Count the number of rows in the file
+   read(fid,*,iostat=ierr) ! skip the headline for variable names
+   do
+       read(fid, *, iostat=ierr) ! Read and discard text to count lines
+       if (ierr < 0) exit             ! End of file reached
+       if (ierr > 0) then
+           print *, "Error reading file layout during line count."
+           call safestop(7)
+           return
+       end if
+       npart_trace = npart_trace + 1
+   end do
+
+   ! 3. Safety check for empty files
+   if (npart_trace == 0) then
+       print *, "Error: Particle input file is empty."
+       close(fid)
+       call safestop(8)
+       return
+   end if
+
+!    ! 4. Clean up any prior allocations to prevent memory leaks
+!    if (allocated(pdata_trace_id))     deallocate(pdata_trace_id)
+!    if (allocated(pdata_trace_id_tmp)) deallocate(pdata_trace_id_tmp)
+!    if (allocated(pdata_trace_readin)) deallocate(pdata_trace_readin)
+
+   ! 5. Allocate arrays based on the dynamic particle count
+   allocate(pdata_trace_id(npart_trace), pdata_trace_id_tmp(npart_trace))
+   allocate(pdata_trace_readin(pdims_readin, npart_trace))
+
+   pdata_trace_id = 0
+   pdata_trace_id_tmp = 0
+
+   !!! for particle readin test only:
+   write(139,*) "npart_trace =",npart_trace, "pdims_readin =",pdims_readin
+   
+   ! 6. Rewind file to the beginning and read the actual data
+   rewind(fid)
+   read(fid,*,iostat=ierr) ! skip the headline for variable names
+   do i = 1, npart_trace
+       ! Reads 5 columns directly into the column slices of your 2D array
+       read(fid, *, iostat=ierr) pdata_trace_readin(:, i)
+       if (ierr /= 0) then
+           print *, "Error reading particle data at line: ", i
+           close(fid)
+           call safestop(9)
+           return
+       end if
+   end do
+
+   close(fid)
+
+   !!! for particle readin test only:
+   write(139,*) "pdata_trace_readin data:"
+   write(139,'(5(ES20.12,1X))') pdata_trace_readin(:,1:5)
+
+   !!! process read in particle information.                            
    allocate(x_in(3,npart_trace),v_in(2,npart_trace),sps_in(npart_trace))
    x_in(:,:) = pdata_trace_readin(1:3,:)
    v_in(:,:) = pdata_trace_readin(4:5,:)
@@ -1310,7 +1388,7 @@ endif ! if(sample_op)
 !!!
    endif   
 
-   if(myrank.eq.0 .and. iprint.ge.1) print *, 'Done initializing tracing particles'
+   if(myrank.eq.0 .and. iprint.ge.1) print *, 'Done initializing tracing particles, total npart_trace =',npart_trace
 
 end subroutine init_tracing_particles_local
 

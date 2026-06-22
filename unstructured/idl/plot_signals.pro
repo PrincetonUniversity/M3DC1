@@ -79,7 +79,7 @@ pro plot_signals, signal, deriv=der, filename=filename, power_spectrum=pspec, $
   if(n_elements(outfile) eq 1) then begin
      openw, ifile, outfile, /get_lun
      for i=0, n_elements(tdata)-1 do begin
-        printf, format='(100G12.4)', ifile, tdata[i], data[*,i]
+        printf, format='(100E20.10)', ifile, tdata[i], data[*,i]
      end
      free_lun, ifile
   end
