@@ -1306,6 +1306,8 @@ subroutine set_defaults
        "1: trace sampled particles for time history", particle_grp)
   call add_var_int("ifix_mhd", ifix_mhd, 0, &
        "1: fix the MHD equation time evolution and matrix calculation", particle_grp)
+  call add_var_int("nsnap_substep", nsnap_substep, 0, &
+       "number of substep outputs for tracing particles", particle_grp)
  
 #endif
 
@@ -1758,7 +1760,7 @@ subroutine validate_input
 
   if(fast_ion_z.eq.0) fast_ion_z=z_ion
 
-  if(kinetic_thermal_ion.eq.0) particle_subcycles=1
+  if(itrace .ne. 1 .and. kinetic_thermal_ion.eq.0) particle_subcycles=1
 #endif
 
   if(itemp.eq.0 .and. kappai_fac.ne.1.) then

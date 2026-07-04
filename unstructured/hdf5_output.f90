@@ -26,6 +26,8 @@ contains
 
     ! Flush the data to disk
     call h5fflush_f(file_id, H5F_SCOPE_GLOBAL_F, error)
+    ! Flush tracing data to particle_tracing.h5 at the same time as C1.h5
+    call h5fflush_f(ptrace_file_id, H5F_SCOPE_GLOBAL_F, error)
   end subroutine hdf5_flush
 
 

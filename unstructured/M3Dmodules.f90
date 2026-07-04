@@ -331,7 +331,7 @@ module basic
   integer :: imode_filter
   integer, dimension(imode_filter_max) :: mode_filter_ntor
   real :: smooth_par, smooth_dens_parallel
-  integer :: itrace, trace_sample_op, npart_trace_input, ifix_mhd
+  integer :: itrace, trace_sample_op, npart_trace_input, ifix_mhd, nsnap_substep
 #endif
 
   integer :: iohmic_heating  ! 1 = include ohmic heating
