@@ -1,0 +1,88 @@
+-pc_type bjacobi
+-pc_bjacobi_blocks 4
+-sub_pc_type lu
+-sub_pc_factor_mat_solver_type superlu_dist
+-sub_ksp_type preonly
+-ksp_type fgmres
+-ksp_gmres_restart 220
+-ksp_max_it 10000
+-ksp_rtol 1.e-9
+-ksp_atol 1.e-20
+-ksp_converged_reason
+
+#-hard_pc_type bjacobi
+#-hard_pc_bjacobi_blocks 4
+#-hard_sub_pc_type lu
+#-hard_sub_pc_factor_mat_solver_type superlu_dist
+#-hard_sub_ksp_type preonly
+#-hard_ksp_type lgmres
+#-hard_ksp_lgmres_augment 4
+#-hard_ksp_gmres_restart 220
+#-hard_ksp_max_it 10000
+#-hard_ksp_rtol 1.e-9
+#-hard_ksp_atol 1.e-20
+#-hard_ksp_converged_reason
+
+-options_left
+-on_error_abort
+-ksp_error_if_not_converged
+
+-hard_pc_type fieldsplit
+-hard_ksp_type fgmres
+-hard_ksp_monitor_true_residual
+-hard_ksp_rtol 1.e-9
+-hard_ksp_atol 1.e-20
+-hard_ksp_converged_reason
+-hard_ksp_max_it 10000
+
+
+	-fs_fieldsplit_0_pc_type bjacobi
+	-fs_fieldsplit_0_pc_bjacobi_blocks 4
+	-fs_fieldsplit_0_ksp_type gmres
+#	-fs_fieldsplit_0_ksp_rtol 1.e-1
+#	-fs_fieldsplit_0_ksp_monitor_true_residual
+	-fs_fieldsplit_0_ksp_converged_reason
+	-fs_fieldsplit_1_pc_type bjacobi
+	-fs_fieldsplit_1_pc_bjacobi_blocks 4
+	-fs_fieldsplit_1_ksp_type gmres
+#	-fs_fieldsplit_1_ksp_rtol 1.e-1
+#	-fs_fieldsplit_1_ksp_monitor_true_residual
+	-fs_fieldsplit_1_ksp_converged_reason
+	-fs_fieldsplit_2_pc_type bjacobi
+	-fs_fieldsplit_2_pc_bjacobi_blocks 4
+	-fs_fieldsplit_2_ksp_type gmres
+#	-fs_fieldsplit_2_ksp_rtol 1.e-1
+#	-fs_fieldsplit_2_ksp_monitor_true_residual
+	-fs_fieldsplit_2_ksp_converged_reason
+
+        -fs_fieldsplit_0_sub_pc_type lu
+        -fs_fieldsplit_0_sub_ksp_type preonly
+        -fs_fieldsplit_0_sub_pc_factor_mat_solver_type superlu_dist
+        -fs_fieldsplit_1_sub_pc_type lu
+        -fs_fieldsplit_1_sub_pc_factor_mat_solver_type superlu_dist
+        -fs_fieldsplit_1_sub_ksp_type preonly
+        -fs_fieldsplit_2_sub_pc_type lu
+        -fs_fieldsplit_2_sub_pc_factor_mat_solver_type superlu_dist
+        -fs_fieldsplit_2_sub_ksp_type preonly
+
+#-fs_fieldsplit_0_ksp_converged_reason ascii:its_0.txt
+#-fs_fieldsplit_1_ksp_converged_reason ascii:its_1.txt
+#-fs_fieldsplit_2_ksp_converged_reason ascii:its_2.txt
+#-xfs_fieldsplit_0_sub_ksp_converged_reason ascii:sub_its_0.txt
+#-xfs_fieldsplit_1_sub_ksp_converged_reason ascii:sub_its_1.txt
+#-xfs_fieldsplit_2_sub_ksp_converged_reason ascii:sub_its_2.txt
+#-xfs_fieldsplit_0_ksp_monitor_true_residual ascii:res_0.txt
+#-xfs_fieldsplit_1_ksp_monitor_true_residual ascii:res_1.txt
+#-xfs_fieldsplit_2_ksp_monitor_true_residual ascii:res_2.txt
+#-xfs_fieldsplit_0_sub_ksp_monitor_true_residual ascii:sub_res_0.txt
+#-xfs_fieldsplit_1_sub_ksp_monitor_true_residual ascii:sub_res_1.txt
+#-xfs_fieldsplit_2_sub_ksp_monitor_true_residual ascii:sub_res_2.txt
+
+#-fs_ksp_type fgmres
+#-fs_ksp_gmres_restart 220
+#-fs_ksp_max_it 10000
+#-fs_ksp_rtol 1.e-9
+#-fs_ksp_atol 1.e-20
+#-fs_ksp_converged_reason
+#-fs_ksp_view
+#-fs_pc_type fieldsplit
