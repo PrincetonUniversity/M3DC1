@@ -68,6 +68,7 @@ set(M3DC1_LIBRARY_SOURCES
   model.f90
   neutral_beam.f90
   newvar.f90
+  newpar.f90
   nintegrate_mod.f90
   output.f90
   parallel_heat_flux.f90
@@ -172,12 +173,18 @@ if(M3DC1_ENABLE_ADAS)
 endif()
 
 find_package(MPI REQUIRED)
-find_package(PETSc REQUIRED)
 find_package(HDF5 COMPONENTS Fortran HL REQUIRED)
 find_package(GSL REQUIRED)
 find_package(LAPACK REQUIRED)
 find_path(FFTW3_INCLUDE_DIR NAMES fftw3.h REQUIRED)
 find_library(FFTW3_LIBRARY NAMES fftw3 REQUIRED)
+
+if(M3DC1_ENABLE_ST)
+  find_library(NETCDF_C_LIBRARY NAMES netcdf
+    HINTS ${NetCDF_ROOT}
+    PATH_SUFFIXES lib lib64
+    REQUIRED)
+endif()
 
 if(PETSC_VERSION MATCHES "^([0-9]+)\\.([0-9]+)")
   math(EXPR M3DC1_PETSC_VERSION_CODE "${CMAKE_MATCH_1} * 10 + ${CMAKE_MATCH_2}")
@@ -191,7 +198,7 @@ string(STRIP "${M3DC1_RELEASE_VERSION}" M3DC1_RELEASE_VERSION)
 add_library(m3dc1_library ${M3DC1_LIBRARY_SOURCES})
 
 target_include_directories(m3dc1_library PRIVATE ${FFTW3_INCLUDE_DIR})
-target_link_libraries(m3dc1_library PRIVATE
+target_link_libraries(m3dc1_library PUBLIC
   m3dc1::scorec
   MPI::MPI_Fortran
   PETSc::PETSc
@@ -201,6 +208,11 @@ target_link_libraries(m3dc1_library PRIVATE
   LAPACK::LAPACK
   ${FFTW3_LIBRARY}
 )
+if(M3DC1_ENABLE_ST)
+  target_link_libraries(m3dc1_library PUBLIC
+    ${NETCDF_C_LIBRARY}
+  )
+endif()
 if(M3DC1_ENABLE_ADAS)
   target_link_libraries(m3dc1_library PRIVATE openadas_reader)
 endif()
@@ -233,27 +245,63 @@ if(M3DC1_ENABLE_ADAS)
 endif()
 set_target_properties(m3dc1_library PROPERTIES Fortran_MODULE_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR})
 
-target_compile_options(m3dc1_library PRIVATE
+target_compile_options(m3dc1_library PUBLIC
+    $<$<COMPILE_LANG_AND_ID:Fortran,GNU>:-cpp>
+    $<$<COMPILE_LANG_AND_ID:Fortran,GNU>:-fdefault-real-8>
+    $<$<COMPILE_LANG_AND_ID:Fortran,GNU>:-fdefault-double-8>
     $<$<COMPILE_LANG_AND_ID:Fortran,GNU>:-fallow-argument-mismatch>
+    $<$<COMPILE_LANG_AND_ID:Fortran,GNU>:-ffree-line-length-none>
   )
+
+# --- Build main executable name per Makefile convention ---
+set(M3DC1_MAIN_NAME m3dc1)
+if(M3DC1_ENABLE_3D)
+  string(APPEND M3DC1_MAIN_NAME "_3d")
+else()
+  string(APPEND M3DC1_MAIN_NAME "_2d")
+endif()
+if(M3DC1_ENABLE_TRILINOS)
+  string(APPEND M3DC1_MAIN_NAME "_trilinos")
+endif()
+if(M3DC1_ENABLE_COMPLEX)
+  string(APPEND M3DC1_MAIN_NAME "_complex")
+endif()
+if(M3DC1_ENABLE_OPENMP)
+  string(APPEND M3DC1_MAIN_NAME "_omp")
+endif()
+if(M3DC1_ENABLE_ST)
+  string(APPEND M3DC1_MAIN_NAME "_st")
+endif()
+if(M3DC1_ENABLE_PARTICLE)
+  string(APPEND M3DC1_MAIN_NAME "_pic")
+endif()
+
+add_executable(${M3DC1_MAIN_NAME} $<TARGET_OBJECTS:m3dc1_library>)
+target_link_libraries(${M3DC1_MAIN_NAME} PRIVATE m3dc1_library)
+
+add_custom_target(m3dc1 ALL
+  COMMAND ${CMAKE_COMMAND} -E create_symlink ${M3DC1_MAIN_NAME} m3dc1
+  DEPENDS ${M3DC1_MAIN_NAME}
+  WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}
+  COMMENT "Creating symlink: m3dc1 -> ${M3DC1_MAIN_NAME}")
 
 add_executable(a2cc a2cc.f90)
 target_link_libraries(a2cc PUBLIC m3dc1_library)
 
 add_executable(mackenbach_profiles mackenbach_profiles.f90)
 
-add_executable(kprad kprad_test.f90 kprad_safestop.f90)
-target_link_libraries(kprad PUBLIC m3dc1_library)
+# add_executable(kprad kprad.f90 kprad_test.f90)
 
 add_executable(test_region test_region.f90)
 target_link_libraries(test_region PUBLIC m3dc1_library)
 
-#target_link_libraries(a2cc PUBLIC m3dc1_library)
-# missing executable for kprad_test.f90, mackenbach_profiles.f90, struct2vac.f90,test_region.f90, a2cc.f90, read_gato.f90
 
-#newpar.f90
-#read_jsolver.f90
+if(M3DC1_ENABLE_PSPLINE)
+  find_package(PSPLINE REQUIRED)
+  add_executable(readgato readgato.f90)
+  target_link_libraries(readgato PUBLIC m3dc1_library PSPLINE::PSPLINE)
 
-
-# unstructured/makefile:    OPTS := $(OPTS) -Dvectype=complex -DUSECOMPLEX
-# unstructured/makefile:    OPTS := $(OPTS) -Dvectype=real
+  add_executable(read_jsolver read_jsolver.f90)
+  target_compile_definitions(read_jsolver PRIVATE READ_JSOLVER)
+  target_link_libraries(read_jsolver PUBLIC m3dc1_library PSPLINE::PSPLINE)
+endif()

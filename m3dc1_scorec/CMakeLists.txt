@@ -40,13 +40,35 @@ set(HEADERS
   include/Expression.h
   include/ReducedQuintic.h)
 
+
 find_package(SCOREC CONFIG REQUIRED)
-find_package(PETSc REQUIRED)
+find_package(LAPACK REQUIRED)
+find_package(MPI REQUIRED COMPONENTS C)
 
 add_library(m3dc1_scorec ${SOURCES})
 add_library(m3dc1::scorec ALIAS m3dc1_scorec)
-target_link_libraries(m3dc1_scorec PRIVATE SCOREC::core PETSc::PETSc)
-#target_include_directories(m3dc1_scorec PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}/api ${CMAKE_CURRENT_SOURCE_DIR}/include)
-target_include_directories(m3dc1_scorec PUBLIC api include)
+target_link_libraries(m3dc1_scorec PUBLIC SCOREC::core PETSc::PETSc LAPACK::LAPACK MPI::MPI_C)
+target_include_directories(m3dc1_scorec PUBLIC
+  "${CMAKE_CURRENT_SOURCE_DIR}/api"
+  "${CMAKE_CURRENT_SOURCE_DIR}/include"
+)
 target_compile_definitions(m3dc1_scorec PRIVATE M3DC1_PETSC)
 
+# --- Utility executables (SCOREC tools) ---
+# Utilities that only depend on SCOREC core
+set(M3DC1_UTILITY_CORE_SOURCES
+  utility/check_smb.cc
+  utility/create_smb.cc
+  utility/split_smb.cc
+  utility/vtk_order.cc
+)
+
+foreach(_util_src IN LISTS M3DC1_UTILITY_CORE_SOURCES)
+  get_filename_component(_util_name ${_util_src} NAME_WE)
+  add_executable(${_util_name} ${_util_src})
+  target_link_libraries(${_util_name} PRIVATE SCOREC::core MPI::MPI_C)
+endforeach()
+
+# show_meshcount depends on the m3dc1_scorec library (m3dc1_mesh, m3dc1_model, etc.)
+add_executable(show_meshcount utility/show_meshcount.cc)
+target_link_libraries(show_meshcount PRIVATE m3dc1_scorec)
