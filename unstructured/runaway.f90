@@ -7,6 +7,7 @@ module runaway_mod
   use kprad
   use kprad_m3dc1
   use auxiliary_fields
+  use HT_funcs, only: get_HT_rate
 
 
   implicit none
@@ -16,6 +17,16 @@ module runaway_mod
   type(field_type), private :: dnre_field2,jre_field,ere_field
 
   type(field_type), private :: depar_field,ecrit_field
+
+  ! RiD: Hot-tail source fields
+  ! T0_ht_field, n0_ht_field: reference temperature/density profiles from
+  ! time slice iHT_slice (TODO: populate these from the C1.h5 slice; they
+  ! are currently initialized to zero, which leaves the hot-tail source inert)
+  ! nht_field: previous-timestep hot-tail density, solved from nht_new_field
+  ! each step (mirrors how jre_field is solved into nre_field(1))
+  type(field_type), private :: T0_ht_field,n0_ht_field
+  type(field_type), private :: nht_field,nht_new_field
+  real, private :: t_ht0 ! SI time of the hot-tail reference slice iHT_slice
     
   real, private, parameter :: eps0 = 8.854187817D-12 ![F/m]
   real, private, parameter :: c = 299792458.D0 ![m/s]
@@ -67,6 +78,10 @@ contains
     call destroy_field(dndt_field)
     call destroy_field(jre_field)
     call destroy_field(f_field)
+    call destroy_field(T0_ht_field)
+    call destroy_field(n0_ht_field)
+    call destroy_field(nht_field)
+    call destroy_field(nht_new_field)
   end subroutine runaway_deallocate
     
   subroutine runaway_init()
@@ -75,6 +90,15 @@ contains
     
     implicit none
     if(irunaway.eq.0) return
+
+    ! RiD: The hot-tail source requires reading its reference slice
+    ! (iHT_slice) from an already-existing C1.h5 restart file, so it
+    ! can only activate on a restart.
+    if(iHT.eq.1 .and. irestart.eq.0) then
+       if(myrank.eq.0) print *, &
+            'Warning: iHT=1 requires irestart=1; disabling hot-tail source.'
+       iHT = 0
+    end if
 
     print *, 'Estimated Ecrit for runaways = ', &
          ec**3*(n0_norm*1e6)*17./(4.*pi*eps0**2*me*c**2), ' V/m'
@@ -87,6 +111,10 @@ contains
     call create_field(dndt_field)
     call create_field(jre_field)
     call create_field(f_field)
+    call create_field(T0_ht_field)
+    call create_field(n0_ht_field)
+    call create_field(nht_field)
+    call create_field(nht_new_field)
 
     dnre_field1 = 0.
     dnre_field2 = 0.
@@ -96,18 +124,114 @@ contains
     dndt_field = 0.
     jre_field = 0.
     f_field = 0.
+    T0_ht_field = 0.
+    n0_ht_field = 0.
+    nht_field = 0.
+    nht_new_field = 0.
+    t_ht0 = 0.
+
+    if(iHT.eq.1) call read_HT_slice()
   end subroutine runaway_init
+
+  ! RiD: Read the reference temperature/density profile, and the
+  ! simulation time at which it was written, from time slice iHT_slice
+  ! of the currently open C1.h5 file. This requires that the run be
+  ! restarted from a file that already contains that slice (i.e.
+  ! iHT_slice must be <= the number of time slices already written).
+  subroutine read_HT_slice()
+    use basic
+    use hdf5
+    use hdf5_output
+    use mesh_mod
+    use field
+
+    implicit none
+
+    integer(HID_T) :: root_id, time_id, scalar_group_id, fields_id
+    character(LEN=19) :: time_group_name
+    integer :: error, nelms, ntime_slice
+    real :: time_slice
+
+    if(iHT_slice.lt.0) return
+
+    nelms = local_elements()
+
+    call h5gopen_f(file_id, "/", root_id, error)
+
+    write(time_group_name, '("time_",I3.3)') iHT_slice
+    call h5gopen_f(root_id, time_group_name, time_id, error)
+    if(error.lt.0) then
+       if(myrank.eq.0) print *, &
+            'Error: hot-tail reference slice iHT_slice not found: ', iHT_slice
+       call safestop(1)
+    end if
+
+    ! Simulation time (SI) at which the reference slice was written
+    call read_int_attr(time_id, "ntimestep", ntime_slice, error)
+    call h5gopen_f(root_id, "scalars", scalar_group_id, error)
+    call read_scalar(scalar_group_id, "time", time_slice, ntime_slice, error)
+    call h5gclose_f(scalar_group_id, error)
+    t_ht0 = time_slice*t0_norm
+
+    ! Reference temperature and density profiles
+    call h5gopen_f(time_id, "fields", fields_id, error)
+    call read_HT_field(fields_id, "te", T0_ht_field, nelms, error)
+    call read_HT_field(fields_id, "ne", n0_ht_field, nelms, error)
+    call h5gclose_f(fields_id, error)
+
+    call h5gclose_f(time_id, error)
+    call h5gclose_f(root_id, error)
+
+    if(myrank.eq.0) print *, &
+         'Hot-tail source: loaded reference slice ', iHT_slice, &
+         ' at t = ', t_ht0, ' s'
+
+  end subroutine read_HT_slice
+
+  ! RiD: Read a single field's raw coefficients from the given HDF5
+  ! fields group into f. Assumes the same mesh/plane decomposition as
+  ! the currently running calculation (no restart plane transform).
+  subroutine read_HT_field(group_id, name, f, nelms, error)
+    use hdf5
+    use field
+    use hdf5_output
+    use mesh_mod
+
+    implicit none
+
+    integer(HID_T), intent(in) :: group_id
+    character(LEN=*), intent(in) :: name
+    type(field_type), intent(inout) :: f
+    integer, intent(in) :: nelms
+    integer, intent(out) :: error
+
+    real, dimension(coeffs_per_element,nelms) :: dum
+    vectype, dimension(coeffs_per_element) :: kdum
+    integer :: i
+
+    call read_field(group_id, name, dum, coeffs_per_element, nelms, &
+         offset_elms, global_elms, error)
+
+    f = 0.
+    do i=1, nelms
+       kdum = dum(:,i)
+       call setavector(i, f, kdum)
+    end do
+
+  end subroutine read_HT_field
   
   impure elemental subroutine runaway_current(nre,epar,Temp,Dens,&
                                        Zeff,eta,Ecrit,re_79,&
                                        re_j79,re_epar,dndt,&
                                        mr,bz,bi,ri,z,&
-                                       Dens_ion,Dens_imp,btoroidal)
+                                       Dens_ion,Dens_imp,btoroidal,&
+                                       T0_ht,n0_ht,t_ht,nht,nht_new)
     use math
     use basic
     use kprad
     use kprad_m3dc1
     use auxiliary_fields
+    use HT_funcs, only: get_HT_rate
 
     implicit none
 
@@ -123,9 +247,16 @@ contains
     real, intent(in) :: ri,z
     real, intent(in) :: bi
     real, intent(out) :: re_79,dndt,re_j79,re_epar,Ecrit
+    ! RiD: Hot-tail source inputs/outputs
+    real, intent(in) :: T0_ht  ! Reference temperature from slice iHT_slice [eV]
+    real, intent(in) :: n0_ht  ! Reference density from slice iHT_slice [1/m^3]
+    real, intent(in) :: t_ht   ! Time elapsed since the hot-tail reference slice [s]
+    real, intent(in) :: nht    ! Previous-timestep hot-tail density [1/m^3]
+    real, intent(out) :: nht_new ! Updated hot-tail density [1/m^3]
     real :: Clog,x,nu,vth,esign,teval,jpar,nrel,a,r,Ed, &
             f,dt_si,tmp,nretmp,Dens1,sd,sa,nra,gamma,tau
     real :: sbeta, scomp ! RiD: Terms for Tritium and Compton sources
+    real :: sht ! RiD: Hot-tail source term
     integer, intent(in) :: mr
     integer :: l, nl
     
@@ -141,6 +272,8 @@ contains
     sa = 0. ! Avalanche
     sbeta = 0. ! Tritium Beta
 	scomp = 0. ! Gamma Compton source
+    sht = 0. ! RiD: Hot-tail source
+    nht_new = nht
 
 
     dt_si = dt * t0_norm
@@ -148,12 +281,12 @@ contains
     nl = 10
     tmp = 0.
     nretmp = 0.
-    Dens1 = Dens 
-    
-    
-    if(mr.ne.0) then 
+    Dens1 = Dens
+
+
+    if(mr.ne.0) then
       re_79 = 0.D0
-      re_j79 = 0.D0 
+      re_j79 = 0.D0
       return
     endif
              
@@ -327,9 +460,31 @@ contains
               
                  
           else !  the next section executes when the e-field is less than Ecrit
-			
-              nrel = nre + jre_const * dt_si  ! RiD Adding jre_const [A/m2/s]
-              dndt = 0. + jre_const  ! RiD Adding jre_const [A/m2/s]
+
+              ! RiD: Hot-tail runaway source (Smith-Verwichte-type model,
+              ! see hot_tail.f90). Uses the reference temperature/density
+              ! from slice iHT_slice (T0_ht, n0_ht) and the instantaneous
+              ! parallel E-field to estimate the runaway density produced
+              ! by the tail of the cooling bulk distribution.
+              if (iHT.eq.1) then
+                  sht = get_HT_rate(n0_ht, Temp, t_ht, T0_ht, abs(re_epar), &
+                                     nht, dt_si, nht_new)
+
+                  ! RiD: Cap the hot-tail current density (nht_new
+                  ! converted to the same units as nre/re_j79) at 10%
+                  ! of the local total current density (abs(ri*bz)),
+                  ! recomputing sht so dndt/nrel stay consistent.
+                  if (abs(nht_new*cre*ec*va) .gt. 0.1*abs(ri*bz)) then
+                      nht_new = 0.1*abs(ri*bz)/(cre*ec*va)
+                      sht = (nht_new - nht)/dt_si
+                  endif
+              else
+                  sht = 0.
+                  nht_new = nht
+              endif
+
+              nrel = nre + (jre_const + sht*esign*cre*ec*va) * dt_si  ! RiD Adding jre_const [A/m2/s] and hot-tail source
+              dndt = jre_const + sht*esign*cre*ec*va  ! RiD Adding jre_const [A/m2/s] and hot-tail source
           end if ! ending if(abs(re_epar).gt.Ecrit);
 
        else
@@ -365,10 +520,15 @@ contains
     vectype, dimension(MAX_PTS) :: epar, te, ne, nre, eta, &
             n_ion, kp_den, kp_z, btoroidal
     vectype, dimension(MAX_PTS) :: dndt, re_79, re_j79, &
-                                   re_epar, ecrit, bz, bi  
+                                   re_epar, ecrit, bz, bi
     vectype, dimension(dofs_per_element) :: dofs
     integer, dimension(MAX_PTS) :: mr, tmp
-    
+
+    ! RiD: Hot-tail source quantities
+    vectype, dimension(MAX_PTS) :: T0_ht, n0_ht, nht_prev, nht_new
+    vectype, dimension(MAX_PTS,OP_NUM) :: ht79
+    real :: t_ht
+
 
 
     if(irunaway.eq.0 .or. izone.ne.1) return
@@ -402,11 +562,28 @@ contains
         kp_den = kp_den*n0_norm*1e6
 	!kp_den = kprad_fz*nt79(:,OP_1)*n0_norm*1e6
 	END IF
-    
+
+    ! RiD: Hot-tail source quantities
+    if(iHT.eq.1) then
+       call eval_ops(itri, T0_ht_field, ht79, rfac)
+       T0_ht = ht79(:,OP_1)*(p0_norm/n0_norm)/1.6022e-12 ! Reference elec. temp [eV]
+       call eval_ops(itri, n0_ht_field, ht79, rfac)
+       n0_ht = ht79(:,OP_1)*n0_norm*1e6 ! Reference elec. density [per cubic m]
+       call eval_ops(itri, nht_field, ht79, rfac)
+       nht_prev = ht79(:,OP_1)
+       t_ht = time*t0_norm - t_ht0 ! Elapsed time since the hot-tail reference slice
+    else
+       T0_ht = 0.
+       n0_ht = 0.
+       nht_prev = 0.
+       t_ht = 0.
+    endif
+
     ! Call RE subroutine
     call runaway_current(nre,epar,te,ne,z_ion,eta,ecrit,&
                          re_79,re_j79,re_epar,dndt,mr,bz,bi,ri_79,z_79,&
-                         n_ion,kp_den,btoroidal) ! RiD: added ion density and impurity density
+                         n_ion,kp_den,btoroidal,&
+                         T0_ht,n0_ht,t_ht,nht_prev,nht_new) ! RiD: added ion density and impurity density, hot-tail source
 
     ! convert back to normalized units
     dndt = dndt*t0_norm/(j0_norm/c/1e-3)
@@ -436,7 +613,10 @@ contains
     dofs = intx2(mu79(:,:,OP_1),re_j79)
     call vector_insert_block(jre_field%vec,itri,1,dofs,VEC_ADD)
 
-
+    if(iHT.eq.1) then
+       dofs = intx2(mu79(:,:,OP_1),nht_new)
+       call vector_insert_block(nht_new_field%vec,itri,1,dofs,VEC_ADD)
+    endif
 
 #endif
 
@@ -458,6 +638,12 @@ contains
     dnre_field2 = 0.
     dnre_field1 = 0.
     jre_field = 0.
+
+    if(iHT.eq.1) then
+       call newvar_solve(nht_new_field%vec, mass_mat_lhs)
+       nht_field = nht_new_field
+       nht_new_field = 0.
+    endif
 
   end subroutine runaway_advance
 

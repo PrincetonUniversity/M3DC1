@@ -305,6 +305,8 @@ module basic
   integer :: iTritBeta ! Toggles Tritium Source
   integer :: iAvalanche ! 1 = RP; 2 = Hesslow Model; 3 = Modified RP
   integer :: iCompton ! Toggles Compton RE term
+  integer :: iHT ! Toggles hot-tail runaway source
+  integer :: iHT_slice ! Time slice from which to load initial temperature and density for the hot-tail model
   real :: jre_const ! Constant RE generation rate [A/m2/s]; default = 0.0
   integer :: iScaleREMC ! If 1 scales the REMC current with plasma current
   real :: init_current ! Current for REMC current scaling (irmp=3)

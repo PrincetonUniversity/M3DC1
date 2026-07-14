@@ -181,7 +181,7 @@ OBJS := fftw_fortran.o read_namelist.o gsl_wrapper.o \
 	electric_field.o pellet.o parallel_heat_flux.o \
 	temperature_plots.o electrostatic_potential.o \
 	newvar.o kprad_m3dc1.o diagnostics.o \
-	auxiliary_fields.o runaway.o \
+	auxiliary_fields.o hot_tail.o runaway.o \
 	read_schaffer_field.o  neutral_beam.o \
 	coils.o coil_sets.o model.o hypervisc.o \
 	fit_magnetics.o wall.o \
