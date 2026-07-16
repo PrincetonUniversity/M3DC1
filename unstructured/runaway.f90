@@ -20,10 +20,7 @@ module runaway_mod
 
   ! RiD: Hot-tail source fields
   ! T0_ht_field, n0_ht_field: reference temperature/density profiles from
-  ! time slice iHT_slice (TODO: populate these from the C1.h5 slice; they
-  ! are currently initialized to zero, which leaves the hot-tail source inert)
-  ! nht_field: previous-timestep hot-tail density, solved from nht_new_field
-  ! each step (mirrors how jre_field is solved into nre_field(1))
+  ! time slice iHT_slice 
   type(field_type), private :: T0_ht_field,n0_ht_field
   type(field_type), private :: nht_field,nht_new_field
   real, private :: t_ht0 ! SI time of the hot-tail reference slice iHT_slice
@@ -451,21 +448,28 @@ contains
               else
                       sa = 0.
               endif ! ending if (re_epar*nre<0)
+              ! ****************** !
+              ! RiD: Hot tail calculation
+			  if (iHT.eq.1) then
+                  sht = get_HT_rate(n0_ht, Temp, t_ht, T0_ht, abs(re_epar), &
+                                     nht, dt_si, nht_new)
+              
+				  if (abs(nht_new*cre*ec*va) .gt. 0.1*abs(ri*bz)) then ! RiD: Capping the HT current to 10% of plasma current
+						  nht_new = 0.1*abs(ri*bz)/(cre*ec*va)
+						  sht = (nht_new - nht)/dt_si
+				  endif
+              endif
               
               dndt = ((sd*esign + &
 					sbeta*esign + &
-					scomp*esign + sa)*cre*ec*va + jre_const) ! Combining all sources
+					scomp*esign + sht*esign + sa)*cre*ec*va + jre_const) ! Combining all sources
 					
               nrel = nre + dndt*dt_si 
               
                  
           else !  the next section executes when the e-field is less than Ecrit
 
-              ! RiD: Hot-tail runaway source (Smith-Verwichte-type model,
-              ! see hot_tail.f90). Uses the reference temperature/density
-              ! from slice iHT_slice (T0_ht, n0_ht) and the instantaneous
-              ! parallel E-field to estimate the runaway density produced
-              ! by the tail of the cooling bulk distribution.
+              ! RiD: Hot-tail runaway source (Smith-Verwichte-type model)
               if (iHT.eq.1) then
                   sht = get_HT_rate(n0_ht, Temp, t_ht, T0_ht, abs(re_epar), &
                                      nht, dt_si, nht_new)

@@ -242,7 +242,7 @@ contains
 
         
         rate = (nht_new - nht) / dt
-        print *, rate
+        !print *, rate
 
     end function get_HT_rate
 
