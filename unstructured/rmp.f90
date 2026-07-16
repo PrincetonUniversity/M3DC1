@@ -86,8 +86,8 @@ subroutine rmp_per(ilin)
 end subroutine rmp_per
 
 !==============================================================================
-! RiD: Advance the REMC (M_remc, L_remc, R_remc) circuit equation by one time
-! step, using the current plasma current (totcur). Uses R_remc, L_remc,
+! RiD: Advance the REMC (M_remc, L_remc, Res_remc) circuit equation by one time
+! step, using the current plasma current (totcur). Uses Res_remc, L_remc,
 ! and M_remc in C1input
 subroutine update_remc_circuit
   use basic
@@ -108,7 +108,7 @@ subroutine update_remc_circuit
 
   dt_si = dt * t0_norm ! s
 
-  i_remc_circ = i_remc_circ - dt_si*(R_remc/L_remc)*i_remc_circ &
+  i_remc_circ = i_remc_circ - dt_si*(Res_remc/L_remc)*i_remc_circ &
        - (M_remc/L_remc)*(curr_now - ip_prev) ! update remc current
 
   ip_prev = curr_now ! update ip_prev

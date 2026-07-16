@@ -312,7 +312,7 @@ module basic
   real :: init_current ! Current for REMC current scaling (irmp=3)
   real :: M_remc ! Mutual inductance for REMC circuit equation
   real :: L_remc ! Self inductance for REMC circuit equation
-  real :: R_remc ! Resistance for REMC circuit equation
+  real :: Res_remc ! Resistance for REMC circuit equation
   integer :: iflip       ! 1 = flip handedness
   integer :: iflip_b     ! 1 = flip equilibrium toroidal field
   integer :: iflip_j     ! 1 = flip equilibrium toroidal current density
