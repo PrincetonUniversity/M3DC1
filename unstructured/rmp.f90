@@ -18,6 +18,9 @@ module rmp
   logical, private :: read_p
 
   type(schaffer_field), allocatable, private :: sf(:)
+  
+  real :: ip_prev = 0., i_remc_circ = 0. ! Variables for REMC circuit equation (iScaleREMC=2)
+  logical, private :: remc_circuit_init = .false.
 
 contains
 
@@ -83,7 +86,37 @@ subroutine rmp_per(ilin)
 end subroutine rmp_per
 
 !==============================================================================
-! For free boundary stellarator and 3D fields 
+! RiD: Advance the REMC (M_remc, L_remc, R_remc) circuit equation by one time
+! step, using the current plasma current (totcur). Uses R_remc, L_remc,
+! and M_remc in C1input
+subroutine update_remc_circuit
+  use basic
+  use diagnostics
+
+  implicit none
+
+  real :: curr_now, dt_si
+
+  curr_now = 1.0 * totcur * 795217.0 ! Ip in Amperes
+
+  if(.not.remc_circuit_init) then ! First step, initialize
+     i_remc_circ = 0.
+     ip_prev = curr_now
+     remc_circuit_init = .true.
+     return
+  end if
+
+  dt_si = dt * t0_norm ! s
+
+  i_remc_circ = i_remc_circ - dt_si*(R_remc/L_remc)*i_remc_circ &
+       - (M_remc/L_remc)*(curr_now - ip_prev) ! update remc current
+
+  ip_prev = curr_now ! update ip_prev
+
+end subroutine update_remc_circuit
+
+!==============================================================================
+! For free boundary stellarator and 3D fields
 
 subroutine load_stellarator_field
   use basic
@@ -329,6 +362,14 @@ subroutine rmp_field(n, nt, np, x, phi, z, br, bphi, bz, p)
                         curr_now = 1.0 * totcur * 795217.0 ! Ip in Amperes
                         remc_fac = 1.0 - abs(curr_now/init_current)
                         if (curr_now<1e-1) remc_fac = 0.0
+                else if (iScaleREMC.eq.2) then ! Use the REMC circuit equation
+                        ! i_remc_circ (Amperes) is advanced once per time 
+                        ! step by update_remc_circuit in newpar.f90; ic_na is in kA
+                        if (real(ic_na(1)).ne.0.) then
+                                remc_fac = (i_remc_circ/1000.0) / real(ic_na(1))
+                        else
+                                remc_fac = 0.0
+                        end if
                 else
                         remc_fac = 1.0
                 end if

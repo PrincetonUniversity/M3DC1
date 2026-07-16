@@ -310,6 +310,9 @@ module basic
   real :: jre_const ! Constant RE generation rate [A/m2/s]; default = 0.0
   integer :: iScaleREMC ! If 1 scales the REMC current with plasma current
   real :: init_current ! Current for REMC current scaling (irmp=3)
+  real :: M_remc ! Mutual inductance for REMC circuit equation
+  real :: L_remc ! Self inductance for REMC circuit equation
+  real :: R_remc ! Resistance for REMC circuit equation
   integer :: iflip       ! 1 = flip handedness
   integer :: iflip_b     ! 1 = flip equilibrium toroidal field
   integer :: iflip_j     ! 1 = flip equilibrium toroidal current density

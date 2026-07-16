@@ -380,6 +380,7 @@ subroutine hdf5_write_scalars(error)
   use hdf5_output
   use pellet
   use kprad
+  use rmp
 
   implicit none
 
@@ -485,6 +486,8 @@ subroutine hdf5_write_scalars(error)
   call output_scalar(scalar_group_id, "area"            , area  , ntime, error)
   call output_scalar(scalar_group_id, "toroidal_flux"   , tflux , ntime, error)
   call output_scalar(scalar_group_id, "toroidal_current", totcur, ntime, error)
+  if(irmp.eq.3 .and. iScaleREMC.eq.2) &
+       call output_scalar(scalar_group_id, "i_remc_circ", i_remc_circ, ntime, error)
   call output_scalar(scalar_group_id, "particle_number" , totden, ntime, error)
   call output_scalar(scalar_group_id, "electron_number" , totne , ntime, error)
   call output_scalar(scalar_group_id, "angular_momentum", tmom  , ntime, error)

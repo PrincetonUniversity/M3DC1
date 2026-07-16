@@ -388,15 +388,22 @@ Program Reducedquintic
      if(myrank.eq.0 .and. iprint.ge.1) print *, " Calling onestep"
      if(myrank.eq.0 .and. itimer.eq.1) call second(tstart)
      call onestep
-     !!!!! ** RiD: Recalculate REMC Vacuum Field Every Time Step if iScaleREMC = 1 ** !!!!
+     !!!!! ** RiD: Recalculate REMC Vacuum Field Every Time Step if iScaleREMC = 1 or 2 ** !!!!
      if (irmp.eq.3 .and. iScaleREMC.eq.1) then
 		call rmp_per
 		if (myrank.eq.0) then
                  print *, "Recalculated REMC, totcur =", totcur
-                 print *, "remc_fac = ", (1.0-totcur*795217/init_current)
+                 print *, "remc_fac = ", (1.0-totcur*795217./init_current)
+                endif
+     else if (irmp.eq.3 .and. iScaleREMC.eq.2) then
+        call update_remc_circuit ! RiD: Update the REMC current
+        call rmp_per
+        if (myrank.eq.0) then
+                 print *, "Recalculated REMC, totcur =", totcur
+                 print *, "i_remc_circ [kA] = ", i_remc_circ/1.e3
                 endif
      endif
-    !!!!! 
+    !!!!!
      if(myrank.eq.0 .and. itimer.eq.1) then
         call second(tend)
         t_onestep = t_onestep + tend - tstart
