@@ -75,6 +75,7 @@ set(SOURCES
     temperature_plots.f90
     electrostatic_potential.f90
     newvar.f90
+    hdf5_output.f90
     runaway.f90
     diagnostics.f90
     read_schaffer_field.f90
@@ -123,7 +124,6 @@ set(SOURCES
     runaway_advection.f90
     time_step_split.f90
     time_step_unsplit.f90
-    hdf5_output.f90
     particle.f90
     time_step.f90
     output.f90
