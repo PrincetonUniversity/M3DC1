@@ -181,6 +181,7 @@ OBJS := fftw_fortran.o read_namelist.o gsl_wrapper.o \
 	electric_field.o pellet.o parallel_heat_flux.o \
 	temperature_plots.o electrostatic_potential.o \
 	newvar.o kprad_m3dc1.o diagnostics.o \
+	hdf5_output.o \
 	auxiliary_fields.o hot_tail.o runaway.o \
 	read_schaffer_field.o  neutral_beam.o \
 	coils.o coil_sets.o model.o hypervisc.o \
@@ -198,7 +199,7 @@ OBJS := fftw_fortran.o read_namelist.o gsl_wrapper.o \
 	transport.o \
 	runaway_advection.o \
 	time_step_split.o time_step_unsplit.o \
-        hdf5_output.o particle.o   \
+        particle.o   \
 	time_step.o output.o restart_hdf5.o \
 	error_estimate.o scorec_adapt.o adapt.o newpar.o input.o ludef_t.o \
 	init_conds.o \
