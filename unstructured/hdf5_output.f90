@@ -76,7 +76,8 @@ contains
 
        ! for time slice output count
        times_output = 0
-       
+
+#ifdef USEPARTICLES
        if(itrace==1) then
           !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
           ! Create new file for particle tracing and set up link in "C1.h5"
@@ -118,6 +119,7 @@ contains
           ! close root group
           call h5gclose_f(root_id, error)
        endif
+#endif
     else
        ! open hdf5 file
        call h5fopen_f(hdf5_filename, H5F_ACC_RDWR_F, file_id, error, &
@@ -133,7 +135,7 @@ contains
 
        ! overwrite the last time slice
        times_output = times_output - 1
-
+#ifdef USEPARTICLES
        if(itrace==1) then
           ! Check existence of particle data for restart runs.
           lexist = .false.      
@@ -179,6 +181,7 @@ contains
               call h5gclose_f(root_id, error)
           endif   ! if particle_tracing.h5 exist
        endif   ! itrace==1
+#endif
     endif
 
     call h5pclose_f(plist_id, error)
@@ -192,7 +195,9 @@ contains
   ! =============
   subroutine hdf5_finalize(error)
     use hdf5
+#ifdef USEPARTICLES
     use basic, only: itrace
+#endif
 
     implicit none
     
@@ -206,11 +211,13 @@ contains
     call h5fclose_f(file_id, error)
     if(error .lt. 0) print *, "Error closing hdf5 file"
 
+#ifdef USEPARTICLES
     ! Close the file.
     if(itrace==1) then
        call h5fclose_f(ptrace_file_id, error)
        if(error .lt. 0) print *, "Error closing particle_tracing hdf5 file"
     endif
+#endif
 
     call h5close_f(error)
     if(error .lt. 0) print *, "Error closing hdf5 library"
@@ -426,6 +433,34 @@ contains
     call h5sclose_f(dspace_id, error)
     
   end subroutine write_vec_attr
+
+  ! update_vec_attr
+  ! ===============
+  subroutine update_vec_attr(parent_id, name, values, len, error)
+    use hdf5
+    
+    implicit none
+    
+    integer(HID_T), intent(in) :: parent_id
+    character(LEN=*), intent(in) :: name
+    integer, intent(in) :: len
+    real, dimension(len), intent(in)  :: values
+    integer, intent(out) :: error
+    
+    integer(HID_T) :: attr_id
+    integer(HSIZE_T), dimension(1) :: dims
+#ifdef USETAU
+    integer :: dummy     ! this is necessary to prevent TAU from
+    dummy = 0            ! breaking formatting requirements
+#endif
+
+    dims(1) = len
+
+    call h5aopen_name_f(parent_id, name, attr_id, error)
+    call h5awrite_f(attr_id, H5T_NATIVE_DOUBLE, values, dims, error)
+    call h5aclose_f(attr_id, error)
+    
+  end subroutine update_vec_attr
 
 
   ! read_vec_attr (integer version)

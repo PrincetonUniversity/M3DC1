@@ -101,6 +101,7 @@ subroutine onestep
 #endif
 
 !!! for part tracing test only: 
+#ifdef USEPARTICLES
   ! Determine whether matrices should be re-calculated
   if(ifix_mhd.eq.1)then
      ! if MHD evolution is fixed for particle tracing, only calculate matrices once.
@@ -110,6 +111,7 @@ subroutine onestep
         calc_matrices = 0
      endif
   else
+#endif      
      if(first_time &
           .or. (linear.eq.0 .and. mod(ntime,nskip).eq.0) &
           .or. (integrator.eq.1 .and. ntime.eq.1) .or. meshAdapted .eq. 1) then
@@ -117,7 +119,9 @@ subroutine onestep
      else
         calc_matrices = 0
      endif
+#ifdef USEPARTICLES
   endif   !ifix_mhd==1
+#endif
 !!! 
 
   ! Advance impurity charge states
@@ -174,14 +178,20 @@ subroutine onestep
     ! advance time
     if(myrank.eq.0 .and. iprint.ge.1) print *, "Advancing time..."
     if(myrank.eq.0 .and. itimer.eq.1) call second(tstart)
+
 !!! for particle tracing fix-MHD test only:
+#ifdef USEPARTICLES
     if(ifix_mhd.ne.1)then
+#endif
        if(isplitstep.ge.1) then
           call step_split(calc_matrices)
        else
           call step_unsplit(calc_matrices)
        end if
+
+#ifdef USEPARTICLES
     endif   !ifix_mhd.ne.1
+#endif
 !!!
     if(myrank.eq.0 .and. itimer.eq.1) then 
        call second(tend)

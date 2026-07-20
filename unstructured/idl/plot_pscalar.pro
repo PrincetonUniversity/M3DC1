@@ -116,6 +116,9 @@ function read_pscalar, scalarname, filename=filename, title=title, $
       npart_trace = s.npart_trace._data[0]
       pdims_trace = s.pdims_trace._data[0]
       pdata_trace_id = s.pdata_trace_id._data
+
+      partloss_count = s.partloss_count._data
+      ;print, "partloss_size = ", SIZE(partloss_count,/DIMENSIONS)
    
    ;   print, "all_traced_particle_size = ", SIZE(all_traced_particle_data,/DIMENSIONS)
       print, "number of traced particles = ",npart_trace
@@ -169,10 +172,11 @@ function read_pscalar, scalarname, filename=filename, title=title, $
    ; ;;; test output:
    ; rdata_substeps = reform(pdata_substeps[0,select_id,*])
    ; print,"rdata_substeps_size",size(rdata_substeps,/DIMENSIONS)
-   ; print,"rdata_substeps[10:30] = ",rdata_substeps[10:30]
+   ; print,"rdata_substeps[490:510] = ",rdata_substeps[490:510]
+   ; print,"rdata_substeps[990:1010] = ",rdata_substeps[990:1010]
    ; 
    ; rdata = reform(pdata[0,select_id,*])
-   ; print,"rdata[0:2] = ",rdata[0:2]
+   ; print,"rdata[0:4] = ",rdata[0:4]
 
    
    if(scalarname eq "r") then begin
@@ -199,6 +203,21 @@ function read_pscalar, scalarname, filename=filename, title=title, $
        if keyword_set(substep) and keyword_set(nsubsteps_trace>0) then zdata = reform(pdata_substeps[2,select_id,*])
        print,"reading Z data"
        return, zdata
+   endif
+
+   if(scalarname eq "partloss_count") then begin
+       ; use reform to remove all dims of size 1
+       time = s.time._data
+       ; print,"times_size = ",size(time,/DIMENSIONS)
+       partloss_count = s.partloss_count._data
+       ; print, "partloss_size = ", SIZE(partloss_count,/DIMENSIONS)
+       
+       time = time - time[0]
+
+       ;if keyword_set(substep) and keyword_set(nsubsteps_trace>0) then zdata = reform(pdata_substeps[2,select_id,*])
+       
+       print,"reading partloss_count data"
+       return, {time: time, data: partloss_count}
    endif
 
 ;     print,"plot RZ trajectory of traced particle, #",select_id
@@ -276,13 +295,14 @@ pro plot_pscalar, scalarname, x, filename=filename, names=names, $
   ; Close the file
   CLOSE, unit
 
-
   if(scalarname eq "rz") then begin
       xdata = rdata ;read_pscalar("r", filename=filename, pid=pid, _EXTRA=extra)
       xtitle = "R axis"
       ydata = zdata ;read_pscalar("z", filename=filename, pid=pid, _EXTRA=extra)
       ytitle = "Z axis"
 
+      print,"Trajectory of traced particle, #",pid+1
+      title_str = 'Trajectory of traced particle, #'+STRTRIM(STRING(floor(pid+1)),2)
       plot_dims = 2
   endif
 
@@ -300,6 +320,8 @@ pro plot_pscalar, scalarname, x, filename=filename, names=names, $
       ydata = rdata * SIN(tdata)
       ytitle = "Y axis"
 
+      print,"Trajectory of traced particle, #",pid+1
+      title_str = 'Trajectory of traced particle, #'+STRTRIM(STRING(floor(pid+1)),2)
       plot_dims = 2
 ;       title_str = 'R-Phi Trajectory of traced particle, #'+STRTRIM(STRING(floor(pid+1)),2)
 ;       ; PSYM sets marker style, COLOR sets marker color
@@ -312,6 +334,8 @@ pro plot_pscalar, scalarname, x, filename=filename, names=names, $
       ydata = zdata ;read_pscalar("z", filename=filename, pid=pid, _EXTRA=extra)
       ytitle = "Z axis"
 
+      print,"Trajectory of traced particle, #",pid+1
+      title_str = 'Trajectory of traced particle, #'+STRTRIM(STRING(floor(pid+1)),2)
       plot_dims = 2
   endif
 
@@ -332,6 +356,21 @@ pro plot_pscalar, scalarname, x, filename=filename, names=names, $
       ytitle = "Y axis"
 
       plot_dims = 3
+  endif
+
+  if(scalarname eq "partloss") then begin
+
+      plot_data = read_pscalar("partloss_count", filename=filename, pid=pid, substep=substep, _EXTRA=extra)
+      ; print,"plot_data_size",size(plot_data,/DIMENSIONS)
+    
+      xdata = plot_data.time ;read_pscalar("r", filename=filename, pid=pid, _EXTRA=extra)
+      xtitle = "time"
+      ydata = plot_data.data ;read_pscalar("z", filename=filename, pid=pid, _EXTRA=extra)
+      ytitle = "Particle loss count"
+
+      print,"Particle loss history plotted."
+      title_str = "Particle loss history"
+      plot_dims = 2
   endif
 
   if(plot_dims eq 3) then begin  
@@ -356,11 +395,20 @@ pro plot_pscalar, scalarname, x, filename=filename, names=names, $
    
    ;  data = power_spectrum(data, frequency=tdata, t=max(time))
    
-      print,"Trajectory of traced particle, #",pid+1
-      title_str = 'Trajectory of traced particle, #'+STRTRIM(STRING(floor(pid+1)),2)
+      ; print,"Trajectory of traced particle, #",pid+1
+      ; title_str = 'Trajectory of traced particle, #'+STRTRIM(STRING(floor(pid+1)),2)
       ; PSYM sets marker style, COLOR sets marker color
-      PLOT, xdata, ydata, TITLE=title_str, XTITLE=xtitle, YTITLE=ytitle, PSYM=3, LINESTYLE=0 ;, PSYM=4, COLOR="red"; , LINESTYLE=1
+      PLOT, xdata, ydata, TITLE=title_str, XTITLE=xtitle, YTITLE=ytitle, PSYM=3, LINESTYLE=0, _EXTRA=extra, ylog=ylog, xlog=xlog ;, PSYM=4, COLOR="red"; , LINESTYLE=1
       ;PLOT, xdata, ydata, TITLE=title_str, XTITLE=xtitle, YTITLE=ytitle, LINESTYLE=0 ;, PSYM=4, COLOR="red"; , LINESTYLE=1
+      
+      ; 2. Mark the START point (index 0) with a large circle/diamond
+      ; PSYM=4 is a diamond, SYMSIZE increases the size, COLOR=255 assumes standard RGB red
+      OPLOT, [xdata[0]], [ydata[0]], PSYM=4, SYMSIZE=2.5, COLOR='FF0000'x
+      
+      ; 3. Mark the LAST point (index -1) with a large X
+      ; Using XYOUTS lets you print an actual "X" character exactly on the coordinates
+      OPLOT, [xdata[-1]], [ydata[-1]], PSYM=7, SYMSIZE=2.5, COLOR='FF0000'x
+      ;XYOUTS, xdata[-1], ydata[-1], 'X', ALIGNMENT=0.5, CHARSIZE=2.0, COLOR='0000FF'x
   endif
 
 ;
