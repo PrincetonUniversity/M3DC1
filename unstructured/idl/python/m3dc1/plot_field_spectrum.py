@@ -157,8 +157,12 @@ def plot_field_spectrum(
         mvals = np.asarray(m_val, dtype=int).reshape(-1)
     nflux = np.asarray(spec.fc.psi_norm, dtype=float)
     qprof = np.asarray(spec.fc.q, dtype=float)
-    ntor = int(read_parameter("ntor", filename=filename, cgs=cgs, mks=mks))
-    q_target = np.abs(mvals / float(ntor))
+    nvals = np.asarray(spec.n, dtype=int).reshape(-1)
+    ntor_plot = int(nvals[0]) if nvals.size > 0 else int(read_parameter("ntor", filename=filename, cgs=cgs, mks=mks))
+    if ntor_plot == 0:
+        q_target = np.full(mvals.shape, np.nan, dtype=float)
+    else:
+        q_target = np.abs(mvals / float(ntor_plot))
     ax = plt.gca() if overplot else plt.subplots(figsize=(7, 5))[1]
     fig = ax.figure
     cycle = plt.rcParams["axes.prop_cycle"].by_key().get("color", [])
@@ -181,8 +185,9 @@ def plot_field_spectrum(
             ax.set_xlabel(xlabel)
             ax.set_ylabel(ytitle)
         ax.plot(xplot, data, color=colors[i], linestyle=linestyle)
-        for fv in _find_profile_crossings(np.abs(qprof), xplot, float(q_target[i])):
-            ax.axvline(fv, color=colors[i], linestyle="--", linewidth=0.8)
+        if np.isfinite(q_target[i]):
+            for fv in _find_profile_crossings(np.abs(qprof), xplot, float(q_target[i])):
+                ax.axvline(fv, color=colors[i], linestyle="--", linewidth=0.8)
 
     ax.set_xlim(0.0, 1.0)
     finite = np.concatenate([p[np.isfinite(p)] for p in plotted]) if plotted else np.asarray([], dtype=float)

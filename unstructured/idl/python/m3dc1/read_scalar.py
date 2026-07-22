@@ -75,6 +75,30 @@ def _pick_pellet(data: np.ndarray, ipellet: int) -> np.ndarray:
     return np.asarray(arr[int(ipellet), :], dtype=float)
 
 
+def _trim_trailing_nan_samples(data: np.ndarray, time: np.ndarray) -> tuple[np.ndarray, np.ndarray]:
+    arr = np.asarray(data, dtype=float)
+    t = np.asarray(time, dtype=float).reshape(-1)
+    if arr.ndim == 0 or t.size == 0:
+        return arr, t
+
+    n = min(arr.shape[-1] if arr.ndim > 1 else arr.size, t.size)
+    if n <= 0:
+        return arr, t[:0]
+
+    if arr.ndim == 1:
+        valid = ~np.isnan(arr[:n])
+    else:
+        valid = np.any(~np.isnan(arr[..., :n]), axis=tuple(range(arr.ndim - 1)))
+    idx = np.flatnonzero(valid)
+    if idx.size == 0:
+        return arr, t
+
+    stop = int(idx[-1]) + 1
+    if arr.ndim == 1:
+        return arr[:stop], t[:stop]
+    return arr[..., :stop], t[:stop]
+
+
 def _integrate_series(data: np.ndarray, time: np.ndarray, ipellet: int) -> np.ndarray:
     arr = np.asarray(data, dtype=float)
     t = np.asarray(time, dtype=float).reshape(-1)
@@ -513,6 +537,7 @@ def read_scalar(
 
     data, title, symbol, d = _scalar_data_core(scalarname, scalars, filename=filename, ipellet=ipellet)
     time = np.asarray(_lc_get(scalars, "time"), dtype=float)
+    data, time = _trim_trailing_nan_samples(np.asarray(data, dtype=float), time)
 
     if integrate:
         data = _integrate_series(np.asarray(data, dtype=float), time, ipellet=ipellet)

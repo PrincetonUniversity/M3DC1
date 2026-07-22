@@ -164,7 +164,7 @@ subroutine init_perturbations
      if(izone.ne.1) cycle
 
      call define_element_quadrature(itri,int_pts_main,int_pts_tor)
-     call define_fields(itri,ifield,1,0)
+     call define_fields(itri,ifield,1,0,1)
 
      ps179 = 0.
      ph179 = 0.
@@ -475,6 +475,7 @@ subroutine kinetic_eq
   vectype, dimension(dofs_per_element) :: dofs
   real, dimension(MAX_PTS) :: n, p
   integer :: ip, izone
+  logical :: file_exists
   
   if(myrank.eq.0 .and. iprint.ge.1) print *, ' Defining density equilibrium'
   call create_field(den_vec)
@@ -556,56 +557,92 @@ subroutine kinetic_eq
      pf_field = den_vec
   endif
   if ((kinetic.eq.1).and.(kinetic_thermal_ion.eq.1)) then
-     !nvals = 0
-     !call read_ascii_column('nfi_profile', xvals, nvals, icol=1)
-     !call read_ascii_column('nfi_profile', yvals, nvals, icol=2)
-     !if(nvals.eq.0) call safestop(5)
-     !yvals = yvals / 1e6 / n0_norm !rsae
-     !xvals = xvals / xvals(nvals) ! normalize rho
-     !if(allocated(yvals)) then
-     !   call create_spline(nfi_spline, nvals, xvals, yvals)
-     !   deallocate(xvals, yvals)
-     !end if
-     den_vec=0.
-     do itri=1,numelms
-        call define_element_quadrature(itri,int_pts_main,int_pts_tor)
-        call define_fields(itri,def_fields,1,0)
+     file_exists = .False.
+     inquire(file='ni_profile', exist=file_exists)
+     if (file_exists) then
+        nvals = 0
+        call read_ascii_column('ni_profile', xvals, nvals, icol=1)
+        call read_ascii_column('ni_profile', yvals, nvals, icol=2)
+
+        if (nvals .eq. 0) call safestop(5)
+
+        yvals = yvals / 1e6 / n0_norm      ! normalize density
+        xvals = xvals / xvals(nvals)       ! normalize rho
+
+        if (allocated(yvals)) then
+           call create_spline(nfi_spline, nvals, xvals, yvals)
+           deallocate(xvals, yvals)
+        end if
+     endif
+
+     den_vec = 0.
+
+     do itri = 1, numelms
+
+        call define_element_quadrature(itri, int_pts_main, int_pts_tor)
+        call define_fields(itri, def_fields, 1, 0)
         call get_zone(itri, izone)
-        !temp79b = (xl_79-xcenter)**2 + (zl_79-zcenter)**2
-        !do j=1, npoints
-        !      call evaluate_spline(nfi_spline,temp79b(j),val)
-        !      n079(j,OP_1) = val
-        !end do
-        dofs = intx2(mu79(:,:,OP_1),n079(:,OP_1))
-        call vector_insert_block(den_vec%vec,itri,1,dofs,VEC_ADD)
+
+        temp79b = (xl_79 - xcenter)**2 + (zl_79 - zcenter)**2
+
+        if (file_exists) then
+           do j = 1, npoints
+              call evaluate_spline(nfi_spline, temp79b(j), val)
+              n079(j, OP_1) = val
+           end do
+        endif
+
+        dofs = intx2(mu79(:,:,OP_1), n079(:,OP_1))
+        call vector_insert_block(den_vec%vec, itri, 1, dofs, VEC_ADD)
      end do
-     call newvar_solve(den_vec%vec,mass_mat_lhs)
+
+     call newvar_solve(den_vec%vec, mass_mat_lhs)
+
      nfi_field = den_vec
 
-     !nvals = 0
-     !call read_ascii_column('tfi_profile', xvals, nvals, icol=1)
-     !call read_ascii_column('tfi_profile', yvals, nvals, icol=2)
-     !if(nvals.eq.0) call safestop(5)
-     !!yvals = yvals / n0_norm !rsae
-     !xvals = xvals / xvals(nvals) ! normalize rho
-     !if(allocated(yvals)) then
-     !   call create_spline(tfi_spline, nvals, xvals, yvals)
-     !   deallocate(xvals, yvals)
-     !end if
-     den_vec=0.
-     do itri=1,numelms
-        call define_element_quadrature(itri,int_pts_main,int_pts_tor)
-        call define_fields(itri,def_fields,1,0)
+     file_exists = .False.
+     inquire(file='ti_profile', exist=file_exists)
+     if (file_exists) then
+        nvals = 0
+        call read_ascii_column('ti_profile', xvals, nvals, icol=1)
+        call read_ascii_column('ti_profile', yvals, nvals, icol=2)
+
+        if (nvals .eq. 0) call safestop(5)
+
+        ! yvals = yvals / 1e6 / n0_norm      ! normalize density
+        xvals = xvals / xvals(nvals)       ! normalize rho
+
+        if (allocated(yvals)) then
+           call create_spline(tfi_spline, nvals, xvals, yvals)
+           deallocate(xvals, yvals)
+        end if
+     endif
+
+     den_vec = 0.
+
+     do itri = 1, numelms
+
+        call define_element_quadrature(itri, int_pts_main, int_pts_tor)
+        call define_fields(itri, def_fields, 1, 0)
         call get_zone(itri, izone)
-        !temp79b = (xl_79-xcenter)**2 + (zl_79-zcenter)**2
-        !do j=1, npoints
-        !      call evaluate_spline(tfi_spline,temp79b(j),val)
-        !      n079(j,OP_1) = val
-        !end do
-        dofs = intx2(mu79(:,:,OP_1),0.5*p079(:,OP_1)/n079(:,OP_1)/(1.6022e-12 / (b0_norm**2/(4.*pi*n0_norm))))
-        call vector_insert_block(den_vec%vec,itri,1,dofs,VEC_ADD)
+
+        temp79b = (xl_79 - xcenter)**2 + (zl_79 - zcenter)**2
+
+        if (file_exists) then
+           do j = 1, npoints
+              call evaluate_spline(tfi_spline, temp79b(j), val)
+              temp79a(j) = val
+           end do
+        else
+           temp79a=0.5*p079(:,OP_1)/n079(:,OP_1)/(1.6022e-12 / (b0_norm**2/(4.*pi*n0_norm)))
+        endif
+
+        dofs = intx2(mu79(:,:,OP_1), temp79a)
+        call vector_insert_block(den_vec%vec, itri, 1, dofs, VEC_ADD)
      end do
-     call newvar_solve(den_vec%vec,mass_mat_lhs)
+
+     call newvar_solve(den_vec%vec, mass_mat_lhs)
+
      tfi_field = den_vec
 
      den_vec=0.
@@ -613,16 +650,17 @@ subroutine kinetic_eq
         call define_element_quadrature(itri,int_pts_main,int_pts_tor)
         call define_fields(itri,def_fields,1,0)
         call get_zone(itri, izone)
-        !temp79b = (xl_79-xcenter)**2 + (zl_79-zcenter)**2
-        !do j=1, npoints
-        !  call evaluate_spline(nfi_spline,temp79b(j),val)
-        !  call evaluate_spline(tfi_spline,temp79b(j),val2)
-        !  if (fast_ion_dist==1) then
-        !    n079(j,OP_1) = val*val2* 1.6022e-12 / (b0_norm**2/(4.*pi*n0_norm))!rsae
-        !  endif
-        !end do
-        !dofs = intx2(mu79(:,:,OP_1),n079(:,OP_1))
-        dofs = intx2(mu79(:,:,OP_1),0.5*p079(:,OP_1))
+        temp79b = (xl_79 - xcenter)**2 + (zl_79 - zcenter)**2
+        if (file_exists) then
+           do j = 1, npoints
+              call evaluate_spline(nfi_spline, temp79b(j), val)
+              call evaluate_spline(tfi_spline, temp79b(j), val2)
+              temp79a(j) = val*val2* 1.6022e-12 / (b0_norm**2/(4.*pi*n0_norm))!rsae
+           end do
+        else
+           temp79a = 0.5*p079(:,OP_1)
+        endif
+        dofs = intx2(mu79(:,:,OP_1), temp79a)
         call vector_insert_block(den_vec%vec,itri,1,dofs,VEC_ADD)
      end do
      call newvar_solve(den_vec%vec,mass_mat_lhs)

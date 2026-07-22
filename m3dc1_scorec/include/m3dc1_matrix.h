@@ -118,13 +118,34 @@ private:
 
   // block mg in toroidal direction
   int _BgmgSet;         // only for mymatrix_id=5 or 17, the hard ones
+  int _BgmgfsSet; //only for mymatrix_id=5
   PetscInt mg_nlevels; // default = 2
-  // PC *pc;
+  PC pcfs;
   Mat *mg_interp_mat;
   KSP *mg_level_ksp;
   PC *mg_level_pc;
   int setBgmgType();
+  int setBgmgFSType();
   int mapping(int, int, int, int, int, int, int, int, int *, int *, int *);
+  IS *mg_field0, *mg_field1, *mg_field2;
+  int computeMGLevelData(int *&mg_nplanes);
+  int buildInterpMatrix(int level, Mat &mat, const int *mg_nplanes,
+      const int *mg_planeid, const int *mg_offset,
+      const int *mg_num_own_ent, const int *mg_start_ent,
+      int plane_dim, int dofPerEnt, int nplane, bool setMhardPrefix);
+
+  //plane solver: FieldSplit 20240311
+  int _fsSet; //only for mymatrix_id=5
+  int _fsBgmgSet; //only for mymatrix_id=5 or 17, the hard ones
+  IS field0, field1, field2;
+  int setFSType();
+  int setFSBgmgType();
+  int setupTopLevelFieldSplit(const char *prefix);
+
+  //Line solver: Line 20240313
+  int _LineSet;
+  IS *Line;
+  int setLSType();
 
   // remoteA related data
   std::set<int> *remotePidOwned;

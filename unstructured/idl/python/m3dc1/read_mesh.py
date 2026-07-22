@@ -17,6 +17,7 @@ class MeshData:
     nelms: int
     nplanes: int
     period: float
+    nperiods: int
 
 
 def _read_dataset_like(obj) -> np.ndarray:
@@ -67,14 +68,7 @@ def read_mesh(filename: str | Path = "C1.h5", slice: int = 0) -> MeshData:
         else:
             nplanes = int(read_parameter("nplanes", filename=filename)) if int(read_parameter("3d", filename=filename)) == 1 else 1
 
-        if "period" in mg:
-            period = float(np.asarray(_read_dataset_like(mg["period"])).reshape(-1)[0])
-        else:
-            itor = int(read_parameter("itor", filename=filename))
-            if itor == 1:
-                period = float(2.0 * np.pi)
-            else:
-                rzero = float(read_parameter("rzero", filename=filename))
-                period = float(2.0 * np.pi * rzero)
+        period = float(np.asarray(mg.attrs["period"]).reshape(-1)[0])
+        nperiods = int(np.asarray(mg.attrs["nperiods"]).reshape(-1)[0])
 
-    return MeshData(elements=elements, nelms=nelms, nplanes=max(nplanes, 1), period=period)
+    return MeshData(elements=elements, nelms=nelms, nplanes=max(nplanes, 1), period=period, nperiods=nperiods)

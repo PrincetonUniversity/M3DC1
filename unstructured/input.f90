@@ -393,7 +393,7 @@ subroutine set_defaults
        "Coulomb logarithm", misc_grp)
   call add_var_double("thermal_force_coeff", thermal_force_coeff, 0., &
        "Coefficient of thermal force", misc_grp)
-
+  
 
   ! Model options
   call add_var_int("numvar", numvar, 3, &
@@ -1201,7 +1201,7 @@ subroutine set_defaults
        "Number of toroidal planes", mesh_grp)
   call add_var_int("nperiods", nperiods, 1, &
        "Number of field periods", mesh_grp)
-  call add_var_int("ifull_torus", ifull_torus, 0, &
+  call add_var_int("ifull_torus", ifull_torus, 1, &
        "0 = one field period; 1 = full torus", mesh_grp)
   call add_var_int("iread_vmec",iread_vmec,0,&
        "1 = read geometry from VMEC file", mesh_grp)
@@ -1225,6 +1225,8 @@ subroutine set_defaults
        "", mesh_grp)
   call add_var_string("mesh_model", mesh_model, 256, "struct.dmg", &
        "", mesh_grp)
+  call add_var_string("model_info", model_info, 256, "dummyInfo", &
+        "", mesh_grp)
   call add_var_int("ipartitioned",ipartitioned,0,&
        "1 = the input mesh is partitioned", mesh_grp)
   call add_var_int("imatassemble", imatassemble, 0, &
@@ -1314,7 +1316,7 @@ subroutine set_defaults
        "1: Synchronize particle parallel flow to MHD", particle_grp)
   call add_var_double("kinetic_rhomax", kinetic_rhomax, 1., &
        "Maximum rho for kinetic particle", particle_grp)
-  call add_var_double("vpar_reduce", vpar_reduce, 0.5, &
+  call add_var_double("vpar_reduce", vpar_reduce, 0., &
        "Factor of parallel flow reduction for every timestep", particle_grp)
   call add_var_int("idiamagnetic_advection", idiamagnetic_advection, 0, &
        "1: Enable diamagnetic velocity advection term in momentum equation", particle_grp)
@@ -1775,7 +1777,7 @@ subroutine validate_input
 
   if(eqsubtract.eq.0) ifullf=1
 
-  if(ifullf.eq.1) particle_linear=0
+  ! if(ifullf.eq.1) particle_linear=0
 
   if(fast_ion_mass.eq.0) fast_ion_mass=ion_mass
 

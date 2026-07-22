@@ -70,6 +70,7 @@
   - Use `timeslices` argument name (not `slices`/`time`).
   - `read_field.py` no longer uses `x,y,t` positional arguments.
   - `plot_field.py` no longer uses `x,y` arguments and uses `timeslices`.
+  - `read_field.py` supports `cutx` and `cutz` to return 1D field cuts, matching `plot_field.py` cut semantics.
 - Multi-timeslice behavior:
   - `read_field.py` supports multiple `timeslices` including `diff` behavior.
   - `plot_field.py` should pass multi-`timeslices` through to `read_field.py`.
@@ -90,7 +91,18 @@
   - Pass `logical` through to all internal `plot_mesh(...)` calls.
 - Magnetic probe plotting naming:
   - Python entry is `plot_mag_probes(...)` (plural), corresponding to IDL `plot_mag_probes.pro` in the upper-level IDL directory.
-  - It returns `(tdata, data)` and wraps `plot_signals("mag_probes", ...)`.
+  - It wraps `plot_signals("mag_probes", ...)`.
+- `read_signals.py` / `plot_signals.py` conventions:
+  - `read_signals.py` owns signal/time shape normalization.
+  - If signal data has fewer time samples than the scalar `time` array, shorten the time array to the signal length; this can happen after a restarted run.
+  - Use the declared signal count (`imag_probes` / `iflux_loops`) to orient signal matrices as `[n_signal, n_time]`.
+  - `plot_signals.py` returns `(figure, axis)` when plotting.
+  - `plot_signals.py` returns `(None, None)` when `noplot=True`.
+  - `plot_mag_probes.py` should return the same `(figure, axis)` result from `plot_signals.py`.
+  - `plot_signals.py` and `plot_mag_probes.py` support `xscale` and `yscale`; apply them after `read_signals.py` returns data, so plotting and `outfile` use scaled values.
+- `read_signals_zeropoint.py` conventions:
+  - Scan zero crossings from the latest time sample backward so `max_points` selects the most recent crossings.
+  - Return the selected zero-point times in ascending time order.
 - Plot printing helpers:
   - `plot_scalar.py` supports `print=True` to print the plotted 1D y-data.
   - `plot_flux_average.py` supports `print=True` to print the plotted 1D y-data.
@@ -103,9 +115,12 @@
   - If `xrange` is not set and `xlog` is false, the x-axis should start at `0`.
   - If `xrange` is set and `yrange` is not, derive y-limits from the visible x-window only.
   - Use a tolerance of `1e-9` when deciding whether data is effectively all positive or all negative.
+  - `plot_scalar.py` supports `xscale` for plotted x values and `yscale` for plotted/output/printed y values.
 - `flux_average.py` / `plot_flux_average.py` interface updates:
   - Public argument name is `timeslices`.
   - Accept `psi_norm`, `phi_norm`, and `rho` to select the x-axis coordinate.
+  - `plot_flux_average.py` supports `yscale` for plotted/output/printed y values.
+  - `plot_flux_average.py` does not use an `xscale` argument.
   - In `plot_flux_average.py`, force the x-axis to `[0, 1]` on linear scale.
   - In `plot_flux_average.py`, use a tolerance of `0.001` for sign/near-zero decisions.
   - `plot_flux_average('q', timeslices)` should build flux coordinates using the requested `timeslices` value, not silently fall back to slice `0`.
@@ -120,6 +135,11 @@
   - Do not transpose the `field_at_point(...)` output before flux-surface averaging.
 - `field_spectrum.py` / `read_field_spectrum.py` / `plot_field_spectrum.py` conventions:
   - Default to reading fields with `complex=True` for spectrum calculations, with fallback to real data if the complex companion field is missing.
+  - For 3D files with toroidal periodicity, use `read_mesh(...).period` from `mesh.attrs["period"]` for toroidal sampling; do not assume a full `0..2*pi` torus.
+  - Use `mesh.attrs["nperiods"]` to interpret toroidal FFT bins:
+    - valid requested `ntor` values must be multiples of `nperiods`
+    - FFT bin selection is `ntor / nperiods`
+    - returned/labeled toroidal mode numbers are `0, nperiods, 2*nperiods, ...`
   - `read_field_spectrum.py` coordinate-mode defaults depend on `itor` when none of `pest`, `boozer`, `hamada`, or `fast` is selected:
     - `itor=1` defaults to `pest=True`
     - `itor=0` defaults to `pest=False` and `fast=False`
@@ -131,16 +151,26 @@
   - `field_spectrum.py` and `read_field_spectrum.py` support `m_val`; `read_field_spectrum.py` also accepts `m_vals` as an alias.
   - `field_spectrum.py` supports x-axis selection via `psi_norm`, `phi_norm`, and `rho`.
   - `plot_field_spectrum.py` should use Matplotlib default `axes.prop_cycle` colors.
+  - `plot_field_spectrum.py` should keep the raw spectrum amplitude convention from `read_field_spectrum(...)`; do not add Schaffer-specific normalization by `fc.area` or `fc.dpsi_dchi`.
   - If `m_val` is not provided to `plot_field_spectrum.py`, choose the 5 `m` values with the largest maximum absolute amplitudes and plot those.
   - When auto-selecting `m` values in `plot_field_spectrum.py`, ignore `NaN` amplitudes and rank using finite amplitudes across both positive and negative `m`.
-  - For each `q_target` in `plot_field_spectrum.py`, draw vertical resonance lines for all profile crossings, not just one interpolated crossing.
+  - For each `q_target` in `plot_field_spectrum.py`, draw one single dashed vertical resonance line using the interpolated profile location; do not draw all profile crossings.
   - Other helper callers that build `flux_coordinates(...)` without an explicit slice should follow the same file-parameter `linear` rule:
     - `flux_at_q.py`
     - `schaffer_plot.py`
     - `flux_coord_field.py`
+- `schaffer_plot.py` conventions:
+  - Public argument order is `schaffer_plot(field, timeslices=-1, x=None, z=None, ...)`.
+  - For string field input, `schaffer_plot.py` should use `read_field_spectrum(...)` so its read/default/`ntor` behavior stays aligned with `plot_field_spectrum.py`.
+  - `schaffer_plot.py` should accept `tpoints` and pass it through the spectrum-read path for `3d=1` toroidal sampling.
+  - `schaffer_plot.py` should use the same raw spectrum amplitude convention as `plot_field_spectrum.py`; do not divide by `fc.area` or `fc.dpsi_dchi`.
+  - In the 1D `m_val` branch, use Matplotlib default `axes.prop_cycle` colors and draw resonance lines for all `q` crossings, consistent with `plot_field_spectrum.py`.
+  - In the 2D contour branch, default to filled contours with `levels=100` and `lines=False`; expose `lines` to overlay contour lines when requested.
 - `read_scalar.py` / `plot_scalar.py` interface update:
   - Use public argument name `growth` instead of `growth_rate`.
   - Keep `growth_rate` only as a backward-compatible alias when needed.
+  - `read_scalar.py` should trim trailing scalar samples whose values are `NaN`, and trim the time array to the same endpoint.
+  - For multi-row scalar data, trim only trailing time samples where all rows are `NaN`; keep interior `NaN` values unchanged.
 - `read_hmn.py` / `plot_hmn.py` conventions:
   - Keep harmonics reading and plotting split across two files:
     - `read_hmn.py` for data loading / metadata assembly
@@ -154,6 +184,10 @@
   - Auto `ylim` in `plot_hmn.py` should extend the upper bound by 10%.
   - When `growth=True`, add a horizontal line at `y=0`.
   - `plot_hmn.py` supports `print=<int>` to print the selected harmonic component `n` values with aligned formatting, 8 values per row.
+  - `read_hmn.py` and `plot_hmn.py` support `n_val` to select specific harmonic `n` components.
+  - If any requested `n_val` is outside the available harmonic range, raise `ValueError`.
+  - `plot_hmn.py` labels plotted curves with the actual selected `n` values, not positional indices.
+  - `plot_hmn.py` supports `xscale` for plotted time values.
 - `contour_and_legend.py` level handling:
   - In `contour_and_legend_single(...)`, if explicit contour level values are provided, expand that existing level span by 1% and regenerate the same number of levels over the expanded span.
   - If contour levels are not provided, or only a level count is provided, build levels from the panel min/max and expand that span by 1%.
@@ -162,11 +196,47 @@
     - `fill=False` should draw contour lines only and skip the colorbar path.
 - `plot_field.py` interface update:
   - Add `colorbar` argument; when `colorbar=False`, do not create a colorbar for the contour plot.
+  - Add `xscale` and `yscale` arguments for plotted coordinates.
+  - Add `scale` argument for plotted field values before contours, cuts, color levels, and saved array output.
   - Accept field input as a field name `str`, a 2D array, or a `FieldResult`.
   - For 2D array input, require explicit `r` and `z` plotting grids.
+  - Coordinate overlays called from `plot_field.py` should stay aligned with scaled axes:
+    - `plot_mesh.py`
+    - `plot_lcfs.py`
+    - `plot_wall_regions.py`
+    - `plot_flux_contour.py`
+    - `plot_coils.py`
+- `read_poincare.py` / `plot_poincare.py` conventions:
+  - Keep Poincare file reading in `read_poincare.py` and plotting in `plot_poincare.py`.
+  - `read_poincare.py` reads numeric `out*` text files, naturally sorts numbered files, and skips empty files by default.
+  - Default Poincare coordinates are Python columns `rcol=1` and `zcol=2`, matching the historical plotting of `b[:,1]` versus `b[:,2]`.
+  - `plot_poincare.py` returns `(figure, axis)`.
+  - `plot_poincare.py` default point color is black.
+  - `plot_poincare.py` supports `color=True` to plot each `out*` file with a different Matplotlib cycle color.
+  - `plot_poincare.py` supports `iso=True` via `ax.set_aspect('equal')`, matching other plot functions.
+  - When `plot_poincare.py` is called with `overplot=True`, do not retitle or relayout the existing figure.
+  - When `plot_poincare.py` is called with `overplot=True` and `markersize` is not explicitly set, use `markersize=0.1`.
+  - `plot_field.py` supports `poincare=True` to overplot Poincare points on top of a field plot; pass scaled axes through with `xscale` and `yscale`.
+- `plot_field_vs_phi.py` conventions:
+  - Public signature should be `plot_field_vs_phi(field, timeslices=0, *, ...)`, matching other plot APIs with `timeslices` directly after the field name.
+  - Require exactly one of `cutx` or `cutz`.
+  - Default `phirange` must come from mesh attributes, not from a hardcoded full torus:
+    - read `mesh.attrs["period"]`
+    - read `mesh.attrs["nperiods"]`
+    - for `nperiods > 1`, constrain the default toroidal range to the reduced sector (`2*pi/nperiods` for `itor=1`)
+    - convert to degrees for plotting when `itor=1`
+  - Use `read_field(...)`, `field_at_point(...)`, and `contour_and_legend(...)`; keep plotting separate from field-reading logic.
+  - When `mesh=True`, overlay toroidal plane locations from `mesh.attrs["phi"]`.
+- `eval_field.py` / 3D toroidal mesh behavior:
+  - When selecting 3D toroidal mesh slabs, use a small `dphi`-relative tolerance and clamp boundary-local `phi` values so exact plane-boundary angles such as `phi=30` do not reject both adjacent slabs.
 - `read_field_ntor.py` / `plot_field_ntor.py` conventions:
   - `read_field_ntor.py` returns toroidal Fourier components on the original 2D `(r, z)` grid without flux-coordinate remapping and without a poloidal (`m`) Fourier transform.
   - `read_field_ntor.py` only supports files with `3d=1`; otherwise it should raise an error.
+  - For 3D files with toroidal periodicity, `read_field.py` must build the sampled `phi` array from `read_mesh(...).period`, which comes from `mesh.attrs["period"]`.
+  - Use `mesh.attrs["nperiods"]` for toroidal mode validation and FFT-bin mapping:
+    - requested `ntor` values must be multiples of `nperiods`
+    - FFT bin selection is `ntor / nperiods`
+    - returned/labeled toroidal mode numbers are `0, nperiods, 2*nperiods, ...`
   - `read_field_ntor.py` reads the 3D toroidal stack as real data and applies the complex toroidal FFT in Python.
   - `read_field_ntor.py` accepts `ntor` as `None`, a scalar, or an array; `None` returns all toroidal FFT bins and the corresponding `n` array.
   - `read_field_ntor.py` accepts `phi` and applies a toroidal phase factor `exp(i n phi)` to the returned harmonic(s), using degrees when `itor=1`.
@@ -186,12 +256,16 @@
   - `flux_coordinates.py` should pass its `slice` argument through to `lcfs(...)` so LCFS quantities are read from the matching time slice.
 - `read_field.py` equilibrium handling:
   - For `equilibrium=True` with `eqsubtract=1`, force reads to slice `-1` to avoid recursive total-field reconstruction loops.
+  - For `eqsubtract=1` total-field reads at nonnegative `timeslices`, preserve `FieldResult.time` from the requested timeslice even when equilibrium slice `-1` is read later.
+  - For `read_field("by")`, compute `B_phi = I / R` using `radius_matrix(...)`.
+  - `radius_matrix.py` must read `itor` from the HDF5 file attribute via `read_parameter("itor", filename=...)`; do not pass `itor` as a public argument.
+  - For `itor=0`, `radius_matrix.py` must use the file attribute `rzero` as the effective radius, not mesh `R`.
   - `flux_coordinates.py` should pass its `slice` argument through to `lcfs(...)` so LCFS quantities are read from the matching time slice.
 - `read_field.py` equilibrium handling:
   - For `equilibrium=True` with `eqsubtract=1`, force reads to slice `-1` to avoid recursive total-field reconstruction loops.
 - `lcfs.py` / `read_lcfs.py` slice behavior:
   - `lcfs.py` should accept an explicit `slice` argument and pass it directly to `read_lcfs(...)`.
-  - `read_lcfs.py` should respect negative slices in Python-style form, e.g. `slice=-1` means the last available slice.
+  - `read_lcfs.py` should treat any `slice < 0` as the equilibrium LCFS entry (scalar index `0`), matching `read_field(..., timeslices=-1)` equilibrium behavior.
   - `read_lcfs.py` should reproduce the IDL print behavior:
     - `slice time = ...`
     - `time step time: ...`

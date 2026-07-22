@@ -13,6 +13,7 @@ from .dimensions import dimensions
 from .a_bracket import a_bracket
 from .delstar import delstar
 from .eval_field import eval_field
+from .field_at_point import field_at_point
 from .field_data import field_data
 from .flux_average_field import flux_average_field
 from .get_slice_time import get_slice_time
@@ -72,6 +73,50 @@ def _read_field_dataset(time_group: h5py.Group, name: str) -> np.ndarray:
     if arr.shape[0] > arr.shape[1]:
         arr = arr.T
     return arr
+
+
+def _apply_field_cut(out: FieldResult, *, cutx=None, cutz=None) -> FieldResult:
+    if cutx is None and cutz is None:
+        return out
+    if cutx is not None and cutz is not None:
+        raise ValueError("read_field() accepts only one of cutx or cutz.")
+
+    if cutx is not None:
+        xv = float(cutx)
+        zline = np.asarray(out.z, dtype=float).reshape(-1)
+        xline = np.full_like(zline, xv)
+        data_cut = field_at_point(np.asarray(out.data), out.r, out.z, xline, zline)
+        mask_cut = None
+        if out.mask is not None:
+            mask_cut = field_at_point(np.asarray(out.mask, dtype=float), out.r, out.z, xline, zline)
+        return FieldResult(
+            data=np.asarray(data_cut),
+            symbol=out.symbol,
+            units=out.units,
+            dimensions=out.dimensions,
+            r=xline,
+            z=zline,
+            time=out.time,
+            mask=None if mask_cut is None else np.asarray(mask_cut),
+        )
+
+    zv = float(cutz)
+    rline = np.asarray(out.r, dtype=float).reshape(-1)
+    zline = np.full_like(rline, zv)
+    data_cut = field_at_point(np.asarray(out.data), out.r, out.z, rline, zline)
+    mask_cut = None
+    if out.mask is not None:
+        mask_cut = field_at_point(np.asarray(out.mask, dtype=float), out.r, out.z, rline, zline)
+    return FieldResult(
+        data=np.asarray(data_cut),
+        symbol=out.symbol,
+        units=out.units,
+        dimensions=out.dimensions,
+        r=rline,
+        z=zline,
+        time=out.time,
+        mask=None if mask_cut is None else np.asarray(mask_cut),
+    )
 
 
 def _read_primitive(
@@ -249,6 +294,8 @@ def read_field(
     real: bool = False,
     imaginary: bool = False,
     edge_val=None,
+    cutx=None,
+    cutz=None,
     phi: float = 0.0,
     time=None,
     abs: bool = False,
@@ -271,6 +318,9 @@ def read_field(
 ):
     """Python port of read_field.pro (core recursive behavior)."""
     del mesh, h_symmetry, v_symmetry, dpsi, dimensions_out, flux_average, is_nonlinear, outval
+
+    if cutx is not None and cutz is not None:
+        raise ValueError("read_field() accepts only one of cutx or cutz.")
 
     if isinstance(filename, (list, tuple)):
         files = list(filename)
@@ -346,6 +396,7 @@ def read_field(
             time=base.time,
             mask=base.mask,
         )
+        out = _apply_field_cut(out, cutx=cutx, cutz=cutz)
         return out if return_meta else out.data
 
     # diff across files or timeslices (alternating signs like IDL)
@@ -405,6 +456,7 @@ def read_field(
             time=base.time,
             mask=base.mask,
         )
+        out = _apply_field_cut(out, cutx=cutx, cutz=cutz)
         return out if return_meta else out.data
 
     filename = files[0]
@@ -447,7 +499,7 @@ def read_field(
     )
 
     phi_arr = np.asarray(phi, dtype=float).reshape(-1)
-    period = 2.0 * np.pi if itor == 1 else 2.0 * np.pi * float(read_parameter("rzero", filename=filename))
+    period = float(read_mesh(filename=filename, slice=slice_idx).period)
     if tpoints is None:
         nphi = int(phi_arr.size)
     else:
@@ -556,6 +608,7 @@ def read_field(
             time=meta.time,
             mask=meta.mask,
         )
+        out = _apply_field_cut(out, cutx=cutx, cutz=cutz)
         return out if return_meta else out.data
 
     if phi_arr.size > 0:
@@ -565,7 +618,7 @@ def read_field(
         nphi = int(taverage if isinstance(taverage, int) else 16)
         if nphi <= 0:
             nphi = 16
-        period = 2.0 * np.pi if itor == 1 else 2.0 * np.pi * float(read_parameter("rzero", filename=filename))
+        period = float(read_mesh(filename=filename, slice=slice_idx).period)
         phis = np.linspace(0.0, period, nphi, endpoint=False)
         if itor == 1:
             phis = phis * 180.0 / np.pi
@@ -606,6 +659,7 @@ def read_field(
             time=meta.time,
             mask=meta.mask,
         )
+        out = _apply_field_cut(out, cutx=cutx, cutz=cutz)
         return out if return_meta else out.data
 
     # IDL block (around line 227): for eqsubtract=1 non-linear reads, build total
@@ -661,8 +715,10 @@ def read_field(
             return_meta=True,
         )
 
+        requested_time = float(get_slice_time(filename=filename, slice=slice_idx, cgs=cgs, mks=mks)[0])
         if data1 is None:
             out = data0
+            out.time = requested_time
         else:
             out = FieldResult(
                 data=np.asarray(data0.data) + np.asarray(data1.data),
@@ -671,10 +727,11 @@ def read_field(
                 dimensions=data0.dimensions,
                 r=data0.r,
                 z=data0.z,
-                time=data0.time,
+                time=requested_time,
                 mask=data0.mask,
             )
         print("**********************************************************")
+        out = _apply_field_cut(out, cutx=cutx, cutz=cutz)
         return out if return_meta else out.data
 
     if linear and isubeq == 0 and slice_idx >= 0 and not complex:
@@ -725,6 +782,7 @@ def read_field(
             time=f1.time,
             mask=f1.mask,
         )
+        out = _apply_field_cut(out, cutx=cutx, cutz=cutz)
         return out if return_meta else out.data
 
     if complex:
@@ -2367,7 +2425,7 @@ def read_field(
                 out = read_field("bt", filename=filename, timeslices=slice_idx, points=points, xrange=xrange, yrange=yrange, cgs=cgs, mks=mks, return_meta=True)
             elif n in {"toroidal field", "by", "bt"}:
                 I = read_field("I", filename=filename, timeslices=slice_idx, points=points, xrange=xrange, yrange=yrange, linear=linear, complex=False, phi=phi, cgs=cgs, mks=mks, return_meta=True)
-                rmat = radius_matrix(I.r, I.z) if itor == 1 else np.ones_like(np.asarray(I.data), dtype=float)
+                rmat = radius_matrix(I.r, I.z, filename=filename, cgs=cgs, mks=mks)
                 d = dimensions(b0=1)
                 data = np.asarray(I.data) / rmat
                 out = FieldResult(data=data, symbol="$B_{phi}$", units=parse_units(d, cgs=cgs, mks=mks), dimensions=d, r=I.r, z=I.z, time=I.time, mask=I.mask)
@@ -2496,6 +2554,8 @@ def read_field(
         out.time = float(get_slice_time(filename=filename, slice=slice_idx, cgs=cgs, mks=mks)[0])
     else:
         out.time = 0.0
+
+    out = _apply_field_cut(out, cutx=cutx, cutz=cutz)
 
     if return_meta or rvector or zvector:
         if symbol is not None:

@@ -869,7 +869,7 @@ int m3dc1_model_getmaxcoord(double* x_max, double* y_max)
 //*******************************************************
 int m3dc1_model_load(char* /* in */ model_file)
 //*******************************************************
-{  
+{ 
   FILE *test_in = fopen (model_file,"r");
   if (!test_in)
   {
@@ -880,18 +880,131 @@ int m3dc1_model_load(char* /* in */ model_file)
   else
     fclose(test_in);
 
-  pGeom g = pumi_geom_load(model_file, "analytic");
-  m3dc1_model::instance()->model = g->getGmi();
-  m3dc1_model::instance()->load_analytic_model(model_file); 
+  pGeom g;
+  std::string model_name = model_file; 
+  if(model_name.substr(model_name.find_last_of(".") + 1) == "dmg")
+  { // modelType = 2 (.dmg model)
+    g = pumi_geom_load(model_file, "mesh");
+    m3dc1_model::instance()->model = g->getGmi();   
+    gmi_register_mesh();
+    m3dc1_model::instance()->model = gmi_load(model_file);
+    m3dc1_model::instance()->modelType = 2;
+  }
+  else
+  { // modelType = 1 (non .dmg models)
+    g = pumi_geom_load(model_file, "analytic");
+    m3dc1_model::instance()->model = g->getGmi();
+    m3dc1_model::instance()->load_analytic_model(model_file); 
+    m3dc1_model::instance()->modelType = 1;
+  }
   pumi_geom_freeze(g);
 
-  m3dc1_model::instance()->caculateBoundingBox();
-  // save the num of geo ent on the oringal plane
+  if (m3dc1_model::instance()->modelType == 1)
+    m3dc1_model::instance()->caculateBoundingBox();
+
+  // save the num of geo ent on the oringal plan
   m3dc1_model::instance()->numEntOrig[0]=m3dc1_model::instance()->model->n[0];
-  //if (m3dc1_model::instance()->model->n[1]==1) assert(m3dc1_model::instance()->numEntOrig[0]==0); // for a smooth loop, there is no geo vtx 
   m3dc1_model::instance()->numEntOrig[1]=m3dc1_model::instance()->model->n[1];
   m3dc1_model::instance()->numEntOrig[2]=m3dc1_model::instance()->model->n[2];
   return M3DC1_SUCCESS;
+}
+//*******************************************************
+void m3dc1_model_getmodeltype(int* modeltype)
+//*******************************************************
+{
+  // 1 for .txt model, 2 for .dmg model
+  *modeltype = m3dc1_model::instance()->modelType;
+}
+
+//*******************************************************
+int m3dc1_modelinfo_load(char* /* in */ modelInfo_file)
+//*******************************************************
+{
+  if (m3dc1_model::instance()->modelType == 1)
+    return M3DC1_SUCCESS;  // only move forward for .dmg models
+
+  assert(m3dc1_model::instance()->modelType == 2);
+  if (std::strcmp(modelInfo_file, "dummyInfo") == 0)
+  {
+    std::cout << "Make sure to provide model_info file since model is .dmg\n";
+    exit(1);  // Need to have model info file
+  }
+
+  std::cout << "Model Info file = " << modelInfo_file << "\n";
+  
+  // Check if the given model info file exists or not:
+  std::ifstream ifs(modelInfo_file); 
+  if (!ifs) 
+  {
+    if (!PCU_Comm_Self()) 
+      std::cout<<"[M3D-C1 ERROR] "<<__func__<<" failed: model file \""<<modelInfo_file<<"\" doesn't exist\n";
+    return M3DC1_FAILURE; 
+  }
+
+  // Load the content of the model info file
+  // First read the bounding box
+  double r_min, z_min, r_max, z_max;
+  ifs >> r_min >> z_min >> r_max >> z_max;
+  m3dc1_model::instance()->boundingBox[0]= r_min;
+  m3dc1_model::instance()->boundingBox[1]= z_min;
+  m3dc1_model::instance()->boundingBox[2]= r_max;
+  m3dc1_model::instance()->boundingBox[3]= z_max;
+
+  // Read total number of edges on the model
+  int numModelEdges = 0;
+  ifs >> numModelEdges;
+  m3dc1_model::instance()->numModelEdges = numModelEdges;
+
+  // Read innermost loop
+  int numEdges = 0;
+  ifs >> numEdges;
+  for (int i = 0; i < numEdges; i++)
+  {
+    int edgeId;
+    ifs >> edgeId;
+    m3dc1_model::instance()->innerLoop.push_back(edgeId);
+  } 
+  
+  // Read outermost loop
+  ifs >> numEdges;
+  for (int i = 0; i < numEdges; i++)
+  {
+    int edgeId;
+    ifs >> edgeId;
+    m3dc1_model::instance()->outerLoop.push_back(edgeId);
+  } 
+}
+
+// ****************************************************
+void m3dc1_model_getnumedges(int* numedges)
+// ****************************************************
+{
+  *numedges = m3dc1_model::instance()->numModelEdges;
+}
+
+// ****************************************************
+void m3dc1_model_getgeometricloop(int* modelEdges, int* numberOfEdges, int* loopType)
+// ****************************************************
+{
+  std::vector <int> geomEdges;
+  if (*loopType == 0)
+    geomEdges = m3dc1_model::instance()->innerLoop;
+  else if (*loopType == 1)
+    geomEdges = m3dc1_model::instance()->outerLoop;
+  else  // might add further types in future
+  {
+    std::cout << "Incorrect Loop Type. Set 0 for inner loop, and 1 for outer loop\n";
+    exit(1);
+  }
+
+  // Print a warning if the requested loop does not exist.
+  if (geomEdges.size() == 0)
+    std::cout << "Warning: The requested loop has zero edges - Loop does not exist in the model\n";
+
+  for (int i = 0; i <  geomEdges.size(); i++)
+    modelEdges[i] = geomEdges[i];
+
+  *numberOfEdges = geomEdges.size();
 }
 
 //*******************************************************
@@ -1074,6 +1187,9 @@ int m3dc1_mesh_load(char* mesh_file)
 
     /* vertex load balancing */
     //Parma_PrintPtnStats(m3dc1_mesh::instance()->mesh, "initial");
+
+    // Find the coordinate system.
+    m3dc1_mesh::instance()->setCoordinateSystem();
 
     // clean-up tag, field and numbering loaded from file
     apf::Mesh2* mesh = m3dc1_mesh::instance()->mesh;
@@ -1636,6 +1752,36 @@ int m3dc1_ent_getgeomclass (int* /* in */ ent_dim, int* /* in */ ent_id,
 }
 
 //*******************************************************
+int m3dc1_set_nodes_orientation(int* nodes_array)
+//*******************************************************
+{
+  double node0[3], node1[3], node2[3];
+  m3dc1_node_getcoord(&nodes_array[0], node0);
+  m3dc1_node_getcoord(&nodes_array[1], node1);
+  m3dc1_node_getcoord(&nodes_array[2], node2);
+
+  // Same logic as used in FORTRAN side of the code for consistency
+  double x2 = node1[0] - node0[0];
+  double z2 = node1[1] - node0[1];
+  double x3 = node2[0] - node0[0];
+  double z3 = node2[1] - node0[1];
+
+  double hi = 1.0/sqrt(x2*x2 + z2*z2);
+  double co = x2*hi;
+  double sn = z2*hi;
+  
+  double z3p = -sn*x3 + co*z3;
+
+  if (z3p <= 0.0)
+  {
+    int temp = nodes_array[1];
+    nodes_array[1] = nodes_array[2];
+    nodes_array[2] = temp;
+  }
+  return M3DC1_SUCCESS;
+}
+
+//*******************************************************
 int m3dc1_ent_getadj (int* /* in */ ent_dim, int* /* in */ ent_id, 
                       int* /* in */ adj_dim, int* /* out */ adj_ent, 
                       int* /* in */ adj_ent_allocated_size, int* /* out */ adj_ent_size)
@@ -1648,7 +1794,6 @@ int m3dc1_ent_getadj (int* /* in */ ent_dim, int* /* in */ ent_id,
     print_ent_error(__func__, *ent_dim, *ent_id);
 #endif
   assert(e);
-
   if (*adj_dim>*ent_dim) // upward
   {
     apf::Adjacent adjacent;
@@ -1677,6 +1822,11 @@ int m3dc1_ent_getadj (int* /* in */ ent_dim, int* /* in */ ent_id,
     }
     for (int i=0; i<*adj_ent_size; ++i)
       adj_ent[i] = getMdsIndex(mesh, downward[i]);
+ 
+    // Check nodes ordering and fix it if needed
+    if (*ent_dim == 2 && *adj_dim == 0)
+      m3dc1_set_nodes_orientation(adj_ent);
+
     //adjust the order to work with m3dc1
     if (mesh->getDimension()==3 && *ent_dim==3 &&*adj_dim==0 &&adj_ent[0]>adj_ent[3])
     {
@@ -1912,7 +2062,15 @@ int m3dc1_node_getcoord (int* /* in */ node_id, double* /* out */ coord)
   apf::Vector3 xyz;
   m3dc1_mesh::instance()->mesh->getPoint(e, 0, xyz);
   for (int i=0; i<3; ++i)
-    coord[i] = xyz[i]; 
+    coord[i] = xyz[i];
+
+  // Check the plane(If RZ, convert them to XY)
+  if (m3dc1_mesh::instance()->coordinateSystem == 1)  // Its in RZ plane. change to Y
+  {
+    double temp = coord[1];
+    coord[1] = coord[2];
+    coord[2] = temp;
+  }
   return M3DC1_SUCCESS;
 }
 
@@ -1935,13 +2093,37 @@ int m3dc1_node_getnormvec (int* /* in */ node_id, double* /* out */ xyzt)
   apf::MeshEntity* vt = getMdsEntity(m3dc1_mesh::instance()->mesh, 0, *node_id);
   assert(vt);
   xyzt[2]=0.0;
-  //cout<<"nodnormalvec_ "<<*iNode<<" "<<vt<<endl;
+
   gmi_ent* gent= (gmi_ent*)(m3dc1_mesh::instance()->mesh->toModel(vt));
   int gType = gmi_dim(m3dc1_model::instance()->model,gent);
   if (gType !=  1 && gType !=  0)
   {
     xyzt[0] = xyzt[1] = 0.0;
     return M3DC1_SUCCESS;
+  }
+
+  if (m3dc1_model::instance()->modelType == 2)
+  {
+    apf::MeshTag* norm_curv_tag = m3dc1_mesh::instance()->mesh->findTag("norm_curv");
+    if (norm_curv_tag && m3dc1_mesh::instance()->mesh->hasTag(vt, norm_curv_tag))
+    {
+      double norm_curv[3];
+      m3dc1_mesh::instance()->mesh->getDoubleTag(vt, norm_curv_tag, &norm_curv[0]);
+      xyzt[0] = norm_curv[0]; 
+      xyzt[1] = norm_curv[1];
+      return M3DC1_SUCCESS;
+    }
+    else 
+    {/*
+      std::cout << "Warning: In case of .dmg models, normal vectors are only provided at \n";
+      std::cout << "predefined boundaries while creating mesh, make sure this function is \n";
+      std::cout << "called at the correct model edges at correct boundary loop\n";*/
+
+      // Dummy to return normals so code doesn't crash in case 
+      xyzt[0] = 1.0;
+      xyzt[1] = 0.0;
+      return M3DC1_SUCCESS;
+    }
   }
 
   apf::MeshTag* norm_curv_tag = m3dc1_mesh::instance()->mesh->findTag("norm_curv");
@@ -2021,6 +2203,29 @@ int m3dc1_node_getcurv (int* /* in */ node_id, double* /* out */ curv)
 {
   apf::MeshEntity* vt = getMdsEntity(m3dc1_mesh::instance()->mesh, 0, *node_id);
   assert(vt);
+
+  if (m3dc1_model::instance()->modelType == 2)
+  {
+    apf::MeshTag* norm_curv_tag = m3dc1_mesh::instance()->mesh->findTag("norm_curv");
+    if (norm_curv_tag && m3dc1_mesh::instance()->mesh->hasTag(vt, norm_curv_tag))
+    {
+      double norm_curv[3];
+      m3dc1_mesh::instance()->mesh->getDoubleTag(vt, norm_curv_tag, &norm_curv[0]);
+      *curv = norm_curv[2];
+      return M3DC1_SUCCESS;
+    }
+    else 
+    {/*
+      std::cout << "Warning: In case of .dmg models, curvatures are only provided at \n";
+      std::cout << "predefined boundaries while creating mesh, make sure this function is \n";
+      std::cout << "called at the correct model edges at correct boundary loop\n";*/
+
+      // Dummy to return normals so code doesn't crash in case 
+      *curv = 0.0;
+      return M3DC1_SUCCESS;
+    }
+  }
+  
 
   apf::MeshTag* norm_curv_tag = m3dc1_mesh::instance()->mesh->findTag("norm_curv");
   if (norm_curv_tag && m3dc1_mesh::instance()->mesh->hasTag(vt, norm_curv_tag))
@@ -5395,8 +5600,6 @@ void m3dc1_node_getNormVecOnNewVert(apf::MeshEntity* v, double* normalVec)
   
   bool v0_found = false;
   bool v1_found = false;
-  apf::Vector3 param(0,0,0);
-  m->getParam(v,param);
   apf::Adjacent edges;
   m->getAdjacent(v, 1, edges);
   std::vector <apf::MeshEntity*> adjVert;

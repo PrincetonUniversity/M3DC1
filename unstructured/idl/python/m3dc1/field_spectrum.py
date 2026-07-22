@@ -6,6 +6,7 @@ import numpy as np
 
 from .field_at_point import field_at_point
 from .flux_coordinates import FluxCoordinates, flux_coordinates
+from .read_mesh import read_mesh
 from .read_parameter import read_parameter
 
 
@@ -57,6 +58,7 @@ def field_spectrum(
     dpsi0_dx=None,
     dpsi0_dz=None,
     filename="C1.h5",
+    nperiods: int | None = None,
     **kwargs,
 ) -> FieldSpectrumResult:
     """
@@ -66,6 +68,10 @@ def field_spectrum(
     if ncoord > 1:
         raise TypeError("field_spectrum() accepts only one of 'psi_norm', 'phi_norm', or 'rho'.")
     param_kwargs = {k: v for k, v in kwargs.items() if k in {"cgs", "mks"}}
+    if nperiods is None:
+        nperiods = int(read_mesh(filename=filename, slice=int(kwargs.get("slice", 0))).nperiods)
+    if int(nperiods) < 1:
+        nperiods = 1
     if fc is None:
         coord_kwargs = dict(kwargs)
         if "slice" not in coord_kwargs:
@@ -100,7 +106,7 @@ def field_spectrum(
     nn = int(b.shape[0])
     if nn > 1:
         d = np.fft.fft(d, axis=0)
-        n = np.arange(nn, dtype=int)
+        n = np.arange(nn, dtype=int) * int(nperiods)
     else:
         d = np.asarray(d, dtype=np.complex128)
         n = np.asarray([int(read_parameter("ntor", filename=filename, **param_kwargs))], dtype=int)

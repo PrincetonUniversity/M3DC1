@@ -6,7 +6,7 @@ import numpy as np
 from .read_field import read_field
 
 
-def plot_flux_contour(fval, *, filename="C1.h5", points=200, slice=0, overplot=False, closed=0, color="k", **kwargs):
+def plot_flux_contour(fval, *, filename="C1.h5", points=200, slice=0, overplot=False, closed=0, color="k", xscale: float = 1.0, yscale: float = 1.0, **kwargs):
     """
     Plot psi contour(s) at requested flux values.
     """
@@ -20,5 +20,5 @@ def plot_flux_contour(fval, *, filename="C1.h5", points=200, slice=0, overplot=F
     z = np.asarray(p.z, dtype=float).reshape(-1)
     if not overplot:
         plt.figure(figsize=(6, 5))
-    plt.contour(x, z, psi2d.T, levels=np.sort(vals), colors=color, linewidths=0.8)
+    plt.contour(x * float(xscale), z * float(yscale), psi2d.T, levels=np.sort(vals), colors=color, linewidths=0.8)
 

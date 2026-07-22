@@ -7,6 +7,8 @@ from .delstar import delstar
 from .dx import dx
 from .dz import dz
 from .eval_field import eval_field
+from .extract_profiles import extract_profiles
+from .extend_profile import extend_profile
 from .field_data import field_data
 from .field_spectrum import field_spectrum
 from .flux_average_field import flux_average_field
@@ -23,8 +25,10 @@ from .read_field import read_field
 from .read_field_ntor import read_field_ntor
 from .read_field_spectrum import read_field_spectrum
 from .read_hmn import read_hmn
+from .read_poincare import read_poincare
 from .read_lcfs import read_lcfs
 from .read_mesh import read_mesh
+from .read_shape import read_shape
 from .radius_matrix import radius_matrix
 from .s_bracket import s_bracket
 from .plot_legend import plot_legend
@@ -51,8 +55,10 @@ from .plot_mag_probes import plot_mag_probes
 from .plot_field import plot_field
 from .plot_field_ntor import plot_field_ntor
 from .plot_field_spectrum import plot_field_spectrum
+from .plot_field_vs_phi import plot_field_vs_phi
 from .plot_scalar import plot_scalar
 from .plot_hmn import plot_hmn
+from .plot_poincare import plot_poincare
 from .plot_signals import plot_signals
 from .schaffer_plot import schaffer_plot
 from .read_signals import read_signals
@@ -73,6 +79,8 @@ __all__ = [
     "dx",
     "dz",
     "eval_field",
+    "extract_profiles",
+    "extend_profile",
     "field_data",
     "field_spectrum",
     "flux_average_field",
@@ -89,8 +97,10 @@ __all__ = [
     "read_field_ntor",
     "read_field_spectrum",
     "read_hmn",
+    "read_poincare",
     "read_lcfs",
     "read_mesh",
+    "read_shape",
     "radius_matrix",
     "s_bracket",
     "field_at_point",
@@ -118,8 +128,10 @@ __all__ = [
     "plot_field",
     "plot_field_ntor",
     "plot_field_spectrum",
+    "plot_field_vs_phi",
     "plot_scalar",
     "plot_hmn",
+    "plot_poincare",
     "plot_signals",
     "schaffer_plot",
     "read_signals",

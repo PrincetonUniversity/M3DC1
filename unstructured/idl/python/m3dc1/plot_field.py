@@ -16,6 +16,7 @@ from .plot_coils import plot_coils
 from .plot_flux_contour import plot_flux_contour
 from .plot_lcfs import plot_lcfs
 from .plot_mesh import plot_mesh
+from .plot_poincare import plot_poincare
 from .plot_wall_regions import plot_wall_regions
 from .read_field import FieldResult, read_field
 
@@ -76,6 +77,9 @@ def plot_field(
     realtime=None,
     levels=None,
     colorbar: bool = True,
+    xscale: float = 1.0,
+    yscale: float = 1.0,
+    scale: float = 1.0,
     phase: bool = False,
     abs: bool = False,
     real: bool = False,
@@ -89,12 +93,19 @@ def plot_field(
     coils: bool = False,
     axis: bool = False,
     wall_regions: bool = False,
+    poincare=False,
     cmap: str | None = None,
     **kwargs,
 ):
     """
     Python port of plot_field.pro.
     """
+    if "xcale" in kwargs:
+        xscale = kwargs.pop("xcale")
+    xscale_f = float(xscale)
+    yscale_f = float(yscale)
+    scale_f = float(scale)
+
     if timeslices is None:
         timeslices = 0
     if "x" in kwargs or "y" in kwargs:
@@ -198,6 +209,10 @@ def plot_field(
     if not (phase or abs or real or imaginary):
         f3 = np.real(f3)
 
+    f3 = f3 * scale_f
+    xplot = xvec * xscale_f
+    yplot = yvec * yscale_f
+
     if notitle:
         title = fieldname
 
@@ -211,13 +226,13 @@ def plot_field(
             yy = np.asarray(field_at_point(np.asarray(psi)[0, :, :], xvec, yvec, np.full_like(yvec, xv), yvec), dtype=float)
         if not overplot:
             plt.figure(figsize=(7, 4))
-        plt.plot(yy, np.asarray(data).reshape(-1))
+        plt.plot(yy * yscale_f, np.asarray(data).reshape(-1))
         plt.title(str(title))
         plt.xlabel(str(xtitle))
         if units:
             plt.ylabel(str(units))
         if outfile is not None:
-            _save_xy(outfile, yy, np.asarray(data).reshape(-1))
+            _save_xy(outfile, yy * yscale_f, np.asarray(data).reshape(-1))
         ax = plt.gca()
         if iso:
             ax.set_aspect("equal", adjustable="box")
@@ -233,13 +248,13 @@ def plot_field(
             xx = np.asarray(field_at_point(np.asarray(psi)[0, :, :], xvec, yvec, xvec, np.full_like(xvec, zv)), dtype=float)
         if not overplot:
             plt.figure(figsize=(7, 4))
-        plt.plot(xx, np.asarray(data).reshape(-1))
+        plt.plot(xx * xscale_f, np.asarray(data).reshape(-1))
         plt.title(str(title))
         plt.xlabel(str(xtitle))
         if units:
             plt.ylabel(str(units))
         if outfile is not None:
-            _save_xy(outfile, xx, np.asarray(data).reshape(-1))
+            _save_xy(outfile, xx * xscale_f, np.asarray(data).reshape(-1))
         ax = plt.gca()
         if iso:
             ax.set_aspect("equal", adjustable="box")
@@ -263,8 +278,8 @@ def plot_field(
         nflux = np.linspace(0.0, 1.0, int(points))
         contour_and_legend(
             mapped[0, :, :],
-            angle,
-            nflux,
+            angle * xscale_f,
+            nflux * yscale_f,
             title=str(title),
             label=units or "",
             levels=levels,
@@ -283,8 +298,8 @@ def plot_field(
 
     contour_and_legend(
         f3[0, :, :],
-        xvec,
-        yvec,
+        xplot,
+        yplot,
         title=str(title),
         label=units or "",
         levels=levels,
@@ -307,6 +322,8 @@ def plot_field(
             boundary=True,
             logical=logical,
             phi=phi,
+            xscale=xscale_f,
+            yscale=yscale_f,
             filename=filename,
             slice=primary_slice,
             **plot_kwargs,
@@ -318,32 +335,53 @@ def plot_field(
             boundary=False,
             logical=logical,
             phi=phi,
+            xscale=xscale_f,
+            yscale=yscale_f,
             filename=filename,
             slice=primary_slice,
             **plot_kwargs,
         )
 
     if wall_regions:
-        plot_wall_regions(filename=filename, slice=primary_slice, over=True, **plot_kwargs)
+        plot_wall_regions(filename=filename, slice=primary_slice, over=True, xscale=xscale_f, yscale=yscale_f, **plot_kwargs)
 
     if q_contours is not None:
         fval = flux_at_q(q_contours, points=points, filename=filename, **plot_kwargs)
         if np.asarray(fval).size > 0 and float(np.asarray(fval).reshape(-1)[0]) != 0.0:
-            plot_flux_contour(fval, points=points, overplot=True, filename=filename, slice=primary_slice, **plot_kwargs)
+            plot_flux_contour(fval, points=points, overplot=True, filename=filename, slice=primary_slice, xscale=xscale_f, yscale=yscale_f, **plot_kwargs)
 
     if axis:
         ax, _ = nulls(axis=True, xpoints=True, filename=filename, slice=primary_slice, **plot_kwargs)
-        dx = (xvec.max() - xvec.min()) / 50.0
-        dy = (yvec.max() - yvec.min()) / 50.0
-        plt.plot([ax[0] - dx, ax[0] + dx], [ax[1] - dy, ax[1] + dy], color="tab:red")
-        plt.plot([ax[0] - dx, ax[0] + dx], [ax[1] + dy, ax[1] - dy], color="tab:red")
+        ax0 = float(ax[0]) * xscale_f
+        ax1 = float(ax[1]) * yscale_f
+        dx = (xplot.max() - xplot.min()) / 50.0
+        dy = (yplot.max() - yplot.min()) / 50.0
+        plt.plot([ax0 - dx, ax0 + dx], [ax1 - dy, ax1 + dy], color="tab:red")
+        plt.plot([ax0 - dx, ax0 + dx], [ax1 + dy, ax1 - dy], color="tab:red")
 
     if lcfs:
-        plot_lcfs(over=True, filename=filename, slice=primary_slice, points=points, **plot_kwargs)
+        plot_lcfs(overplot=True, filename=filename, slice=primary_slice, points=points, xscale=xscale_f, yscale=yscale_f, **plot_kwargs)
 
     if coils:
-        plot_coils(filename=filename, overplot=True, **plot_kwargs)
+        plot_coils(filename=filename, overplot=True, xscale=xscale_f, yscale=yscale_f, **plot_kwargs)
 
+    if poincare:
+        poincare_files = None if isinstance(poincare, bool) else poincare
+        plot_poincare(
+            poincare_files,
+            overplot=True,
+            filename=filename,
+            slice=primary_slice,
+            xscale=xscale_f,
+            yscale=yscale_f,
+            title="",
+            **plot_kwargs,
+        )
+
+    if xrange is not None:
+        plt.xlim(xrange)
+    if yrange is not None:
+        plt.ylim(yrange)
     if xlim is not None:
         plt.xlim(xlim)
     if mpeg is not None:

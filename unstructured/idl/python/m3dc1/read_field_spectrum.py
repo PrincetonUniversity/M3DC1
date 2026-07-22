@@ -7,6 +7,7 @@ import numpy as np
 from .field_spectrum import FieldSpectrumResult, field_spectrum
 from .flux_coordinates import flux_coordinates
 from .read_field import read_field
+from .read_mesh import read_mesh
 from .read_parameter import read_parameter
 
 
@@ -68,6 +69,14 @@ def read_field_spectrum(
         ntor = int(read_parameter("ntor", filename=filename, cgs=cgs, mks=mks))
     if threed == 1 and tpoints is None:
         tpoints = 32
+    timeslice_idx = -1 if timeslices is None else int(np.asarray(timeslices).reshape(-1)[0])
+    nperiods = int(read_mesh(filename=filename, slice=timeslice_idx).nperiods) if threed == 1 else 1
+    if nperiods < 1:
+        nperiods = 1
+    if threed == 1 and nperiods > 1 and ntor is not None:
+        target_ntor = int(ntor)
+        if target_ntor % nperiods != 0:
+            raise ValueError(f"ntor must be a multiple of nperiods={nperiods}; got {target_ntor}.")
     field_kwargs = dict(kwargs)
     if threed == 1 and tpoints is not None:
         field_kwargs["tpoints"] = int(tpoints)
@@ -124,7 +133,6 @@ def read_field_spectrum(
     field = np.asarray(meta.data)
     x = np.asarray(meta.r, dtype=float).reshape(-1)
     z = np.asarray(meta.z, dtype=float).reshape(-1)
-    timeslice_idx = -1 if timeslices is None else int(np.asarray(timeslices).reshape(-1)[0])
 
     select_m = None if threed == 1 else m_val
 
@@ -175,12 +183,13 @@ def read_field_spectrum(
         psin_range=psin_range,
         cgs=cgs,
         mks=mks,
+        nperiods=nperiods,
     )
     if threed == 1:
         nvals = np.asarray(spec.n, dtype=int).reshape(-1)
         if nvals.size > 0:
             target_ntor = int(ntor)
-            idx = target_ntor % int(nvals.size)
+            idx = (target_ntor // nperiods) % int(nvals.size)
             data = np.asarray(spec.data, dtype=np.complex128)[idx : idx + 1, ...]
             mvals = np.asarray(spec.m, dtype=int).reshape(-1)
 

@@ -8,7 +8,7 @@ import numpy as np
 from .read_coil_data import read_coil_data
 
 
-def plot_coils(*, filename=None, directory=None, overplot=False, rmp=False, **kwargs):
+def plot_coils(*, filename=None, directory=None, overplot=False, rmp=False, xscale: float = 1.0, yscale: float = 1.0, **kwargs):
     if directory is None:
         directory = "."
         if filename is not None:
@@ -42,4 +42,4 @@ def plot_coils(*, filename=None, directory=None, overplot=False, rmp=False, **kw
             ],
             dtype=float,
         )
-        plt.plot(np.r_[xp, xp[0]], np.r_[zp, zp[0]], color="tab:orange", linewidth=1.0)
+        plt.plot(np.r_[xp, xp[0]] * float(xscale), np.r_[zp, zp[0]] * float(yscale), color="tab:orange", linewidth=1.0)

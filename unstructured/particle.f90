@@ -11,7 +11,7 @@ module particles
    private
 #ifdef USEPARTICLES
    public :: particle_test, particle_step, particle_scaleback, finalize_particles, hdf5_read_particles, hdf5_write_particles
-   public :: set_parallel_velocity, set_s1_0_mat, filter_velocity
+   public :: set_parallel_velocity, filter_fields
 #endif
 
    real, parameter :: e_mks = 1.6022e-19      !Elementary charge, in Coulombs
@@ -38,7 +38,7 @@ module particles
       vectype, dimension(coeffs_per_element) :: rho, nf, tf
       vectype, dimension(coeffs_per_element) :: nfi, tfi
       vectype, dimension(coeffs_per_element) :: B0, B1, B1_last
-      vectype, dimension(coeffs_per_element) :: pe, ne, pe0, ne0, te0
+      vectype, dimension(coeffs_per_element) :: pe, ne, te, pe0, ne0, te0
       vectype, dimension(coeffs_per_element) :: rst, zst
    end type elfield
 
@@ -194,7 +194,7 @@ subroutine define_mpi_elfield(ierr)
    include 'mpif.h'
 
    integer, intent(out) :: ierr
-   integer, parameter :: pnvars = 24
+   integer, parameter :: pnvars = 25
    integer :: i
    integer, dimension(pnvars), parameter :: pblklen = [(coeffs_per_element, i=1, pnvars)]
    integer(kind=MPI_ADDRESS_KIND), dimension(pnvars) :: pdspls
@@ -245,16 +245,18 @@ subroutine define_mpi_elfield(ierr)
    pdspls(18) = pdspls(18) - pdspls(1)
    call mpi_get_address(dum_elfield%ne, pdspls(19), ierr)
    pdspls(19) = pdspls(19) - pdspls(1)
-   call mpi_get_address(dum_elfield%pe0, pdspls(20), ierr)
+   call mpi_get_address(dum_elfield%te, pdspls(20), ierr)
    pdspls(20) = pdspls(20) - pdspls(1)
-   call mpi_get_address(dum_elfield%ne0, pdspls(21), ierr)
+   call mpi_get_address(dum_elfield%pe0, pdspls(21), ierr)
    pdspls(21) = pdspls(21) - pdspls(1)
-   call mpi_get_address(dum_elfield%te0, pdspls(22), ierr)
+   call mpi_get_address(dum_elfield%ne0, pdspls(22), ierr)
    pdspls(22) = pdspls(22) - pdspls(1)
-   call mpi_get_address(dum_elfield%rst, pdspls(23), ierr)
+   call mpi_get_address(dum_elfield%te0, pdspls(23), ierr)
    pdspls(23) = pdspls(23) - pdspls(1)
-   call mpi_get_address(dum_elfield%zst, pdspls(24), ierr)
+   call mpi_get_address(dum_elfield%rst, pdspls(24), ierr)
    pdspls(24) = pdspls(24) - pdspls(1)
+   call mpi_get_address(dum_elfield%zst, pdspls(25), ierr)
+   pdspls(25) = pdspls(25) - pdspls(1)
    pdspls(1) = 0
 
    call mpi_type_create_struct(pnvars, pblklen, pdspls, ptyps, mpi_elfield, ierr)
@@ -340,7 +342,6 @@ subroutine particle_test
    call update_particle_pressure
 
    if (kinetic_thermal_ion.eq.1) then
-      call set_s1_0_mat
       if (idiamagnetic_advection.eq.1) call set_diamagnetic_velocity
       call set_den_smooth
    endif
@@ -463,7 +464,8 @@ subroutine init_particles(lrestart, ierr)
    integer :: ielm_min_temp, ielm_max_temp
    integer :: sps, izone
    real :: npar_ratio, npar_ratio_temp, npar_ratio_local, npar_fac
-   integer :: npar_temp, npar_temp_sum, i_npar_test
+   real :: npar_temp, npar_temp_sum
+   integer :: i_npar_test
    real :: bzsign_temp
 
    !Allocate particle pressure tensor components
@@ -699,11 +701,13 @@ subroutine init_particles(lrestart, ierr)
       locparts = 0
       !allocate(ran(npar*5))
       !call random_number(ran)
-      !call random_seed(size=ran_size)
-      !allocate (seed(ran_size))
-      !call random_seed(get=seed)
-      !seed = seed + myrank
-      !call random_seed(put=seed)
+      call random_seed(size=ran_size)
+      allocate (seed(ran_size))
+      call random_seed(get=seed)
+      ! seed = seed + myrank
+      seed = 23
+      call random_seed(put=seed)
+      deallocate (seed)
 
       do sps = 1,2
          if ((sps==1).and.(kinetic_thermal_ion==0)) cycle
@@ -821,14 +825,22 @@ subroutine init_particles(lrestart, ierr)
          !do while (ipar<=npar_local)
          do ipar=1,npar_local
             call random_number(ran_temp)
+            call random_number(ran_temp2)
+            if (ran_temp+ran_temp2>1) then
+               ran_temp=1-ran_temp
+               ran_temp2=1-ran_temp2
+            endif
 #ifdef USEST
-            x_temp = ran_temp*(x_max-x_min)+x_min
+            x_temp = ran_temp*(mesh_coord(1, 2, itri)-mesh_coord(1, 1, itri))+ran_temp2*(mesh_coord(1, 3, itri)-mesh_coord(1, 1,itri))&
+               +mesh_coord(1 ,1, itri)
 #else
-            x_temp = sqrt(ran_temp*(x_max**2 - x_min**2) + x_min**2)
+            ! x_temp = ran_temp*(mesh_coord(1, 2, itri)-mesh_coord(1, 1, itri))+ran_temp2*(mesh_coord(1, 3, itri)-mesh_coord(1, 1,itri))&
+            !    +mesh_coord(1 ,1, itri)
+            x_temp = sqrt(ran_temp*(mesh_coord(1, 2, itri)**2-mesh_coord(1, 1, itri)**2)+ran_temp2*(mesh_coord(1, 3, itri)**2-mesh_coord(1, 1,itri)**2)&
+               +mesh_coord(1 ,1, itri)**2)
 #endif
-            !dpar%x(1) = x_temp*(x2-x1)+x1
-            call random_number(ran_temp)
-            z_temp = z_min + ran_temp*(z_max - z_min)
+            z_temp = ran_temp*(mesh_coord(3, 2, itri)-mesh_coord(3, 1, itri))+ran_temp2*(mesh_coord(3, 3, itri)-mesh_coord(3, 1,itri))&
+               +mesh_coord(3 ,1, itri)
             if ((tri_area(mesh_coord(1, 1, itri), mesh_coord(3, 1, itri), mesh_coord(1, 2, itri),&
                mesh_coord(3, 2, itri), x_temp, z_temp) < 0) &
             .or.(tri_area(x_temp,z_temp,mesh_coord(1,2,itri),&
@@ -997,7 +1009,7 @@ subroutine init_particles(lrestart, ierr)
             !ipar = ipar + 1
          end do !iz
       end do
-      if (i_npar_test.eq.1) call mpi_allreduce(npar_temp, npar_temp_sum, 1, MPI_INTEGER, MPI_SUM, MPI_COMM_WORLD, ierr)
+      if (i_npar_test.eq.1) call mpi_allreduce(npar_temp, npar_temp_sum, 1, MPI_DOUBLE_PRECISION, MPI_SUM, MPI_COMM_WORLD, ierr)
       end do
       end do
 
@@ -1078,46 +1090,50 @@ subroutine init_particles(lrestart, ierr)
    call create_mat(diff2_mat, 1, 1, icomplex, 1)
    do itri = 1, nelms
       call define_element_quadrature(itri, int_pts_main, int_pts_tor)
-      call define_fields(itri, 0, 1, 0)
+      call define_fields(itri, FIELD_KIN, 1, 0)
+      temp79a(:) = smooth_par
+      where (real(rhof79(:,OP_1))<0.05)
+         ! temp79a(:) = temp79a(:)*1.e2
+      end where
       tempxx = intxx2(mu79(:, :, OP_1), nu79(:, :, OP_1))
-      tempxx = tempxx + smooth_par*(intxx2(mu79(:, :, OP_DZZ), nu79(:, :, OP_DZZ)) + intxx2(mu79(:, :, OP_DRR), nu79(:, :, OP_DRR)))
+      tempxx = tempxx + intxx3(mu79(:, :, OP_DZZ), nu79(:, :, OP_DZZ),temp79a) + intxx3(mu79(:, :, OP_DRR), nu79(:, :, OP_DRR),temp79a)
 #ifdef USE3D
       tempxx = tempxx + smooth_par*intxx3(mu79(:, :, OP_DPP), nu79(:, :, OP_DPP), ri4_79)
 #endif
-      call insert_block(diff2_mat, itri, 1, 1, tempxx, MAT_ADD)
+     call insert_block(diff2_mat, itri, 1, 1, tempxx, MAT_ADD)
    end do
    call finalize(diff2_mat)
    call set_matrix_index(diff3_mat, 171)
    call create_mat(diff3_mat, 1, 1, icomplex, 1)
    do itri = 1, nelms
       call define_element_quadrature(itri, int_pts_main, int_pts_tor)
-      call define_fields(itri, FIELD_PSI+FIELD_I+FIELD_B2I, 1, 0)
+      call define_fields(itri, FIELD_PSI+FIELD_I+FIELD_B2I, 1, linear)
       tempxx = intxx2(mu79(:, :, OP_1), nu79(:, :, OP_1))
       !tempxx = tempxx + smooth_dens_parallel*(intxx2(mu79(:, :, OP_DZZ), nu79(:, :, OP_DZZ)) + intxx2(mu79(:, :, OP_DRR), nu79(:, :, OP_DRR)))
 !#ifdef USE3D
 !      tempxx = tempxx + smooth_dens_parallel*intxx3(mu79(:, :, OP_DPP), nu79(:, :, OP_DPP), ri4_79)
 !#endif
       tempxx = tempxx + smooth_dens_parallel*(&
-            + intxx5(mu79(:,:,OP_DZ),nu79(:,:,OP_DZ),ri_79*pstx79(:,OP_DR)-&
-                     bfptx79(:,OP_DZ),ri_79*pstx79(:,OP_DR)-bfptx79(:,OP_DZ),b2i79(:,OP_1)) &
-            - intxx5(mu79(:,:,OP_DZ),nu79(:,:,OP_DR),ri_79*pstx79(:,OP_DR)-&
-                     bfptx79(:,OP_DZ),ri_79*pstx79(:,OP_DZ)+bfptx79(:,OP_DR),b2i79(:,OP_1)) &
-#ifdef USE3D
-            + intxx5(mu79(:,:,OP_DZ),nu79(:,:,OP_DP),ri_79*pstx79(:,OP_DR)-&
-                     bfptx79(:,OP_DZ),ri2_79*bztx79(:,OP_1),b2i79(:,OP_1)) &
+            + intxx5(mu79(:,:,OP_DZ),nu79(:,:,OP_DZ),ri_79*pst79(:,OP_DR)-&
+                     bfpt79(:,OP_DZ),ri_79*pst79(:,OP_DR)-bfpt79(:,OP_DZ),b2i79(:,OP_1)) &
+            - intxx5(mu79(:,:,OP_DZ),nu79(:,:,OP_DR),ri_79*pst79(:,OP_DR)-&
+                     bfpt79(:,OP_DZ),ri_79*pst79(:,OP_DZ)+bfpt79(:,OP_DR),b2i79(:,OP_1)) &
+#if defined(USE3D) || defined(USECOMPLEX)
+            + intxx5(mu79(:,:,OP_DZ),nu79(:,:,OP_DP),ri_79*pst79(:,OP_DR)-&
+                     bfpt79(:,OP_DZ),ri2_79*bzt79(:,OP_1),b2i79(:,OP_1)) &
 #endif
-            - intxx5(mu79(:,:,OP_DR),nu79(:,:,OP_DZ),ri_79*pstx79(:,OP_DZ)+&
-                     bfptx79(:,OP_DR),ri_79*pstx79(:,OP_DR)-bfptx79(:,OP_DZ),b2i79(:,OP_1)) &
-            + intxx5(mu79(:,:,OP_DR),nu79(:,:,OP_DR),ri_79*pstx79(:,OP_DZ)+&
-                     bfptx79(:,OP_DR),ri_79*pstx79(:,OP_DZ)+bfptx79(:,OP_DR),b2i79(:,OP_1)) &
-#ifdef USE3D
-            - intxx5(mu79(:,:,OP_DR),nu79(:,:,OP_DP),ri_79*pstx79(:,OP_DZ)+&
-                     bfptx79(:,OP_DR),ri2_79*bztx79(:,OP_1),b2i79(:,OP_1)) &
-            + intxx5(mu79(:,:,OP_DP),nu79(:,:,OP_DZ),ri2_79*bztx79(:,OP_1),ri_79*pstx79(:,OP_DR)-&
-                     bfptx79(:,OP_DZ),b2i79(:,OP_1)) &
-            - intxx5(mu79(:,:,OP_DP),nu79(:,:,OP_DR),ri2_79*bztx79(:,OP_1),ri_79*pstx79(:,OP_DZ)+&
-                     bfptx79(:,OP_DR),b2i79(:,OP_1)) &
-            + intxx5(mu79(:,:,OP_DP),nu79(:,:,OP_DP),ri2_79*bztx79(:,OP_1),ri2_79*bztx79(:,OP_1),b2i79(:,OP_1)) &
+            - intxx5(mu79(:,:,OP_DR),nu79(:,:,OP_DZ),ri_79*pst79(:,OP_DZ)+&
+                     bfpt79(:,OP_DR),ri_79*pst79(:,OP_DR)-bfpt79(:,OP_DZ),b2i79(:,OP_1)) &
+            + intxx5(mu79(:,:,OP_DR),nu79(:,:,OP_DR),ri_79*pst79(:,OP_DZ)+&
+                     bfpt79(:,OP_DR),ri_79*pst79(:,OP_DZ)+bfpt79(:,OP_DR),b2i79(:,OP_1)) &
+#if defined(USE3D) || defined(USECOMPLEX)
+            - intxx5(mu79(:,:,OP_DR),nu79(:,:,OP_DP),ri_79*pst79(:,OP_DZ)+&
+                     bfpt79(:,OP_DR),ri2_79*bzt79(:,OP_1),b2i79(:,OP_1)) &
+            + intxx5(mu79(:,:,OP_DP),nu79(:,:,OP_DZ),ri2_79*bzt79(:,OP_1),ri_79*pst79(:,OP_DR)-&
+                     bfpt79(:,OP_DZ),b2i79(:,OP_1)) &
+            - intxx5(mu79(:,:,OP_DP),nu79(:,:,OP_DR),ri2_79*bzt79(:,OP_1),ri_79*pst79(:,OP_DZ)+&
+                     bfpt79(:,OP_DR),b2i79(:,OP_1)) &
+            + intxx5(mu79(:,:,OP_DP),nu79(:,:,OP_DP),ri2_79*bzt79(:,OP_1),ri2_79*bzt79(:,OP_1),b2i79(:,OP_1)) &
 #endif
             )
 
@@ -1423,6 +1439,9 @@ subroutine fdot(x, v, w, dxdt, dvdt, dwdt, dEpdt, itri, kel, f00, ierr, sps, B00
 
    !Need terms to compute fields to calculate acceleration
    call get_geom_terms(x, itri, geomterms, vspdims .eq. 2, ierr)
+   ! if (ierr .eq. 0) then
+   !    if (mesh_zone(itri).ne.ZONE_PLASMA) ierr=1
+   ! endif
    if (ierr .ne. 0) then
       !write(0,*) 'outoutout'
       return
@@ -1442,15 +1461,22 @@ subroutine fdot(x, v, w, dxdt, dvdt, dwdt, dEpdt, itri, kel, f00, ierr, sps, B00
    dydZ = di*dot_product(elfieldcoefs(itri)%rst,geomterms%dr)
    call update_geom_terms_st(geomterms, elfieldcoefs(itri), vspdims.eq.2)
 #else
-   !if (itor.eq.1) Rinv = 1.0/x(1)
-   Rinv = 1.0/x(1)
+   Rinv = 1.0
+   if (itor.eq.1) Rinv = 1.0/x(1)
 #endif
 
    !Calculate time derivatives
    !call getBcyl(x, fhptr, geomterms, B_cyl, deltaB, gradB0)
    call getBcyl(x, elfieldcoefs(itri), geomterms, B0_cyl, deltaB, gradB0, gradB1, dB1)
+   B_cyl = B0_cyl + deltaB
    B0inv = 1.0/sqrt(dot_product(B0_cyl, B0_cyl))  !1/magnitude of B
    bhat0 = B0_cyl*B0inv                         !Unit vector in b direction
+   Binv = 1.0/sqrt(dot_product(B_cyl, B_cyl))  !1/magnitude of B
+   bhat = B_cyl*Binv                         !Unit vector in b direction
+   if (particle_linear_particle .eq. 0) then
+      B0inv = Binv
+      bhat0 = bhat
+   endif
 
    if (gyroaverage_particle.eq.1) then
       x2 = x
@@ -1507,7 +1533,8 @@ subroutine fdot(x, v, w, dxdt, dvdt, dwdt, dEpdt, itri, kel, f00, ierr, sps, B00
          !dydZ = di*dot_product(elfieldcoefs(itri)%rst,geomterms%dr)
          !call update_geom_terms_st(geomterms, elfieldcoefs(itri), vspdims.eq.2)
 #else
-         Rinv2 = 1.0/x2(1)
+         Rinv2 = 1.0
+         if (itor.eq.1) Rinv2 = 1.0/x2(1)
 #endif
          call getEcyl(x2, elfieldcoefs(kel(ipoint)), geomterms2, E_cyl2)
          !call getBcyl(x2, elfieldcoefs(kel(ipoint)), geomterms2, B_cyl2, deltaB2, gradB02, gradB12, dB12)
@@ -1538,25 +1565,30 @@ subroutine fdot(x, v, w, dxdt, dvdt, dwdt, dEpdt, itri, kel, f00, ierr, sps, B00
 #else
             temp(2) = 0.
 #endif
-            temp = temp*dot_product(geomterms2%g, elfieldcoefs(kel(ipoint))%te0)
+
+            te0=dot_product(geomterms2%g, elfieldcoefs(kel(ipoint))%te0)
+            if (ifullf_particle.eq.1) te0 = te0 + dot_product(geomterms2%g, elfieldcoefs(kel(ipoint))%te0)
+            temp = temp*te0
 #ifdef USECOMPLEX
             gradpe = gradpe + real(temp*exp(rfac_particle*x2(2)))
 #else
             gradpe = gradpe + temp
 #endif
 
-            !temp(1) = dot_product(geomterms2%dr, elfieldcoefs(kel(ipoint))%pe0)
-            !temp(3) = dot_product(geomterms2%dz, elfieldcoefs(kel(ipoint))%pe0)
-            temp(1) = dot_product(geomterms2%dr, elfieldcoefs(kel(ipoint))%ne0)
-            temp(3) = dot_product(geomterms2%dz, elfieldcoefs(kel(ipoint))%ne0)
+            if (ifullf_particle.eq.0) then
+               !temp(1) = dot_product(geomterms2%dr, elfieldcoefs(kel(ipoint))%pe0)
+               !temp(3) = dot_product(geomterms2%dz, elfieldcoefs(kel(ipoint))%pe0)
+               temp(1) = dot_product(geomterms2%dr, elfieldcoefs(kel(ipoint))%ne0)
+               temp(3) = dot_product(geomterms2%dz, elfieldcoefs(kel(ipoint))%ne0)
 #ifdef USEST
-            !temp(2) = Rinv2*dot_product(geomterms2%dphi, elfieldcoefs(kel(ipoint))%pe0)
-            temp(2) = Rinv2*dot_product(geomterms2%dphi, elfieldcoefs(kel(ipoint))%ne0)
+               !temp(2) = Rinv2*dot_product(geomterms2%dphi, elfieldcoefs(kel(ipoint))%pe0)
+               temp(2) = Rinv2*dot_product(geomterms2%dphi, elfieldcoefs(kel(ipoint))%ne0)
 #else
-            temp(2) = 0.
+               temp(2) = 0.
 #endif
-            !j0xb = j0xb - dot_product(temp, deltaB2)*B0inv
-            j0xb = j0xb - dot_product(temp, deltaB2)*B0inv*dot_product(geomterms2%g, elfieldcoefs(kel(ipoint))%te0)
+               !j0xb = j0xb - dot_product(temp, deltaB2)*B0inv
+               j0xb = j0xb - dot_product(temp, deltaB2)*B0inv*dot_product(geomterms2%g, elfieldcoefs(kel(ipoint))%te0)
+            endif
        
          endif
       end do
@@ -1598,23 +1630,29 @@ subroutine fdot(x, v, w, dxdt, dvdt, dwdt, dEpdt, itri, kel, f00, ierr, sps, B00
 #else
          gradpe=temp
 #endif
-         gradpe=gradpe*dot_product(geomterms%g, elfieldcoefs(itri)%te0)
+         te0=dot_product(geomterms%g, elfieldcoefs(itri)%te0)
+         if (ifullf_particle.eq.1) te0 = te0 + dot_product(geomterms%g, elfieldcoefs(itri)%te)
+         gradpe=gradpe*te0
 
-         !temp(1) = dot_product(geomterms%dr, elfieldcoefs(itri)%pe0)
-         !temp(3) = dot_product(geomterms%dz, elfieldcoefs(itri)%pe0)
-         temp(1) = dot_product(geomterms%dr, elfieldcoefs(itri)%ne0)
-         temp(3) = dot_product(geomterms%dz, elfieldcoefs(itri)%ne0)
+         if (ifullf_particle.eq.0) then
+            !temp(1) = dot_product(geomterms%dr, elfieldcoefs(itri)%pe0)
+            !temp(3) = dot_product(geomterms%dz, elfieldcoefs(itri)%pe0)
+            temp(1) = dot_product(geomterms%dr, elfieldcoefs(itri)%ne0)
+            temp(3) = dot_product(geomterms%dz, elfieldcoefs(itri)%ne0)
 #ifdef USEST
-         temp(2) = Rinv*dot_product(geomterms%dphi, elfieldcoefs(itri)%ne0)
+            temp(2) = Rinv*dot_product(geomterms%dphi, elfieldcoefs(itri)%ne0)
 #else
-         temp(2) = 0.
+            temp(2) = 0.
 #endif
-         !j0xb=-dot_product(temp,deltaB)*B0inv
-         j0xb=-dot_product(temp,deltaB)*B0inv*dot_product(geomterms%g, elfieldcoefs(itri)%te0)
-         !if (real(dot_product(geomterms%g, fhptr%psiv0))<0.21) then
-         !   gradpe=0.
-            !j0xb=0.
-         !endif
+            !j0xb=-dot_product(temp,deltaB)*B0inv
+            j0xb=-dot_product(temp,deltaB)*B0inv*te0
+            !if (real(dot_product(geomterms%g, fhptr%psiv0))<0.21) then
+            !   gradpe=0.
+               !j0xb=0.
+            !endif
+         else
+            j0xb = 0.
+         endif
       endif
    end if
 
@@ -1634,15 +1672,20 @@ subroutine fdot(x, v, w, dxdt, dvdt, dwdt, dEpdt, itri, kel, f00, ierr, sps, B00
    !else
    !   E_cyl=E_cyl-dot_product(E_cyl,B_cyl)*Binv
    !endif
-   !E_cyl=0.
+
+   ! E_cyl=0.
+
    ne0 = dot_product(geomterms%g, elfieldcoefs(itri)%ne0)
-   if (kinetic_thermal_ion_particle.eq.1) then
+   if (ifullf_particle.eq.1) ne0 = ne0 + dot_product(geomterms%g, elfieldcoefs(itri)%ne)
+   if ((kinetic_thermal_ion_particle.eq.1).and.(particle_couple.ge.0)) then
       if (particle_linear_particle .eq. 1) then
          E_cyl = E_cyl + bhat0*(dot_product(-gradpe,bhat0)+j0xb)/ne0
       else
          E_cyl = E_cyl + bhat*(dot_product(-gradpe,bhat)+j0xb)/ne0
       endif
    endif
+
+   if (ifullf_particle.eq.0) then
 
    ! Gradient of B0 = grad(B.B)/(2 B0) = (B . grad B)/B0
    gradB0(1) = dot_product(bhat0, dB0dR)
@@ -1688,6 +1731,8 @@ subroutine fdot(x, v, w, dxdt, dvdt, dwdt, dEpdt, itri, kel, f00, ierr, sps, B00
    !dvdt0(1) = -qm_ion(sps)*dot_product(bhat0, svec0)
    !dvdt0(1) = 0 ! fluid particle
    dvdt0(2) = 0. !magnetic moment is conserved.
+
+   endif
 
    !call getBcylprime(x, elfieldcoefs(itri), geomterms, B_cyl, deltaB, dBdR, dBdphi, dBdz, .false.)
    !call getBcyl(x, fhptr, geomterms, B_cyl, deltaB, gradB0, gradB1,1)
@@ -2032,6 +2077,8 @@ subroutine particle_step(pdt)
    use basic
    use diagnostics
    use auxiliary_fields
+   use model
+   use arrays
    implicit none
    include 'mpif.h'
 
@@ -2045,7 +2092,7 @@ subroutine particle_step(pdt)
    if (kinetic_thermal_ion.eq.1) then
       call set_parallel_velocity
    endif
-   call filter_velocity
+   call filter_fields
    call calculate_electric_fields(linear)
    do isubcycle=1,particle_subcycles
       if (kinetic_thermal_ion.eq.1) then
@@ -2083,13 +2130,12 @@ subroutine particle_step(pdt)
       !Compute particle pressure tensor components
       call update_particle_pressure
       call mpi_barrier(mpi_comm_world, ierr)
-
-      if (kinetic_thermal_ion.eq.1) then
+    if ((kinetic_thermal_ion.eq.1).and.(particle_couple.ge.0)) then
          call set_density
       endif
       call mpi_barrier(mpi_comm_world, ierr)
-   enddo
-
+  enddo
+   
 end subroutine particle_step
 !---------------------------------------------------------------------------
 subroutine update_particle_pressure
@@ -2675,6 +2721,9 @@ subroutine get_field_coefs(eq)
 #endif
       end if
       call calcavector(ielm, bfp_field(1), elfieldcoefs(ielm_global)%Bfpv1)
+#ifdef USE3D
+      ! if (ifullf.eq.1) elfieldcoefs(ielm_global)%Bfpv1 = 0.
+#endif
       call calcavector(ielm, psi_field(1), elfieldcoefs(ielm_global)%psiv1)
       call calcavector(ielm, bz_field(1), elfieldcoefs(ielm_global)%Bzv1)
       if (kinetic_thermal_ion.eq.1) then
@@ -2684,7 +2733,9 @@ subroutine get_field_coefs(eq)
          call calcavector(ielm, p_field(1), elfieldcoefs(ielm_global)%pe)
          call calcavector(ielm, densmooth_field, elfieldcoefs(ielm_global)%ne)
          !call calcavector(ielm, den_field(1), elfieldcoefs(ielm_global)%ne)
+         call calcavector(ielm, te_field(1), elfieldcoefs(ielm_global)%te)
          elfieldcoefs(ielm_global)%pe=elfieldcoefs(ielm_global)%pe*factor
+         elfieldcoefs(ielm_global)%te=elfieldcoefs(ielm_global)%te*2.0*factor
          if (eq==1) then
             call calcavector(ielm, p_field(0), elfieldcoefs(ielm_global)%pe0)
             elfieldcoefs(ielm_global)%pe0=elfieldcoefs(ielm_global)%pe0*factor
@@ -3324,7 +3375,7 @@ subroutine particle_pressure_rhs
    ipart_end_local = (ipart_end - ipart_begin + 1)/ncols*(hostrank + 1) - 1 + ipart_begin
    if (hostrank == ncols - 1) ipart_end_local = ipart_end
    do ipart = ipart_begin_local, ipart_end_local
-      !if (pdata(ipart)%deleted) cycle
+      ! if (pdata(ipart)%deleted) cycle
       do ipoint = 1, 4
          if (igyroaverage.eq.1) then
             itri = pdata(ipart)%kel(ipoint)
@@ -3415,12 +3466,14 @@ subroutine particle_pressure_rhs
             if (ifullf.eq.0) then
                coeffspai_local(:, itri) = coeffspai_local(:, itri) + ppar*wnuhere/4
                coeffspei_local(:, itri) = coeffspei_local(:, itri) + pperp*wnuhere2/4
+               coeffsdei_local(:, itri) = coeffsdei_local(:, itri) + wnuhere/4&
+                  *(b0_norm/1e4)**2/(4*3.14159*1e-7)/(n0_norm*1e6)
             else
                coeffspai_local(:,itri) = coeffspai_local(:,itri) + ppar*geomterms%g*nrmfac(pdata(ipart)%sps)/4
                coeffspei_local(:,itri) = coeffspei_local(:,itri) + pperp*geomterms%g*nrmfac(pdata(ipart)%sps)/4
+               coeffsdei_local(:,itri) = coeffsdei_local(:, itri) + geomterms%g*nrmfac(pdata(ipart)%sps)/4&
+                  *(b0_norm/1e4)**2/(4*3.14159*1e-7)/(n0_norm*1e6)
             endif
-            coeffsdei_local(:, itri) = coeffsdei_local(:, itri) + wnuhere/4&
-               *(b0_norm/1e4)**2/(4*3.14159*1e-7)/(n0_norm*1e6)
             coeffsvpi_local(:, itri) = coeffsvpi_local(:, itri) + vpar/(v0_norm/100.)*wnuhere/4&
                *(b0_norm/1e4)**2/(4*3.14159*1e-7)/(n0_norm*1e6)
             !dofspa = intx2(mu79(:,:,OP_1),ppar79(:,OP_1))
@@ -3435,12 +3488,14 @@ subroutine particle_pressure_rhs
             if (ifullf.eq.0) then
                coeffspai_local(:, itri) = coeffspai_local(:, itri) + ppar*phfac*wnuhere/4*2
                coeffspei_local(:, itri) = coeffspei_local(:, itri) + pperp*phfac*wnuhere2/4*2
+               coeffsdei_local(:, itri) = coeffsdei_local(:, itri) + phfac*wnuhere/4&
+                  *(b0_norm/1e4)**2/(4*3.14159*1e-7)/(n0_norm*1e6)*2
             else
                coeffspai_local(:,itri) = coeffspai_local(:,itri) + ppar*geomterms%g*nrmfac(pdata(ipart)%sps)/4
                coeffspei_local(:,itri) = coeffspei_local(:,itri) + pperp*geomterms%g*nrmfac(pdata(ipart)%sps)/4
+               coeffsdei_local(:,itri) = coeffsdei_local(:,itri) + geomterms%g*nrmfac(pdata(ipart)%sps)/4&
+                  *(b0_norm/1e4)**2/(4*3.14159*1e-7)/(n0_norm*1e6)*2
             endif
-            coeffsdei_local(:, itri) = coeffsdei_local(:, itri) + phfac*wnuhere/4&
-               *(b0_norm/1e4)**2/(4*3.14159*1e-7)/(n0_norm*1e6)*2
             coeffsvpi_local(:,itri) = coeffsvpi_local(:,itri) + vpar/(v0_norm/100.)*phfac*wnuhere/4&
                *(b0_norm/1e4)**2/(4*3.14159*1e-7)/(n0_norm*1e6)*2
             !dofspen = dofspen + pperp*phfac*deltaBhere
@@ -3454,12 +3509,14 @@ subroutine particle_pressure_rhs
             if (ifullf.eq.0) then
                coeffspaf_local(:, itri) = coeffspaf_local(:, itri) + ppar*wnuhere/4
                coeffspef_local(:, itri) = coeffspef_local(:, itri) + pperp*wnuhere2/4
+               coeffsdef_local(:, itri) = coeffsdef_local(:, itri) + wnuhere/4&
+                  *(b0_norm/1e4)**2/(4*3.14159*1e-7)/(n0_norm*1e6)
             else
                coeffspaf_local(:,itri) = coeffspaf_local(:,itri) + ppar*geomterms%g*nrmfac(pdata(ipart)%sps)/4
                coeffspef_local(:,itri) = coeffspef_local(:,itri) + pperp*geomterms%g*nrmfac(pdata(ipart)%sps)/4
+               coeffsdef_local(:,itri) = coeffsdef_local(:,itri) + geomterms%g*nrmfac(pdata(ipart)%sps)/4&
+                  *(b0_norm/1e4)**2/(4*3.14159*1e-7)/(n0_norm*1e6)
             endif
-            coeffsdef_local(:, itri) = coeffsdef_local(:, itri) + wnuhere/4&
-               *(b0_norm/1e4)**2/(4*3.14159*1e-7)/(n0_norm*1e6)
             coeffsvpf_local(:, itri) = coeffsvpf_local(:, itri) + vpar/(v0_norm/100.)*wnuhere/4&
                *(b0_norm/1e4)**2/(4*3.14159*1e-7)/(n0_norm*1e6)
             !dofspa = intx2(mu79(:,:,OP_1),ppar79(:,OP_1))
@@ -3474,12 +3531,14 @@ subroutine particle_pressure_rhs
             if (ifullf.eq.0) then
                coeffspaf_local(:, itri) = coeffspaf_local(:, itri) + ppar*phfac*wnuhere/4*2
                coeffspef_local(:, itri) = coeffspef_local(:, itri) + pperp*phfac*wnuhere2/4*2
+               coeffsdef_local(:, itri) = coeffsdef_local(:, itri) + phfac*wnuhere/4&
+                  *(b0_norm/1e4)**2/(4*3.14159*1e-7)/(n0_norm*1e6)*2
             else
                coeffspaf_local(:,itri) = coeffspaf_local(:,itri) + ppar*geomterms%g*nrmfac(pdata(ipart)%sps)/4
                coeffspef_local(:,itri) = coeffspef_local(:,itri) + pperp*geomterms%g*nrmfac(pdata(ipart)%sps)/4
+               coeffsdef_local(:,itri) = coeffsdef_local(:,itri) + geomterms%g*nrmfac(pdata(ipart)%sps)/4&
+                  *(b0_norm/1e4)**2/(4*3.14159*1e-7)/(n0_norm*1e6)*2
             endif
-            coeffsdef_local(:, itri) = coeffsdef_local(:, itri) + phfac*wnuhere/4&
-               *(b0_norm/1e4)**2/(4*3.14159*1e-7)/(n0_norm*1e6)*2
             coeffsvpf_local(:,itri) = coeffsvpf_local(:,itri) + vpar/(v0_norm/100.)*phfac*wnuhere/4&
                *(b0_norm/1e4)**2/(4*3.14159*1e-7)/(n0_norm*1e6)*2
             !dofspen = dofspen + pperp*phfac*deltaBhere
@@ -4091,6 +4150,7 @@ subroutine set_s1_0_mat
    vectype, dimension(dofs_per_element) :: r4
    integer :: k, itri, izone
    integer :: ieq(3)
+   integer :: u_j, vz_j, chi_j
    integer, dimension(dofs_per_element) :: imask
    type(vector_type), pointer :: vsource
    type(field_type) ::   p_v
@@ -4105,6 +4165,7 @@ subroutine set_s1_0_mat
    logical, save :: first_time = .true.
     
 
+   if (.not.first_time) return
     !call matvecmult(d1_0_mat, vel_vec, b1_vel)
     call create_vector(vel_vec,      numvar)
     call associate_field(u_v,    vel_vec,      1)
@@ -4117,9 +4178,9 @@ subroutine set_s1_0_mat
    
       call set_matrix_index(s1_0_mat, 172)
        call create_mat(s1_0_mat, numvar, numvar, icomplex, 1)
-       u_i = 1
-       vz_i = 2
-       chi_i = 3
+       u_j = 1
+       vz_j = 2
+       chi_j = 3
        do itri=1,local_elements()
           call define_element_quadrature(itri, int_pts_main, int_pts_tor)
           call define_fields(itri,FIElD_N,1,0)
@@ -4127,49 +4188,30 @@ subroutine set_s1_0_mat
           tempxx = intxx3(mu79(:,:,OP_DR),nu79(:,:,OP_DR),r2_79)
           tempxx = tempxx+intxx3(mu79(:,:,OP_DZ),nu79(:,:,OP_DZ),r2_79)
           call apply_boundary_mask(itri, 0, tempxx, imask)
-          call insert_block(s1_0_mat,itri,u_i,u_i,tempxx,MAT_ADD)
+          call insert_block(s1_0_mat,itri,u_j,u_j,tempxx,MAT_ADD)
           tempxx = intxx3(mu79(:,:,OP_DR),nu79(:,:,OP_DZ),ri_79)
           tempxx = tempxx-intxx3(mu79(:,:,OP_DZ),nu79(:,:,OP_DR),ri_79)
           call apply_boundary_mask(itri, 0, tempxx, imask)
-          call insert_block(s1_0_mat,itri,u_i,chi_i,tempxx,MAT_ADD)
+          call insert_block(s1_0_mat,itri,u_j,chi_j,tempxx,MAT_ADD)
           call get_vz_mask(itri, imask)
           tempxx = intxx3(mu79(:,:,OP_1),nu79(:,:,OP_1),r2_79)
           call apply_boundary_mask(itri, 0, tempxx, imask)
-          call insert_block(s1_0_mat,itri,vz_i,vz_i,tempxx,MAT_ADD)
+          call insert_block(s1_0_mat,itri,vz_j,vz_j,tempxx,MAT_ADD)
           call get_chi_mask(itri, imask)
           tempxx = intxx3(mu79(:,:,OP_DR),nu79(:,:,OP_DZ),ri_79)
           tempxx = tempxx-intxx3(mu79(:,:,OP_DZ),nu79(:,:,OP_DR),ri_79)
           call apply_boundary_mask(itri, 0, tempxx, imask)
-          call insert_block(s1_0_mat,itri,chi_i,u_i,tempxx,MAT_ADD)
+          call insert_block(s1_0_mat,itri,chi_j,u_j,tempxx,MAT_ADD)
           tempxx = -intxx3(mu79(:,:,OP_DR),nu79(:,:,OP_DR),ri4_79)
           tempxx = tempxx-intxx3(mu79(:,:,OP_DZ),nu79(:,:,OP_DZ),ri4_79)
           call apply_boundary_mask(itri, 0, tempxx, imask)
-          call insert_block(s1_0_mat,itri,chi_i,chi_i,tempxx,MAT_ADD)
-          if (isplitstep.eq.0) then
-             call get_flux_mask(itri, imask)
-             tempxx = intxx2(mu79(:,:,OP_1),nu79(:,:,OP_1))
-             !call apply_boundary_mask(itri, 0, tempxx, imask)
-             call insert_block(s1_0_mat,itri,psi_i,psi_i,tempxx,MAT_ADD)
-             call get_bz_mask(itri, imask)
-             tempxx = intxx2(mu79(:,:,OP_1),nu79(:,:,OP_1))
-             !call apply_boundary_mask(itri, 0, tempxx, imask)
-             call insert_block(s1_0_mat,itri,bz_i,bz_i,tempxx,MAT_ADD)
-             call get_pres_mask(itri, imask)
-             tempxx = intxx2(mu79(:,:,OP_1),nu79(:,:,OP_1))
-             !call apply_boundary_mask(itri, 0, tempxx, imask)
-             call insert_block(s1_0_mat,itri,p_i,p_i,tempxx,MAT_ADD)
-             tempxx = intxx2(mu79(:,:,OP_1),nu79(:,:,OP_1))
-             call insert_block(s1_0_mat,itri,den_i,den_i,tempxx,MAT_ADD)
-             !call get_bf_mask(itri, imask)
-             !tempxx = intxx2(mu79(:,:,OP_1),nu79(:,:,OP_1))
-             !!call apply_boundary_mask(itri, 0, tempxx, imask)
-             !call insert_block(s1_0_mat,itri,bf_i,bf_i,tempxx,MAT_ADD)
-          endif
+          call insert_block(s1_0_mat,itri,chi_j,chi_j,tempxx,MAT_ADD)
        enddo
        call flush(s1_0_mat)
 
        call boundary_vel(b1_vel, u_v, vz_v, chi_v, s1_0_mat)
        call finalize(s1_0_mat)
+       first_time = .false.
  
 end subroutine set_s1_0_mat
 
@@ -4196,7 +4238,6 @@ subroutine set_parallel_velocity
    integer :: k, itri, izone
    integer :: ieq(3)
    integer, dimension(dofs_per_element) :: imask
-   type(vector_type), pointer :: vsource
    type(field_type) ::   p_v
    vectype, dimension(dofs_per_element) :: dofs
    integer :: ierr
@@ -4218,20 +4259,14 @@ subroutine set_parallel_velocity
     vz_v = vz_field(1)
     chi_v = chi_field(1)
    call create_vector(b1_vel, numvar)
-     
-   u_i = 1
-   vz_i = 2
-   chi_i = 3
-   ieq(1) = u_i
-   ieq(2) = vz_i
-   ieq(3) = chi_i
 
-   if (isplitstep .ge. 1) then
-      vsource => r4_vec
-   else
-      vsource => q4_vec
-   end if
-   vsource = 0.
+   call set_s1_0_mat
+     
+   ieq(1) = 1
+   ieq(2) = 2
+   ieq(3) = 3
+
+   b1_vel = 0.
    do itri = 1, local_elements()
 
       call get_zone(itri, izone)
@@ -4333,12 +4368,11 @@ subroutine set_parallel_velocity
             end select
          end if
          call apply_boundary_mask_vec(itri, 0, r4, imask)
-         call vector_insert_block(vsource,itri,ieq(k),r4,VEC_ADD)
+         call vector_insert_block(b1_vel,itri,ieq(k),r4,VEC_ADD)
       end do
 
    end do
-   call sum_shared(vsource)
-     b1_vel=r4_vec
+   call sum_shared(b1_vel)
      call boundary_vel(b1_vel, u_v, vz_v, chi_v)
      call newsolve(s1_0_mat, b1_vel, ierr)
      vel_vec = b1_vel
@@ -4349,7 +4383,6 @@ subroutine set_parallel_velocity
 
      call destroy_vector(b1_vel)
      call destroy_vector(vel_vec)
-   vsource=0.
 
 
      !call create_field(p_v)
@@ -4431,13 +4464,12 @@ subroutine set_diamagnetic_velocity
     vz_v = vz_field(1)
     chi_v = chi_field(1)
    call create_vector(b1_vel, numvar)
+
+   call set_s1_0_mat
      
-   u_i = 1
-   vz_i = 2
-   chi_i = 3
-   ieq(1) = u_i
-   ieq(2) = vz_i
-   ieq(3) = chi_i
+   ieq(1) = 1
+   ieq(2) = 2
+   ieq(3) = 3
 
    if (isplitstep .ge. 1) then
       vsource => r4_vec
@@ -4560,7 +4592,7 @@ subroutine get_axi(f)
 
 end subroutine get_axi
 
-subroutine filter_velocity
+subroutine filter_field(f)
 
    use mesh_mod
    use basic
@@ -4579,6 +4611,7 @@ subroutine filter_velocity
 
    implicit none
 
+   type(field_type), intent(inout) :: f
    vectype, dimension(dofs_per_element) :: r4
    integer :: k, itri, izone
    integer :: ieq(3)
@@ -4586,84 +4619,59 @@ subroutine filter_velocity
    integer, dimension(dofs_per_element) :: imask
    type(vector_type), pointer :: vsource
    type(field_type) ::   phi_v, bz_v, psi_v
+   type(field_type) ::   f_temp
+   type(field_type) ::   u_field_temp, vz_field_temp, psi_field_temp, bz_field_temp
    vectype, dimension(dofs_per_element) :: dofs
    integer :: ierr
    type(field_type) ::   u_v
    type(field_type) ::  vz_v
    type(field_type) :: chi_v
+   type(field_type) :: f_v
    type(vector_type) :: vel_vec
    type(vector_type) :: b1_vel
    vectype, dimension(dofs_per_element, dofs_per_element) :: tempxx
    type(matrix_type) :: diff_tor_mat
-   type(field_type) ::  pscos_v, pssin_v, pzcos_v, pzsin_v, phcos_v, phsin_v, bzcos_v, bzsin_v
-  vectype, dimension(MAX_PTS, OP_NUM) :: pscos79, pssin79, pzcos79, pzsin79, phcos79, phsin79, bzcos79, bzsin79
+   type(field_type) ::  cos_v, sin_v, pscos_v, pssin_v, pzcos_v, pzsin_v, phcos_v, phsin_v, vzcos_v, vzsin_v, bzcos_v, bzsin_v
+   vectype, dimension(MAX_PTS, OP_NUM) :: f79, cos79, sin79
+  vectype, dimension(MAX_PTS, OP_NUM) :: pscos79, pssin79, pzcos79, pzsin79, phcos79, phsin79, vzcos79, vzsin79, bzcos79, bzsin79
 
    logical, save :: first_time = .true.
-    
 
-   do i = 1, imode_filter
+   call create_field(f_temp)
+   f_temp = 0.
+
+   call create_field(cos_v)
+   call create_field(sin_v)
+
+   call create_field(f_v)
+
+   do i = 1, abs(imode_filter)
       ntor_i = mode_filter_ntor(i)
 
-      call create_field(phcos_v)
-      call create_field(phsin_v)
-      phcos_v = 0.
-      phsin_v = 0.
-
-      call create_field(bzcos_v)
-      call create_field(bzsin_v)
-      bzcos_v = 0.
-      bzsin_v = 0.
-
-      call create_field(pscos_v)
-      call create_field(pssin_v)
-      pscos_v = 0.
-      pssin_v = 0.
-
+      cos_v = 0.
+      sin_v = 0.
 
       do itri = 1, local_elements()
          call get_zone(itri, izone)
 
          call define_element_quadrature(itri, int_pts_main, int_pts_tor)
-         call define_fields(itri, FIELD_PHI + FIELD_I + FIELD_PSI , 1, 0)
+         call define_fields(itri, 0, 1, 0)
+         call eval_ops(itri, f, f79)
 
-         temp79a = ph179(:, OP_1) * cos(ntor_i * phi_79)
+         temp79a = f79(:, OP_1) * cos(ntor_i * phi_79)
          dofs = intx2(mu79(:, :, OP_1), temp79a)
-         call vector_insert_block(phcos_v%vec, itri, 1, dofs, VEC_ADD)
+         call vector_insert_block(cos_v%vec, itri, 1, dofs, VEC_ADD)
 
-         temp79a = ph179(:, OP_1) * sin(ntor_i * phi_79)
+         temp79a = f79(:, OP_1) * sin(ntor_i * phi_79)
          dofs = intx2(mu79(:, :, OP_1), temp79a)
-         call vector_insert_block(phsin_v%vec, itri, 1, dofs, VEC_ADD)
-
-         temp79a = bz179(:, OP_1) * cos(ntor_i * phi_79)
-         dofs = intx2(mu79(:, :, OP_1), temp79a)
-         call vector_insert_block(bzcos_v%vec, itri, 1, dofs, VEC_ADD)
-
-         temp79a = bz179(:, OP_1) * sin(ntor_i * phi_79)
-         dofs = intx2(mu79(:, :, OP_1), temp79a)
-         call vector_insert_block(bzsin_v%vec, itri, 1, dofs, VEC_ADD)
-
-         temp79a = ps179(:, OP_1) * cos(ntor_i * phi_79)
-         dofs = intx2(mu79(:, :, OP_1), temp79a)
-         call vector_insert_block(pscos_v%vec, itri, 1, dofs, VEC_ADD)
-
-         temp79a = ps179(:, OP_1) * sin(ntor_i * phi_79)
-         dofs = intx2(mu79(:, :, OP_1), temp79a)
-         call vector_insert_block(pssin_v%vec, itri, 1, dofs, VEC_ADD)
+         call vector_insert_block(sin_v%vec, itri, 1, dofs, VEC_ADD)
       end do
 
-      call newvar_solve(phcos_v%vec, mass_mat_lhs)
-      call newvar_solve(phsin_v%vec, mass_mat_lhs)
-      call newvar_solve(bzcos_v%vec, mass_mat_lhs)
-      call newvar_solve(bzsin_v%vec, mass_mat_lhs)
-      call newvar_solve(pscos_v%vec, mass_mat_lhs)
-      call newvar_solve(pssin_v%vec, mass_mat_lhs)
+      call newvar_solve(cos_v%vec, mass_mat_lhs)
+      call newvar_solve(sin_v%vec, mass_mat_lhs)
 
-      call get_axi(phcos_v)
-      call get_axi(phsin_v)
-      call get_axi(bzcos_v)
-      call get_axi(bzsin_v)
-      call get_axi(pscos_v)
-      call get_axi(pssin_v)
+      call get_axi(cos_v)
+      call get_axi(sin_v)
 
       ! ieq(1) = u_i
       ! ieq(2) = vz_i
@@ -4676,71 +4684,86 @@ subroutine filter_velocity
       ! end if
       ! vsource = 0.
 
-      call create_field(phi_v)
-      phi_v = 0.
-
-      call create_field(bz_v)
-      bz_v = 0.
-
-      call create_field(psi_v)
-      psi_v = 0.
+      f_v = 0.
 
       do itri = 1, local_elements()
          call get_zone(itri, izone)
 
          call define_element_quadrature(itri, int_pts_main, int_pts_tor)
-         call define_fields(itri, FIELD_PHI + FIELD_I + FIELD_PSI, 1, 0)
+         call define_fields(itri, 0, 1, 0)
 
-         call eval_ops(itri, phcos_v, phcos79)
-         call eval_ops(itri, phsin_v, phsin79)
-         call eval_ops(itri, bzcos_v, bzcos79)
-         call eval_ops(itri, bzsin_v, bzsin79)
-         call eval_ops(itri, pscos_v, pscos79)
-         call eval_ops(itri, pssin_v, pssin79)
+         call eval_ops(itri, cos_v, cos79)
+         call eval_ops(itri, sin_v, sin79)
 
-         ph179(:, OP_1) = ph179(:, OP_1)                                &
-            - phcos79(:, OP_1) * cos(ntor_i * phi_79)                   &
-            - phsin79(:, OP_1) * sin(ntor_i * phi_79)
-
-         bz179(:, OP_1) = bz179(:, OP_1)                                &
-            - bzcos79(:, OP_1) * cos(ntor_i * phi_79)                   &
-            - bzsin79(:, OP_1) * sin(ntor_i * phi_79)
-
-         ps179(:, OP_1) = ps179(:, OP_1)                                &
-            - pscos79(:, OP_1) * cos(ntor_i * phi_79)                   &
-            - pssin79(:, OP_1) * sin(ntor_i * phi_79)
-
-         dofs = intx2(mu79(:, :, OP_1), ph179(:, OP_1))
-         call vector_insert_block(phi_v%vec, itri, 1, dofs, VEC_ADD)
-
-         dofs = intx2(mu79(:, :, OP_1), bz179(:, OP_1))
-         call vector_insert_block(bz_v%vec, itri, 1, dofs, VEC_ADD)
-
-         dofs = intx2(mu79(:, :, OP_1), ps179(:, OP_1))
-         call vector_insert_block(psi_v%vec, itri, 1, dofs, VEC_ADD)
+         if (ntor_i.eq.0) then
+            temp79a = 0*ph179(:, OP_1)                                &
+               + cos79(:, OP_1) * cos(ntor_i * phi_79)                   &
+               + sin79(:, OP_1) * sin(ntor_i * phi_79)
+         else
+            temp79a = 0*ph179(:, OP_1)                                &
+               + cos79(:, OP_1) * 2*cos(ntor_i * phi_79)                   &
+               + sin79(:, OP_1) * 2*sin(ntor_i * phi_79)
+         endif
+       
+         dofs = intx2(mu79(:, :, OP_1), temp79a)
+         call vector_insert_block(f_v%vec, itri, 1, dofs, VEC_ADD)
       end do
 
-      call newvar_solve(phi_v%vec, mass_mat_lhs)
-      u_field(1) = phi_v
+      call newvar_solve(f_v%vec, mass_mat_lhs)
+      call add(f_temp, f_v)
 
-      call newvar_solve(bz_v%vec, mass_mat_lhs)
-      bz_field(1) = bz_v
+  end do
+  if (imode_filter<0) then
+     f = f_temp
+  else
+     ! call mult(f_temp,-1.)
+     call mult(f_temp,-0.1)
+     call add(f, f_temp)
+  endif
 
-      call newvar_solve(psi_v%vec, mass_mat_lhs)
-      psi_field(1) = psi_v
+   ! call destroy_field(phcos_v)
+   ! call destroy_field(phsin_v)
+   ! call destroy_field(phi_v)
+   ! call destroy_field(bzcos_v)
+   ! call destroy_field(bzsin_v)
+   ! call destroy_field(bz_v)
+   ! call destroy_field(vzcos_v)
+   ! call destroy_field(vzsin_v)
+   ! call destroy_field(vz_v)
+   ! call destroy_field(pscos_v)
+   ! call destroy_field(pssin_v)
+   ! call destroy_field(psi_v)
+   ! call destroy_field(u_field_temp)
+   ! call destroy_field(vz_field_temp)
+   ! call destroy_field(psi_field_temp)
+   ! call destroy_field(bz_field_temp)
+   
+end subroutine filter_field
 
-      call destroy_field(phcos_v)
-      call destroy_field(phsin_v)
-      call destroy_field(phi_v)
-      call destroy_field(bzcos_v)
-      call destroy_field(bzsin_v)
-      call destroy_field(bz_v)
-      call destroy_field(pscos_v)
-      call destroy_field(pssin_v)
-      call destroy_field(psi_v)
-   end do
+subroutine filter_fields
 
-end subroutine filter_velocity
+   use basic
+   use arrays
+   use m3dc1_nint
+   use model
+
+   implicit none
+
+   logical, save :: first_time = .true.
+
+   if (imode_filter.eq.0) return
+   call filter_field(u_field(1))
+   call filter_field(vz_field(1))
+   call filter_field(chi_field(1))
+   call filter_field(psi_field(1))
+   call filter_field(bz_field(1))
+   call filter_field(den_field(1))
+   call filter_field(p_field(1))
+   call filter_field(te_field(1))
+   call filter_field(nre_field(1))
+  
+end subroutine filter_fields
+
 
 subroutine set_density
 

@@ -817,7 +817,6 @@ subroutine output_mesh(time_group_id, nelms, error)
   integer, parameter :: vals_per_elm = 8
 #endif
   real, dimension(vals_per_elm,nelms) :: elm_data
-  integer, dimension(nodes_per_element) :: nodeids
   real, dimension(int_pts_main*int_pts_tor,nelms) :: pts_r, pts_phi, pts_z
   real :: alx, alz
 
@@ -849,17 +848,14 @@ subroutine output_mesh(time_group_id, nelms, error)
 
   ! Output the mesh data
   do i=1, nelms
-     call get_element_nodes(i,nodeids)
-
-     ! don't call boundary_edge if iadapt != 0
-     ! because bug in scorec software causes crash when querying 
-     ! normal/curvature at newly created boundary nodes
-     if(iadapt.eq.0) call boundary_edge(i, is_edge, normal, idim)
+     ! Since snap operation is default in adapt, it's safe to call
+     ! boundary edge when iadapt != 0
+     call boundary_edge(i, is_edge, normal, idim)
 
      bound = 0.
-     if(is_edge(1).ne.0) bound = bound + 1. + (is_edge(1)-1)*2**3
-     if(is_edge(2).ne.0) bound = bound + 2. + (is_edge(2)-1)*2**7
-     if(is_edge(3).ne.0) bound = bound + 4. + (is_edge(3)-1)*2**11
+     if(is_edge(1).ne.0) bound = bound + 1. + boundary_type(is_edge(1))*2**3
+     if(is_edge(2).ne.0) bound = bound + 2. + boundary_type(is_edge(2))*2**7
+     if(is_edge(3).ne.0) bound = bound + 4. + boundary_type(is_edge(3))*2**11
 
      call get_element_data(i, d)
 
@@ -880,12 +876,15 @@ subroutine output_mesh(time_group_id, nelms, error)
 
      if(iwrite_quad_points.eq.1) then
         call define_element_quadrature(i,int_pts_main,int_pts_tor)
+        call local_to_global(d, xi_79, zi_79, eta_79, x_79, phi_79, z_79)
+
         if(npoints.ne.int_pts_main*int_pts_tor) then
            print *, 'WARNING: INCONSISTENT NPOINTS IN QUADRATURE'
+        else
+           pts_r(:,i) = x_79(1:npoints)
+           pts_z(:,i) = z_79(1:npoints)
+           pts_phi(:,i) = phi_79(1:npoints)
         end if
-        pts_r(1:npoints,i) = x_79(1:npoints)
-        pts_z(1:npoints,i) = z_79(1:npoints)
-        pts_phi(1:npoints,i) = phi_79(1:npoints)
      end if
   end do
   call output_field(mesh_group_id, "elements", elm_data, vals_per_elm, &

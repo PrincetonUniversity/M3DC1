@@ -178,11 +178,13 @@ subroutine vorticity_lin(trialx, lin, ssterm, ddterm, r_bf, q_bf, advfield, &
      ssterm(:,u_g) = ssterm(:,u_g) -     thimp     *dt*tempx
      ddterm(:,u_g) = ddterm(:,u_g) + (1.-thimp*bdf)*dt*tempx
 #ifdef USEPARTICLES
-     tempx = v1uun1  (trialx,phstar079,lin,rho79) &
-          +  v1uvn  (trialx,lin,vzstar079,rho79) &
-          +  v1uchin2(trialx,lin,chstar079,rho79)
-     ssterm(:,u_g) = ssterm(:,u_g) -     0.5     *dt*tempx
-     ddterm(:,u_g) = ddterm(:,u_g) + (1.-0.5*bdf)*dt*temp
+     if (idiamagnetic_advection.eq.1) then
+        tempx = v1uun1  (trialx,phstar079,lin,rho79) &
+             +  v1uvn  (trialx,lin,vzstar079,rho79) &
+             +  v1uchin2(trialx,lin,chstar079,rho79)
+        ssterm(:,u_g) = ssterm(:,u_g) -     0.5     *dt*tempx
+        ddterm(:,u_g) = ddterm(:,u_g) + (1.-0.5*bdf)*dt*temp
+     endif
 #endif
 
      if(numvar.ge.2) then
@@ -193,9 +195,11 @@ subroutine vorticity_lin(trialx, lin, ssterm, ddterm, r_bf, q_bf, advfield, &
         ssterm(:,vz_g) = ssterm(:,vz_g) -     thimp     *dt*tempx
         ddterm(:,vz_g) = ddterm(:,vz_g) + (1.-thimp*bdf)*dt*tempx
 #ifdef USEPARTICLES
-        tempx = v1vvn  (trialx,vzstar079,lin,rho79)
-        ssterm(:,vz_g) = ssterm(:,vz_g) -     0.5     *dt*tempx
-        ddterm(:,vz_g) = ddterm(:,vz_g) + (1.-0.5*bdf)*dt*tempx
+        if (idiamagnetic_advection.eq.1) then
+           tempx = v1vvn  (trialx,vzstar079,lin,rho79)
+           ssterm(:,vz_g) = ssterm(:,vz_g) -     0.5     *dt*tempx
+           ddterm(:,vz_g) = ddterm(:,vz_g) + (1.-0.5*bdf)*dt*tempx
+        endif
 #endif
      end if
 
@@ -207,11 +211,13 @@ subroutine vorticity_lin(trialx, lin, ssterm, ddterm, r_bf, q_bf, advfield, &
         ssterm(:,chi_g) = ssterm(:,chi_g) -     thimp     *dt*tempx
         ddterm(:,chi_g) = ddterm(:,chi_g) + (1.-thimp*bdf)*dt*tempx
 #ifdef USEPARTICLES
-        tempx = v1uchin1  (trialx,phstar079,lin,rho79) &
-             +  v1vchin   (trialx,vzstar079,lin,rho79) &
-             +  v1chichin1(trialx,chstar079,lin,rho79)
-        ssterm(:,chi_g) = ssterm(:,chi_g) -     0.5     *dt*tempx
-        ddterm(:,chi_g) = ddterm(:,chi_g) + (1.-0.5*bdf)*dt*tempx
+        if (idiamagnetic_advection.eq.1) then
+           tempx = v1uchin1  (trialx,phstar079,lin,rho79) &
+                +  v1vchin   (trialx,vzstar079,lin,rho79) &
+                +  v1chichin1(trialx,chstar079,lin,rho79)
+           ssterm(:,chi_g) = ssterm(:,chi_g) -     0.5     *dt*tempx
+           ddterm(:,chi_g) = ddterm(:,chi_g) + (1.-0.5*bdf)*dt*tempx
+        endif
 #endif
      end if
 
@@ -817,11 +823,13 @@ subroutine axial_vel_lin(trialx, lin, ssterm, ddterm, r_bf, q_bf, advfield, &
      ssterm(:,vz_g) = ssterm(:,vz_g) -     thimp     *dt*tempx
      ddterm(:,vz_g) = ddterm(:,vz_g) + (1.-thimp*bdf)*dt*tempx
 #ifdef USEPARTICLES
-     tempx = v2vun  (trialx,lin,phstar079,rho79) &
-          +  v2vvn  (trialx,vzstar079,lin,rho79) &
-          +  v2vchin(trialx,lin,chstar079,rho79)
-     ssterm(:,vz_g) = ssterm(:,vz_g) -     0.5     *dt*tempx
-     ddterm(:,vz_g) = ddterm(:,vz_g) + (1.-0.5*bdf)*dt*tempx
+     if (idiamagnetic_advection.eq.1) then
+        tempx = v2vun  (trialx,lin,phstar079,rho79) &
+             +  v2vvn  (trialx,vzstar079,lin,rho79) &
+             +  v2vchin(trialx,lin,chstar079,rho79)
+        ssterm(:,vz_g) = ssterm(:,vz_g) -     0.5     *dt*tempx
+        ddterm(:,vz_g) = ddterm(:,vz_g) + (1.-0.5*bdf)*dt*tempx
+     endif
 #endif
 
 
@@ -1399,11 +1407,13 @@ subroutine compression_lin(trialx, lin, ssterm, ddterm, r_bf, q_bf, advfield, &
      ssterm(:,u_g) = ssterm(:,u_g) -     thimp     *dt*tempx
      ddterm(:,u_g) = ddterm(:,u_g) + (1.-thimp*bdf)*dt*tempx
 #ifdef USEPARTICLES
-     tempx = v3uun  (trialx,phstar079,lin,rho79) &
-           + v3uvn  (trialx,lin,vzstar079,rho79) &
-           + v3uchin2(trialx,lin,chstar079,rho79)
-     ssterm(:,u_g) = ssterm(:,u_g) -     0.5     *dt*tempx
-     ddterm(:,u_g) = ddterm(:,u_g) + (1.-0.5*bdf)*dt*tempx
+     if (idiamagnetic_advection.eq.1) then
+        tempx = v3uun  (trialx,phstar079,lin,rho79) &
+              + v3uvn  (trialx,lin,vzstar079,rho79) &
+              + v3uchin2(trialx,lin,chstar079,rho79)
+        ssterm(:,u_g) = ssterm(:,u_g) -     0.5     *dt*tempx
+        ddterm(:,u_g) = ddterm(:,u_g) + (1.-0.5*bdf)*dt*tempx
+     endif
 #endif
      tempx = v3uvn  (trialx,ph079,lin,rho79) &
           + v3vvn  (trialx,lin,vz079,rho79) &
@@ -1412,9 +1422,12 @@ subroutine compression_lin(trialx, lin, ssterm, ddterm, r_bf, q_bf, advfield, &
      ssterm(:,vz_g) = ssterm(:,vz_g) -     thimp     *dt*tempx
      ddterm(:,vz_g) = ddterm(:,vz_g) + (1.-thimp*bdf)*dt*tempx
 #ifdef USEPARTICLES
+     if (idiamagnetic_advection.eq.1) then
      tempx = v3vvn  (trialx,lin,vzstar079,rho79)
      ssterm(:,vz_g) = ssterm(:,vz_g) -     0.5     *dt*tempx
      ddterm(:,vz_g) = ddterm(:,vz_g) + (1.-0.5*bdf)*dt*tempx
+     endif
+
 #endif
      tempx = v3uchin  (trialx,ph079,lin,rho79) &
           + v3vchin  (trialx,vz079,lin,rho79) &
@@ -1423,11 +1436,13 @@ subroutine compression_lin(trialx, lin, ssterm, ddterm, r_bf, q_bf, advfield, &
      ssterm(:,chi_g) = ssterm(:,chi_g) -     thimp     *dt*tempx
      ddterm(:,chi_g) = ddterm(:,chi_g) + (1.-thimp*bdf)*dt*tempx
 #ifdef USEPARTICLES
-     tempx = v3uchin1  (trialx,phstar079,lin,rho79) &
-          + v3vchin  (trialx,vzstar079,lin,rho79) &
-          + v3chichin(trialx,chstar079,lin,rho79)
-     ssterm(:,chi_g) = ssterm(:,chi_g) -     0.5     *dt*tempx
-     ddterm(:,chi_g) = ddterm(:,chi_g) + (1.-0.5*bdf)*dt*tempx
+     if (idiamagnetic_advection.eq.1) then
+        tempx = v3uchin1  (trialx,phstar079,lin,rho79) &
+             + v3vchin  (trialx,vzstar079,lin,rho79) &
+             + v3chichin(trialx,chstar079,lin,rho79)
+        ssterm(:,chi_g) = ssterm(:,chi_g) -     0.5     *dt*tempx
+        ddterm(:,chi_g) = ddterm(:,chi_g) + (1.-0.5*bdf)*dt*tempx
+     endif
 #endif
      if(idens.eq.1) then 
         ddterm(:,den_g) = ddterm(:,den_g) + dt* &

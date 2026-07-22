@@ -7,7 +7,7 @@ import numpy as np
 from .time_name import time_name
 
 
-def plot_wall_regions(*, filename="C1.h5", slice=0, over=False, color="tab:green", **kwargs):
+def plot_wall_regions(*, filename="C1.h5", slice=0, over=False, color="tab:green", xscale: float = 1.0, yscale: float = 1.0, **kwargs):
     """
     Plot wall region polylines if present in HDF5.
     """
@@ -40,5 +40,5 @@ def plot_wall_regions(*, filename="C1.h5", slice=0, over=False, color="tab:green
                     continue
                 x = np.asarray(pg["x"][()], dtype=float).reshape(-1)
                 y = np.asarray(pg["y"][()], dtype=float).reshape(-1)
-                plt.plot(x, y, color=color, linewidth=1.0)
+                plt.plot(x * float(xscale), y * float(yscale), color=color, linewidth=1.0)
 

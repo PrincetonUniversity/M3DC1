@@ -21,6 +21,7 @@ def plot_hmn(
     *,
     filename: str | Path = "C1.h5",
     maxn: int | None = None,
+    n_val=None,
     growth: bool = False,
     outfile: str | Path | None = None,
     xrange=None,
@@ -45,6 +46,7 @@ def plot_hmn(
     meta = read_hmn(
         filename=filename,
         maxn=maxn,
+        n_val=n_val,
         growth=growth,
         outfile=outfile,
         me=me,
@@ -54,18 +56,20 @@ def plot_hmn(
     )
     data = np.asarray(meta.data, dtype=float)
     time = np.asarray(meta.time, dtype=float)
+    nvals = np.asarray(getattr(meta, "n", np.arange(data.shape[0])), dtype=int).reshape(-1)
     if data.size == 0 or time.size == 0:
         return None, None
 
     if smooth is not None:
-        for n in range(data.shape[0]):
-            data[n, :] = _smooth_1d(data[n, :], int(smooth))
+        for i in range(data.shape[0]):
+            data[i, :] = _smooth_1d(data[i, :], int(smooth))
 
     if print is not None:
         nprint = int(print)
-        if nprint < 0 or nprint >= data.shape[0]:
-            raise ValueError(f"plot_hmn(print={nprint}) is out of range for 0 <= n < {data.shape[0]}.")
-        yvals = np.asarray(data[nprint, :], dtype=float)
+        matches = np.nonzero(nvals == nprint)[0]
+        if matches.size == 0:
+            raise ValueError(f"plot_hmn(print={nprint}) is not in selected n values {nvals.tolist()}.")
+        yvals = np.asarray(data[int(matches[0]), :], dtype=float)
         for i in range(0, yvals.size, 8):
             chunk = yvals[i : i + 8]
             builtins.print(" ".join(f"{value:12.6g}" for value in chunk))
@@ -73,7 +77,9 @@ def plot_hmn(
     if yrange is None:
         yrange_data = data
         if meta.magnetic and data.shape[0] > 1:
-            yrange_data = data[1:, :]
+            nonzero = nvals != 0
+            if np.any(nonzero):
+                yrange_data = data[nonzero, :]
         ymin = float(np.nanmin(yrange_data))
         ymax = float(np.nanmax(yrange_data))
         if ymax > ymin:
@@ -98,11 +104,11 @@ def plot_hmn(
     lw = float(thick) if thick is not None else None
     tscaled = time * float(xscale)
     ntimes = int(data.shape[1])
-    for n in range(data.shape[0]):
-        c = colors[n % len(colors)] if colors else None
-        ax.plot(tscaled, data[n, :], linestyle=linestyle, linewidth=lw, color=c)
+    for i, n_actual in enumerate(nvals):
+        c = colors[i % len(colors)] if colors else None
+        ax.plot(tscaled, data[i, :], linestyle=linestyle, linewidth=lw, color=c)
         m = min(int(ntimes * float(labelx)), ntimes - 1)
-        ax.text(tscaled[m], data[n, m], f"{n}", color=c if c is not None else "black")
+        ax.text(tscaled[m], data[i, m], f"{int(n_actual)}", color=c if c is not None else "black")
 
     if xrange is not None:
         ax.set_xlim(xrange)
@@ -115,7 +121,7 @@ def plot_hmn(
         ax.axhline(0.0, color="black", linestyle="-", linewidth=0.8)
 
     if not nolegend:
-        names = [f"n={i}" for i in range(data.shape[0])]
+        names = [f"n={int(v)}" for v in nvals]
         plot_legend(names, colors=colors, linestyles=[linestyle] * data.shape[0])
 
     return fig, ax

@@ -6,6 +6,7 @@ from pathlib import Path
 import numpy as np
 
 from .read_field import read_field
+from .read_mesh import read_mesh
 from .read_parameter import read_parameter
 
 
@@ -53,6 +54,14 @@ def read_field_ntor(
         raise ValueError("read_field_ntor requires a file with 3d=1.")
     if threed == 1 and tpoints is None:
         tpoints = 32
+    nperiods = int(read_mesh(filename=filename, slice=int(timeslices)).nperiods)
+    if nperiods > 1 and ntor is not None:
+        req_check = np.asarray(ntor, dtype=int).reshape(-1)
+        invalid = req_check[np.mod(req_check, nperiods) != 0]
+        if invalid.size > 0:
+            raise ValueError(
+                f"ntor values must be multiples of nperiods={nperiods}; got {invalid.tolist()}."
+            )
 
     field_kwargs = dict(kwargs)
     if threed == 1 and tpoints is not None:
@@ -89,11 +98,11 @@ def read_field_ntor(
 
     data = np.asarray(field, dtype=np.complex128)
     data = np.fft.fft(data, axis=0)
-    nvals = np.arange(data.shape[0], dtype=int)
+    nvals = np.arange(data.shape[0], dtype=int) * nperiods
 
     if ntor is not None:
         req = np.asarray(ntor, dtype=int).reshape(-1)
-        idx = np.asarray([int(val) % int(data.shape[0]) for val in req], dtype=int)
+        idx = np.asarray([int(val // nperiods) % int(data.shape[0]) for val in req], dtype=int)
         data = data[idx, :, :]
         nvals = req
 

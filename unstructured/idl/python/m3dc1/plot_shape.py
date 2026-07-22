@@ -13,8 +13,9 @@ from .read_field import read_field
 
 
 def plot_shape(
-    filename: str | Path | Sequence[str | Path] = "C1.h5",
+    timeslice: int = 0,
     *,
+    filename: str | Path | Sequence[str | Path] = "C1.h5",
     names: Sequence[str] | None = None,
     points: int = 200,
     xrange=None,
@@ -25,6 +26,7 @@ def plot_shape(
     cgs: bool = False,
     mks: bool = True,
     iso: bool = True,
+    levels=None,
     **kwargs,
 ):
     """
@@ -49,7 +51,7 @@ def plot_shape(
     for i, fn in enumerate(flist):
         meta = read_field(
             "psi",
-            timeslices=-1,
+            timeslices=timeslice,
             points=points,
             xrange=xrange,
             yrange=yrange,
@@ -66,12 +68,15 @@ def plot_shape(
         xv = np.asarray(meta.r, dtype=float).reshape(-1)
         zv = np.asarray(meta.z, dtype=float).reshape(-1)
 
-        lc = lcfs(psi2d, xv, zv, filename=fn, cgs=cgs, mks=mks)
-        levels = np.arange(12, dtype=float) / 10.0 * (lc.psilim - lc.flux0) + lc.flux0
-        if lc.psilim < lc.flux0:
-            levels = levels[::-1]
+        if levels is None:
+            lc = lcfs(psi2d, xv, zv, filename=fn, slice=timeslice, cgs=cgs, mks=mks)
+            contour_levels = np.arange(22, dtype=float) / 20.0 * (lc.psilim - lc.flux0) + lc.flux0
+            if lc.psilim < lc.flux0:
+                contour_levels = contour_levels[::-1]
+        else:
+            contour_levels = np.asarray(levels, dtype=float).reshape(-1)
 
-        ax.contour(xv, zv, psi2d.T, levels=levels, colors=[colors[i]], linewidths=1.0)
+        ax.contour(xv, zv, psi2d.T, levels=contour_levels, colors=[colors[i]], linewidths=1.0)
 
         if legend_names is not None and i < len(legend_names):
             handles.append(Line2D([0], [0], color=colors[i], linewidth=1.0, label=str(legend_names[i])))

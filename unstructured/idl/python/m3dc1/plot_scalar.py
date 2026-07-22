@@ -63,13 +63,14 @@ def plot_scalar(
     compensate_renorm_on: bool = False,
     integrate: bool = False,
     xscale: float = 1.0,
+    yscale: float = 1.0,
     ipellet: int = 0,
     factor: float = 1.0,
     versus: str | None = None,
     xabs: bool = False,
     print: bool = False,
     growth_rate: bool | None = None,
-) -> tuple[np.ndarray, np.ndarray]:
+):
     """
     Python port of plot_scalar.pro.
     """
@@ -121,6 +122,7 @@ def plot_scalar(
                 compensate_renorm_on=compensate_renorm_on,
                 integrate=integrate,
                 xscale=xscale,
+                yscale=yscale,
                 ipellet=ipellet,
                 factor=factor,
                 versus=versus,
@@ -129,7 +131,7 @@ def plot_scalar(
         if not nolegend and names:
             plot_legend(list(names), linestyles=ls, colors=cs, nolegend=nolegend)
         if last is None:
-            return np.array([]), np.array([])
+            return None, None
         return last
 
     meta = read_scalar(
@@ -156,7 +158,7 @@ def plot_scalar(
                 data[i, :] = compensate_renorm(data[i, :])
 
     if data.size <= 1:
-        return np.array([]), np.array([])
+        return None, None
 
     if power_spectrum_on:
         if data.ndim == 1:
@@ -211,6 +213,8 @@ def plot_scalar(
             for i in range(data.shape[0]):
                 data[i, :] = _smooth_1d(data[i, :], smooth)
 
+    data = data * float(yscale)
+
     if outfile is not None:
         _write_outfile(outfile, np.asarray(tdata), np.asarray(data))
 
@@ -237,7 +241,7 @@ def plot_scalar(
         z = float(np.asarray(data).reshape(-1)[-1])
         if not overplot:
             plt.figure(figsize=(6, 4))
-        plt.plot([xv], [z], linestyle=linestyle or "None", marker="o", color=color)
+        plt.plot([xv * float(xscale)], [z], linestyle=linestyle or "None", marker="o", color=color)
 
     plt.title(title)
     plt.xlabel(_plain(xtitle))
@@ -287,4 +291,5 @@ def plot_scalar(
                 plt.axhline(0.0, color="black", linestyle="-", linewidth=0.8)
     plt.tight_layout()
 
-    return np.asarray(tdata), np.asarray(data)
+    ax = plt.gca()
+    return ax.figure, ax

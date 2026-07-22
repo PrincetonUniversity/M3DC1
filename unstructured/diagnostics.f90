@@ -943,13 +943,13 @@ subroutine calculate_scalars()
       call calculate_CommonTerm_Lambda(temp79a,temp79b,temp79c,temp79d,temp79e)
      ! Jp_BS_Phi = intx3(ri_79,bzt79(:,OP_1),temp79a) 
       
-      jbs = jbs + int4(ri2_79,bzt79(:,OP_1),temp79a,mr) 
+      jbs = jbs + int3(ri2_79,temp79a,mr) 
     elseif (ibootstrap.eq.2)then
       call calculate_CommonTerm_Lambda_fordtedpsit(temp79a,temp79b,temp79c,temp79d,temp79e)
-      jbs = jbs + int4(ri2_79,bzt79(:,OP_1),temp79a,mr) 
+      jbs = jbs + int3(ri2_79,temp79a,mr) 
     elseif (ibootstrap.eq.3)then
       call calculate_CommonTerm_Lambda_fordtenormdpsit(temp79a,temp79b,temp79c,temp79d,temp79e)
-      jbs = jbs + int4(ri2_79,bzt79(:,OP_1),temp79a,mr) 
+      jbs = jbs + int3(ri2_79,temp79a,mr) 
     endif
      ! M_iz = int(dV Z*J)
      ! This is used for calculating the vertical "center" of the plasma current

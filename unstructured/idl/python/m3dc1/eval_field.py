@@ -180,8 +180,13 @@ def _eval_field_kernel_numba(
             dphi = elm_data[ib + 1, i]
             phi_elm = elm_data[ib + 2, i]
             localphi_i = local_phi - phi_elm
-            if localphi_i < 0.0 or localphi_i > dphi:
+            small_phi = abs(dphi) * 1e-4
+            if localphi_i < -small_phi or localphi_i > dphi + small_phi:
                 continue
+            if localphi_i < 0.0:
+                localphi_i = 0.0
+            elif localphi_i > dphi:
+                localphi_i = dphi
 
         a = elm_data[0, i]
         b = elm_data[1, i]

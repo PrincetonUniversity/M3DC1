@@ -1738,8 +1738,7 @@ contains
 #ifdef USEPARTICLES
     ! Kinetic Pressure Terms
     ! ~~~
-    if((iand(fields, FIELD_KIN).eq.FIELD_KIN)   &
-        .and. kinetic .eq. 1) then
+    if((iand(fields, FIELD_KIN).eq.FIELD_KIN)) then
        if(itri.eq.1 .and. myrank.eq.0 .and. iprint.ge.2) print *, "   kinetic..."
         call eval_ops(itri, p_f_par, pfpar79, rfac)
         call eval_ops(itri, p_f_perp, pfper79, rfac)
@@ -1794,12 +1793,15 @@ contains
         !   !nfi79(ipoint,:)=0.
         !   endif
         !enddo
-        call eval_ops(itri, ustar_field, phstar079)
-        call eval_ops(itri, vzstar_field, vzstar079)
-        call eval_ops(itri, chistar_field, chstar079)
-        !phstar079=0.
-        !vzstar079=0.
-        !chstar079=0.
+        if (idiamagnetic_advection.eq.1) then
+           call eval_ops(itri, ustar_field, phstar079)
+           call eval_ops(itri, vzstar_field, vzstar079)
+           call eval_ops(itri, chistar_field, chstar079)
+        else
+           phstar079=0.
+           vzstar079=0.
+           chstar079=0.
+        endif
     endif
 #endif
 
