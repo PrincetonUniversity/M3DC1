@@ -364,9 +364,9 @@ subroutine rmp_field(n, nt, np, x, phi, z, br, bphi, bz, p)
                         if (curr_now<1e-1) remc_fac = 0.0
                 else if (iScaleREMC.eq.2) then ! Use the REMC circuit equation
                         ! i_remc_circ (Amperes) is advanced once per time 
-                        ! step by update_remc_circuit in newpar.f90; ic_na is in kA
+                        ! step by update_remc_circuit in newpar.f90; ic_na is in A * mu0 / (2 * pi)
                         if (real(ic_na(1)).ne.0.) then
-                                remc_fac = (i_remc_circ/1000.0) / real(ic_na(1))
+                                remc_fac = (i_remc_circ*amu0 / twopi) / real(ic_na(1))
                         else
                                 remc_fac = 0.0
                         end if
