@@ -25,6 +25,17 @@ module rmp
 contains
 
 !==============================================================================
+! Called on restart when i_remc_circ has been successfully read back from
+! C1.h5, so that update_remc_circuit does not overwrite it with its
+! first-step initialization on the next call.
+subroutine mark_remc_circuit_restored
+  implicit none
+
+  remc_circuit_init = .true.
+
+end subroutine mark_remc_circuit_restored
+
+!==============================================================================
 subroutine rmp_per(ilin)
   use basic
   use arrays
@@ -366,7 +377,7 @@ subroutine rmp_field(n, nt, np, x, phi, z, br, bphi, bz, p)
                         ! i_remc_circ (Amperes) is advanced once per time 
                         ! step by update_remc_circuit in newpar.f90; ic_na is in A * mu0 / (2 * pi)
                         if (real(ic_na(1)).ne.0.) then
-                                remc_fac = (i_remc_circ*amu0 / twopi) / real(ic_na(1))
+                                remc_fac = (i_remc_circ*amu0 / twopi) / abs(real(ic_na(1)))
                         else
                                 remc_fac = 0.0
                         end if

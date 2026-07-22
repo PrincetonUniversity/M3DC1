@@ -28,6 +28,8 @@ contains
 
     integer :: times_output_in, i3d_in, istartnew, i
     real :: xnullt,znullt,xnull2t,znull2t
+    real :: totcur_restart
+    logical :: remc_exists
 
     call h5gopen_f(file_id, "/", root_id, error)
 
@@ -264,6 +266,18 @@ contains
     call read_scalar(scalar_group_id, "i_control%err_p_old", i_control%err_p_old, ntime, error)
     call read_scalar(scalar_group_id, "n_control%err_i",     n_control%err_i,     ntime, error)
     call read_scalar(scalar_group_id, "n_control%err_p_old", n_control%err_p_old, ntime, error)
+
+    if(irmp.eq.3 .and. iScaleREMC.eq.2) then
+       call h5lexists_f(scalar_group_id, "i_remc_circ", remc_exists, error)
+       if(remc_exists) then
+          call read_scalar(scalar_group_id, "i_remc_circ",      i_remc_circ, ntime, error)
+          call read_scalar(scalar_group_id, "toroidal_current", totcur_restart, ntime, error)
+          ip_prev = 1.0 * totcur_restart * 795217.0 ! matches curr_now conversion in update_remc_circuit
+          call mark_remc_circuit_restored
+       else
+          i_remc_circ = 0.
+       end if
+    end if
 
     call h5gclose_f(scalar_group_id, error)
 
