@@ -80,8 +80,8 @@ contains
 
       allocate(sxv(ncoil), syv(ncoil))
       do i=1, ncoil
-         sxv(i) = nint(wv(i)/0.01)
-         syv(i) = nint(hv(i)/0.01)
+         sxv(i) = nint(wv(i)/0.015)
+         syv(i) = nint(hv(i)/0.015)
          if(sxv(i).lt.1) sxv(i) = 1
          if(syv(i).lt.1) syv(i) = 1
       end do
