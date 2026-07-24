@@ -15,14 +15,8 @@ endif("${PROJECT_SOURCE_DIR}" STREQUAL "${PROJECT_BINARY_DIR}")
 list(APPEND CMAKE_MODULE_PATH "${CMAKE_CURRENT_SOURCE_DIR}/cmake")
 
 if(NOT CMAKE_BUILD_TYPE)
-  set(CMAKE_BUILD_TYPE Release)
+  set(CMAKE_BUILD_TYPE Release CACHE STRING "Choose the type of build." FORCE)
 endif()
-
-# set(CMAKE_FIND_LIBRARY_SUFFIXES ".a" ".so")
-# if(BUILD_SHARED_LIBS)
-  # set(CMAKE_FIND_LIBRARY_SUFFIXES ".so" ".a")
-# endif()
-message(STATUS "Found PETSc ${CMAKE_FIND_LIBRARY_SUFFIXES}")
 
 # set(CMAKE_CXX_FLAGS "-Wall -Wextra")
 # set(CMAKE_CXX_FLAGS_DEBUG "-g")
@@ -37,7 +31,7 @@ set(SOURCES
     scorec_vector.f90
     scorec_matrix.f90
     scorec_adapt.f90
-    PETScInterface.cpp
+    # PETScInterface.cpp
     physical_mesh.f90
     read_vmec.f90
     fftw_fortran.c
@@ -54,6 +48,7 @@ set(SOURCES
     read_gyro.f90
     read_neo.f90
     region.f90
+    signal_handler.f90
     radiation.f90
     element.f90
     field.f90
@@ -162,8 +157,10 @@ find_package(PkgConfig REQUIRED)
 
 # pkg_check_modules (PETSC REQUIRED PETSc)
 pkg_search_module(PETSC PETSc IMPORTED_TARGET REQUIRED)
-message(STATUS "Found PETSc ${PETSC_VERSION}")
-message(STATUS "Found PETSc ${CMAKE_Fortran_COMPILER_ID}")
+message(STATUS "PETSc version: ${PETSC_VERSION}")
+message(STATUS "PETSc prefix: ${PETSC_PREFIX}")
+message(STATUS "PETSc include dirs: ${PETSC_INCLUDE_DIRS}")
+message(STATUS "PETSc library dirs: ${PETSC_LIBRARY_DIRS}")
 
 # foreach(ITR ${PETSC_LINK_LIBRARIES})
 #     if(ITR MATCHES "liblapack\.a")
@@ -179,8 +176,10 @@ message(STATUS "Found PETSc ${CMAKE_Fortran_COMPILER_ID}")
 # list(INSERT PETSC_LINK_LIBRARIES ${IDX} ${LAPACK_LIBRARY})
 # message(STATUS "Found PETSc ${PETSC_STATIC_LIBRARIES}")
 set(PETSC_LINK_LIBRARIES "")
+set(PETSC_LINK_OPTIONS "")
+set(_petsc_search_paths "")
  # message(STATUS "Found PETSc ${PETSC_LINK_LIBRARIES}")
-message(STATUS "Found PETSc ${PETSC_STATIC_LDFLAGS}")
+message(STATUS "PETSc static link flags from pkg-config: ${PETSC_STATIC_LDFLAGS}")
 # list(FIND PETSC_STATIC_LDFLAGS "-lmetis" _index)
 # math(EXPR _index "${_index}+1")
 # message(STATUS "Found PETSc ${_index}")
@@ -192,43 +191,57 @@ message(STATUS "Found PETSc ${PETSC_STATIC_LDFLAGS}")
 # endif()
 foreach (flag IN LISTS PETSC_STATIC_LDFLAGS)
   if (flag MATCHES "^-L(.*)")
-    list(APPEND _search_paths ${CMAKE_MATCH_1})
+    list(APPEND _petsc_search_paths "${CMAKE_MATCH_1}")
     continue()
   endif()
+
   if (flag MATCHES "^-l(.*)")
     set(_pkg_search "${CMAKE_MATCH_1}")
-  endif()
 
-  # if (${_pkg_search} IN_LIST STATIC_LIST)
-  #   message(STATUS "Found PETSc ${_pkg_search}")
-  #   set(_pkg_search "lib${_pkg_search}.a")
-  # endif()
+    # if (${_pkg_search} IN_LIST STATIC_LIST)
+    #   message(STATUS "Found PETSc ${_pkg_search}")
+    #   set(_pkg_search "lib${_pkg_search}.a")
+    # endif()
 
-  if(_search_paths)
+    if(_petsc_search_paths)
       # Firstly search in -L paths
       find_library(pkgcfg_lib_PETSC_${_pkg_search}
                    NAMES ${_pkg_search}
-                   HINTS ${_search_paths} NO_DEFAULT_PATH)
-  endif()
-  find_library(pkgcfg_lib_PETSC_${_pkg_search}
-               NAMES ${_pkg_search})
-  if(pkgcfg_lib_PETSC_${_pkg_search})
-    list(APPEND PETSC_LINK_LIBRARIES "${pkgcfg_lib_PETSC_${_pkg_search}}")
+                   HINTS ${_petsc_search_paths} NO_DEFAULT_PATH)
+    endif()
+    find_library(pkgcfg_lib_PETSC_${_pkg_search}
+                 NAMES ${_pkg_search})
+    if(pkgcfg_lib_PETSC_${_pkg_search})
+      list(APPEND PETSC_LINK_LIBRARIES "${pkgcfg_lib_PETSC_${_pkg_search}}")
+    else()
+      list(APPEND PETSC_LINK_LIBRARIES ${_pkg_search})
+    endif()
+  elseif(flag MATCHES "^/.+\\.(a|so|dylib)$")
+    list(APPEND PETSC_LINK_LIBRARIES "${flag}")
+  elseif(flag MATCHES "^-")
+    list(APPEND PETSC_LINK_OPTIONS "${flag}")
   else()
-    list(APPEND PETSC_LINK_LIBRARIES ${_pkg_search})
+    list(APPEND PETSC_LINK_LIBRARIES "${flag}")
   endif()
 endforeach()
 # message(STATUS "Found PETSc ${PETSC_LIBRARIES}")
-message(STATUS "Found PETSc ${PETSC_LINK_LIBRARIES}")
+message(STATUS "PETSc link libraries: ${PETSC_LINK_LIBRARIES}")
+message(STATUS "PETSc link options: ${PETSC_LINK_OPTIONS}")
 # list(TRANSFORM PETSC_LINK_LIBRARIES REPLACE "libpthread\.a" "libpthread.so")
 # list(FILTER PETSC_LINK_LIBRARIES EXCLUDE REGEX "libpthread")
 list(FILTER PETSC_LINK_LIBRARIES EXCLUDE REGEX "libcuda\.so")
 # list(FILTER PETSC_LINK_LIBRARIES EXCLUDE REGEX "libsci_cray\.a")
-# list(REMOVE_DUPLICATES PETSC_LINK_LIBRARIES)
+list(REMOVE_DUPLICATES PETSC_LINK_LIBRARIES)
+list(REMOVE_DUPLICATES PETSC_LINK_OPTIONS)
 set_property(TARGET PkgConfig::PETSC PROPERTY
   INTERFACE_LINK_LIBRARIES "${PETSC_LINK_LIBRARIES}")
+if(PETSC_LINK_OPTIONS)
+  set_property(TARGET PkgConfig::PETSC PROPERTY
+    INTERFACE_LINK_OPTIONS "${PETSC_LINK_OPTIONS}")
+endif()
 
 pkg_search_module(FFTW fftw3 IMPORTED_TARGET REQUIRED)
+message(STATUS "Found fftw3 ${FFTW_LINK_LIBRARIES}")
 
 pkg_search_module(GSL gsl IMPORTED_TARGET REQUIRED)
 # list(FILTER GSL_LINK_LIBRARIES EXCLUDE REGEX "libm")
@@ -243,7 +256,8 @@ message(STATUS "Found gsl ${GSL_LINK_LIBRARIES}")
 #   set(POSTFIX "${POSTFIX}-trilinos")
 # endif()
 
-find_package(Scorec)
+find_package(Zoltan REQUIRED)
+find_package(Scorec REQUIRED)
 # if(SCOREC_FOUND AND USESCOREC)
 #   if(TRILINOS_FOUND AND USETRILINOS)
 #     set(SCOREC_SOURCES
@@ -272,29 +286,65 @@ find_package(Scorec)
 #   list(APPEND DEFS -DMATRIX_DUMP)
 # endif()
 
-find_package(Zoltan)
 #find_package(PARMETIS)
 #find_package(METIS)
 
 find_package(ZLIB)
-message(STATUS "ZLIB found: ${ZLIB_LIBRARIES}")
+set(HDF5_PREFER_PARALLEL ON)
 find_package(HDF5 REQUIRED COMPONENTS Fortran HL)
-message(STATUS "HDF5 found: ${HDF5_HL_LIBRARIES}")
 if (HDF5_HL_LIBRARIES MATCHES "libhdf5_hl_fortran\.a")
   set(HDF5_USE_STATIC_LIBRARIES TRUE)
   find_package(HDF5 REQUIRED COMPONENTS Fortran HL)
-  message(STATUS "HDF5 found: ${HDF5_HL_LIBRARIES}")
 endif()
 if (HDF5_FOUND)
-    message(STATUS "HDF5 found: ${HDF5_VERSION}")
+    message(STATUS "HDF5 version: ${HDF5_VERSION}")
 else ()
     message(FATAL_ERROR "HDF5 not found.")
 endif ()
+message(STATUS "HDF5_IS_PARALLEL = ${HDF5_IS_PARALLEL}")
+message(STATUS "HDF5_INCLUDE_DIRS = ${HDF5_INCLUDE_DIRS}")
+message(STATUS "HDF5_LIBRARIES = ${HDF5_LIBRARIES}")
 
-pkg_search_module(NETCDF netcdf IMPORTED_TARGET REQUIRED)
-message(STATUS "Found NetCDF ${NETCDF_VERSION}")
+find_package(netCDF
+  HINTS ${CMAKE_PREFIX_PATH}
+  PATHS /usr /usr/local
+  PATH_SUFFIXES
+    cmake/netCDF_mpi
+    lib/cmake/netCDF_mpi
+    lib64/cmake/netCDF_mpi
+    lib/${CMAKE_LIBRARY_ARCHITECTURE}/cmake/netCDF_mpi
+  NO_DEFAULT_PATH)
+if(NOT netCDF_FOUND)
+  find_package(netCDF)
+endif()
+if(netCDF_FOUND)
+  if(TARGET netCDF::netcdf)
+    set(M3DC1_NETCDF_TARGET netCDF::netcdf)
+    get_target_property(M3DC1_NETCDF_INTERFACE_LINK_LIBRARIES netCDF::netcdf INTERFACE_LINK_LIBRARIES)
+  else()
+    set(M3DC1_NETCDF_TARGET ${netCDF_LIBRARIES})
+    set(M3DC1_NETCDF_INTERFACE_LINK_LIBRARIES ${netCDF_LIBRARIES})
+  endif()
+  message(STATUS "Found NetCDF CMake config: ${netCDF_DIR}")
+  message(STATUS "Found NetCDF ${NetCDFVersion}")
+  message(STATUS "NetCDF include dirs: ${netCDF_INCLUDE_DIR}")
+  message(STATUS "NetCDF libraries: ${M3DC1_NETCDF_TARGET}")
+  message(STATUS "NetCDF interface link libraries: ${M3DC1_NETCDF_INTERFACE_LINK_LIBRARIES}")
+else()
+  pkg_search_module(NETCDF netcdf-mpi netcdf IMPORTED_TARGET REQUIRED)
+  set(M3DC1_NETCDF_TARGET PkgConfig::NETCDF)
+  message(STATUS "Found NetCDF ${NETCDF_VERSION}")
+  message(STATUS "Found NetCDF module: ${NETCDF_MODULE_NAME}")
+  message(STATUS "NetCDF include dirs: ${NETCDF_INCLUDE_DIRS}")
+  message(STATUS "NetCDF libraries: ${NETCDF_LINK_LIBRARIES}")
+endif()
+
 pkg_search_module(NETCDF-Fortran netcdf-fortran IMPORTED_TARGET REQUIRED)
+set(M3DC1_NETCDF_FORTRAN_TARGET PkgConfig::NETCDF-Fortran)
 message(STATUS "Found NetCDF-Fortran ${NETCDF-Fortran_VERSION}")
+message(STATUS "Found NetCDF-Fortran module: ${NETCDF-Fortran_MODULE_NAME}")
+message(STATUS "NetCDF-Fortran include dirs: ${NETCDF-Fortran_INCLUDE_DIRS}")
+message(STATUS "NetCDF-Fortran libraries: ${NETCDF-Fortran_LINK_LIBRARIES}")
 
 # find_package(netCDF-Fortran REQUIRED)
 # if (netCDF_FOUND)
@@ -396,8 +446,7 @@ set_source_files_properties(
 set_source_files_properties(
   field.f90
   PROPERTIES
-  OBJECT_DEPENDS ${CMAKE_CURRENT_BINARY_DIR}/CMakeFiles/${BIN_NAME}.dir/scorec_vector.f90.o
-  OBJECT_DEPENDS ${CMAKE_CURRENT_BINARY_DIR}/CMakeFiles/${BIN_NAME}.dir/scorec_matrix.f90.o
+  OBJECT_DEPENDS "${CMAKE_CURRENT_BINARY_DIR}/CMakeFiles/${BIN_NAME}.dir/scorec_vector.f90.o;${CMAKE_CURRENT_BINARY_DIR}/CMakeFiles/${BIN_NAME}.dir/scorec_matrix.f90.o"
   )
 
 set_source_files_properties(
@@ -423,8 +472,8 @@ endif()
 add_executable(${BIN_NAME} ${SOURCES})
 # set_target_properties(${BIN_NAME} PROPERTIES Fortran_MODULE_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}/${BIN_NAME}_mods)
 set_property(TARGET ${BIN_NAME} PROPERTY LINKER_LANGUAGE Fortran)
-target_include_directories(${BIN_NAME} PRIVATE ${SCOREC_INCLUDE_DIRS})
-target_link_libraries(${BIN_NAME} PRIVATE PkgConfig::NETCDF-Fortran PkgConfig::NETCDF
+target_include_directories(${BIN_NAME} PRIVATE ${SCOREC_INCLUDE_DIRS} ${ZOLTAN_INCLUDE_DIRS} ${HDF5_INCLUDE_DIRS})
+target_link_libraries(${BIN_NAME} PRIVATE ${M3DC1_NETCDF_FORTRAN_TARGET} ${M3DC1_NETCDF_TARGET}
   ${HDF5_HL_LIBRARIES} ${HDF5_LIBRARIES}
  # netCDF::netcdff
   ${M3DC1_SCOREC_LIB_NAME} ${SCOREC_LIBRARIES} ${ZOLTAN_LIBRARIES}
@@ -447,9 +496,9 @@ install(TARGETS ${BIN_NAME} DESTINATION ".")
 #   INTERFACE_LINK_LIBRARIES)
 list(FILTER CMAKE_C_IMPLICIT_LINK_LIBRARIES EXCLUDE REGEX "^c$")
 list(FILTER CMAKE_CXX_IMPLICIT_LINK_LIBRARIES EXCLUDE REGEX "^c$")
-message(STATUS ${CMAKE_Fortran_IMPLICIT_LINK_LIBRARIES})
-message(STATUS ${CMAKE_C_IMPLICIT_LINK_LIBRARIES})
-message(STATUS ${CMAKE_CXX_IMPLICIT_LINK_LIBRARIES})
+message(STATUS "Fortran implicit link libraries: ${CMAKE_Fortran_IMPLICIT_LINK_LIBRARIES}")
+message(STATUS "C implicit link libraries: ${CMAKE_C_IMPLICIT_LINK_LIBRARIES}")
+message(STATUS "CXX implicit link libraries: ${CMAKE_CXX_IMPLICIT_LINK_LIBRARIES}")
 # set(CMAKE_Fortran_IMPLICIT_LINK_LIBRARIES "")
 # set(CMAKE_C_IMPLICIT_LINK_LIBRARIES "")
 # set(CMAKE_CXX_IMPLICIT_LINK_LIBRARIES "")
@@ -482,6 +531,3 @@ endif()
 #target_compile_definitions(a2cc PUBLIC ${DEFS})
 
 #add_executable(kprad kprad.f90 kprad_test.f90)
-
-
-
