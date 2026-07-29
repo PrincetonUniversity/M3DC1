@@ -51,6 +51,7 @@ from .plot_mesh import plot_mesh
 from .plot_shape import plot_shape
 from .plot_wall_regions import plot_wall_regions
 from .plot_coils import plot_coils
+from .plot_equation import plot_equation
 from .plot_mag_probes import plot_mag_probes
 from .plot_field import plot_field
 from .plot_field_ntor import plot_field_ntor
@@ -68,6 +69,7 @@ from .read_gamma import read_gamma
 from .read_parameter import read_parameter
 from .read_scalar import read_scalar
 from .time_name import time_name
+from .write_geqdsk import write_geqdsk
 
 __all__ = [
     "a2cc",
@@ -123,6 +125,7 @@ __all__ = [
     "plot_shape",
     "plot_wall_regions",
     "plot_coils",
+    "plot_equation",
     "plot_legend",
     "plot_mag_probes",
     "plot_field",
@@ -141,5 +144,6 @@ __all__ = [
     "read_parameter",
     "read_scalar",
     "time_name",
+    "write_geqdsk",
 ]
 from .readaeqdsk import load_eqdsk_a

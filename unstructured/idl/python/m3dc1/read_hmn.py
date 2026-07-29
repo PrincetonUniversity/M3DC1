@@ -10,6 +10,7 @@ from .convert_units import convert_units
 from .dimensions import dimensions
 from .get_normalizations import get_normalizations
 from .hdf5_file_test import hdf5_file_test
+from .read_mesh import read_mesh
 from .read_scalar import read_scalar
 
 
@@ -78,20 +79,40 @@ def _orient_harmonics(h: np.ndarray, nt: int) -> np.ndarray:
     return arr if d1 <= d0 else arr.T
 
 
-def _select_n_indices(data: np.ndarray, n_val, maxn: int | None) -> np.ndarray:
+def _select_n_indices(
+    data: np.ndarray,
+    n_val,
+    maxn: int | None,
+    nperiods: int,
+) -> np.ndarray:
     available = int(data.shape[0])
+    nperiods = max(int(nperiods), 1)
+    physical = np.arange(0, available, nperiods, dtype=int)
+
     if n_val is None:
         if maxn is None:
-            maxn = available
-        maxn = int(max(1, min(int(maxn), available)))
-        return np.arange(maxn, dtype=int)
+            return physical
+        count = max(int(maxn), 1)
+        return physical[:count]
 
-    requested = np.asarray(n_val if isinstance(n_val, (list, tuple, np.ndarray)) else [n_val], dtype=int).reshape(-1)
+    requested = np.asarray(
+        n_val if isinstance(n_val, (list, tuple, np.ndarray)) else [n_val],
+        dtype=int,
+    ).reshape(-1)
     if requested.size == 0:
         raise ValueError("n_val must contain at least one harmonic index.")
     bad = requested[(requested < 0) | (requested >= available)]
     if bad.size > 0:
-        raise ValueError(f"n_val {bad.tolist()} is out of range; available values are 0 <= n < {available}.")
+        raise ValueError(
+            f"n_val {bad.tolist()} is out of range; "
+            f"available values are 0 <= n < {available}."
+        )
+    nonphysical = requested[np.mod(requested, nperiods) != 0]
+    if nonphysical.size > 0:
+        raise ValueError(
+            f"n_val values must be multiples of nperiods={nperiods}; "
+            f"got {nonphysical.tolist()}."
+        )
     return requested
 
 
@@ -123,6 +144,7 @@ def read_hmn(
     magnetic = bool(me)
     title = "Magnetic Energy" if magnetic else "Kinetic Energy"
     data = _read_harmonics(filename, magnetic=magnetic)
+    nperiods = max(int(read_mesh(filename=filename, slice=0).nperiods), 1)
 
     tmeta = read_scalar("time", filename=filename, cgs=cgs, mks=mks, return_meta=True)
     time = np.asarray(tmeta.data, dtype=float).reshape(-1)
@@ -148,7 +170,7 @@ def read_hmn(
     b0, n0, l0, mi = get_normalizations(filename=filename)
     data = convert_units(data, d, b0=b0, n0=n0, l0=l0, mi=mi, filename=filename)
 
-    n_indices = _select_n_indices(data, n_val, maxn)
+    n_indices = _select_n_indices(data, n_val, maxn, nperiods)
     data = np.asarray(data[n_indices, :], dtype=float)
 
     if outfile is not None:

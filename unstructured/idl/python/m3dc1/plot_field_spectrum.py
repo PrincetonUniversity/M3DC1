@@ -93,7 +93,7 @@ def plot_field_spectrum(
     **kwargs,
 ):
     """
-    Plot selected poloidal components from read_field_spectrum().
+    Plot peak-normalized poloidal components from read_field_spectrum().
     """
     if "m_vals" in kwargs:
         raise TypeError("plot_field_spectrum() uses 'm_val', not 'm_vals'.")
