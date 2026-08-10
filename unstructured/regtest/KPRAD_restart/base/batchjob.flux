@@ -1,7 +1,7 @@
 #!/bin/bash
 #SBATCH --partition=all
 #SBATCH --mem=128G
-#SBATCH -n 48
+#SBATCH -N 1
 #SBATCH -J M3DC1_regtest_KPRAD_2D
 #SBATCH -t 00:30:00
 #SBATCH -o C1stdout
