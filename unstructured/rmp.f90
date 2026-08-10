@@ -111,7 +111,7 @@ subroutine update_remc_circuit
   curr_now = 1.0 * totcur * 795217.0 ! Ip in Amperes
 
   if(.not.remc_circuit_init) then ! First step, initialize
-     i_remc_circ = 0.
+     i_remc_circ = i_remc_start
      ip_prev = curr_now
      remc_circuit_init = .true.
      return
