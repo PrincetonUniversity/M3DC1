@@ -35,5 +35,3 @@ endif()
 
 add_subdirectory(m3dc1_scorec)
 add_subdirectory(unstructured)
-# add_subdirectory(skeleton/m3dc1_skeleton_big_spec_omp)
-# add_subdirectory(skeleton/m3dc1_skeleton_big_spec_acc)
