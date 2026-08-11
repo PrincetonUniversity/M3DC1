@@ -1,7 +1,7 @@
 #!/bin/bash
 #SBATCH --partition=all
 #SBATCH --mem=128G
-#SBATCH -n 64
+#SBATCH -N 1
 #SBATCH -J M3DC1_regtest_RMP_nonlin
 #SBATCH -t 0:30:00
 #SBATCH -o C1stdout
