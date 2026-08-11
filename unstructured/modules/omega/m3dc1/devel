@@ -1,0 +1,50 @@
+#%Module1.0
+##
+
+## Required internal variables
+
+set             name            m3dc1
+set             version         devel
+set             root            /fusion/projects/codes/m3dc1/omega_install/M3DC1
+set		arch		omega
+
+## List conflicting modules here
+
+conflict $name
+
+## List prerequisite modules here
+
+set             fullname        M3D-C1
+set             externalurl     http://w3.pppl.gov/~nferraro/m3dc1.html
+set             description     "M3D-C1 is an extended-MHD code"
+
+## Required for "module help ..."
+
+proc ModulesHelp { } {
+  global description externalurl
+  puts stderr "Description - $description"
+  puts stderr "Other Docs  - $externalurl"
+}
+
+## Required for "module display ..." and SWDB
+
+module-whatis                   "$description"
+
+## Software-specific settings exported to user environment
+
+module purge
+module load env/intel2020
+# module load env/gcc11.x-mpi
+module load adas
+module load idl/8.8
+module load python/3.11
+
+setenv          M3DC1_VERSION   $version
+setenv          M3DC1_DIR       $root
+setenv		M3DC1_ARCH	$arch
+# setenv		M3DC1_MPIRUN	"mpirun --bind-to core"
+setenv		M3DC1_MPIRUN	"srun --mpi=pmi2 --cpu-bind=cores"
+
+prepend-path    PATH             $root/unstructured/_$arch/bin
+prepend-path    IDL_PATH         $root/unstructured/idl:<IDL_DEFAULT>
+

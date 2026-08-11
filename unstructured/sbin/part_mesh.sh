@@ -1,7 +1,7 @@
 #!/bin/bash
 
 MESH_FILE=mesh.smb
-RUN=$(which "$M3DC1_MPIRUN")
+RUN=$(which $(echo $M3DC1_MPIRUN | awk '{print $1}'))
 
 if [ -z $1 ]; then
     echo "Usage: part_mesh.sh <model.smd> <mesh.sms> <parts> <old_parts>"
