@@ -10,7 +10,7 @@ module scorec_adapt
     use diagnostics
     use basic
     use error_estimate
-    use mesh_mod
+    use scorec_mesh_mod
     use basic
     use mesh_mod
     use arrays
@@ -18,7 +18,7 @@ module scorec_adapt
     use sparse
     use time_step
     use auxiliary_fields
-    use mesh_mod
+    use scorec_mesh_mod
 
     integer :: ifield
 
@@ -42,7 +42,7 @@ module scorec_adapt
     use diagnostics
     use basic
     use error_estimate
-    use mesh_mod
+    use scorec_mesh_mod
     use basic
     use mesh_mod
     use arrays
@@ -50,7 +50,7 @@ module scorec_adapt
     use sparse
     use time_step
     use auxiliary_fields
-    use mesh_mod
+    use scorec_mesh_mod
 
     integer :: ifield
 

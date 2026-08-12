@@ -39,7 +39,7 @@ module adapt
     use m3dc1_output
     use auxiliary_fields
     use pellet
-    use mesh_mod
+    use scorec_mesh_mod
     use m3dc1_nint
     use coils
     use transport_coefficients
@@ -305,7 +305,7 @@ module adapt
     use diagnostics
     use basic
     use error_estimate
-    use mesh_mod
+    use scorec_mesh_mod
     use basic
     use mesh_mod
     use arrays
@@ -313,7 +313,7 @@ module adapt
     use sparse
     use time_step
     use auxiliary_fields
-    use mesh_mod
+    use scorec_mesh_mod
     use transport_coefficients
 
     character(len=32) :: mesh_file_name
@@ -406,7 +406,7 @@ module adapt
     use diagnostics
     use basic
     use error_estimate
-    use mesh_mod
+    use scorec_mesh_mod
     use basic
     use mesh_mod
     use arrays
@@ -414,7 +414,7 @@ module adapt
     use sparse
     use time_step
     use auxiliary_fields
-    use mesh_mod
+    use scorec_mesh_mod
     use transport_coefficients
 
     vectype, allocatable :: edge_error(:,:)

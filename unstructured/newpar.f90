@@ -15,7 +15,7 @@ Program Reducedquintic
   use m3dc1_output
   use auxiliary_fields
   use pellet
-  use mesh_mod
+  use scorec_mesh_mod
   use adapt
   use particles
   use math
