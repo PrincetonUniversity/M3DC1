@@ -48,7 +48,7 @@ contains
 
     use basic
     use math
-    use scorec_mesh_mod
+    use mesh_mod
     use sparse
     use arrays
     use m3dc1_nint

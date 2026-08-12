@@ -86,8 +86,8 @@ module error_estimate
   subroutine jump_discontinuity (edge_error)
     use basic
     use arrays
-    use scorec_mesh_mod
-    use scorec_vector_mod
+    use mesh_mod
+    use vector_mod
     use m3dc1_nint
     implicit none
     integer :: itri, numelms,numedgs, iedge, ii, node_next, num_get
@@ -360,7 +360,7 @@ fn_eval(1:npoint_int)
   end subroutine reverse_fn
 
   subroutine get_edge_data (edge, normal, edge_len)
-     use scorec_mesh_mod
+     use mesh_mod
      implicit none
      integer :: edge
      real, dimension(2) :: normal
@@ -380,7 +380,7 @@ fn_eval(1:npoint_int)
 
   subroutine define_fields_error (itri)
     use basic
-    use scorec_mesh_mod
+    use mesh_mod
     use arrays
 
     implicit none
@@ -599,8 +599,8 @@ fn_eval(1:npoint_int)
   subroutine elem_residule (elm_res_U, elm_res_psi)
     use basic
     use arrays
-    use scorec_mesh_mod
-    use scorec_vector_mod
+    use mesh_mod
+    use vector_mod
     use m3dc1_nint
     implicit none
 

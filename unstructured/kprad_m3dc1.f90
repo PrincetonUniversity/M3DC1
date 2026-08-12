@@ -223,7 +223,7 @@ contains
     use basic
     use field
     use arrays
-    use scorec_matrix_mod
+    use matrix_mod
     use boundary_conditions
     implicit none
     
@@ -269,7 +269,7 @@ contains
 
   subroutine kprad_advect(dti)
     use basic
-    use scorec_matrix_mod
+    use matrix_mod
     use m3dc1_nint
     use boundary_conditions
     use metricterms_new
@@ -865,7 +865,7 @@ contains
 ! ===========================================================
 subroutine deltafuns(n,x,phi,z,m,val,jout, ier)
 
-  use scorec_mesh_mod
+  use mesh_mod
   use basic
   use arrays
   use field

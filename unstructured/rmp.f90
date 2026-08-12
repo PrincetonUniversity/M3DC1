@@ -412,7 +412,7 @@ subroutine calculate_external_fields(ilin)
   use mpi
   use basic
   use math
-  use scorec_mesh_mod
+  use mesh_mod
   use sparse
   use arrays
   use coils
@@ -694,7 +694,7 @@ subroutine tf_shift_tilt
   use arrays
   use math
   use field
-  use scorec_mesh_mod
+  use mesh_mod
   use m3dc1_nint
   use newvar_mod
 
@@ -792,8 +792,8 @@ end subroutine tf_shift_tilt
 !=======================================================
 subroutine boundary_rmp(rhs, mat)
   use basic
-  use scorec_vector_mod
-  use scorec_matrix_mod
+  use vector_mod
+  use matrix_mod
   use boundary_conditions
 
   implicit none
@@ -852,10 +852,10 @@ end subroutine boundary_rmp
     use mpi
     use basic
     use math
-    use scorec_mesh_mod
+    use mesh_mod
     use sparse
     use arrays
-    use scorec_matrix_mod
+    use matrix_mod
     use m3dc1_nint
     use newvar_mod
     use boundary_conditions
@@ -1122,8 +1122,8 @@ end subroutine calculate_field_from_j
 !=======================================================
 subroutine boundary_j(rhs, mat)
   use basic
-  use scorec_vector_mod
-  use scorec_matrix_mod
+  use vector_mod
+  use matrix_mod
   use boundary_conditions
 
   implicit none
@@ -1172,8 +1172,8 @@ end subroutine boundary_j
 !=======================================================
 subroutine boundary_fstar(rhs, mat)
   use basic
-  use scorec_vector_mod
-  use scorec_matrix_mod
+  use vector_mod
+  use matrix_mod
   use boundary_conditions
 
   implicit none

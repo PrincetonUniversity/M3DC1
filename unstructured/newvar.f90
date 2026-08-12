@@ -1,6 +1,6 @@
 module newvar_mod
 
-  use scorec_matrix_mod
+  use matrix_mod
 
   implicit none
 
@@ -122,8 +122,8 @@ contains
   end subroutine create_newvar_matrices
 
 subroutine apply_bc(rhs, ibound, bvec, mat)
-  use scorec_vector_mod
-  use scorec_matrix_mod
+  use vector_mod
+  use matrix_mod
   use boundary_conditions
 
   implicit none
@@ -163,7 +163,7 @@ end subroutine apply_bc
 #else
   subroutine create_newvar_matrix(mat, ibound, itype, is_lhs, tags)
 #endif
-  use scorec_vector_mod
+  use vector_mod
   use basic
   use m3dc1_nint
   use boundary_conditions
@@ -326,7 +326,7 @@ end subroutine create_newvar_matrix
 ! matb: rhs matrix(B)
 !======================================================================
 subroutine solve_newvar_axby(mata,vout,matb,vin,bvec)
-  use scorec_vector_mod
+  use vector_mod
 
   implicit none
 
@@ -431,7 +431,7 @@ end subroutine solve_newvar1
   ! Be sure imatrix was also generated using ibound.
   !=====================================================
   subroutine newvar_solve(rhs, mat, bvec)
-    use scorec_vector_mod
+    use vector_mod
 
     implicit none
 
@@ -457,7 +457,7 @@ end subroutine solve_newvar1
   end subroutine newvar_solve
 
   subroutine newvar_solve_with_guess(rhs, xVec_guess, mat, bvec)
-    use scorec_vector_mod
+    use vector_mod
 
     implicit none
 

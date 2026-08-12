@@ -135,8 +135,8 @@ subroutine set_defaults
   use neutral_beam
   use element
   use pellet
-  use scorec_mesh_mod
-  use scorec_vector_mod
+  use mesh_mod
+  use vector_mod
   use gradshafranov
   use adapt
   use error_estimate
@@ -150,7 +150,7 @@ subroutine set_defaults
   use kprad_m3dc1
   use kprad
 #ifdef REORDERED
-  use scorec_matrix_mod
+  use matrix_mod
 #endif
 #ifdef USEADAS
   use adas_m3dc1
@@ -1338,7 +1338,7 @@ end subroutine set_defaults
 
 subroutine validate_input
   use basic
-  use scorec_mesh_mod
+  use mesh_mod
   use m3dc1_nint
   use transport_coefficients
   use neutral_beam

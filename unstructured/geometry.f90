@@ -1,9 +1,9 @@
 ! This module provides routines for defining the stellarator geometry,
 ! specifically, the logical to physical coordinate transformation.
 module geometry
-  use scorec_mesh_mod
+  use mesh_mod
   use basic
-  use scorec_matrix_mod
+  use matrix_mod
   use field
   use arrays 
   implicit none

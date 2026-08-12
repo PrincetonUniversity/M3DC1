@@ -14,7 +14,7 @@ contains
 subroutine frs_init()
   use basic
   use arrays
-  use scorec_mesh_mod
+  use mesh_mod
 
   implicit none
 
@@ -125,7 +125,7 @@ end subroutine frs_equ
 subroutine frs1_init()
   use basic
   use arrays
-  use scorec_mesh_mod
+  use mesh_mod
 
   implicit none
 
@@ -201,7 +201,7 @@ subroutine frs_per(x, phi, z)
   use basic
   use arrays
   use diagnostics
-  use scorec_mesh_mod
+  use mesh_mod
 
   implicit none
 

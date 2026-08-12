@@ -220,7 +220,7 @@ contains
   ! adds v2 to v1.  result is stored in v1
   !======================================================================
   subroutine scorec_vector_add(v1, v2)
-    use scorec_mesh_mod
+    use mesh_mod
 
     implicit none
 
@@ -263,7 +263,7 @@ contains
 
 
   subroutine scorec_vector_get_node_data_real(v, iplace, inode, data, rotate)
-    use scorec_mesh_mod
+    use mesh_mod
     implicit none
     type(scorec_vector), intent(in) :: v
     integer, intent(in) :: inode, iplace
@@ -312,7 +312,7 @@ contains
 #ifdef USECOMPLEX
   subroutine scorec_vector_get_node_data_complex(v, iplace, inode, data, &
        rotate)
-    use scorec_mesh_mod
+    use mesh_mod
     implicit none
     type(scorec_vector), intent(in) :: v
     integer, intent(in) :: inode, iplace
@@ -355,7 +355,7 @@ contains
 #endif
 
   subroutine scorec_vector_set_node_data_real(v, iplace, inode, data, rotate)
-    use scorec_mesh_mod
+    use mesh_mod
     implicit none
     type(scorec_vector), intent(inout) :: v
     integer, intent(in) :: inode, iplace
@@ -399,7 +399,7 @@ contains
 
 #ifdef USECOMPLEX
   subroutine scorec_vector_set_node_data_complex(v, iplace, inode, data, rotate)
-    use scorec_mesh_mod
+    use mesh_mod
     implicit none
     type(scorec_vector), intent(inout) :: v
     integer, intent(in) :: inode, iplace
@@ -448,7 +448,7 @@ contains
   ! copy data from vin to vout
   !======================================================================
   subroutine scorec_vector_copy(vout,vin)
-    use scorec_mesh_mod
+    use mesh_mod
 
     implicit none
 
@@ -553,7 +553,7 @@ contains
   end subroutine scorec_vector_insert_block
 
   subroutine scorec_vector_get_element_indices(isize, itri, ind)
-    use scorec_mesh_mod
+    use mesh_mod
     implicit none
     integer, intent(in) :: isize, itri
     integer, intent(out), dimension(isize,dofs_per_element) :: ind

@@ -369,7 +369,7 @@ contains
     use basic
     use hdf5
     use h5lt
-    use scorec_mesh_mod
+    use mesh_mod
     use field
     use arrays
     use hdf5_output
@@ -506,7 +506,7 @@ contains
     use hdf5
     use field
     use hdf5_output
-    use scorec_mesh_mod
+    use mesh_mod
 
     implicit none
 
@@ -605,7 +605,7 @@ contains
   end subroutine h5r_read_field
 
   subroutine find_plane_and_shift(nplanes_old, phi_old, phi_new, iplane, shift)
-    use scorec_mesh_mod
+    use mesh_mod
     implicit none
 
     integer, intent(in) :: nplanes_old

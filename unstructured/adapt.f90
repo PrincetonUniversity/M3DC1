@@ -1,5 +1,5 @@
 module adapt
-  use scorec_vector_mod
+  use vector_mod
   use scorec_adapt
   implicit none
   real :: adapt_ke
@@ -28,7 +28,7 @@ module adapt
 
   subroutine adapt_by_psi
     use basic
-    use scorec_mesh_mod
+    use mesh_mod
     use arrays
     use newvar_mod
     use sparse
@@ -39,7 +39,7 @@ module adapt
     use m3dc1_output
     use auxiliary_fields
     use pellet
-    use scorec_mesh_mod
+    use mesh_mod
     use m3dc1_nint
     use coils
     use transport_coefficients
@@ -305,15 +305,15 @@ module adapt
     use diagnostics
     use basic
     use error_estimate
-    use scorec_mesh_mod
+    use mesh_mod
     use basic
-    use scorec_mesh_mod
+    use mesh_mod
     use arrays
     use newvar_mod
     use sparse
     use time_step
     use auxiliary_fields
-    use scorec_mesh_mod
+    use mesh_mod
     use transport_coefficients
 
     character(len=32) :: mesh_file_name
@@ -406,15 +406,15 @@ module adapt
     use diagnostics
     use basic
     use error_estimate
-    use scorec_mesh_mod
+    use mesh_mod
     use basic
-    use scorec_mesh_mod
+    use mesh_mod
     use arrays
     use newvar_mod
     use sparse
     use time_step
     use auxiliary_fields
-    use scorec_mesh_mod
+    use mesh_mod
     use transport_coefficients
 
     vectype, allocatable :: edge_error(:,:)

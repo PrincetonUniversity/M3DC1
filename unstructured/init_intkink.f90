@@ -13,7 +13,7 @@ contains
 subroutine int_kink_init()
   use basic
   use arrays
-  use scorec_mesh_mod
+  use mesh_mod
 
   implicit none
 
@@ -390,7 +390,7 @@ subroutine int_kink_per(x, phi, z)
   use basic
   use arrays
   use diagnostics
-  use scorec_mesh_mod
+  use mesh_mod
 
   implicit none
 

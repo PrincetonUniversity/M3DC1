@@ -159,7 +159,7 @@ contains
  subroutine field_from_coils(xc, zc, ic, nc, f, ipole, ierr)
    use basic
    use field
-	   use scorec_mesh_mod
+	   use mesh_mod
 	   use m3dc1_nint
 	   use newvar_mod
 

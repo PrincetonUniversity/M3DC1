@@ -8,7 +8,7 @@ contains
 subroutine force_free_init()
   use basic
   use arrays
-  use scorec_mesh_mod
+  use mesh_mod
 
   implicit none
 
@@ -40,7 +40,7 @@ subroutine force_free_equ(x, z)
   use math
   use basic
   use arrays
-  use scorec_mesh_mod
+  use mesh_mod
 
   implicit none
 

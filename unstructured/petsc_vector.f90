@@ -130,7 +130,7 @@ contains
   ! creates a vector of size n
   !======================================================================
   subroutine petsc_vector_create(v,n)
-    use scorec_mesh_mod
+    use mesh_mod
     implicit none
 !#include <petsc/finclude/petsc.h>
 
@@ -181,7 +181,7 @@ contains
   ! copy data from vin to vout
   !======================================================================
   subroutine petsc_vector_copy(vout,vin)
-    use scorec_mesh_mod
+    use mesh_mod
     implicit none
 !#include <petsc/finclude/petscvec.h>
 
@@ -242,7 +242,7 @@ contains
   ! Adds vin to vout
   !======================================================================
   subroutine petsc_vector_add(vout,vin)
-    use scorec_mesh_mod
+    use mesh_mod
     implicit none
 !#include <petsc/finclude/petscvec.h>
     type(petsc_vector), intent(inout) :: vout    
@@ -414,7 +414,7 @@ contains
   ! for each field of a vector of size isize
   !========================================================
   subroutine petsc_vector_get_node_indices(isize, inode, ind)
-    use scorec_mesh_mod
+    use mesh_mod
     implicit none
     integer, intent(in) :: isize, inode
     integer, intent(out), dimension(isize,dofs_per_node) :: ind
@@ -437,7 +437,7 @@ contains
   !========================================================
   subroutine petsc_vector_get_node_index(inode, iplace, isize, ind)
     use element
-    use scorec_mesh_mod
+    use mesh_mod
     implicit none
     integer, intent(in) :: iplace, isize, inode
     integer, intent(out) :: ind
@@ -487,7 +487,7 @@ contains
 
   subroutine petsc_vector_get_node_data_real(v, iplace, inode, data, rotate)
     use element
-    use scorec_mesh_mod
+    use mesh_mod
     implicit none
 !#include <petsc/finclude/petsc.h>
 
@@ -544,7 +544,7 @@ contains
 #ifdef USECOMPLEX
   subroutine petsc_vector_get_node_data_complex(v, iplace, inode, data, rotate)
     use element
-    use scorec_mesh_mod
+    use mesh_mod
     implicit none
 !#include <petsc/finclude/petsc.h>
     type(petsc_vector), intent(in) :: v
@@ -598,7 +598,7 @@ contains
 
   subroutine petsc_vector_set_node_data_real(v, iplace, inode, data, rotate)
     use element
-    use scorec_mesh_mod
+    use mesh_mod
     implicit none
 !#include <petsc/finclude/petscvec.h>
     type(petsc_vector), intent(inout) :: v
@@ -647,7 +647,7 @@ contains
 #ifdef USECOMPLEX
   subroutine petsc_vector_set_node_data_complex(v, iplace, inode, data, rotate)
     use element
-    use scorec_mesh_mod
+    use mesh_mod
     implicit none
 !#include <petsc/finclude/petscvec.h>
     type(petsc_vector), intent(inout) :: v
@@ -719,7 +719,7 @@ contains
 
   integer function global_dof_id(isize, idof_local)
     use element
-    use scorec_mesh_mod
+    use mesh_mod
     implicit none
     integer, intent(in) :: isize, idof_local
     integer :: itempl, inode
@@ -759,7 +759,7 @@ contains
   ! in a vector of size isize
   !===================================================================
   subroutine petsc_vector_get_element_indices(isize, itri, ind)
-    use scorec_mesh_mod
+    use mesh_mod
 
     implicit none
     integer, intent(in) :: isize, itri

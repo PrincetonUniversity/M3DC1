@@ -30,7 +30,7 @@ subroutine init_random(x,phi,z,outarr)
   use math
   use basic
   use arrays
-  use scorec_mesh_mod
+  use mesh_mod
 
   implicit none
 
@@ -231,7 +231,7 @@ subroutine den_eq
   use arrays
   use diagnostics
   use math
-  use scorec_mesh_mod
+  use mesh_mod
   use m3dc1_nint
   use newvar_mod
   use pellet
@@ -453,7 +453,7 @@ subroutine kinetic_eq
   use arrays
   use diagnostics
   use math
-  use scorec_mesh_mod
+  use mesh_mod
   use m3dc1_nint
   use newvar_mod
   use pellet
@@ -674,7 +674,7 @@ subroutine nre_eq
   use arrays
   use diagnostics
   use math
-  use scorec_mesh_mod
+  use mesh_mod
   use m3dc1_nint
   use newvar_mod
   use pellet

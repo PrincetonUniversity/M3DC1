@@ -1,7 +1,7 @@
 module model
 
-  use scorec_vector_mod
-  use scorec_matrix_mod
+  use vector_mod
+  use matrix_mod
 
   integer, allocatable :: global_dof_ids_1(:)
   integer, allocatable :: global_dof_ids_row(:), global_dof_ids_col(:)
@@ -266,7 +266,7 @@ subroutine boundary_vel(rhs, u_v, vz_v, chi_v, mat)
   use basic
   use field
   use arrays
-  use scorec_matrix_mod
+  use matrix_mod
   use boundary_conditions
 
   implicit none
@@ -398,7 +398,7 @@ subroutine boundary_vpol(rhs, u_v, chi_v, mat)
   use basic
   use field
   use arrays
-  use scorec_matrix_mod
+  use matrix_mod
   use boundary_conditions
 
   implicit none
@@ -472,7 +472,7 @@ subroutine boundary_mag(rhs, psi_v, bz_v, bfp_v, e_v, mat)
   use basic
   use field
   use arrays
-  use scorec_matrix_mod
+  use matrix_mod
   use boundary_conditions
 
   implicit none
@@ -582,7 +582,7 @@ subroutine boundary_den(rhs, den_v, mat)
   use basic
   use field
   use arrays
-  use scorec_matrix_mod
+  use matrix_mod
   use boundary_conditions
   implicit none
   
@@ -633,7 +633,7 @@ subroutine boundary_nre(rhs, nre_v, mat)
   use basic
   use field
   use arrays
-  use scorec_matrix_mod
+  use matrix_mod
   use boundary_conditions
   implicit none
 
@@ -685,7 +685,7 @@ subroutine boundary_te(rhs, te_v, mat)
   use basic
   use field
   use arrays
-  use scorec_matrix_mod
+  use matrix_mod
   use boundary_conditions
   implicit none
   
@@ -763,7 +763,7 @@ subroutine boundary_ti(rhs, ti_v, mat)
   use basic
   use field
   use arrays
-  use scorec_matrix_mod
+  use matrix_mod
   use boundary_conditions
   use kprad_m3dc1
   implicit none
@@ -853,7 +853,7 @@ subroutine boundary_p(rhs, p_v, mat)
   use basic
   use field
   use arrays
-  use scorec_matrix_mod
+  use matrix_mod
   use boundary_conditions
   implicit none
   
@@ -911,7 +911,7 @@ subroutine boundary_pe(rhs, pe_v, mat)
   use basic
   use field
   use arrays
-  use scorec_matrix_mod
+  use matrix_mod
   use boundary_conditions
   implicit none
   

@@ -2,7 +2,7 @@ module resistive_wall
 
   use basic
   use region
-  use scorec_mesh_mod
+  use mesh_mod
 
   implicit none
 

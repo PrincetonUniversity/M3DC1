@@ -15,7 +15,7 @@ Program Reducedquintic
   use m3dc1_output
   use auxiliary_fields
   use pellet
-  use scorec_mesh_mod
+  use mesh_mod
   use adapt
   use particles
   use math
@@ -480,7 +480,7 @@ end Program Reducedquintic
 !============================================================
 subroutine init
   use basic
-  use scorec_mesh_mod
+  use mesh_mod
   use basicq
   use runaway_mod
   use kprad_m3dc1
@@ -1017,7 +1017,7 @@ end subroutine rotation
     use mpi
     use basic
     use math
-    use scorec_mesh_mod
+    use mesh_mod
 
     implicit none
 
@@ -1274,7 +1274,7 @@ end subroutine rotation
 subroutine space(ifirstcall)
 
   use element
-  use scorec_mesh_mod
+  use mesh_mod
   use basic
   use arrays
   use sparse
@@ -1586,7 +1586,7 @@ subroutine print_normal_curv()
   use mpi
 !  use mpi
   use basic
-  use scorec_mesh_mod
+  use mesh_mod
   implicit none
 
 

@@ -1,5 +1,5 @@
 module basic
-  use scorec_mesh_mod
+  use mesh_mod
   use pid_controller
   use spline
 
@@ -694,7 +694,7 @@ contains
 end module arrays
   
 module sparse
-  use scorec_matrix_mod
+  use matrix_mod
 
   integer, parameter :: numvar1_numbering = 1
   integer, parameter :: numvar2_numbering = 2

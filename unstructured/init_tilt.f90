@@ -12,7 +12,7 @@ contains
 subroutine tilting_cylinder_init()
   use basic
   use arrays
-  use scorec_mesh_mod
+  use mesh_mod
 
   implicit none
 

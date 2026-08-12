@@ -294,7 +294,7 @@ contains
   !====================================================================
   subroutine scorec_matrix_matvecmult(mat,vin,vout)
 
-    use scorec_vector_mod
+    use vector_mod
 
     implicit none
 
@@ -435,7 +435,7 @@ contains
   ! linear matrix solve with scorec data structures
   !====================================================================
   subroutine scorec_matrix_solve(mat, v, ierr)
-    use scorec_vector_mod
+    use vector_mod
 
     use petsc
     implicit none
@@ -482,7 +482,7 @@ contains
   end subroutine scorec_matrix_solve
 
   subroutine scorec_matrix_solve_with_guess(mat, v, x_guess, ierr)
-   use scorec_vector_mod
+   use vector_mod
    use petsc
    implicit none
    
@@ -584,7 +584,7 @@ contains
   !           with field i
   !======================================================================
   subroutine scorec_matrix_get_node_indices(mat, inode, irow, icol)
-    use scorec_vector_mod
+    use vector_mod
     implicit none
     type(scorec_matrix), intent(in) :: mat
     integer, intent(in) :: inode
@@ -613,7 +613,7 @@ contains
   !           with field i
   !======================================================================
   subroutine scorec_matrix_get_global_node_indices(mat, inode, irow, icol)
-    use scorec_vector_mod
+    use vector_mod
     implicit none
     type(scorec_matrix), intent(in) :: mat
     integer, intent(in) :: inode
@@ -642,7 +642,7 @@ contains
   !           with field i
   !======================================================================
   subroutine scorec_matrix_get_element_indices(mat, itri, irow, icol)
-    use scorec_vector_mod
+    use vector_mod
     implicit none
     type(scorec_matrix), intent(in) :: mat
     integer, intent(in) :: itri
@@ -694,7 +694,7 @@ contains
   end subroutine identity_row
 
   subroutine set_row_vals(mat, irow, ncols, icols, vals)
-    use scorec_vector_mod
+    use vector_mod
 
     type(scorec_matrix) :: mat
     integer, intent(in) :: irow, ncols
@@ -726,7 +726,7 @@ contains
   ! get matrix info
   !====================================================================
   subroutine m3dc1_matrix_getinfo(imatrix,ivec)
-    use scorec_vector_mod
+    use vector_mod
     use petsc
     implicit none
 

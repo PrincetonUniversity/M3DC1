@@ -1,7 +1,7 @@
 program struct2vac
   use mpi
 
-  use scorec_mesh_mod
+  use mesh_mod
 
   implicit none
 
@@ -178,7 +178,7 @@ end program struct2vac
 integer function next_node(inode)
 
   use element
-  use scorec_mesh_mod
+  use mesh_mod
 
   implicit none
 

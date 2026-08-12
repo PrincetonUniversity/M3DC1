@@ -1,7 +1,22 @@
+set(M3DC1_MESH_MOD "scorec_mesh_mod" CACHE STRING
+  "Mesh module name")
+set(M3DC1_VECTOR_MOD "scorec_vector_mod" CACHE STRING
+  "Vector module name")
+set(M3DC1_MATRIX_MOD "scorec_matrix_mod" CACHE STRING
+  "Matrix module name")
+set(M3DC1_VECTOR_TYPE "scorec_vector" CACHE STRING
+  "Vector derived-type name")
+set(M3DC1_MATRIX_TYPE "scorec_matrix" CACHE STRING
+  "Matrix derived-type name")
+
+message(STATUS "M3DC1 mesh   backend : ${M3DC1_MESH_MOD}")
+message(STATUS "M3DC1 vector backend : ${M3DC1_VECTOR_MOD}  (type = ${M3DC1_VECTOR_TYPE})")
+message(STATUS "M3DC1 matrix backend : ${M3DC1_MATRIX_MOD}  (type = ${M3DC1_MATRIX_TYPE})")
+
+
 set(M3DC1_LIBRARY_SOURCES
   adapt.f90
   auxiliary_fields.f90
-  basic_mesh.f90
   biharmonic.f90
   bootstrap.f90
   boundary.f90
@@ -94,9 +109,6 @@ set(M3DC1_LIBRARY_SOURCES
   runaway_advection.f90
   runaway.f90
   scorec_adapt.f90
-  scorec_matrix.f90
-  scorec_mesh.f90
-  scorec_vector.f90
   signal_handler.f90
   spline.f90
   temperature_plots.f90
@@ -106,7 +118,41 @@ set(M3DC1_LIBRARY_SOURCES
   transport.f90
   two_fluid.f90
   wall.f90
+  mesh_mod.F90
+  vector_mod.F90
+  matrix_mod.F90
 )
+
+if(M3DC1_MESH_MOD STREQUAL "scorec_mesh_mod")
+  list(APPEND M3DC1_LIBRARY_SOURCES scorec_mesh.f90)
+  set(M3DC1_MESH_DEFINE M3DC1_MESH_IS_SCOREC)
+elseif(M3DC1_MESH_MOD STREQUAL "basic_mesh_mod")
+  list(APPEND M3DC1_LIBRARY_SOURCES basic_mesh.f90)
+  set(M3DC1_MESH_DEFINE M3DC1_MESH_IS_BASIC)
+else()
+  message(FATAL_ERROR "Unknown M3DC1_MESH_MOD=${M3DC1_MESH_MOD}")
+endif()
+
+if(M3DC1_VECTOR_MOD STREQUAL "scorec_vector_mod")
+  list(APPEND M3DC1_LIBRARY_SOURCES scorec_vector.f90)
+  set(M3DC1_VECTOR_DEFINE M3DC1_VECTOR_IS_SCOREC)
+elseif(M3DC1_VECTOR_MOD STREQUAL "petsc_vector_mod")
+  list(APPEND M3DC1_LIBRARY_SOURCES petsc_vector.f90)
+  set(M3DC1_VECTOR_DEFINE M3DC1_VECTOR_IS_PETSC)
+else()
+  message(FATAL_ERROR "Unknown M3DC1_VECTOR_MOD=${M3DC1_VECTOR_MOD}")
+endif()
+
+if(M3DC1_MATRIX_MOD STREQUAL "scorec_matrix_mod")
+  list(APPEND M3DC1_LIBRARY_SOURCES scorec_matrix.f90)
+  set(M3DC1_MATRIX_DEFINE M3DC1_MATRIX_IS_SCOREC)
+elseif(M3DC1_MATRIX_MOD STREQUAL "petsc_matrix_mod")
+  list(APPEND M3DC1_LIBRARY_SOURCES petsc_matrix.f90)
+  set(M3DC1_MATRIX_DEFINE M3DC1_MATRIX_IS_PETSC)
+else()
+  message(FATAL_ERROR "Unknown M3DC1_MATRIX_MOD=${M3DC1_MATRIX_MOD}")
+endif()
+
 if(M3DC1_ENABLE_GPU)
   list(REMOVE_ITEM M3DC1_SOURCES ludef_t.f90 metricterms_new.f90)
   list(APPEND M3DC1_SOURCES ludef_t_gpu.f90 metricterms_new_gpu.f90)
@@ -218,8 +264,11 @@ if(M3DC1_ENABLE_ADAS)
 endif()
 target_compile_definitions(m3dc1_library PRIVATE
   USESCOREC
-  vector_type=scorec_vector
-  matrix_type=scorec_matrix
+  ${M3DC1_MESH_DEFINE}
+  ${M3DC1_VECTOR_DEFINE}
+  ${M3DC1_MATRIX_DEFINE}
+  vector_type=${M3DC1_VECTOR_TYPE}
+  matrix_type=${M3DC1_MATRIX_TYPE}
   PETSC_VERSION=${M3DC1_PETSC_VERSION_CODE}
   DATE_BUILT="${M3DC1_DATE_BUILT}"
   RELEASE_VERSION="${M3DC1_RELEASE_VERSION}"

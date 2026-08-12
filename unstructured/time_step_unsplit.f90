@@ -1,6 +1,6 @@
 module time_step_unsplit
   use field
-  use scorec_matrix_mod
+  use matrix_mod
   use model
 
   type(vector_type), private :: phi_vec, phip_vec
@@ -272,7 +272,7 @@ subroutine step_unsplit(calc_matrices)
   use arrays
   use sparse
   use diagnostics
-  use scorec_matrix_mod
+  use matrix_mod
   use model
   use auxiliary_fields
   use hypervisc

@@ -501,7 +501,7 @@ contains
 !============================================================
 subroutine evaluate(x,phi,z,ans,fin,itri,ierr)
   
-  use scorec_mesh_mod
+  use mesh_mod
   use basic
   use m3dc1_nint
   use field
@@ -619,7 +619,7 @@ end subroutine evaluate
     
     use basic
     use arrays
-    use scorec_mesh_mod
+    use mesh_mod
     use m3dc1_nint
   
     implicit none
@@ -707,7 +707,7 @@ end subroutine tpi_factors
 subroutine calculate_scalars()
 
   use basic
-  use scorec_mesh_mod
+  use mesh_mod
   use arrays
   use m3dc1_nint
   use newvar_mod
@@ -1193,7 +1193,7 @@ end subroutine calculate_scalars
 subroutine calculate_Lor_vol()
 
   use basic
-  use scorec_mesh_mod
+  use mesh_mod
   use m3dc1_nint
   use math
   use pellet
@@ -1352,7 +1352,7 @@ end subroutine reset_itris
 !=====================================================
 subroutine magaxis(xguess,zguess,psi,psim,imethod,ier)
   use basic
-  use scorec_mesh_mod
+  use mesh_mod
   use m3dc1_nint
   use field
 
@@ -1561,7 +1561,7 @@ end subroutine magaxis
 !=====================================================
 subroutine te_max(xguess,zguess,te,tem,imethod,ier)
   use basic
-  use scorec_mesh_mod
+  use mesh_mod
   use m3dc1_nint
   use field
 
@@ -1760,7 +1760,7 @@ end subroutine te_max
 
 subroutine te_max2(xguess,zguess,te,tem,imethod,ier)
   use basic
-  use scorec_mesh_mod
+  use mesh_mod
   use m3dc1_nint
   use field
 
@@ -1817,7 +1817,7 @@ end subroutine te_max2
 !=====================================================
 subroutine te_max3(xguess,zguess,te,tem,imethod,ier)
   use basic
-  use scorec_mesh_mod
+  use mesh_mod
   use m3dc1_nint
   use field
 
@@ -1950,7 +1950,7 @@ end subroutine te_max3
 !=====================================================
 subroutine te_max4(te,tem,ilin,ier)
   use basic
-  use scorec_mesh_mod
+  use mesh_mod
   use m3dc1_nint
   use field
 
@@ -2014,7 +2014,7 @@ end subroutine te_max4
 subroutine lcfs(psi, test_wall, findx)
   use arrays
   use basic
-  use scorec_mesh_mod
+  use mesh_mod
   use m3dc1_nint
   use field
   use boundary_conditions
@@ -2339,7 +2339,7 @@ end function bremsstrahlung
 subroutine calculate_ke()
 #ifdef USE3D
   use basic
-  use scorec_mesh_mod
+  use mesh_mod
   use arrays
   use m3dc1_nint
   use newvar_mod
@@ -2706,7 +2706,7 @@ end subroutine calculate_ke
 subroutine calculate_bh()
 #ifdef USE3D
   use basic
-  use scorec_mesh_mod
+  use mesh_mod
   use arrays
   use m3dc1_nint
   use newvar_mod
@@ -3074,7 +3074,7 @@ end subroutine calculate_bh
 subroutine ke_I1(NMAX, k, N, i1ck, i1sk)
   use basic, ONLY: myrank, itor
   use math
-  use scorec_mesh_mod
+  use mesh_mod
   implicit none
   integer:: k, N, NMAX
   real:: i1ck, i1sk
@@ -3132,7 +3132,7 @@ end subroutine ke_I1
 subroutine ke_I2(NMAX, k, N, i2ck, i2sk)
   use basic, ONLY: myrank, itor
   use math
-  use scorec_mesh_mod
+  use mesh_mod
   implicit none
   integer:: k, N, NMAX
   real:: i2ck, i2sk
@@ -3189,7 +3189,7 @@ end subroutine ke_I2
 !=====================================================
 subroutine te_max_dev(xguess,zguess,te,tem,imethod,ier)
   use basic
-  use scorec_mesh_mod
+  use mesh_mod
   use m3dc1_nint
   use field
 
@@ -3460,7 +3460,7 @@ end subroutine te_max_dev
 !============================================================
 subroutine phi_int(x,z,ans,fin,itri,ierr)
   
-  use scorec_mesh_mod
+  use mesh_mod
   use basic
   use m3dc1_nint
   use field

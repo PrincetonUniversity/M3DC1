@@ -1,8 +1,8 @@
 ! Kinetic energetic ion module, J. Breslau, 2015
 module particles
-   use scorec_mesh_mod
+   use mesh_mod
    use field
-   use scorec_matrix_mod
+   use matrix_mod
    use newvar_mod
    use gradshafranov
    !use mpi_f08
@@ -1883,7 +1883,7 @@ subroutine particle_scaleback(scalefac)
    use basic
    use field
    use arrays
-   use scorec_mesh_mod
+   use mesh_mod
    implicit none
 
 
@@ -3593,7 +3593,7 @@ subroutine solve_pi_tensor
    use basic
    use newvar_mod
    use arrays
-   use scorec_matrix_mod
+   use matrix_mod
    implicit none
    integer :: ierr
 
@@ -4092,14 +4092,14 @@ end subroutine hdf5_read_particles
 
 subroutine set_parallel_velocity
 
-   use scorec_mesh_mod
+   use mesh_mod
    use basic
    use arrays
    use sparse
    use m3dc1_nint
    use diagnostics
    use boundary_conditions
-   use scorec_matrix_mod
+   use matrix_mod
    use transport_coefficients
    use gyroviscosity
    use runaway_mod
@@ -4361,14 +4361,14 @@ end subroutine set_parallel_velocity
 
 subroutine set_density
 
-   use scorec_mesh_mod
+   use mesh_mod
    use basic
    use arrays
    use sparse
    use m3dc1_nint
    use diagnostics
    use boundary_conditions
-   use scorec_matrix_mod
+   use matrix_mod
    use transport_coefficients
    use gyroviscosity
    use runaway_mod
@@ -4473,14 +4473,14 @@ end subroutine set_density
 
 subroutine set_den_smooth
 
-   use scorec_mesh_mod
+   use mesh_mod
    use basic
    use arrays
    use sparse
    use m3dc1_nint
    use diagnostics
    use boundary_conditions
-   use scorec_matrix_mod
+   use matrix_mod
    use transport_coefficients
    use gyroviscosity
    use runaway_mod

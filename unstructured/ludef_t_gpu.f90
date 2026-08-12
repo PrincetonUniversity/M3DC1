@@ -5557,7 +5557,7 @@ end subroutine j_equation_lin
 !======================================================================
 subroutine ludefall(ivel_def, idens_def, ipres_def, ipressplit_def,  ifield_def)
 
-  use scorec_mesh_mod
+  use mesh_mod
   use basic
   use arrays
   use sparse
@@ -5565,7 +5565,7 @@ subroutine ludefall(ivel_def, idens_def, ipres_def, ipressplit_def,  ifield_def)
   use diagnostics
   use boundary_conditions
   use time_step
-  use scorec_matrix_mod
+  use matrix_mod
   use transport_coefficients
   use gyroviscosity
   use runaway_mod
@@ -5751,7 +5751,7 @@ end subroutine ludefall
 #ifdef USEPARTICLES
 subroutine ludefvel_nolin
 
-   use scorec_mesh_mod
+   use mesh_mod
    use basic
    use arrays
    use sparse
@@ -5759,7 +5759,7 @@ subroutine ludefvel_nolin
    use diagnostics
    use boundary_conditions
    use time_step
-   use scorec_matrix_mod
+   use matrix_mod
    use transport_coefficients
    use gyroviscosity
    use runaway_mod
@@ -5831,7 +5831,7 @@ end subroutine ludefvel_nolin
 subroutine ludefvel_n(itri)
 
   use basic
-  use scorec_mesh_mod
+  use mesh_mod
   use m3dc1_nint
   use arrays
   use sparse
@@ -6069,7 +6069,7 @@ end subroutine ludefvel_n
 !======================================================================
 subroutine ludefphi_n(itri)
   use basic
-  use scorec_mesh_mod
+  use mesh_mod
   use m3dc1_nint
   use arrays
   use sparse
@@ -6385,7 +6385,7 @@ end subroutine ludefphi_n
 !======================================================================
 subroutine ludefpres_n(itri)
   use basic
-  use scorec_mesh_mod
+  use mesh_mod
   use m3dc1_nint
   use arrays
   use sparse

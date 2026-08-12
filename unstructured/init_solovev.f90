@@ -12,7 +12,7 @@ contains
     use basic
     use arrays
     use m3dc1_nint
-    use scorec_mesh_mod
+    use mesh_mod
     use newvar_mod
     use field
     use fit_magnetics

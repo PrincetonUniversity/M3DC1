@@ -1096,14 +1096,14 @@ subroutine gradshafranov_solve
   use mpi
 
   use math
-  use scorec_mesh_mod
+  use mesh_mod
   use basic
   use arrays
   use sparse
   use diagnostics
   use newvar_mod
   use m3dc1_nint
-  use scorec_matrix_mod
+  use matrix_mod
   use boundary_conditions
   use model
 
@@ -1818,7 +1818,7 @@ subroutine calculate_error(error, error2, psinew)
   use basic
   use field
   use boundary_conditions
-  use scorec_mesh_mod
+  use mesh_mod
 
   implicit none
 
@@ -1885,7 +1885,7 @@ end subroutine calculate_error
 subroutine calculate_gamma(g2, g3, g4)
   use mpi
   use basic
-  use scorec_mesh_mod
+  use mesh_mod
   use arrays
   use m3dc1_nint
   use math
@@ -2011,7 +2011,7 @@ end subroutine calculate_gamma
 subroutine deltafun(x,z,val,jout)
   use mpi
 
-  use scorec_mesh_mod
+  use mesh_mod
   use basic
   use arrays
   use field
@@ -2082,7 +2082,7 @@ end subroutine deltafun
 subroutine gaussianfun(x,z,val,denom,jout)
   use mpi
 
-  use scorec_mesh_mod
+  use mesh_mod
   use basic
   use arrays
   use field
@@ -2145,7 +2145,7 @@ subroutine fundef
   use arrays
   use basic
   use diagnostics
-  use scorec_mesh_mod
+  use mesh_mod
   
   implicit none 
   integer :: inode,ii, numnodes
@@ -2374,7 +2374,7 @@ subroutine fundef2(error)
   use mpi
 
   use basic
-  use scorec_mesh_mod
+  use mesh_mod
   use arrays
   use sparse
   use newvar_mod
@@ -3372,10 +3372,10 @@ end subroutine calc_rotation
 subroutine boundary_gs(rhs, feedfac, mat)
   use basic
   use arrays
-  use scorec_mesh_mod
+  use mesh_mod
   use coils
-  use scorec_vector_mod
-  use scorec_matrix_mod
+  use vector_mod
+  use matrix_mod
   use boundary_conditions
 
   implicit none

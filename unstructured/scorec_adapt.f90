@@ -1,5 +1,5 @@
 module scorec_adapt
-  use scorec_vector_mod
+  use vector_mod
   implicit none
   !adaptation control parameters
   integer :: iadapt_writevtk, iadapt_writesmb
@@ -10,15 +10,15 @@ module scorec_adapt
     use diagnostics
     use basic
     use error_estimate
-    use scorec_mesh_mod
+    use mesh_mod
     use basic
-    use scorec_mesh_mod
+    use mesh_mod
     use arrays
     use newvar_mod
     use sparse
     use time_step
     use auxiliary_fields
-    use scorec_mesh_mod
+    use mesh_mod
 
     integer :: ifield
 
@@ -42,15 +42,15 @@ module scorec_adapt
     use diagnostics
     use basic
     use error_estimate
-    use scorec_mesh_mod
+    use mesh_mod
     use basic
-    use scorec_mesh_mod
+    use mesh_mod
     use arrays
     use newvar_mod
     use sparse
     use time_step
     use auxiliary_fields
-    use scorec_mesh_mod
+    use mesh_mod
 
     integer :: ifield
 
