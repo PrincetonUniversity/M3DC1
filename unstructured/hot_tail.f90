@@ -170,8 +170,9 @@ contains
 
         ! get the total distribution 
         do i = 1, N
-            ftot(i) = getfm(v(i), ne, vT) + &
-                    getf(v(i), ne, vT0, tau) ! cold + hot pop. 
+!~             ftot(i) = getfm(v(i), ne, vT) + &
+!~                     getf(v(i), ne, vT0, tau) ! cold + hot pop. 
+            ftot(i) = getf(v(i), ne, vT0, tau) ! cold + hot pop. 
         end do
 
         ! critical v at the instantaneous electric field
