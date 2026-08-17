@@ -27,6 +27,10 @@ def field_data(name: str, itor: int = 1, filename: str | Path = "C1.h5") -> tupl
         return "eta", dimensions(eta=1)
     if n in {"den", "den_i"}:
         return "$n_i$", dimensions(n0=1)
+    if n in {"deni", "deni_i"}:
+        return "$n_i$", dimensions(n0=1)
+    if n in {"denf", "denf_i"}:
+        return "$n_f$", dimensions(n0=1)
     if n in {"ne", "ne_i"}:
         return "$n_e$", dimensions(n0=1)
     if n in {"n_re", "n_re_i"}:
@@ -35,6 +39,15 @@ def field_data(name: str, itor: int = 1, filename: str | Path = "C1.h5") -> tupl
         return "p", dimensions(p0=1)
     if n in {"pe", "pe_i"}:
         return "$p_e$", dimensions(p0=1)
+    pressure_tensor_fields = {
+        "p_i_par": "$p_{i,\\parallel}$",
+        "p_i_perp": "$p_{i,\\perp}$",
+        "p_f_par": "$p_{f,\\parallel}$",
+        "p_f_perp": "$p_{f,\\perp}$",
+    }
+    pressure_name = n[:-2] if n.endswith("_i") else n
+    if pressure_name in pressure_tensor_fields:
+        return pressure_tensor_fields[pressure_name], dimensions(p0=1)
     if n in {"te", "te_i"}:
         return "$T_e$", dimensions(temperature=1)
     if n in {"ti", "ti_i"}:

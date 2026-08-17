@@ -54,6 +54,8 @@ def read_field_spectrum(
 ) -> FieldSpectrumResult:
     """
     Read a field using read_field() and return its field_spectrum().
+
+    Fourier values use sine/cosine peak-amplitude normalization.
     """
     if "m_vals" in kwargs:
         if m_val is not None:

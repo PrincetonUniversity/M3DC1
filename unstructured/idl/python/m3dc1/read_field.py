@@ -134,8 +134,6 @@ def _read_primitive(
     map_r,
     map_z,
     edge_val,
-    cgs: bool,
-    mks: bool,
 ):
     print("  reading real field")
     mesh = read_mesh(filename=filename, slice=slice_idx)
@@ -170,9 +168,9 @@ def _read_primitive(
 
     symbol, d = field_data(match, itor=itor, filename=filename)
 
-    data = convert_units(ev.data, d, filename=filename, cgs=cgs, mks=mks)
-    r = convert_units(ev.r, dimensions(l0=1), filename=filename, cgs=cgs, mks=mks)
-    z = convert_units(ev.z, dimensions(l0=1), filename=filename, cgs=cgs, mks=mks)
+    data = np.asarray(ev.data)
+    r = np.asarray(ev.r, dtype=float)
+    z = np.asarray(ev.z, dtype=float)
     out_mask = np.asarray(ev.mask)
 
     igeometry = int(read_parameter("igeometry", filename=filename))
@@ -182,8 +180,6 @@ def _read_primitive(
             int(points),
             tuple(np.asarray(data).shape),
             float(phi),
-            bool(cgs),
-            bool(mks),
         )
 
         mr_cache = getattr(_read_primitive, "_mr_cache", None)
@@ -215,8 +211,6 @@ def _read_primitive(
                 points=points,
                 phi=phi,
                 logical=True,
-                cgs=cgs,
-                mks=mks,
                 return_meta=True,
             )
             zst = read_field(
@@ -226,8 +220,6 @@ def _read_primitive(
                 points=points,
                 phi=phi,
                 logical=True,
-                cgs=cgs,
-                mks=mks,
                 return_meta=True,
             )
             mr, mz, r, z, _ = create_map(
@@ -251,7 +243,7 @@ def _read_primitive(
 
         data, out_mask = map_field(np.asarray(data), mr, mz, mask=out_mask, outval=edge_val)
 
-    units = parse_units(d, cgs=cgs, mks=mks)
+    units = parse_units(d)
 
     return FieldResult(
         data=np.asarray(data),
@@ -485,6 +477,66 @@ def read_field(
 
     if slice_idx >= nt:
         raise ValueError(f"There are only {nt} time slices (0..{nt-1}).")
+
+    if cgs or mks:
+        native = read_field(
+            name,
+            timeslices=slice_idx,
+            filename=filename,
+            points=points,
+            mask=mask,
+            xrange=xrange,
+            yrange=yrange,
+            equilibrium=equilibrium,
+            operation=operation,
+            complex=complex,
+            fac=fac,
+            linear=linear,
+            linfac=linfac,
+            edge_val=edge_val,
+            phi=phi,
+            time=time,
+            taverage=taverage,
+            tpoints=tpoints,
+            logical=logical,
+            map_r=map_r,
+            map_z=map_z,
+            wall_mask=wall_mask,
+            return_meta=True,
+        )
+        print(f"converting units, mks, cgs= {bool(mks)} {bool(cgs)}")
+        data_factor = float(convert_units(np.asarray(1.0), native.dimensions, filename=filename, cgs=cgs, mks=mks))
+        length_factor = float(convert_units(np.asarray(1.0), dimensions(l0=1), filename=filename, cgs=cgs, mks=mks))
+        time_factor = float(convert_units(np.asarray(1.0), dimensions(t0=1), filename=filename, cgs=cgs, mks=mks))
+        native.data = np.asarray(native.data) * data_factor
+        native.r = np.asarray(native.r, dtype=float) * length_factor
+        native.z = np.asarray(native.z, dtype=float) * length_factor
+        native.time = float(native.time) * time_factor
+        native.units = parse_units(native.dimensions, cgs=cgs, mks=mks)
+        if abs:
+            print("Taking absolute value of data")
+            native.data = np.abs(np.asarray(native.data))
+        if phase:
+            print("Taking phase of data")
+            native.data = np.angle(np.asarray(native.data))
+        if real:
+            native.data = np.real(np.asarray(native.data))
+        if imaginary:
+            native.data = np.imag(np.asarray(native.data))
+        native = _apply_field_cut(native, cutx=cutx, cutz=cutz)
+        if symbol is not None:
+            native.symbol = str(symbol)
+        if units is not None:
+            native.units = str(units)
+        if rvector and zvector:
+            return native.r, native.z, native.data
+        if rvector:
+            return native.r, native.data
+        if zvector:
+            return native.z, native.data
+        print("Done reading field")
+        print("**********************************************************")
+        return native if return_meta else native.data
 
     print("**********************************************************")
     print(f"Reading {name} at timeslice {slice_idx}")
@@ -851,8 +903,6 @@ def read_field(
                 map_r=map_r,
                 map_z=map_z,
                 edge_val=edge_val,
-                cgs=cgs,
-                mks=mks,
             )
         except KeyError as e:
             primitive = None

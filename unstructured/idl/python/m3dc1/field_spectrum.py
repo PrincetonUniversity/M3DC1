@@ -22,6 +22,15 @@ class FieldSpectrumResult:
     units: str = ""
 
 
+def _fft_normalized(values: np.ndarray, axis: int) -> np.ndarray:
+    """Return Fourier coefficients normalized by the sampled axis length."""
+    arr = np.asarray(values, dtype=np.complex128)
+    n = int(arr.shape[axis])
+    if n < 1:
+        return np.asarray(arr, dtype=np.complex128)
+    return np.fft.fft(arr, axis=axis) / float(n)
+
+
 def _map_field_to_flux(field, x, z, fc: FluxCoordinates) -> np.ndarray:
     fld = np.asarray(field)
     if fld.ndim == 2:
@@ -90,28 +99,51 @@ def field_spectrum(
 
     a = _map_field_to_flux(field, x, z, fc)
     b = np.transpose(a, (0, 2, 1)).astype(np.complex128, copy=False)
-    b *= (2.0 * np.pi) ** 2
     b *= np.exp(-1j * np.asarray(fc.omega, dtype=float))[None, :, :]
 
     if ignore_jacobian:
         print("field_spectrum: Ignoring Jacobian")
     else:
-        print("field_spectrum: Including Jacobian")
-        b *= np.asarray(fc.j, dtype=float)[None, :, :]
+        print("field_spectrum: Including normalized Jacobian")
+        jac = np.asarray(fc.j, dtype=float)
+        valid = np.isfinite(jac)
+        count = np.sum(valid, axis=0)
+        jac_mean = np.divide(
+            np.sum(np.where(valid, jac, 0.0), axis=0),
+            count,
+            out=np.full(jac.shape[1], np.nan, dtype=float),
+            where=count > 0,
+        )
+        jac_weight = np.divide(
+            jac,
+            jac_mean[None, :],
+            out=np.full_like(jac, np.nan, dtype=float),
+            where=np.isfinite(jac_mean[None, :]) & (np.abs(jac_mean[None, :]) > np.finfo(float).tiny),
+        )
+        b *= jac_weight[None, :, :]
 
-    c = np.fft.fft(b, axis=1)
+    c = _fft_normalized(b, axis=1)
     m = -np.fft.fftshift(np.fft.fftfreq(int(fc.m)) * int(fc.m))
     d = np.conj(np.fft.fftshift(c, axes=1))
 
     nn = int(b.shape[0])
     if nn > 1:
-        d = np.fft.fft(d, axis=0)
+        d = _fft_normalized(d, axis=0)
         n = np.arange(nn, dtype=int) * int(nperiods)
     else:
         d = np.asarray(d, dtype=np.complex128)
         n = np.asarray([int(read_parameter("ntor", filename=filename, **param_kwargs))], dtype=int)
 
     m = np.asarray(np.rint(m), dtype=int)
+    poloidal_self = m == 0
+    if int(fc.m) % 2 == 0:
+        poloidal_self = poloidal_self | (np.abs(m) == int(fc.m) // 2)
+    toroidal_self = np.zeros(nn, dtype=bool)
+    toroidal_self[0] = True
+    if nn % 2 == 0:
+        toroidal_self[nn // 2] = True
+    peak_scale = np.where(toroidal_self[:, None] & poloidal_self[None, :], 1.0, 2.0)
+    d = np.asarray(d, dtype=np.complex128) * peak_scale[:, :, None]
     if m_val is not None:
         mvals = np.asarray(m_val, dtype=int).reshape(-1)
         idx = np.asarray([int(np.argmin(np.abs(m - mv))) for mv in mvals], dtype=int)

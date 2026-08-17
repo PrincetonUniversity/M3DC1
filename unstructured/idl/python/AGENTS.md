@@ -135,6 +135,7 @@
   - Do not transpose the `field_at_point(...)` output before flux-surface averaging.
 - `field_spectrum.py` / `read_field_spectrum.py` / `plot_field_spectrum.py` conventions:
   - Default to reading fields with `complex=True` for spectrum calculations, with fallback to real data if the complex companion field is missing.
+  - Normalize each Fourier axis by its sample count, then apply one factor of 2 to each non-self-conjugate multidimensional bin so a helical sine/cosine mode equals its peak amplitude.
   - For 3D files with toroidal periodicity, use `read_mesh(...).period` from `mesh.attrs["period"]` for toroidal sampling; do not assume a full `0..2*pi` torus.
   - Use `mesh.attrs["nperiods"]` to interpret toroidal FFT bins:
     - valid requested `ntor` values must be multiples of `nperiods`
@@ -151,7 +152,8 @@
   - `field_spectrum.py` and `read_field_spectrum.py` support `m_val`; `read_field_spectrum.py` also accepts `m_vals` as an alias.
   - `field_spectrum.py` supports x-axis selection via `psi_norm`, `phi_norm`, and `rho`.
   - `plot_field_spectrum.py` should use Matplotlib default `axes.prop_cycle` colors.
-  - `plot_field_spectrum.py` should keep the raw spectrum amplitude convention from `read_field_spectrum(...)`; do not add Schaffer-specific normalization by `fc.area` or `fc.dpsi_dchi`.
+  - `field_spectrum.py` should normalize Jacobian weights by their poloidal mean on each flux surface so returned spectra retain field-amplitude units.
+  - `plot_field_spectrum.py` should keep the peak-normalized spectrum amplitude from `read_field_spectrum(...)`; do not add Schaffer-specific normalization by `fc.area` or `fc.dpsi_dchi`.
   - If `m_val` is not provided to `plot_field_spectrum.py`, choose the 5 `m` values with the largest maximum absolute amplitudes and plot those.
   - When auto-selecting `m` values in `plot_field_spectrum.py`, ignore `NaN` amplitudes and rank using finite amplitudes across both positive and negative `m`.
   - For each `q_target` in `plot_field_spectrum.py`, draw one single dashed vertical resonance line using the interpolated profile location; do not draw all profile crossings.
@@ -163,7 +165,7 @@
   - Public argument order is `schaffer_plot(field, timeslices=-1, x=None, z=None, ...)`.
   - For string field input, `schaffer_plot.py` should use `read_field_spectrum(...)` so its read/default/`ntor` behavior stays aligned with `plot_field_spectrum.py`.
   - `schaffer_plot.py` should accept `tpoints` and pass it through the spectrum-read path for `3d=1` toroidal sampling.
-  - `schaffer_plot.py` should use the same raw spectrum amplitude convention as `plot_field_spectrum.py`; do not divide by `fc.area` or `fc.dpsi_dchi`.
+  - `schaffer_plot.py` should use the same peak-normalized spectrum amplitude convention as `plot_field_spectrum.py`; do not divide by `fc.area` or `fc.dpsi_dchi`.
   - In the 1D `m_val` branch, use Matplotlib default `axes.prop_cycle` colors and draw resonance lines for all `q` crossings, consistent with `plot_field_spectrum.py`.
   - In the 2D contour branch, default to filled contours with `levels=100` and `lines=False`; expose `lines` to overlay contour lines when requested.
 - `read_scalar.py` / `plot_scalar.py` interface update:
