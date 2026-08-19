@@ -298,12 +298,32 @@ endif()
 set_target_properties(m3dc1_library PROPERTIES Fortran_MODULE_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR})
 
 target_compile_options(m3dc1_library PUBLIC
-    $<$<COMPILE_LANG_AND_ID:Fortran,GNU>:-cpp>
-    $<$<COMPILE_LANG_AND_ID:Fortran,GNU>:-fdefault-real-8>
-    $<$<COMPILE_LANG_AND_ID:Fortran,GNU>:-fdefault-double-8>
-    $<$<COMPILE_LANG_AND_ID:Fortran,GNU>:-fallow-argument-mismatch>
-    $<$<COMPILE_LANG_AND_ID:Fortran,GNU>:-ffree-line-length-none>
-  )
+  # GNU
+  $<$<COMPILE_LANG_AND_ID:Fortran,GNU>:-cpp>
+  $<$<COMPILE_LANG_AND_ID:Fortran,GNU>:-fdefault-real-8>
+  $<$<COMPILE_LANG_AND_ID:Fortran,GNU>:-fdefault-double-8>
+  $<$<COMPILE_LANG_AND_ID:Fortran,GNU>:-fallow-argument-mismatch>
+  $<$<COMPILE_LANG_AND_ID:Fortran,GNU>:-ffree-line-length-none>
+
+  # Intel Classic
+  $<$<COMPILE_LANG_AND_ID:Fortran,Intel>:-fpp>
+  $<$<COMPILE_LANG_AND_ID:Fortran,Intel>:-r8>
+
+  # IntelLLVM (ifx)
+  $<$<COMPILE_LANG_AND_ID:Fortran,IntelLLVM>:-fpp>
+  $<$<COMPILE_LANG_AND_ID:Fortran,IntelLLVM>:-r8>
+
+  # LLVM Flang
+  $<$<COMPILE_LANG_AND_ID:Fortran,LLVMFlang>:-cpp>
+  $<$<COMPILE_LANG_AND_ID:Fortran,LLVMFlang>:-fdefault-real-8>
+  $<$<COMPILE_LANG_AND_ID:Fortran,LLVMFlang>:-fdefault-double-8>
+
+  # Cray Compiling Environment
+  $<$<COMPILE_LANG_AND_ID:Fortran,Cray>:-eZ>
+  $<$<COMPILE_LANG_AND_ID:Fortran,Cray>:-s>
+  $<$<COMPILE_LANG_AND_ID:Fortran,Cray>:real64>
+  $<$<COMPILE_LANG_AND_ID:Fortran,Cray>:-ef>
+)
 
 # --- Build main executable name per Makefile convention ---
 set(M3DC1_MAIN_NAME m3dc1)
