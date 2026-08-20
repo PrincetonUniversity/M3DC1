@@ -878,7 +878,7 @@ endif
               call solve_newvar1(mass_mat_lhs,bfp_ext,dp_mat_rhs_bfp, &
                   bf_ext)
            endif
-        else 
+        else if((imp_bf .eq. 0) .and. (ntime .ne. ntime0)) then
            call solve_newvar1(bf_mat_lhs,bfp_field(ilin),dp_mat_rhs_bfp, &
                 bz_field(ilin), bfp_field(ilin))
         endif
