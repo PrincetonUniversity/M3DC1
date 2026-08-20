@@ -360,8 +360,16 @@ contains
 				       scomp = Dens1 * compton_source(Ed) ! Compton Source [per cubic m per s]
                                 endif
 				if (Temp < 2e3) then ! Non-Prompt Compton
-					scomp = 1e-3 * scomp ! RiD: Reduce compton contribution when temp. < 2 keV 
+					scomp = 1e-3 * scomp ! RiD: Reduce compton contribution when temp. < 2 keV
 				endif
+			  endif
+			  if (iCompton.eq.2) then ! RiD Compton Source for ARC 
+                                if (ikprad.ne.0) then
+                                       scomp = (kprad_z * Dens_imp &
+                                       + Dens_ion) * compton_source2(Ed, Temp)
+                                else
+				       scomp = Dens1 * compton_source2(Ed, Temp) ! Compton Source [per cubic m per s]
+                                endif
 			  endif
 			  ! ***** END OF ACTIVATED SOURCES ****** !
 			  
@@ -753,7 +761,38 @@ contains
 					outval = B * tanh(A *(x-x0)/L) + c
 			ENDIF
 	end
-	
+
+	pure function compton_source2(E_star, Temp) result(outval)
+			! Returns compton rate in per second for ARC (iCompton=2 sigmoid fit, RiD)
+			! Multiply with total electron denisty to get rate in per cubic
+			! m per
+			! second
+			real, intent(in) :: E_star ! E-field normalized by Connor-hastie field
+			real, intent(in) :: Temp ! Electron temperature [eV]
+			real :: outval
+			real Wc, x
+			real A, K, x0, nu ! Fitting Parameters
+
+			Wc = get_Wc(E_star) * 1.0e-3 ! Critical Runaway energy in [keV]
+			x = log(Wc)
+
+			IF (Temp < 2.e3) THEN
+					! Fit parameters for T < 2 keV (ARC Non-Prompt)
+					A  = 5.972017e-01
+					K  = 5.825923e-11
+					x0 = 2.330671e+01
+					nu = 2.892493e+04
+			ELSE
+					! Fit parameters for T >= 2 keV (ARC Prompt)
+					A  = 6.067515e-01
+					K  = 3.429507e-13
+					x0 = 6.844332e+00
+					nu = 2.388922e+00
+			ENDIF
+
+			outval = K / (1.0 + exp(A * (x - x0)))**nu
+	end
+
 	! RiD: Adding functions required for caluclation of partially screened
 	! Dreicer term
 	
