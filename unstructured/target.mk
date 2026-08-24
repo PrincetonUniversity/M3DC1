@@ -76,7 +76,7 @@ install_idl :
 .PHONY: install_doc
 install_doc :
 	mkdir -m 755 -p $(INSTALL_DIR)/doc
-	cp doc/* $(INSTALL_DIR)/doc
+	cp -r ../doc/* $(INSTALL_DIR)/doc
 	-chmod 644 $(INSTALL_DIR)/doc/*
 
 .PHONY: install_tutorials
