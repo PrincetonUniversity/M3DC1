@@ -69,6 +69,9 @@ def read_mesh(filename: str | Path = "C1.h5", slice: int = 0) -> MeshData:
             nplanes = int(read_parameter("nplanes", filename=filename)) if int(read_parameter("3d", filename=filename)) == 1 else 1
 
         period = float(np.asarray(mg.attrs["period"]).reshape(-1)[0])
-        nperiods = int(np.asarray(mg.attrs["nperiods"]).reshape(-1)[0])
+        if "nperiods" in mg.attrs:
+            nperiods = int(np.asarray(mg.attrs["nperiods"]).reshape(-1)[0])
+        else:
+            nperiods = 1
 
     return MeshData(elements=elements, nelms=nelms, nplanes=max(nplanes, 1), period=period, nperiods=nperiods)

@@ -1187,37 +1187,27 @@ subroutine output_fields(time_group_id, equilibrium, error)
 
 #ifdef USEPARTICLES
   call write_field(group_id, "rhof", rho_field, nelms, error)
-  if (kinetic.eq.1) then
+  if ((kinetic.eq.1).or.(irunaway_kinetic.eq.1)) then
      call write_field(group_id, "nf",   nf_field, nelms, error)
      call write_field(group_id, "tf",   tf_field, nelms, error)
-     call write_field(group_id, "pf",   pf_field, nelms, error)
      call write_field(group_id, "nfi",  nfi_field, nelms, error)
      call write_field(group_id, "tfi",  tfi_field, nelms, error)
-     call write_field(group_id, "pfi",  pfi_field, nelms, error)
  
-        !Perpendicular component of hot ion pressure tensor
-        call write_field(group_id, "p_f_perp", p_f_perp, nelms, error)
-
-        !Parallel component of hot ion pressure tensor
-        call write_field(group_id, "p_f_par", p_f_par, nelms, error)
+        ! Fast-ion pressure tensor components.
+        call write_field(group_id, "p_f_perp", p_f_perp(ilin), nelms, error)
+        call write_field(group_id, "p_f_par", p_f_par(ilin), nelms, error)
 
         !Perpendicular component of hot ion pressure tensor
-        call write_field(group_id, "p_i_perp", p_i_perp, nelms, error)
+        call write_field(group_id, "p_i_perp", p_i_perp(ilin), nelms, error)
 
         !Parallel component of hot ion pressure tensor
-        call write_field(group_id, "p_i_par", p_i_par, nelms, error)
+        call write_field(group_id, "p_i_par", p_i_par(ilin), nelms, error)
 
-        !Parallel component of hot ion pressure tensor
-        call write_field(group_id, "den_i_0", den_i_0, nelms, error)
+        ! Thermal-ion density.
+        call write_field(group_id, "deni", deni_field(ilin), nelms, error)
 
-        !Parallel component of hot ion pressure tensor
-        call write_field(group_id, "den_i_1", den_i_1, nelms, error)
-
-        !Parallel component of hot ion pressure tensor
-        call write_field(group_id, "den_f_0", den_f_0, nelms, error)
-
-        !Parallel component of hot ion pressure tensor
-        call write_field(group_id, "den_f_1", den_f_1, nelms, error)
+        ! Fast-ion density.
+        call write_field(group_id, "denf", denf_field(ilin), nelms, error)
 
         !Parallel component of hot ion pressure tensor
         call write_field(group_id, "v_i_par", v_i_par, nelms, error)
@@ -1506,18 +1496,11 @@ subroutine mark_fields(equilibrium)
   end if
 
 #ifdef USEPARTICLES
-  if (kinetic.eq.1) then
-     if (associated(p_i_perp%vec)) then
-        !Perpendicular component of hot ion pressure tensor
-        ! p_i_perp
-        call mark_vector_for_solutiontransfer(p_i_perp%vec)
-     endif
-
-     if (associated(p_i_par%vec)) then
-        !Parallel component of hot ion pressure tensor
-        ! p_i_par
-        call mark_vector_for_solutiontransfer(p_i_par%vec)
-     endif
+  if ((kinetic.eq.1).or.(irunaway_kinetic.eq.1)) then
+     if (associated(p_i_perp(0)%vec)) call mark_vector_for_solutiontransfer(p_i_perp(0)%vec)
+     if (associated(p_i_perp(1)%vec)) call mark_vector_for_solutiontransfer(p_i_perp(1)%vec)
+     if (associated(p_i_par(0)%vec)) call mark_vector_for_solutiontransfer(p_i_par(0)%vec)
+     if (associated(p_i_par(1)%vec)) call mark_vector_for_solutiontransfer(p_i_par(1)%vec)
   endif
 #endif
 

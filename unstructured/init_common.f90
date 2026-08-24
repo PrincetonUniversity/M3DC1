@@ -536,25 +536,6 @@ subroutine kinetic_eq
      end do
      call newvar_solve(den_vec%vec,mass_mat_lhs)
      tf_field = den_vec
-
-     den_vec=0.
-     do itri=1,numelms
-        call define_element_quadrature(itri,int_pts_main,int_pts_tor)
-        call define_fields(itri,def_fields,1,0)
-        call get_zone(itri, izone)
-        temp79b = (xl_79-xcenter)**2 + (zl_79-zcenter)**2
-        do j=1, npoints
-          call evaluate_spline(nf_spline,temp79b(j),val)
-          call evaluate_spline(tf_spline,temp79b(j),val2)
-          if (fast_ion_dist==1) then
-            n079(j,OP_1) = val*val2* 1.6022e-12 / (b0_norm**2/(4.*pi*n0_norm))!rsae
-          endif
-        end do
-        dofs = intx2(mu79(:,:,OP_1),n079(:,OP_1))
-        call vector_insert_block(den_vec%vec,itri,1,dofs,VEC_ADD)
-     end do
-     call newvar_solve(den_vec%vec,mass_mat_lhs)
-     pf_field = den_vec
   endif
   if ((kinetic.eq.1).and.(kinetic_thermal_ion.eq.1)) then
      file_exists = .False.
@@ -644,27 +625,6 @@ subroutine kinetic_eq
      call newvar_solve(den_vec%vec, mass_mat_lhs)
 
      tfi_field = den_vec
-
-     den_vec=0.
-     do itri=1,numelms
-        call define_element_quadrature(itri,int_pts_main,int_pts_tor)
-        call define_fields(itri,def_fields,1,0)
-        call get_zone(itri, izone)
-        temp79b = (xl_79 - xcenter)**2 + (zl_79 - zcenter)**2
-        if (file_exists) then
-           do j = 1, npoints
-              call evaluate_spline(nfi_spline, temp79b(j), val)
-              call evaluate_spline(tfi_spline, temp79b(j), val2)
-              temp79a(j) = val*val2* 1.6022e-12 / (b0_norm**2/(4.*pi*n0_norm))!rsae
-           end do
-        else
-           temp79a = 0.5*p079(:,OP_1)
-        endif
-        dofs = intx2(mu79(:,:,OP_1), temp79a)
-        call vector_insert_block(den_vec%vec,itri,1,dofs,VEC_ADD)
-     end do
-     call newvar_solve(den_vec%vec,mass_mat_lhs)
-     pfi_field = den_vec
   endif
 
 
@@ -688,19 +648,6 @@ subroutine kinetic_eq
      rho_field = den_vec
   endif
 
-  if ((kinetic.eq.1).and.(particle_couple.ge.0).and.(kinetic_fast_ion.eq.1)) then
-     call mult(pf_field, -1.)
-     call add(p_field(0), pf_field)
-     call mult(pf_field, -1.)
-  endif
-
-  if ((kinetic.eq.1).and.(particle_couple.ge.0).and.(kinetic_thermal_ion.eq.1)) then
-     call mult(pfi_field, -1.)
-     call add(p_field(0), pfi_field)
-     call mult(pfi_field, -1.)
-  endif
-  pe_field(0) = p_field(0)
-  call mult(pe_field(0), pefac)
   call destroy_field(den_vec)
 
 end subroutine kinetic_eq

@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import fnmatch
+import sys
 import tarfile
 from pathlib import Path
 from typing import Callable
@@ -337,3 +338,10 @@ def smooth_profile(psin, values, psirange):
     f2_ax2.grid()
 
     return profile
+
+
+if __name__ == "__main__":
+    if len(sys.argv) != 2:
+        _usage()
+        raise SystemExit(1)
+    extract_profiles(sys.argv[1])

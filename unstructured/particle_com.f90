@@ -857,8 +857,9 @@ subroutine init_particles(lrestart, ierr)
                call random_number(ran_temp)
                pitch = ran_temp*2-1
                call random_number(ran_temp)
-               !energy = (ran_temp*energy_array(num_energy)**1.5)**(1/1.5)
-               energy = (ran_temp*100000**1.5)**(1/1.5)
+               energy = (energy_array(1)**1.5 + ran_temp*(energy_array(num_energy)**1.5 &
+                  - energy_array(1)**1.5))**(1./1.5)
+               if (energy <= 0.) cycle
                y1 = sqrt(energy*2*1.6e-19/m_ion(sps))
                vpar = y1 * pitch
                vperp = y1 * sqrt(1-pitch**2)
@@ -870,6 +871,9 @@ subroutine init_particles(lrestart, ierr)
                lambda = vperp**2/B0*1.99/y1**2
                pitch_i=int((lambda-pitch_array(1))/(pitch_array(2)-pitch_array(1)))+1
                energy_i=int((energy-energy_array(1))/(energy_array(2)-energy_array(1)))+1
+               if ((radi_i < 1).or.(radi_i >= num_r)) cycle
+               if ((pitch_i < 1).or.(pitch_i >= num_pitch)) cycle
+               if ((energy_i < 1).or.(energy_i >= num_energy)) cycle
 
                if (vpar<0) then
                f1=f_array(energy_i,pitch_i,radi_i)*(energy_array(energy_i+1)-energy)/(energy_array(energy_i+1)-energy_array(energy_i))
@@ -918,7 +922,9 @@ subroutine init_particles(lrestart, ierr)
                endif
                call random_number(ran_temp)
                !if (f0>0.8) write(0,*) pphi,lambda,energy
-               if (ran_temp > f0) cycle
+               if (.not.ieee_is_finite(f0)) cycle
+               if (f0 <= 0.) cycle
+               if (ran_temp > min(1.,f0)) cycle
                y1 = sqrt(energy*2*1.6e-19/m_ion(sps))
                vpar = y1 * pitch
                vperp = y1 * sqrt(1-pitch**2)

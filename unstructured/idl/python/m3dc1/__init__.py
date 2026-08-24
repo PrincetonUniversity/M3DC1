@@ -26,6 +26,7 @@ from .read_field_ntor import read_field_ntor
 from .read_field_spectrum import read_field_spectrum
 from .read_hmn import read_hmn
 from .read_poincare import read_poincare
+from .read_particles import read_particles
 from .read_lcfs import read_lcfs
 from .read_mesh import read_mesh
 from .read_shape import read_shape
@@ -60,6 +61,8 @@ from .plot_field_vs_phi import plot_field_vs_phi
 from .plot_scalar import plot_scalar
 from .plot_hmn import plot_hmn
 from .plot_poincare import plot_poincare
+from .plot_particle_distribution import plot_particle_distribution
+from .plot_particle_distribution_com import plot_particle_distribution_com
 from .plot_signals import plot_signals
 from .schaffer_plot import schaffer_plot
 from .read_signals import read_signals
@@ -100,6 +103,7 @@ __all__ = [
     "read_field_spectrum",
     "read_hmn",
     "read_poincare",
+    "read_particles",
     "read_lcfs",
     "read_mesh",
     "read_shape",
@@ -135,6 +139,8 @@ __all__ = [
     "plot_scalar",
     "plot_hmn",
     "plot_poincare",
+    "plot_particle_distribution",
+    "plot_particle_distribution_com",
     "plot_signals",
     "schaffer_plot",
     "read_signals",

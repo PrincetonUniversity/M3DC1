@@ -425,7 +425,11 @@ subroutine set_defaults
        "1: -electron 2F,  2: ion 2F", model_grp)
   call add_var_int("ibootstrap", ibootstrap, 0, "", model_grp)
   call add_var_int("irunaway", irunaway, 0, "", model_grp)
-  call add_var_int("cre", cre, 0, "", model_grp)
+  call add_var_int("irunaway_kinetic", irunaway_kinetic, 0, &
+       "1: Couple runaway electron parallel/perpendicular pressure to MHD", model_grp)
+  call add_var_int("kinetic_current", kinetic_current, 0, &
+       "1: Use fast-particle parallel current as the runaway current in Ohm's law", model_grp)
+  call add_var_double("cre", cre, 0., "", model_grp)
   call add_var_int("ra_cyc", ra_cyc, 1, "", model_grp)
   call add_var_double("radiff", radiff, 0., "", model_grp)
   call add_var_double("rjra", rjra, 1., "", model_grp)
@@ -1750,7 +1754,8 @@ subroutine validate_input
 #endif
   end if
 
-  if(kinetic.eq.1) then !Hybrid model sanity check goes here
+  if((kinetic.eq.1).or.(irunaway_kinetic.eq.1).or.(kinetic_current.eq.1)) then
+     ! Hybrid model sanity check goes here.
 #ifdef USEPARTICLES
 #else
      print *,'Error: particles module undefined.'
@@ -1758,7 +1763,19 @@ subroutine validate_input
 #endif
   endif
 
+  if((irunaway_kinetic.eq.1).and. &
+       ((irunaway.lt.1).or.(ra_characteristics.ne.1))) then
+     print *,'Error: irunaway_kinetic=1 requires irunaway>=1 and ra_characteristics=1.'
+     call safestop(1)
+  endif
+
 #ifdef USEPARTICLES
+  if((kinetic_current.eq.1).and. &
+       ((kinetic.ne.1).or.(kinetic_fast_ion.ne.1))) then
+     print *,'Error: kinetic_current=1 requires kinetic=1 and kinetic_fast_ion=1.'
+     call safestop(1)
+  endif
+
   if(particle_linear.eq.-1) particle_linear=linear
 
   if(eqsubtract.eq.0) ifullf=1
@@ -1873,4 +1890,3 @@ subroutine validate_input
   end if
 
 end subroutine validate_input
-
