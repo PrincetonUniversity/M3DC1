@@ -71,6 +71,7 @@
 	ion_mass = 2.
 	zeff = 1.
 
+	db_fac = 1.
 
 ! Equilibrium Options
 ! ===================
