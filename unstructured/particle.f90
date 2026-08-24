@@ -3337,7 +3337,7 @@ subroutine particle_pressure_rhs
          else
             xtemp = pdata(ipart)%x
             vtemp = pdata(ipart)%v
-            if (vspdims .eq. 5) call advancex(xtemp, vtemp, -t0_norm*dt/particle_substeps/2)
+            !if (vspdims .eq. 5) call advancex(xtemp, vtemp, -t0_norm*dt/particle_substeps/2) !unreachable code
             call get_geom_terms(xtemp, itri, &
                                 geomterms, .false., ierr)
          end if
