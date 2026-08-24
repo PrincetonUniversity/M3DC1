@@ -1,9 +1,0 @@
-#!/bin/bash
-#SBATCH -p mque
-#SBATCH -n 16
-#SBATCH -J m3dc1_2d
-#SBATCH -t 2:00:00
-#SBATCH --mem 200000
-
-# Run M3D-C1
-mpiexec -np $SLURM_NTASKS m3dc1_2d_complex -pc_factor_mat_solver_package mumps
