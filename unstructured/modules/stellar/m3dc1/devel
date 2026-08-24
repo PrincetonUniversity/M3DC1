@@ -59,7 +59,7 @@ if { ! [ is-loaded anaconda3/2020.11 ] } {
 }
 
 setenv          M3DC1_VERSION   $version
-setenv          M3DC1_DIR       $root
+setenv          M3DC1_DIR       $root/unstructured
 setenv		M3DC1_ARCH	stellar
 setenv		M3DC1_MPIRUN	srun
 
