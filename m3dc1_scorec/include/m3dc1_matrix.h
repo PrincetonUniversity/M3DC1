@@ -97,6 +97,11 @@ public:
   virtual ~matrix_solve();
   int solve(FieldID field_id);
   int solve_with_guess(FieldID field_id, FieldID xVec_guess);
+#ifdef M3DC1_CUDSS
+  // cuDSS block-Jacobi PCShell solve (petsc_cudss_solve.c); real builds only
+  int solve_cudss(FieldID field_id);
+  int solve_cudss_with_guess(FieldID field_id, FieldID xVec_guess);
+#endif
   int set_bc(int row);
   int set_row(int row, int numVals, int *colums, double *vals);
   int add_blockvalues(int rbsize, PetscInt *rows, int cbsize, PetscInt *columns,

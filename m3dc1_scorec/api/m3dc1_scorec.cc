@@ -3873,7 +3873,18 @@ int m3dc1_matrix_solve(int* matrix_id, FieldID* rhs_sol) //solveSysEqu_
   }
 #endif
 
+#ifdef M3DC1_CUDSS
+  // -cudsssolve <id>: use the cuDSS block-Jacobi PCShell solver for this matrix
+  PetscInt cudss_id = -1;
+  PetscOptionsGetInt(NULL, NULL, "-cudsssolve", &cudss_id, NULL);
+  if (*matrix_id == cudss_id)
+  {
+  }
+    (dynamic_cast<matrix_solve*>(mat))->solve_cudss(*rhs_sol);
+#else
   (dynamic_cast<matrix_solve*>(mat))->solve(*rhs_sol);
+#endif
+
   addMatHit(*matrix_id);
   return M3DC1_SUCCESS;
 }
@@ -3901,7 +3912,18 @@ void m3dc1_matrix_solve_with_guess(int* matrix_id, FieldID* rhs_sol, FieldID* xV
   }
 #endif
 
+#ifdef M3DC1_CUDSS
+  // -cudsssolve <id>: use the cuDSS block-Jacobi PCShell solver for this matrix
+  PetscInt cudss_id = -1;
+  PetscOptionsGetInt(NULL, NULL, "-cudsssolve", &cudss_id, NULL);
+  if (*matrix_id == cudss_id)
+  {
+  }
+    (dynamic_cast<matrix_solve*>(mat))->solve_cudss_with_guess(*rhs_sol, *xVec_guess);
+#else
   (dynamic_cast<matrix_solve*>(mat))->solve_with_guess(*rhs_sol, *xVec_guess);
+#endif
+
   addMatHit(*matrix_id);
 }
 

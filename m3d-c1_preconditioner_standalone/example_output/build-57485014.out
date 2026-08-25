@@ -1,0 +1,91 @@
+
+The following have been reloaded with a version change:
+  1) PrgEnv-gnu/8.7.0 => PrgEnv-gnu/8.5.0
+
+
+The following have been reloaded with a version change:
+  1) cray-mpich/9.1.0 => cray-mpich/8.1.30
+
+
+The following have been reloaded with a version change:
+  1) cudatoolkit/13.2 => cudatoolkit/12.9
+
+=== build env ===
+
+Currently Loaded Modules:
+  1) libfabric/1.22.0                11) craype-x86-milan            (cpe)
+  2) craype-network-ofi              12) craype/2.7.36               (c)
+  3) xpmem/2.11.5-1.3_g73ade43320bc  13) cray-dsmml/0.3.1
+  4) gcc-native/14                   14) cray-libsci/26.03.0
+  5) perftools-base/26.03.0          15) PrgEnv-gnu/8.5.0            (prgenv)
+  6) cpe/26.03                       16) cray-fftw/3.3.10.11
+  7) craype-accel-nvidia80           17) cray-mpich/8.1.30           (mpi)
+  8) gpu/1.0                         18) cray-hdf5-parallel/1.14.3.7
+  9) sqs/2.0                         19) cudatoolkit/12.9            (g)
+ 10) darshan/default                 20) nccl/2.24.3                 (g)
+
+  Where:
+   c:       Compiler
+   cpe:     Cray Programming Environment Modules
+   g:       built for GPU
+   mpi:     MPI Providers
+   prgenv:  Programming Environment Modules
+
+ 
+
+nvcc: /opt/nvidia/hpc_sdk/Linux_x86_64/25.5/cuda/12.9/bin/nvcc
+Build cuda_12.9.r12.9/compiler.35813241_0
+cc:   /opt/cray/pe/craype/2.7.36/bin/cc
+gcc-14 (SUSE Linux) 14.3.0
+CUDSS_DIR=/global/u1/m/mnoack/tmp/m3d-c1_preconditioner_standalone/deps/cudss
+NCCL_DIR=/global/common/software/nersc9/nccl/2.24.3
+
+=== nvcc -c cudss_block.cu ===
+  -> /global/u1/m/mnoack/tmp/m3d-c1_preconditioner_standalone/bin/obj/cudss_block.o
+
+=== cc -c petsc_cudss_solve.c ===
+  PETSc cflags: -I/global/cfs/cdirs/mp288/jinchen/PETSC/production/petsc.20230606/perlmuttergpu-gnu/include -I/global/cfs/cdirs/mp288/jinchen/PETSC/production/petsc.20230606/include
+  -> /global/u1/m/mnoack/tmp/m3d-c1_preconditioner_standalone/bin/obj/petsc_cudss_solve.o
+
+=== cc link -> /global/u1/m/mnoack/tmp/m3d-c1_preconditioner_standalone/bin/petsc_cudss_solve ===
+
+=== cc -c petsc_cudss_solve_mg.c ===
+  -> /global/u1/m/mnoack/tmp/m3d-c1_preconditioner_standalone/bin/obj/petsc_cudss_solve_mg.o
+=== cc link -> /global/u1/m/mnoack/tmp/m3d-c1_preconditioner_standalone/bin/petsc_cudss_solve_mg ===
+  -> /global/u1/m/mnoack/tmp/m3d-c1_preconditioner_standalone/bin/petsc_cudss_solve_mg
+
+=== cc -shared cudss_commlayer_craympi.c -> /global/u1/m/mnoack/tmp/m3d-c1_preconditioner_standalone/bin/libcudss_commlayer_craympi.so ===
+  -> /global/u1/m/mnoack/tmp/m3d-c1_preconditioner_standalone/bin/libcudss_commlayer_craympi.so
+
+=== built ===
+-rwxrwx--- 1 mnoack mnoack 19K Aug 23 13:54 /global/u1/m/mnoack/tmp/m3d-c1_preconditioner_standalone/bin/libcudss_commlayer_craympi.so
+-rwxrwx--- 1 mnoack mnoack 61K Aug 23 13:54 /global/u1/m/mnoack/tmp/m3d-c1_preconditioner_standalone/bin/petsc_cudss_solve
+-rwxrwx--- 1 mnoack mnoack 61K Aug 23 13:54 /global/u1/m/mnoack/tmp/m3d-c1_preconditioner_standalone/bin/petsc_cudss_solve_mg
+/global/u1/m/mnoack/tmp/m3d-c1_preconditioner_standalone/bin/petsc_cudss_solve: ELF 64-bit LSB executable, x86-64, version 1 (SYSV), dynamically linked, interpreter /lib64/ld-linux-x86-64.so.2, BuildID[sha1]=04701a94c1f4e411227920d035fa7bb5b70e8bc2, for GNU/Linux 4.3.0, with debug_info, not stripped
+
+=== ldd (verify cudss/nccl resolve) ===
+	libpetsc.so.3.023 => /global/cfs/cdirs/mp288/jinchen/PETSC/production/petsc.20230606/perlmuttergpu-gnu/lib/libpetsc.so.3.023 (0x00007f112ac8e000)
+	libHYPRE-2.33.0.so => /global/cfs/cdirs/mp288/jinchen/PETSC/production/petsc.20230606/perlmuttergpu-gnu/lib/libHYPRE-2.33.0.so (0x00007f1128584000)
+	libscalapack.so.2.2 => /global/cfs/cdirs/mp288/jinchen/PETSC/production/petsc.20230606/perlmuttergpu-gnu/lib/libscalapack.so.2.2 (0x00007f1127fe6000)
+	libsuperlu_dist.so.9 => /global/cfs/cdirs/mp288/jinchen/PETSC/production/petsc.20230606/perlmuttergpu-gnu/lib/libsuperlu_dist.so.9 (0x00007f1127c46000)
+	libsuperlu.so.6 => /global/cfs/cdirs/mp288/jinchen/PETSC/production/petsc.20230606/perlmuttergpu-gnu/lib/libsuperlu.so.6 (0x00007f1127bd0000)
+	libkokkoskernels.so => /global/cfs/cdirs/mp288/jinchen/PETSC/production/petsc.20230606/perlmuttergpu-gnu/lib/libkokkoskernels.so (0x00007f1121ee4000)
+	libkokkoscontainers.so.4.7 => /global/cfs/cdirs/mp288/jinchen/PETSC/production/petsc.20230606/perlmuttergpu-gnu/lib/libkokkoscontainers.so.4.7 (0x00007f1121ece000)
+	libkokkoscore.so.4.7 => /global/cfs/cdirs/mp288/jinchen/PETSC/production/petsc.20230606/perlmuttergpu-gnu/lib/libkokkoscore.so.4.7 (0x00007f1121d79000)
+	libkokkossimd.so.4.7 => /global/cfs/cdirs/mp288/jinchen/PETSC/production/petsc.20230606/perlmuttergpu-gnu/lib/libkokkossimd.so.4.7 (0x00007f1121d76000)
+	libparmetis.so => /global/cfs/cdirs/mp288/jinchen/PETSC/production/petsc.20230606/perlmuttergpu-gnu/lib/libparmetis.so (0x00007f1121d34000)
+	libmetis.so => /global/cfs/cdirs/mp288/jinchen/PETSC/production/petsc.20230606/perlmuttergpu-gnu/lib/libmetis.so (0x00007f1121cc8000)
+	libgsl.so.27 => /global/cfs/cdirs/mp288/jinchen/PETSC/production/petsc.20230606/perlmuttergpu-gnu/lib/libgsl.so.27 (0x00007f1121a07000)
+	libgslcblas.so.0 => /global/cfs/cdirs/mp288/jinchen/PETSC/production/petsc.20230606/perlmuttergpu-gnu/lib/libgslcblas.so.0 (0x00007f11219c9000)
+	libcudart.so.12 => /opt/nvidia/hpc_sdk/Linux_x86_64/24.5/cuda/12.4/lib64/libcudart.so.12 (0x00007f1121600000)
+	libcusparse.so.12 => /opt/nvidia/hpc_sdk/Linux_x86_64/24.5/math_libs/12.4/lib64/libcusparse.so.12 (0x00007f10f7a00000)
+	libcudss.so.0 => /global/u1/m/mnoack/tmp/m3d-c1_preconditioner_standalone/deps/cudss/lib/libcudss.so.0 (0x00007f10da600000)
+	libnccl.so.2 => /global/common/software/nersc9/nccl/2.24.3/lib/libnccl.so.2 (0x00007f10d8863000)
+	libkokkosalgorithms.so.4.7 => /global/cfs/cdirs/mp288/jinchen/PETSC/production/petsc.20230606/perlmuttergpu-gnu/lib/libkokkosalgorithms.so.4.7 (0x00007f1121410000)
+
+=== shim: exported symbol + ldd (verify cray-mpich libmpi resolves) ===
+00000000000040c0 D cudssDistributedInterface
+	libcudart.so.12 => /opt/nvidia/hpc_sdk/Linux_x86_64/25.5/cuda/12.9/lib64/libcudart.so.12 (0x00007f3e23c00000)
+	libcuda.so.1 => /usr/lib64/libcuda.so.1 (0x00007f3e1dfb4000)
+	libmpi_gnu_123.so.12 => /opt/cray/pe/lib64/libmpi_gnu_123.so.12 (0x00007f3e1ce64000)
+	libmpi_gtl_cuda.so.0 => /opt/cray/pe/mpich/8.1.30/gtl/lib/libmpi_gtl_cuda.so.0 (0x00007f3e23ec1000)

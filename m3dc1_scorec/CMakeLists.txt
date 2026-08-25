@@ -175,6 +175,29 @@ set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -DPETSC_USE_COMPLEX")
 set(TARGET_LIB_NAME ${TARGET_LIB_NAME}_complex)
 endif()
 
+# cuDSS block-Jacobi solver path (matrix_solve::solve_cudss, selected at
+# runtime with -cudsssolve <matrix_id>); sources shared with the standalone
+# benchmark in m3d-c1_preconditioner_standalone.
+option(ENABLE_CUDSS "Enable cuDSS block-Jacobi solver path [ON|OFF]" OFF)
+message(STATUS "ENABLE_CUDSS: " ${ENABLE_CUDSS})
+
+if (ENABLE_CUDSS)
+  if (NOT ENABLE_PETSC)
+    message(FATAL_ERROR "ENABLE_CUDSS requires ENABLE_PETSC")
+  endif()
+  if (ENABLE_COMPLEX)
+    message(FATAL_ERROR "ENABLE_CUDSS supports real builds only (disable ENABLE_COMPLEX)")
+  endif()
+  # Library target m3dc1_cudss; normally added by the repo root CMakeLists.
+  # Its INTERFACE properties propagate the M3DC1_CUDSS define, the
+  # petsc_cudss_solve.h include dir, and the cuDSS/CUDA link libraries.
+  if (NOT TARGET m3dc1_cudss)
+    add_subdirectory(${CMAKE_CURRENT_SOURCE_DIR}/../m3d-c1_preconditioner_standalone
+                     ${CMAKE_CURRENT_BINARY_DIR}/m3dc1_cudss)
+  endif()
+  set(DEP_LIBS ${DEP_LIBS} m3dc1_cudss)
+endif()
+
 # if(ENABLE_OPENMP)
 #   if(${CMAKE_CXX_COMPILER_ID} STREQUAL "GNU")
 #     set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -fopenmp")

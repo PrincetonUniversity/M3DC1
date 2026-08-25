@@ -54,3 +54,5 @@ doc/*
 !readme
 !figures/*
 
+#petsc-cudss
+m3d-c1_preconditioner_standalone/deps/cudss/lib

@@ -24,6 +24,10 @@
 using std::complex;
 #endif
 
+#ifdef M3DC1_CUDSS
+#include "petsc_cudss_solve.h"
+#endif
+
 using std::vector;
 
 // ***********************************
@@ -1422,6 +1426,99 @@ int matrix_solve::solve_with_guess(FieldID field_id, FieldID xVec_guess) {
   mat_status = M3DC1_SOLVED;
   return M3DC1_SUCCESS;
 }
+
+#ifdef M3DC1_CUDSS
+// solve using the cuDSS block-Jacobi PCShell (petsc_cudss_solve.c);
+// selected per matrix id via -cudsssolve <id> in the api dispatch
+int matrix_solve::solve_cudss(FieldID field_id) {
+#ifdef PETSC_USE_COMPLEX
+  if (!PCU_Comm_Self())
+    std::cout << "[M3DC1 ERROR] " << __func__
+              << ": cuDSS solve path supports real builds only\n";
+  return M3DC1_FAILURE;
+#else
+  Vec x, b;
+  int ierr;
+  ierr = MatCreateVecs(_A, &x, &b); // inherits GPU type from _A
+  CHKERRQ(ierr);
+  copyField2PetscVec_5(field_id, b, get_scalar_type());
+  PetscCall(VecZeroEntries(x));
+
+  int nplane;
+  m3dc1_plane_getnum(&nplane);
+
+  if (_kspSet==0) {
+    if (!PCU_Comm_Self())
+      std::cout << "[M3DC1 INFO] " << __func__ << ": setKspType_cudss\n";
+    ierr = setKspType_cudss(_A, nplane, &_ksp);
+    CHKERRQ(ierr);
+    _kspSet = 1;
+  }
+
+  PetscInt cudss_its = 0;
+  ierr = petsc_cudss_solve(_ksp, _A, b, x, nplane, PETSC_FALSE, &cudss_its);
+  CHKERRQ(ierr);
+  its = cudss_its;
+
+  if (PCU_Comm_Self() == 0)
+    std::cout << "\t-- # solver iterations " << its << std::endl;
+
+  copyPetscVec2Field(x, field_id, get_scalar_type());
+
+  ierr = VecDestroy(&b);
+  CHKERRQ(ierr);
+  ierr = VecDestroy(&x);
+  CHKERRQ(ierr);
+  mat_status = M3DC1_SOLVED;
+  return M3DC1_SUCCESS;
+#endif
+}
+
+// cuDSS solve with non-zero initial guess
+int matrix_solve::solve_cudss_with_guess(FieldID field_id, FieldID xVec_guess) {
+#ifdef PETSC_USE_COMPLEX
+  if (!PCU_Comm_Self())
+    std::cout << "[M3DC1 ERROR] " << __func__
+              << ": cuDSS solve path supports real builds only\n";
+  return M3DC1_FAILURE;
+#else
+  Vec x, b;
+  int ierr;
+  ierr = MatCreateVecs(_A, &x, &b);
+  CHKERRQ(ierr);
+  copyField2PetscVec_5(field_id, b, get_scalar_type());
+  copyField2PetscVec_5(xVec_guess, x, get_scalar_type());
+
+  int nplane;
+  m3dc1_plane_getnum(&nplane);
+
+  if (_kspSet==0) {
+    if (!PCU_Comm_Self())
+      std::cout << "[M3DC1 INFO] " << __func__ << ": setKspType_cudss\n";
+    ierr = setKspType_cudss(_A, nplane, &_ksp);
+    CHKERRQ(ierr);
+    _kspSet = 1;
+  }
+
+  PetscInt cudss_its = 0;
+  ierr = petsc_cudss_solve(_ksp, _A, b, x, nplane, PETSC_TRUE, &cudss_its);
+  CHKERRQ(ierr);
+  its = cudss_its;
+
+  if (PCU_Comm_Self() == 0)
+    std::cout << "\t-- # solver iterations " << its << std::endl;
+
+  copyPetscVec2Field(x, field_id, get_scalar_type());
+
+  ierr = VecDestroy(&b);
+  CHKERRQ(ierr);
+  ierr = VecDestroy(&x);
+  CHKERRQ(ierr);
+  mat_status = M3DC1_SOLVED;
+  return M3DC1_SUCCESS;
+#endif
+}
+#endif // M3DC1_CUDSS
 
 int matrix_solve::setKspType() {
   PetscErrorCode ierr;
