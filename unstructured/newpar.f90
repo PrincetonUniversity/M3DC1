@@ -291,6 +291,12 @@ Program Reducedquintic
      call hdf5_write_parameters(ier)
   end if
 
+#ifdef USEPARTICLES
+  if (kinetic.eq.1) then
+     call particle_test
+  endif
+#endif
+
   ! output equilibrium time slice
   ! ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
   if(ntime.eq.0 .or. (ntime.eq.ntime0 .and. eqsubtract.eq.1)) then
@@ -351,18 +357,17 @@ Program Reducedquintic
 
 #ifdef USEPARTICLES
   if (kinetic.eq.1) then
-     call particle_test
-     !call safestop(0)
+     call particle_post_initialize
   endif
 #endif
+
+  if ((irunaway.ge.1).and.(ra_characteristics.eq.1)) call runaway_advection_initialize
 
   ! output initial conditions
   call output
 
   ! if there are no timesteps to calculate, then skip time loop
   if(ntimemax.le.ntime) call safestop(0)
-
-  if ((irunaway.ge.1).and.(ra_characteristics.eq.1)) call runaway_advection_initialize
 
   if (write_ts_on_job_timeout.eq.1) call install_signal_handler()
 
@@ -1459,23 +1464,26 @@ else
 endif
 
 #ifdef USEPARTICLES
-     call create_field(p_f_par)
-     call create_field(p_f_perp)
-     call create_field(den_f_0)
-     call create_field(den_f_1)
+     call create_field(p_f_par(0))
+     call create_field(p_f_par(1))
+     call create_field(p_f_perp(0))
+     call create_field(p_f_perp(1))
+     call create_field(denf_field(0))
+     call create_field(denf_field(1))
      call create_field(v_f_par)
-     call create_field(p_i_par)
-     call create_field(p_i_perp)
-     call create_field(den_i_0)
-     call create_field(den_i_1)
+     call create_field(j_f_par)
+     call create_field(p_i_par(0))
+     call create_field(p_i_par(1))
+     call create_field(p_i_perp(0))
+     call create_field(p_i_perp(1))
+     call create_field(deni_field(0))
+     call create_field(deni_field(1))
      call create_field(v_i_par)
      call create_field(rho_field)
      call create_field(nf_field)
      call create_field(tf_field)
-     call create_field(pf_field)
      call create_field(nfi_field)
      call create_field(tfi_field)
-     call create_field(pfi_field)
      call create_field(densmooth_field)
      call create_field(vparsmooth_field)
      call create_field(ustar_field)
