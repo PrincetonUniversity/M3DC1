@@ -1,0 +1,8 @@
+numBdry 0
+useVacuum 2 1 0.04
+vacuumParams 0. 1. 0. 0.0 1.
+
+numFace 1
+faceBdry 1 1 0.04
+
+outFile circle
