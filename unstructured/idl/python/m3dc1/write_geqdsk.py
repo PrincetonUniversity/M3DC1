@@ -265,6 +265,24 @@ def _profile_by_psi_bins(field: np.ndarray, psi: np.ndarray, flux: np.ndarray) -
     return out
 
 
+def _fill_profile_gaps(values: np.ndarray) -> np.ndarray:
+    """Fill non-finite radial-profile samples by linear interpolation.
+
+    Flux-surface averaging can leave the outermost surface undefined when its
+    contour lies on the mesh boundary.  GEQDSK profiles must be finite, so
+    extrapolate endpoint gaps using the nearest finite value and interpolate
+    interior gaps.
+    """
+    out = np.asarray(values, dtype=float).reshape(-1).copy()
+    good = np.flatnonzero(np.isfinite(out))
+    if good.size == 0:
+        return out
+    bad = ~np.isfinite(out)
+    if np.any(bad):
+        out[bad] = np.interp(np.flatnonzero(bad), good, out[good])
+    return out
+
+
 def _write_e16(handle, values) -> None:
     vals = np.asarray(values, dtype=float).reshape(-1)
     for i in range(0, vals.size, 5):
@@ -411,6 +429,14 @@ def write_geqdsk(
         i_prof = np.full(flux_native.size, np.nan, dtype=float)
         ffprim = np.full(flux_native.size, np.nan, dtype=float)
         q = np.zeros(flux_native.size, dtype=float)
+
+    # Flux averaging commonly leaves an undefined endpoint on the LCFS.
+    # Repair all profile gaps before unit conversion and GEQDSK output.
+    p = _fill_profile_gaps(p)
+    pprime = _fill_profile_gaps(pprime)
+    i_prof = _fill_profile_gaps(i_prof)
+    ffprim = _fill_profile_gaps(ffprim)
+    q = _fill_profile_gaps(q)
 
     if not np.any(np.isfinite(p)) or not np.any(np.isfinite(i_prof)) or not np.any(np.isfinite(q)):
         print("WARNING: flux-coordinate profiles are non-finite; using psi-bin profiles")

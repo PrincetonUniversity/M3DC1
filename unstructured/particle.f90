@@ -10,7 +10,8 @@ module particles
    implicit none
    private
 #ifdef USEPARTICLES
-   public :: particle_test, particle_step, particle_scaleback, finalize_particles, hdf5_read_particles, hdf5_write_particles
+   public :: particle_test, particle_post_initialize, particle_step, particle_scaleback, finalize_particles
+   public :: hdf5_read_particles, hdf5_write_particles
    public :: set_parallel_velocity, filter_fields
 #endif
 
@@ -100,20 +101,23 @@ module particles
    integer :: nparticles, locparts
    integer :: mpi_particle !User-defined MPI datatype for particle communication
    integer :: mpi_elfield
-   type(matrix_type) :: diff2_mat, diff3_mat
+   type(matrix_type) :: diff2_mat, diff20_mat, diff3_mat
    type(matrix_type) :: s1_0_mat
    !type(newvar_matrix) :: diff_mat
    integer :: hostcomm, rowcomm
    integer :: hostrank, rowrank, ncols, nrows
    integer, dimension(:), allocatable :: nelm_row, displs_elm
    vectype, dimension(:, :), allocatable :: coeffspaf, coeffspef, coeffspaf_local, coeffspef_local
+   vectype, dimension(:, :), allocatable :: coeffspaf0, coeffspef0, coeffspaf0_local, coeffspef0_local
    vectype, dimension(:, :), allocatable :: coeffspai, coeffspei, coeffspai_local, coeffspei_local
+   vectype, dimension(:, :), allocatable :: coeffspai0, coeffspei0, coeffspai0_local, coeffspei0_local
    vectype, dimension(:, :), allocatable :: coeffsdei0, coeffsdei0_local
    vectype, dimension(:, :), allocatable :: coeffsdef0, coeffsdef0_local
    vectype, dimension(:, :), allocatable :: coeffsdef, coeffsdef_local
    vectype, dimension(:, :), allocatable :: coeffsdei, coeffsdei_local
-   vectype, dimension(:, :), allocatable :: coeffsvpi, coeffsvpi_local
-   vectype, dimension(:, :), allocatable :: coeffsvpf, coeffsvpf_local
+!   vectype, dimension(:, :), allocatable :: coeffsvpi, coeffsvpi_local
+!   vectype, dimension(:, :), allocatable :: coeffsvpf, coeffsvpf_local
+   vectype, dimension(:, :), allocatable :: coeffsjfpar, coeffsjfpar_local
    integer :: ielm_min, ielm_max, ipart_begin, ipart_end
    integer :: nelms, nelms_global, nnodes_global
    real :: psi_axis, nf_axis, nfi_axis, toroidal_period_particle
@@ -277,7 +281,7 @@ subroutine particle_test
    integer, parameter :: trunit = 120
    real :: tstart, tend
    integer :: ierr
-   vectype, dimension(coeffs_per_element) :: denfi0
+   vectype, dimension(MAX_PTS, OP_NUM) :: target_den79
    real, dimension(2) :: nrmfac_temp
    type(particle) :: dpar
    type(xgeomterms) :: geomterms
@@ -313,7 +317,7 @@ subroutine particle_test
 
    if (irestart.eq.0) then
       nrmfac(:)=1.0
-      call update_particle_pressure
+      call update_particle_pressure(.true.)
       nrmfac_temp(:)=0.
       dpar%x(1) = xmag
       dpar%x(3) = zmag
@@ -328,26 +332,57 @@ subroutine particle_test
          call define_fields(ielm, FIELD_KIN, 1, 0)
 
          if (kinetic_fast_ion.eq.1) then
-            call eval_ops(ielm, den_f_0, nf79)
-            nrmfac_temp(2)=nrmfac(2)/sum(nf79(:,OP_1))*sum(nf079(:,OP_1))
+            call eval_ops(ielm, denf_field(0), denf79)
+            call eval_ops(ielm, nf_field, target_den79)
+            if (abs(sum(denf79(:,OP_1))).gt.tiny(1.)) then
+               nrmfac_temp(2) = nrmfac(2)*real(sum(target_den79(:,OP_1)) &
+                    /sum(denf79(:,OP_1)))
+            endif
          endif
          if (kinetic_thermal_ion.eq.1) then
-            call eval_ops(ielm, den_i_0, nfi79)
-            nrmfac_temp(1)=nrmfac(1)/sum(nfi79(:,OP_1))*sum(nfi079(:,OP_1))
+            call eval_ops(ielm, deni_field(0), deni79)
+            call eval_ops(ielm, nfi_field, target_den79)
+            if (abs(sum(deni79(:,OP_1))).gt.tiny(1.)) then
+               nrmfac_temp(1) = nrmfac(1)*real(sum(target_den79(:,OP_1)) &
+                    /sum(deni79(:,OP_1)))
+            endif
          endif
       endif
       call mpi_allreduce(nrmfac_temp, nrmfac, 2, MPI_DOUBLE_PRECISION, MPI_SUM, MPI_COMM_WORLD, ierr)
    endif
    nrmfac = nrmfac*kinetic_nrmfac_scale
-   call update_particle_pressure
+   call update_particle_pressure(.true.)
+   if ((ntime.eq.0).and.(kinetic.eq.1).and.(kinetic_fast_ion.eq.1)) then
+      call add(p_field(0), p_f_par(0), -1./3.)
+      call add(p_field(0), p_f_perp(0), -2./3.)
+   endif
+   if ((ntime.eq.0).and.(kinetic.eq.1).and.(particle_couple.ge.0) &
+        .and.(kinetic_thermal_ion.eq.1)) then
+      call add(p_field(0), p_i_par(0), -1./3.)
+      call add(p_field(0), p_i_perp(0), -2./3.)
+   endif
 
+   pe_field(0) = p_field(0)
+   call mult(pe_field(0), pefac)
+   call calculate_temperatures(0, te_field(0), ti_field(0), &
+      pe_field(0), p_field(0), ne_field(0), den_field(0), &
+      1)
+
+   call MPI_Barrier(MPI_COMM_WORLD, ierr)
+end subroutine particle_test
+
+!---------------------------------------------------------------------------
+! Particle post-processing that requires timestep vectors.
+subroutine particle_post_initialize
+   use basic
+   implicit none
+
+   call get_field_coefs(1, .true.)
    if (kinetic_thermal_ion.eq.1) then
       if (idiamagnetic_advection.eq.1) call set_diamagnetic_velocity
       call set_den_smooth
    endif
-
-   call MPI_Barrier(MPI_COMM_WORLD, ierr)
-end subroutine particle_test
+end subroutine particle_post_initialize
 
 !---------------------------------------------------------------------------
 ! Particle physics parameters
@@ -581,7 +616,7 @@ subroutine init_particles(lrestart, ierr)
    if (hostrank /= 0) CALL MPI_Win_shared_query(win_elfieldcoefs, 0, arraysize, disp_unit, baseptr, ierr)
    CALL C_F_POINTER(baseptr, elfieldcoefs, [nelms_global])
    !allocate(elfieldcoefs(nelms))
-   call get_field_coefs(1)
+   call get_field_coefs(1, .true.)
    !call MPI_Win_fence(0, win_elfieldcoefs)
 
    !npar = nplanes
@@ -692,10 +727,12 @@ subroutine init_particles(lrestart, ierr)
       call hdf5_read_particles(part_file_name, ierr)
       if (myrank .eq. 0) print *, 'read_parts returned with ierr=', ierr
    else
-      p_f_par%vec = 0.; p_f_perp%vec = 0.
-      p_i_par%vec = 0.; p_i_perp%vec = 0.
-      den_i_0%vec = 0.
-      den_f_0%vec = 0.
+      p_f_par(1)%vec = 0.; p_f_perp(1)%vec = 0.
+      p_i_par(1)%vec = 0.; p_i_perp(1)%vec = 0.
+      p_i_par(0)%vec = 0.; p_i_perp(0)%vec = 0.
+      deni_field(0)%vec = 0.
+      denf_field(0)%vec = 0.
+      j_f_par%vec = 0.
       allocate (pdata_local(num_par_max/maxrank*10))
       !First pass: assign particles to processors, elements
       locparts = 0
@@ -1070,10 +1107,18 @@ subroutine init_particles(lrestart, ierr)
    allocate (coeffspef(coeffs_per_element, nelms_global))
    allocate (coeffspaf_local(coeffs_per_element, nelms_global))
    allocate (coeffspef_local(coeffs_per_element, nelms_global))
+   allocate (coeffspaf0(coeffs_per_element, nelms_global))
+   allocate (coeffspef0(coeffs_per_element, nelms_global))
+   allocate (coeffspaf0_local(coeffs_per_element, nelms_global))
+   allocate (coeffspef0_local(coeffs_per_element, nelms_global))
    allocate (coeffspai(coeffs_per_element, nelms_global))
    allocate (coeffspei(coeffs_per_element, nelms_global))
    allocate (coeffspai_local(coeffs_per_element, nelms_global))
    allocate (coeffspei_local(coeffs_per_element, nelms_global))
+   allocate (coeffspai0(coeffs_per_element, nelms_global))
+   allocate (coeffspei0(coeffs_per_element, nelms_global))
+   allocate (coeffspai0_local(coeffs_per_element, nelms_global))
+   allocate (coeffspei0_local(coeffs_per_element, nelms_global))
    allocate (coeffsdef0(coeffs_per_element, nelms_global))
    allocate (coeffsdef0_local(coeffs_per_element, nelms_global))
    allocate (coeffsdei0(coeffs_per_element, nelms_global))
@@ -1082,10 +1127,12 @@ subroutine init_particles(lrestart, ierr)
    allocate (coeffsdef_local(coeffs_per_element, nelms_global))
    allocate (coeffsdei(coeffs_per_element, nelms_global))
    allocate (coeffsdei_local(coeffs_per_element, nelms_global))
-   allocate (coeffsvpf(coeffs_per_element, nelms_global))
-   allocate (coeffsvpf_local(coeffs_per_element, nelms_global))
-   allocate (coeffsvpi(coeffs_per_element, nelms_global))
-   allocate (coeffsvpi_local(coeffs_per_element, nelms_global))
+!   allocate (coeffsvpf(coeffs_per_element, nelms_global))
+!   allocate (coeffsvpf_local(coeffs_per_element, nelms_global))
+!   allocate (coeffsvpi(coeffs_per_element, nelms_global))
+!   allocate (coeffsvpi_local(coeffs_per_element, nelms_global))
+   allocate (coeffsjfpar(coeffs_per_element, nelms_global))
+   allocate (coeffsjfpar_local(coeffs_per_element, nelms_global))
    call set_matrix_index(diff2_mat, 170)
    call create_mat(diff2_mat, 1, 1, icomplex, 1)
    do itri = 1, nelms
@@ -1103,6 +1150,22 @@ subroutine init_particles(lrestart, ierr)
      call insert_block(diff2_mat, itri, 1, 1, tempxx, MAT_ADD)
    end do
    call finalize(diff2_mat)
+   call set_matrix_index(diff20_mat, 173)
+   call create_mat(diff20_mat, 1, 1, icomplex, 1)
+   do itri = 1, nelms
+      call define_element_quadrature(itri, int_pts_main, int_pts_tor)
+      call define_fields(itri, 0, 1, 0)
+      tempxx = intxx2(mu79(:, :, OP_1), nu79(:, :, OP_1))
+      tempxx = tempxx + 10.*smooth_par* &
+           (intxx2(mu79(:, :, OP_DZZ), nu79(:, :, OP_DZZ)) + &
+            intxx2(mu79(:, :, OP_DRR), nu79(:, :, OP_DRR)))
+#ifdef USE3D
+      tempxx = tempxx + 10.*smooth_par* &
+           intxx3(mu79(:, :, OP_DPP), nu79(:, :, OP_DPP), ri4_79)
+#endif
+      call insert_block(diff20_mat, itri, 1, 1, tempxx, MAT_ADD)
+   end do
+   call finalize(diff20_mat)
    call set_matrix_index(diff3_mat, 171)
    call create_mat(diff3_mat, 1, 1, icomplex, 1)
    do itri = 1, nelms
@@ -1986,13 +2049,14 @@ subroutine particle_scaleback(scalefac)
    call MPI_Bcast(ipart_begin, 1, MPI_INTEGER, 0, hostcomm, ierr)
    call MPI_Bcast(ipart_end, 1, MPI_INTEGER, 0, hostcomm, ierr)
    call MPI_Bcast(nparticles, 1, mpi_integer, 0, MPI_COMM_WORLD, ierr)
-   call mult(p_f_par, scalefac)
-   call mult(p_f_perp, scalefac)
-   call mult(den_f_1, scalefac)
-   call mult(p_i_par, scalefac)
-   call mult(p_i_perp, scalefac)
-   call mult(v_i_par, scalefac)
-   call mult(den_i_1, scalefac)
+   call mult(p_f_par(1), scalefac)
+   call mult(p_f_perp(1), scalefac)
+   call mult(denf_field(1), scalefac)
+   call mult(p_i_par(1), scalefac)
+   call mult(p_i_perp(1), scalefac)
+!   call mult(v_i_par, scalefac)
+   call mult(j_f_par, scalefac)
+   call mult(deni_field(1), scalefac)
 end subroutine particle_scaleback
 !---------------------------------------------------------------------------
 subroutine delete_particle(exchange)
@@ -2099,7 +2163,7 @@ subroutine particle_step(pdt)
          call set_den_smooth
       endif
       !Advance particle positions
-      call get_field_coefs(0)
+      call get_field_coefs(0, isubcycle == 1)
       call mpi_barrier(mpi_comm_world, ierr)
       !call MPI_Win_fence(0, win_elfieldcoefs)
 #ifdef _OPENACC
@@ -2128,7 +2192,7 @@ subroutine particle_step(pdt)
       call MPI_Bcast(ipart_end, 1, MPI_INTEGER, 0, hostcomm, ierr)
       call MPI_Bcast(nparticles, 1, mpi_integer, 0, MPI_COMM_WORLD, ierr)
       !Compute particle pressure tensor components
-      call update_particle_pressure
+      call update_particle_pressure(isubcycle == particle_subcycles)
       call mpi_barrier(mpi_comm_world, ierr)
     if ((kinetic_thermal_ion.eq.1).and.(particle_couple.ge.0)) then
          call set_density
@@ -2138,13 +2202,14 @@ subroutine particle_step(pdt)
    
 end subroutine particle_step
 !---------------------------------------------------------------------------
-subroutine update_particle_pressure
+subroutine update_particle_pressure(full_update)
    use basic
    use arrays
    use diagnostics
    implicit none
    include 'mpif.h'
 
+   logical, intent(in) :: full_update
    real    :: tstart, tend
    integer :: ierr
 
@@ -2155,7 +2220,7 @@ subroutine update_particle_pressure
    !call MPI_Win_fence(0, win_pdata)
    !Deposit particles to compute RHS.
    call second(tstart)
-   call particle_pressure_rhs
+   call particle_pressure_rhs(full_update)
 
    !Invert mass matrix to solve for field components
    call MPI_Barrier(MPI_COMM_WORLD, ierr)
@@ -2165,7 +2230,7 @@ subroutine update_particle_pressure
    end if
 
    call second(tstart)
-   call solve_pi_tensor
+   call solve_pi_tensor(full_update)
    if (myrank .eq. 0) then
       call second(tend)
       write (0, '(A,f9.2,A)') 'Pressure tensor LHS vecs calculated in', tend - tstart, ' sec.'
@@ -2209,7 +2274,8 @@ subroutine finalize_particles
    !if (allocated(dnlist)) deallocate(dnlist)
 
 !    call mpi_type_free(mpi_particle, ielm)
-   call destroy_field(p_i_par); call destroy_field(p_i_perp)
+   call destroy_field(p_i_par(0)); call destroy_field(p_i_par(1))
+   call destroy_field(p_i_perp(0)); call destroy_field(p_i_perp(1))
 end subroutine finalize_particles
 !---------------------------------------------------------------------------
 subroutine find_element_neighbors
@@ -2676,7 +2742,7 @@ subroutine update_geom_terms_st(gh, fh, ic2)
 
 end subroutine update_geom_terms_st
 !---------------------------------------------------------------------------
-subroutine get_field_coefs(eq)
+subroutine get_field_coefs(eq, full_update)
    use arrays
    use basic
    use auxiliary_fields
@@ -2685,6 +2751,7 @@ subroutine get_field_coefs(eq)
 
    !type(elfield), intent(out) :: fh  !Field handle
    integer, intent(in) :: eq
+   logical, intent(in) :: full_update
    integer :: ielm, ielm_global
    !logical, intent(in) :: getE
    integer :: isghost
@@ -2695,7 +2762,7 @@ subroutine get_field_coefs(eq)
    real :: factor
    type(elfield), dimension(:), allocatable :: elfieldcoefs_temp
 
-   do ielm = 1, nelms!Always get magnetic field components
+   do ielm = 1, nelms
 
 #ifdef USE3D
       call m3dc1_ent_getglobalid(3, ielm - 1, ielm_global)
@@ -2703,6 +2770,12 @@ subroutine get_field_coefs(eq)
       call m3dc1_ent_getglobalid(2, ielm - 1, ielm_global)
 #endif
       ielm_global = ielm_global + 1
+      if (.not.full_update) then
+         if (kinetic_thermal_ion.eq.1) then
+            call calcavector(ielm, densmooth_field, elfieldcoefs(ielm_global)%ne)
+         endif
+         cycle
+      endif
       if (eq == 1) then
          call calcavector(ielm, psi_field(0), elfieldcoefs(ielm_global)%psiv0)
          call calcavector(ielm, bz_field(0), elfieldcoefs(ielm_global)%Bzv0)
@@ -2727,9 +2800,7 @@ subroutine get_field_coefs(eq)
       call calcavector(ielm, psi_field(1), elfieldcoefs(ielm_global)%psiv1)
       call calcavector(ielm, bz_field(1), elfieldcoefs(ielm_global)%Bzv1)
       if (kinetic_thermal_ion.eq.1) then
-         factor = 1*c_light/ &
-                  sqrt(4.*3.14159*n0_norm*(z_ion*e_c)**2/m0_norm)/ &
-                  l0_norm*(v0_norm/100.0*b0_norm/1.e4)
+         factor = db*(v0_norm/100.0*b0_norm/1.e4)
          call calcavector(ielm, p_field(1), elfieldcoefs(ielm_global)%pe)
          call calcavector(ielm, densmooth_field, elfieldcoefs(ielm_global)%ne)
          !call calcavector(ielm, den_field(1), elfieldcoefs(ielm_global)%ne)
@@ -3324,7 +3395,7 @@ subroutine evalf0(x, vpar, vperp, fh, gh, sps, f0, gradcoef, df0de, df0dxi)
 
 end subroutine evalf0
 !---------------------------------------------------------------------------
-subroutine particle_pressure_rhs
+subroutine particle_pressure_rhs(full_update)
    use basic
    use arrays
    use math
@@ -3333,7 +3404,9 @@ subroutine particle_pressure_rhs
    include 'mpif.h'
    intrinsic matmul
 
+   logical, intent(in) :: full_update
    real, dimension(dofs_per_element, coeffs_per_element) :: cl
+   vectype, dimension(dofs_per_element) :: dofspa0, dofspe0, dofspai0, dofspei0
    real, dimension(coeffs_per_element) :: wnuhere, wnuhere2, deltaBhere
 #ifdef USECOMPLEX
    complex phfac
@@ -3363,13 +3436,22 @@ subroutine particle_pressure_rhs
    !nelms = local_elements()
    !elcoefs(:)%itri = 0
 
-   coeffspaf_local = 0.; coeffspef_local = 0.
-   coeffspai_local = 0.; coeffspei_local = 0.
-   coeffsdef0_local = 0.; coeffsdef0_local = 0.
-   coeffsdei0_local = 0.; coeffsdei0_local = 0.
    coeffsdef_local = 0.; coeffsdef_local = 0.
    coeffsdei_local = 0.; coeffsdei_local = 0.
-   coeffsvpi_local = 0.
+   if (full_update) then
+      coeffspaf_local = 0.; coeffspef_local = 0.
+      coeffspai_local = 0.; coeffspei_local = 0.
+      coeffsdef0_local = 0.; coeffsdef0_local = 0.
+      coeffsdei0_local = 0.; coeffsdei0_local = 0.
+!     coeffsvpi_local = 0.
+      coeffsjfpar_local = 0.
+      if (ntime.eq.0) then
+         coeffspaf0_local = 0.
+         coeffspef0_local = 0.
+         coeffspai0_local = 0.
+         coeffspei0_local = 0.
+      endif
+   endif
 
    ipart_begin_local = (ipart_end - ipart_begin + 1)/ncols*hostrank + ipart_begin
    ipart_end_local = (ipart_end - ipart_begin + 1)/ncols*(hostrank + 1) - 1 + ipart_begin
@@ -3409,21 +3491,22 @@ subroutine particle_pressure_rhs
        !!iwe = iwe + 1
             !cycle !next particle
          end if
-         if (pdata(ipart)%B0.ne.0) then
-            B0 = pdata(ipart)%B0
-         else
-            call getBcyl(pdata(ipart)%x, elfieldcoefs(itri), geomterms, B_cyl, deltaB, gradB0, gradB1, dB1)
-            !itri2 = itri !fluid particle
-            !call get_geom_terms(pdata(ipart)%x0, itri2, geomterms2, .false., ierr) !fluid particle
-            !call getBcyl(pdata(ipart)%x0, elfieldcoefs(itri2), geomterms2, B_cyl, deltaB, gradB0, gradB1, dB1) !fluid particle
-            B0 = sqrt(dot_product(B_cyl, B_cyl))  !1/magnitude of B
-            pdata(ipart)%B0 = B0
-         endif
-         !Use B and v to get parallel and perp components of particle velocity
-         if (vspdims .eq. 2) then ! drift-kinetic: v_|| = v(1),  mu = q * v(2)
-            vpar = pdata(ipart)%v(1)
-            pperp = q_ion(pdata(ipart)%sps)*pdata(ipart)%v(2)*B0
-         else !full orbit: v_|| = v.B/|B|,  v_perp = v - v_||
+         if (full_update) then
+            if (pdata(ipart)%B0.ne.0) then
+               B0 = pdata(ipart)%B0
+            else
+               call getBcyl(pdata(ipart)%x, elfieldcoefs(itri), geomterms, B_cyl, deltaB, gradB0, gradB1, dB1)
+               !itri2 = itri !fluid particle
+               !call get_geom_terms(pdata(ipart)%x0, itri2, geomterms2, .false., ierr) !fluid particle
+               !call getBcyl(pdata(ipart)%x0, elfieldcoefs(itri2), geomterms2, B_cyl, deltaB, gradB0, gradB1, dB1) !fluid particle
+               B0 = sqrt(dot_product(B_cyl, B_cyl))  !1/magnitude of B
+               pdata(ipart)%B0 = B0
+            endif
+            !Use B and v to get parallel and perp components of particle velocity
+            if (vspdims .eq. 2) then ! drift-kinetic: v_|| = v(1),  mu = q * v(2)
+               vpar = pdata(ipart)%v(1)
+               pperp = q_ion(pdata(ipart)%sps)*pdata(ipart)%v(2)*B0
+            else !full orbit: v_|| = v.B/|B|,  v_perp = v - v_||
             !if (B0 .gt. 0.0) then !non-degenerate
             !   !vpar = dot_product(pdata(ipart)%v, B_part(1:vspdims))/B0
             !   vpar = pdata(ipart)%v(4)
@@ -3434,23 +3517,16 @@ subroutine particle_pressure_rhs
             !   !vperp = pdata(ipart)%v
             !end if !degenerate?
             !!pperp = 0.5 * m_ion * dot_product(vperp, vperp)
-         end if !full-orbit?
-         ppar = m_ion(pdata(ipart)%sps)*vpar**2
-         if (particle_linear == 1) then
-            wnuhere = (pdata(ipart)%wt + pdata(ipart)%dB)*geomterms%g
-            wnuhere2 = (pdata(ipart)%wt + pdata(ipart)%dB + pdata(ipart)%dB)*geomterms%g
+            end if !full-orbit?
+            ppar = m_ion(pdata(ipart)%sps)*vpar**2
+         endif
+         if (ifullf.eq.1) then
+            wnuhere = geomterms%g
+            wnuhere2 = geomterms%g
          else
-            wnuhere = (pdata(ipart)%wt + (1 - pdata(ipart)%wt)*pdata(ipart)%dB)*geomterms%g
-            wnuhere2 = (pdata(ipart)%wt + (1 - pdata(ipart)%wt)*pdata(ipart)%dB + pdata(ipart)%dB)*geomterms%g
-            !if (abs(pdata(ipart)%wt)>1) then
-            !   wnuhere=0
-            !   wnuhere2=0
-            !endif
-         end if
-         wnuhere = (pdata(ipart)%wt) * geomterms%g
-         wnuhere2 = (pdata(ipart)%wt) * geomterms%g
-         ! wnuhere = geomterms%g
-         ! wnuhere2 = geomterms%g
+            wnuhere = pdata(ipart)%wt*geomterms%g
+            wnuhere2 = pdata(ipart)%wt*geomterms%g
+         endif
          wnuhere = wnuhere*nrmfac(pdata(ipart)%sps)
          wnuhere2 = wnuhere2*nrmfac(pdata(ipart)%sps)
          !if (pdata(ipart)%sps==1) then
@@ -3459,45 +3535,52 @@ subroutine particle_pressure_rhs
          !endif
          !wnuhere = pdata(ipart)%wt * matmul(cl, geomterms%g) * pdata(ipart)%x(1)/10.
          !deltaBhere = pdata(ielm)%ion(ipart)%f0 *dot_product(B_part,deltaB)/B0**2* matmul(cl,geomterms%g)
+#ifndef USECOMPLEX
+         if (pdata(ipart)%sps == 1) then
+            coeffsdei_local(:, itri) = coeffsdei_local(:, itri) + wnuhere/4&
+               *(b0_norm/1e4)**2/(4*3.14159*1e-7)/(n0_norm*1e6)
+         else
+            coeffsdef_local(:, itri) = coeffsdef_local(:, itri) + wnuhere/4&
+               *(b0_norm/1e4)**2/(4*3.14159*1e-7)/(n0_norm*1e6)
+         endif
+#else
+         if (igyroaverage.eq.1) then
+            phfac = exp(-rfac*pdata(ipart)%kx(2, ipoint))
+         else
+            phfac = exp(-rfac*xtemp(2))
+         end if
+         if (pdata(ipart)%sps == 1) then
+            coeffsdei_local(:, itri) = coeffsdei_local(:, itri) + phfac*wnuhere/4&
+               *(b0_norm/1e4)**2/(4*3.14159*1e-7)/(n0_norm*1e6)*2
+         else
+            coeffsdef_local(:, itri) = coeffsdef_local(:, itri) + phfac*wnuhere/4&
+               *(b0_norm/1e4)**2/(4*3.14159*1e-7)/(n0_norm*1e6)*2
+         endif
+#endif
+
+         if (.not.full_update) cycle
+
          if (pdata(ipart)%sps == 1) then
             coeffsdei0_local(:,itri) = coeffsdei0_local(:,itri) + geomterms%g*nrmfac(pdata(ipart)%sps)/4&
                *(b0_norm/1e4)**2/(4*3.14159*1e-7)/(n0_norm*1e6)
-#ifndef USECOMPLEX
-            if (ifullf.eq.0) then
-               coeffspai_local(:, itri) = coeffspai_local(:, itri) + ppar*wnuhere/4
-               coeffspei_local(:, itri) = coeffspei_local(:, itri) + pperp*wnuhere2/4
-               coeffsdei_local(:, itri) = coeffsdei_local(:, itri) + wnuhere/4&
-                  *(b0_norm/1e4)**2/(4*3.14159*1e-7)/(n0_norm*1e6)
-            else
-               coeffspai_local(:,itri) = coeffspai_local(:,itri) + ppar*geomterms%g*nrmfac(pdata(ipart)%sps)/4
-               coeffspei_local(:,itri) = coeffspei_local(:,itri) + pperp*geomterms%g*nrmfac(pdata(ipart)%sps)/4
-               coeffsdei_local(:,itri) = coeffsdei_local(:, itri) + geomterms%g*nrmfac(pdata(ipart)%sps)/4&
-                  *(b0_norm/1e4)**2/(4*3.14159*1e-7)/(n0_norm*1e6)
+            if (ntime.eq.0) then
+               coeffspai0_local(:,itri) = coeffspai0_local(:,itri) &
+                    + ppar*geomterms%g*nrmfac(pdata(ipart)%sps)/4
+               coeffspei0_local(:,itri) = coeffspei0_local(:,itri) &
+                    + pperp*geomterms%g*nrmfac(pdata(ipart)%sps)/4
             endif
-            coeffsvpi_local(:, itri) = coeffsvpi_local(:, itri) + vpar/(v0_norm/100.)*wnuhere/4&
-               *(b0_norm/1e4)**2/(4*3.14159*1e-7)/(n0_norm*1e6)
+#ifndef USECOMPLEX
+            coeffspai_local(:, itri) = coeffspai_local(:, itri) + ppar*wnuhere/4
+            coeffspei_local(:, itri) = coeffspei_local(:, itri) + pperp*wnuhere2/4
+!            coeffsvpi_local(:, itri) = coeffsvpi_local(:, itri) + vpar/(v0_norm/100.)*wnuhere/4&
+!               *(b0_norm/1e4)**2/(4*3.14159*1e-7)/(n0_norm*1e6)
             !dofspa = intx2(mu79(:,:,OP_1),ppar79(:,OP_1))
             !dofspe = intx2(mu79(:,:,OP_1),pper79(:,OP_1))
 #else
-            !Extract appropriate Fourier component of particle contribution
-            if (igyroaverage.eq.1) then
-               phfac = exp(-rfac*pdata(ipart)%kx(2, ipoint))
-            else
-               phfac = exp(-rfac*xtemp(2))
-            end if
-            if (ifullf.eq.0) then
-               coeffspai_local(:, itri) = coeffspai_local(:, itri) + ppar*phfac*wnuhere/4*2
-               coeffspei_local(:, itri) = coeffspei_local(:, itri) + pperp*phfac*wnuhere2/4*2
-               coeffsdei_local(:, itri) = coeffsdei_local(:, itri) + phfac*wnuhere/4&
-                  *(b0_norm/1e4)**2/(4*3.14159*1e-7)/(n0_norm*1e6)*2
-            else
-               coeffspai_local(:,itri) = coeffspai_local(:,itri) + ppar*geomterms%g*nrmfac(pdata(ipart)%sps)/4
-               coeffspei_local(:,itri) = coeffspei_local(:,itri) + pperp*geomterms%g*nrmfac(pdata(ipart)%sps)/4
-               coeffsdei_local(:,itri) = coeffsdei_local(:,itri) + geomterms%g*nrmfac(pdata(ipart)%sps)/4&
-                  *(b0_norm/1e4)**2/(4*3.14159*1e-7)/(n0_norm*1e6)*2
-            endif
-            coeffsvpi_local(:,itri) = coeffsvpi_local(:,itri) + vpar/(v0_norm/100.)*phfac*wnuhere/4&
-               *(b0_norm/1e4)**2/(4*3.14159*1e-7)/(n0_norm*1e6)*2
+            coeffspai_local(:, itri) = coeffspai_local(:, itri) + ppar*phfac*wnuhere/4*2
+            coeffspei_local(:, itri) = coeffspei_local(:, itri) + pperp*phfac*wnuhere2/4*2
+!            coeffsvpi_local(:,itri) = coeffsvpi_local(:,itri) + vpar/(v0_norm/100.)*phfac*wnuhere/4&
+!               *(b0_norm/1e4)**2/(4*3.14159*1e-7)/(n0_norm*1e6)*2
             !dofspen = dofspen + pperp*phfac*deltaBhere
             !dofspan = intx2(mu79(:,:,OP_1),ppar79(:,OP_1))
             !dofspen = intx2(mu79(:,:,OP_1),pper79(:,OP_1))
@@ -3505,42 +3588,31 @@ subroutine particle_pressure_rhs
          else
             coeffsdef0_local(:,itri) = coeffsdef0_local(:,itri) + geomterms%g*nrmfac(pdata(ipart)%sps)/4&
                *(b0_norm/1e4)**2/(4*3.14159*1e-7)/(n0_norm*1e6)
-#ifndef USECOMPLEX
-            if (ifullf.eq.0) then
-               coeffspaf_local(:, itri) = coeffspaf_local(:, itri) + ppar*wnuhere/4
-               coeffspef_local(:, itri) = coeffspef_local(:, itri) + pperp*wnuhere2/4
-               coeffsdef_local(:, itri) = coeffsdef_local(:, itri) + wnuhere/4&
-                  *(b0_norm/1e4)**2/(4*3.14159*1e-7)/(n0_norm*1e6)
-            else
-               coeffspaf_local(:,itri) = coeffspaf_local(:,itri) + ppar*geomterms%g*nrmfac(pdata(ipart)%sps)/4
-               coeffspef_local(:,itri) = coeffspef_local(:,itri) + pperp*geomterms%g*nrmfac(pdata(ipart)%sps)/4
-               coeffsdef_local(:,itri) = coeffsdef_local(:,itri) + geomterms%g*nrmfac(pdata(ipart)%sps)/4&
-                  *(b0_norm/1e4)**2/(4*3.14159*1e-7)/(n0_norm*1e6)
+            if (ntime.eq.0) then
+               coeffspaf0_local(:,itri) = coeffspaf0_local(:,itri) &
+                    + ppar*geomterms%g*nrmfac(pdata(ipart)%sps)/4
+               coeffspef0_local(:,itri) = coeffspef0_local(:,itri) &
+                    + pperp*geomterms%g*nrmfac(pdata(ipart)%sps)/4
             endif
-            coeffsvpf_local(:, itri) = coeffsvpf_local(:, itri) + vpar/(v0_norm/100.)*wnuhere/4&
-               *(b0_norm/1e4)**2/(4*3.14159*1e-7)/(n0_norm*1e6)
+#ifndef USECOMPLEX
+            coeffspaf_local(:, itri) = coeffspaf_local(:, itri) + ppar*wnuhere/4
+            coeffspef_local(:, itri) = coeffspef_local(:, itri) + pperp*wnuhere2/4
+!            coeffsvpf_local(:, itri) = coeffsvpf_local(:, itri) + vpar/(v0_norm/100.)*wnuhere/4&
+!               *(b0_norm/1e4)**2/(4*3.14159*1e-7)/(n0_norm*1e6)
+            ! q*n*vpar/J0, using p0/J0 = B0*L0.
+            coeffsjfpar_local(:,itri) = coeffsjfpar_local(:,itri) &
+                 + q_ion(pdata(ipart)%sps)*vpar*wnuhere/4 &
+                 *(b0_norm/1.e4)*(l0_norm/100.)
             !dofspa = intx2(mu79(:,:,OP_1),ppar79(:,OP_1))
             !dofspe = intx2(mu79(:,:,OP_1),pper79(:,OP_1))
 #else
-            !Extract appropriate Fourier component of particle contribution
-            if (igyroaverage.eq.1) then
-               phfac = exp(-rfac*pdata(ipart)%kx(2, ipoint))
-            else
-               phfac = exp(-rfac*xtemp(2))
-            end if
-            if (ifullf.eq.0) then
-               coeffspaf_local(:, itri) = coeffspaf_local(:, itri) + ppar*phfac*wnuhere/4*2
-               coeffspef_local(:, itri) = coeffspef_local(:, itri) + pperp*phfac*wnuhere2/4*2
-               coeffsdef_local(:, itri) = coeffsdef_local(:, itri) + phfac*wnuhere/4&
-                  *(b0_norm/1e4)**2/(4*3.14159*1e-7)/(n0_norm*1e6)*2
-            else
-               coeffspaf_local(:,itri) = coeffspaf_local(:,itri) + ppar*geomterms%g*nrmfac(pdata(ipart)%sps)/4
-               coeffspef_local(:,itri) = coeffspef_local(:,itri) + pperp*geomterms%g*nrmfac(pdata(ipart)%sps)/4
-               coeffsdef_local(:,itri) = coeffsdef_local(:,itri) + geomterms%g*nrmfac(pdata(ipart)%sps)/4&
-                  *(b0_norm/1e4)**2/(4*3.14159*1e-7)/(n0_norm*1e6)*2
-            endif
-            coeffsvpf_local(:,itri) = coeffsvpf_local(:,itri) + vpar/(v0_norm/100.)*phfac*wnuhere/4&
-               *(b0_norm/1e4)**2/(4*3.14159*1e-7)/(n0_norm*1e6)*2
+            coeffspaf_local(:, itri) = coeffspaf_local(:, itri) + ppar*phfac*wnuhere/4*2
+            coeffspef_local(:, itri) = coeffspef_local(:, itri) + pperp*phfac*wnuhere2/4*2
+!            coeffsvpf_local(:,itri) = coeffsvpf_local(:,itri) + vpar/(v0_norm/100.)*phfac*wnuhere/4&
+!               *(b0_norm/1e4)**2/(4*3.14159*1e-7)/(n0_norm*1e6)*2
+            coeffsjfpar_local(:,itri) = coeffsjfpar_local(:,itri) &
+                 + q_ion(pdata(ipart)%sps)*vpar*phfac*wnuhere/4 &
+                 *(b0_norm/1.e4)*(l0_norm/100.)*2
             !dofspen = dofspen + pperp*phfac*deltaBhere
             !dofspan = intx2(mu79(:,:,OP_1),ppar79(:,OP_1))
             !dofspen = intx2(mu79(:,:,OP_1),pper79(:,OP_1))
@@ -3550,13 +3622,76 @@ subroutine particle_pressure_rhs
       !pdata(ipart)%wt=0.
    end do
 
+   if (.not.full_update) then
+      coeffsdef = 0.
+      coeffsdei = 0.
+#ifdef USECOMPLEX
+      call mpi_allreduce(coeffsdef_local, coeffsdef, coeffs_per_element*nelms_global, MPI_DOUBLE_COMPLEX,&
+         MPI_SUM, MPI_COMM_WORLD, ierr)
+      call mpi_allreduce(coeffsdei_local, coeffsdei, coeffs_per_element*nelms_global, MPI_DOUBLE_COMPLEX,&
+         MPI_SUM, MPI_COMM_WORLD, ierr)
+#else
+      call mpi_allreduce(coeffsdef_local, coeffsdef, coeffs_per_element*nelms_global, MPI_DOUBLE_PRECISION,&
+         MPI_SUM, MPI_COMM_WORLD, ierr)
+      call mpi_allreduce(coeffsdei_local, coeffsdei, coeffs_per_element*nelms_global, MPI_DOUBLE_PRECISION,&
+         MPI_SUM, MPI_COMM_WORLD, ierr)
+#endif
+
+      deni_field(1)%vec = 0.
+      denf_field(1)%vec = 0.
+      do ielm = 1, nelms
+         if (iprecompute_metric .eq. 1) then
+            cl = ctri(:, :, ielm)
+         else
+            call local_coeff_vector(ielm, cl)
+         end if
+#ifdef USE3D
+         call m3dc1_ent_getglobalid(3, ielm - 1, ielm_global)
+#else
+         call m3dc1_ent_getglobalid(2, ielm - 1, ielm_global)
+#endif
+         ielm_global = ielm_global + 1
+         call vector_insert_block(denf_field(1)%vec, ielm, 1, &
+            matmul(cl, coeffsdef(:, ielm_global)), VEC_ADD)
+         call vector_insert_block(deni_field(1)%vec, ielm, 1, &
+            matmul(cl, coeffsdei(:, ielm_global)), VEC_ADD)
+      end do
+      return
+   endif
+
    coeffspaf = 0.; coeffspef = 0.
    coeffspai = 0.; coeffspei = 0.
    coeffsdef0 = 0.; coeffsdef0 = 0.
    coeffsdei0 = 0.; coeffsdei0 = 0.
    coeffsdef = 0.; coeffsdef = 0.
    coeffsdei = 0.; coeffsdei = 0.
-   coeffsvpi = 0.
+!   coeffsvpi = 0.
+   coeffsjfpar = 0.
+   if (ntime.eq.0) then
+      coeffspaf0 = 0.
+      coeffspef0 = 0.
+      coeffspai0 = 0.
+      coeffspei0 = 0.
+#ifdef USECOMPLEX
+      call mpi_allreduce(coeffspaf0_local, coeffspaf0, coeffs_per_element*nelms_global, MPI_DOUBLE_COMPLEX,&
+         MPI_SUM, MPI_COMM_WORLD, ierr)
+      call mpi_allreduce(coeffspef0_local, coeffspef0, coeffs_per_element*nelms_global, MPI_DOUBLE_COMPLEX,&
+         MPI_SUM, MPI_COMM_WORLD, ierr)
+      call mpi_allreduce(coeffspai0_local, coeffspai0, coeffs_per_element*nelms_global, MPI_DOUBLE_COMPLEX,&
+         MPI_SUM, MPI_COMM_WORLD, ierr)
+      call mpi_allreduce(coeffspei0_local, coeffspei0, coeffs_per_element*nelms_global, MPI_DOUBLE_COMPLEX,&
+         MPI_SUM, MPI_COMM_WORLD, ierr)
+#else
+      call mpi_allreduce(coeffspaf0_local, coeffspaf0, coeffs_per_element*nelms_global, MPI_DOUBLE_PRECISION,&
+         MPI_SUM, MPI_COMM_WORLD, ierr)
+      call mpi_allreduce(coeffspef0_local, coeffspef0, coeffs_per_element*nelms_global, MPI_DOUBLE_PRECISION,&
+         MPI_SUM, MPI_COMM_WORLD, ierr)
+      call mpi_allreduce(coeffspai0_local, coeffspai0, coeffs_per_element*nelms_global, MPI_DOUBLE_PRECISION,&
+         MPI_SUM, MPI_COMM_WORLD, ierr)
+      call mpi_allreduce(coeffspei0_local, coeffspei0, coeffs_per_element*nelms_global, MPI_DOUBLE_PRECISION,&
+         MPI_SUM, MPI_COMM_WORLD, ierr)
+#endif
+   endif
 #ifdef USECOMPLEX
    call mpi_allreduce(coeffspaf_local, coeffspaf, coeffs_per_element*nelms_global, MPI_DOUBLE_COMPLEX,&
       MPI_SUM, MPI_COMM_WORLD, ierr)
@@ -3566,6 +3701,8 @@ subroutine particle_pressure_rhs
       MPI_SUM, MPI_COMM_WORLD, ierr)
    call mpi_allreduce(coeffsdef0_local, coeffsdef0, coeffs_per_element*nelms_global, MPI_DOUBLE_COMPLEX,&
       MPI_SUM, MPI_COMM_WORLD, ierr)
+   call mpi_allreduce(coeffsjfpar_local, coeffsjfpar, coeffs_per_element*nelms_global, MPI_DOUBLE_COMPLEX,&
+      MPI_SUM, MPI_COMM_WORLD, ierr)
 #else
    call mpi_allreduce(coeffspaf_local, coeffspaf, coeffs_per_element*nelms_global, MPI_DOUBLE_PRECISION,&
       MPI_SUM, MPI_COMM_WORLD, ierr)
@@ -3574,6 +3711,8 @@ subroutine particle_pressure_rhs
    call mpi_allreduce(coeffsdef_local, coeffsdef, coeffs_per_element*nelms_global, MPI_DOUBLE_PRECISION,&
       MPI_SUM, MPI_COMM_WORLD, ierr)
    call mpi_allreduce(coeffsdef0_local, coeffsdef0, coeffs_per_element*nelms_global, MPI_DOUBLE_PRECISION,&
+      MPI_SUM, MPI_COMM_WORLD, ierr)
+   call mpi_allreduce(coeffsjfpar_local, coeffsjfpar, coeffs_per_element*nelms_global, MPI_DOUBLE_PRECISION,&
       MPI_SUM, MPI_COMM_WORLD, ierr)
 #endif
 #ifdef USECOMPLEX
@@ -3585,8 +3724,8 @@ subroutine particle_pressure_rhs
       MPI_SUM, MPI_COMM_WORLD, ierr)
    call mpi_allreduce(coeffsdei0_local, coeffsdei0, coeffs_per_element*nelms_global, MPI_DOUBLE_COMPLEX,&
       MPI_SUM, MPI_COMM_WORLD, ierr)
-   call mpi_allreduce(coeffsvpi_local, coeffsvpi, coeffs_per_element*nelms_global, MPI_DOUBLE_COMPLEX,&
-      MPI_SUM, MPI_COMM_WORLD, ierr)
+!   call mpi_allreduce(coeffsvpi_local, coeffsvpi, coeffs_per_element*nelms_global, MPI_DOUBLE_COMPLEX,&
+!      MPI_SUM, MPI_COMM_WORLD, ierr)
 #else
    call mpi_allreduce(coeffspai_local, coeffspai, coeffs_per_element*nelms_global, MPI_DOUBLE_PRECISION,&
       MPI_SUM, MPI_COMM_WORLD, ierr)
@@ -3596,17 +3735,24 @@ subroutine particle_pressure_rhs
       MPI_SUM, MPI_COMM_WORLD, ierr)
    call mpi_allreduce(coeffsdei0_local, coeffsdei0, coeffs_per_element*nelms_global, MPI_DOUBLE_PRECISION,&
       MPI_SUM, MPI_COMM_WORLD, ierr)
-   call mpi_allreduce(coeffsvpi_local, coeffsvpi, coeffs_per_element*nelms_global, MPI_DOUBLE_PRECISION,&
-      MPI_SUM, MPI_COMM_WORLD, ierr)
+!   call mpi_allreduce(coeffsvpi_local, coeffsvpi, coeffs_per_element*nelms_global, MPI_DOUBLE_PRECISION,&
+!      MPI_SUM, MPI_COMM_WORLD, ierr)
 #endif
 
-   p_f_par%vec = 0.; p_f_perp%vec = 0.
-   p_i_par%vec = 0.; p_i_perp%vec = 0.
-   den_i_1%vec = 0.
-   den_f_1%vec = 0.
-   den_i_0%vec = 0.
-   den_f_0%vec = 0.
-   v_i_par%vec = 0.
+   p_f_par(1)%vec = 0.; p_f_perp(1)%vec = 0.
+   p_i_par(1)%vec = 0.; p_i_perp(1)%vec = 0.
+   deni_field(1)%vec = 0.
+   denf_field(1)%vec = 0.
+   deni_field(0)%vec = 0.
+   denf_field(0)%vec = 0.
+   j_f_par%vec = 0.
+   if (ntime.eq.0) then
+      p_f_par(0)%vec = 0.
+      p_f_perp(0)%vec = 0.
+      p_i_par(0)%vec = 0.
+      p_i_perp(0)%vec = 0.
+   endif
+!   v_i_par%vec = 0.
    do ielm = 1, nelms
       if (iprecompute_metric .eq. 1) then
          cl = ctri(:, :, ielm)
@@ -3619,54 +3765,91 @@ subroutine particle_pressure_rhs
       call m3dc1_ent_getglobalid(2, ielm - 1, ielm_global)
 #endif
       ielm_global = ielm_global + 1
-      call vector_insert_block(p_f_par%vec, ielm, 1, matmul(cl, coeffspaf(:, ielm_global)), VEC_ADD)
-      call vector_insert_block(p_f_perp%vec, ielm, 1, matmul(cl, coeffspef(:, ielm_global)), VEC_ADD)
-      call vector_insert_block(den_f_1%vec, ielm, 1, matmul(cl, coeffsdef(:, ielm_global)), VEC_ADD)
-      call vector_insert_block(den_f_0%vec, ielm, 1, matmul(cl, coeffsdef0(:, ielm_global)), VEC_ADD)
-      call vector_insert_block(den_i_1%vec, ielm, 1, matmul(cl, coeffsdei(:, ielm_global)), VEC_ADD)
-      call vector_insert_block(p_i_par%vec, ielm, 1, matmul(cl, coeffspai(:, ielm_global)), VEC_ADD)
-      call vector_insert_block(p_i_perp%vec, ielm, 1, matmul(cl, coeffspei(:, ielm_global)), VEC_ADD)
-      call vector_insert_block(den_i_0%vec, ielm, 1, matmul(cl, coeffsdei0(:, ielm_global)), VEC_ADD)
-      call vector_insert_block(v_i_par%vec, ielm, 1, matmul(cl, coeffsvpi(:,ielm_global)), VEC_ADD)
+      call vector_insert_block(p_f_par(1)%vec, ielm, 1, matmul(cl, coeffspaf(:, ielm_global)), VEC_ADD)
+      call vector_insert_block(p_f_perp(1)%vec, ielm, 1, matmul(cl, coeffspef(:, ielm_global)), VEC_ADD)
+      call vector_insert_block(denf_field(1)%vec, ielm, 1, matmul(cl, coeffsdef(:, ielm_global)), VEC_ADD)
+      call vector_insert_block(denf_field(0)%vec, ielm, 1, matmul(cl, coeffsdef0(:, ielm_global)), VEC_ADD)
+      call vector_insert_block(j_f_par%vec, ielm, 1, matmul(cl, coeffsjfpar(:,ielm_global)), VEC_ADD)
+      if (ntime.eq.0) then
+         dofspa0 = matmul(cl, coeffspaf0(:,ielm_global))
+         dofspe0 = matmul(cl, coeffspef0(:,ielm_global))
+         call vector_insert_block(p_f_par(0)%vec, ielm, 1, dofspa0, VEC_ADD)
+         call vector_insert_block(p_f_perp(0)%vec, ielm, 1, dofspe0, VEC_ADD)
+      endif
+      call vector_insert_block(deni_field(1)%vec, ielm, 1, matmul(cl, coeffsdei(:, ielm_global)), VEC_ADD)
+      call vector_insert_block(p_i_par(1)%vec, ielm, 1, matmul(cl, coeffspai(:, ielm_global)), VEC_ADD)
+      call vector_insert_block(p_i_perp(1)%vec, ielm, 1, matmul(cl, coeffspei(:, ielm_global)), VEC_ADD)
+      if (ntime.eq.0) then
+         dofspai0 = matmul(cl, coeffspai0(:,ielm_global))
+         dofspei0 = matmul(cl, coeffspei0(:,ielm_global))
+         call vector_insert_block(p_i_par(0)%vec, ielm, 1, dofspai0, VEC_ADD)
+         call vector_insert_block(p_i_perp(0)%vec, ielm, 1, dofspei0, VEC_ADD)
+      endif
+      call vector_insert_block(deni_field(0)%vec, ielm, 1, matmul(cl, coeffsdei0(:, ielm_global)), VEC_ADD)
+!      call vector_insert_block(v_i_par%vec, ielm, 1, matmul(cl, coeffsvpi(:,ielm_global)), VEC_ADD)
    end do
 
 end subroutine particle_pressure_rhs
 !---------------------------------------------------------------------------
-subroutine solve_pi_tensor
+subroutine solve_pi_tensor(full_update)
    use basic
    use newvar_mod
    use arrays
    use matrix_mod
    implicit none
+   logical, intent(in) :: full_update
    integer :: ierr
 
-   !call newvar_solve(p_f_par%vec,  diff_mat)
-   !call newvar_solve(p_f_perp%vec,  diff_mat)
-   !call newvar_solve(p_i_par%vec,  diff_mat)
-   !call newvar_solve(p_i_perp%vec,  diff_mat)
-   !call newvar_solve(den_f_1%vec,  diff_mat)
-   !call newvar_solve(den_f_0%vec,  diff_mat)
-   call sum_shared(p_f_par%vec)
-   call newsolve(diff2_mat, p_f_par%vec, ierr)
-   call sum_shared(p_f_perp%vec)
-   call newsolve(diff2_mat, p_f_perp%vec, ierr)
-   call sum_shared(den_f_1%vec)
-   call newsolve(diff2_mat, den_f_1%vec, ierr)
-   call sum_shared(den_f_0%vec)
-   call newsolve(diff2_mat, den_f_0%vec, ierr)
+   if (.not.full_update) then
+      call sum_shared(denf_field(1)%vec)
+      call newsolve(diff2_mat, denf_field(1)%vec, ierr)
+      call sum_shared(deni_field(1)%vec)
+      call newsolve(diff2_mat, deni_field(1)%vec, ierr)
+      return
+   endif
 
-   call sum_shared(den_i_1%vec)
-   call newsolve(diff2_mat, den_i_1%vec, ierr)
-   call sum_shared(p_i_par%vec)
-   call newsolve(diff2_mat, p_i_par%vec, ierr)
-   call sum_shared(p_i_perp%vec)
-   call newsolve(diff2_mat, p_i_perp%vec, ierr)
+   !call newvar_solve(p_f_par(1)%vec,  diff_mat)
+   !call newvar_solve(p_f_perp(1)%vec,  diff_mat)
+   !call newvar_solve(p_i_par(1)%vec,  diff_mat)
+   !call newvar_solve(p_i_perp(1)%vec,  diff_mat)
+   !call newvar_solve(denf_field(1)%vec,  diff_mat)
+   !call newvar_solve(denf_field(0)%vec,  diff_mat)
+   call sum_shared(p_f_par(1)%vec)
+   call newsolve(diff2_mat, p_f_par(1)%vec, ierr)
+   call sum_shared(p_f_perp(1)%vec)
+   call newsolve(diff2_mat, p_f_perp(1)%vec, ierr)
+   call sum_shared(denf_field(1)%vec)
+   call newsolve(diff2_mat, denf_field(1)%vec, ierr)
+   call sum_shared(denf_field(0)%vec)
+   call newsolve(diff2_mat, denf_field(0)%vec, ierr)
+   call sum_shared(j_f_par%vec)
+   call newsolve(diff2_mat, j_f_par%vec, ierr)
+   if (kinetic_current.eq.1) nre_field(1) = j_f_par
+   if (ntime.eq.0) then
+      call sum_shared(p_f_par(0)%vec)
+      call newsolve(diff20_mat, p_f_par(0)%vec, ierr)
+      call sum_shared(p_f_perp(0)%vec)
+      call newsolve(diff20_mat, p_f_perp(0)%vec, ierr)
+   endif
+
+   call sum_shared(deni_field(1)%vec)
+   call newsolve(diff2_mat, deni_field(1)%vec, ierr)
+   call sum_shared(p_i_par(1)%vec)
+   call newsolve(diff2_mat, p_i_par(1)%vec, ierr)
+   call sum_shared(p_i_perp(1)%vec)
+   call newsolve(diff2_mat, p_i_perp(1)%vec, ierr)
+   if (ntime.eq.0) then
+      call sum_shared(p_i_par(0)%vec)
+      call newsolve(diff20_mat, p_i_par(0)%vec, ierr)
+      call sum_shared(p_i_perp(0)%vec)
+      call newsolve(diff20_mat, p_i_perp(0)%vec, ierr)
+   endif
    !call sum_shared(v_i_par%vec)
    !call newsolve(diff3_mat, v_i_par%vec, ierr)
-   call sum_shared(den_i_0%vec)
-   call newsolve(diff2_mat, den_i_0%vec, ierr)
-   call sum_shared(v_i_par%vec)
-   call newsolve(diff2_mat, v_i_par%vec, ierr)
+   call sum_shared(deni_field(0)%vec)
+   call newsolve(diff2_mat, deni_field(0)%vec, ierr)
+!   call sum_shared(v_i_par%vec)
+!   call newsolve(diff2_mat, v_i_par%vec, ierr)
 end subroutine solve_pi_tensor
 !---------------------------------------------------------------------------
 ! Dump particle data for current timeslice using parallel HDF5.
@@ -4152,7 +4335,6 @@ subroutine set_s1_0_mat
    integer :: ieq(3)
    integer :: u_j, vz_j, chi_j
    integer, dimension(dofs_per_element) :: imask
-   type(vector_type), pointer :: vsource
    type(field_type) ::   p_v
    vectype, dimension(dofs_per_element) :: dofs
    integer :: ierr
@@ -4305,16 +4487,16 @@ subroutine set_parallel_velocity
       !!   !temp79a(:)=-temp79b(:)
       !   temp79c(:)=0.1
       !end where
-      if (ikinetic_vpar.eq.1) then
-         temp79a= (vpar_reduce)*temp79c*(1*vipar79(:,OP_1)+1*(1*vfpar79(:,OP_1)-vfpar079(:,OP_1)*nf79(:,OP_1)))&
-            /(nfi079(:,OP_1))/sqrt(ri2_79* &
-      ! temp79a= 0.99*vipar79(:,OP_1)/nfi079(:,OP_1)/sqrt(ri2_79* &
-      ! temp79a= vipar79(:,OP_1)*ni79(:,OP_1)/sqrt(ri2_79* &
-      ((pst79(:,OP_DR)-r_79*bfpt79(:,OP_DZ))**2 + (pst79(:,OP_DZ)+r_79*bfpt79(:,OP_DR))**2 + bzt79(:,OP_1)*bzt79(:,OP_1))) &
-         -vpar_reduce*temp79c*temp79b
-       else
+!      if (ikinetic_vpar.eq.1) then
+!         temp79a= (vpar_reduce)*temp79c*(1*vipar79(:,OP_1)+1*(1*vfpar79(:,OP_1)-vfpar079(:,OP_1)*denf79(:,OP_1)))&
+!            /(deni079(:,OP_1))/sqrt(ri2_79* &
+!      ! temp79a= 0.99*vipar79(:,OP_1)/deni079(:,OP_1)/sqrt(ri2_79* &
+!      ! temp79a= vipar79(:,OP_1)*ni79(:,OP_1)/sqrt(ri2_79* &
+!      ((pst79(:,OP_DR)-r_79*bfpt79(:,OP_DZ))**2 + (pst79(:,OP_DZ)+r_79*bfpt79(:,OP_DR))**2 + bzt79(:,OP_1)*bzt79(:,OP_1))) &
+!         -vpar_reduce*temp79c*temp79b
+!       else
        temp79a=-vpar_reduce*temp79b
-        endif
+!        endif
        !where (real(rhof79(:,OP_1))<0.1)
        !   !temp79a(:)=-temp79b(:)
        !   temp79a(:)=0
@@ -4391,8 +4573,8 @@ subroutine set_parallel_velocity
      !call define_element_quadrature(itri, int_pts_main, int_pts_tor)
      !call define_fields(itri, FIELD_PSI + FIELD_I + FIELD_PHI + FIELD_V + FIELD_CHI+FIELD_N+FIELD_NI+FIELD_KIN, 1, 0)
      !!temp79a=(pipar79(:,OP_1)*0+piper79(:,OP_1)*3)/3.
-     !!temp79a=nfi79(:,OP_1)*te079(:,OP_1)*2
-     !!temp79a=nfi79(:,OP_1)*te079(:,OP_1)+p179(:,OP_1)-n179(:,OP_1)*te0
+     !!temp79a=deni79(:,OP_1)*te079(:,OP_1)*2
+     !!temp79a=deni79(:,OP_1)*te079(:,OP_1)+p179(:,OP_1)-n179(:,OP_1)*te0
      !temp79a= ((ri_79*ps079(:,OP_DR)-bfp079(:,OP_DZ))*(r_79*ph179(:,OP_DR)+ri2_79*ch179(:,OP_DZ)) &
      !        +(-ri_79*ps079(:,OP_DZ)-bfp079(:,OP_DR))*(-r_79*ph179(:,OP_DZ)+ri2_79*ch179(:,OP_DR)) &
      !         + bz079(:,OP_1)*vz179(:,OP_1)) &
@@ -4442,7 +4624,6 @@ subroutine set_diamagnetic_velocity
    integer :: k, itri, izone
    integer :: ieq(3)
    integer, dimension(dofs_per_element) :: imask
-   type(vector_type), pointer :: vsource
    type(field_type) ::   p_v
    vectype, dimension(dofs_per_element) :: dofs
    integer :: ierr
@@ -4471,12 +4652,7 @@ subroutine set_diamagnetic_velocity
    ieq(2) = 2
    ieq(3) = 3
 
-   if (isplitstep .ge. 1) then
-      vsource => r4_vec
-   else
-      vsource => q4_vec
-   end if
-   vsource = 0.
+   b1_vel = 0.
    do itri = 1, local_elements()
 
       call get_zone(itri, izone)
@@ -4497,12 +4673,12 @@ subroutine set_diamagnetic_velocity
          if (izone .eq. ZONE_PLASMA) then
               select case(k)
               case(1)
-                 r4 = -intx5(mu79(:,:,OP_DR),pfi079(:,OP_DR),bzt79(:,OP_1),b2i79(:,OP_1),ni79(:,OP_1))*db
-                 r4 = r4 - intx5(mu79(:,:,OP_DZ),pfi079(:,OP_DZ),bzt79(:,OP_1),b2i79(:,OP_1),ni79(:,OP_1))*db
+                 r4 = -intx5(mu79(:,:,OP_DR),piper079(:,OP_DR),bzt79(:,OP_1),b2i79(:,OP_1),ni79(:,OP_1))*db
+                 r4 = r4 - intx5(mu79(:,:,OP_DZ),piper079(:,OP_DZ),bzt79(:,OP_1),b2i79(:,OP_1),ni79(:,OP_1))*db
 #if defined(USE3D) || defined(USECOMPLEX)
                  !r4 = 0.
-                 !r4 = r4 + intx6(mu79(:,:,OP_DR),pfi079(:,OP_DP),(ri_79*pst79(:,OP_DZ)+bfpt79(:,OP_DR)),b2i79(:,OP_1),ni79(:,OP_1),r2_79)*db
-                 !r4 = r4 - intx6(mu79(:,:,OP_DZ),pfi079(:,OP_DP),(ri_79*pst79(:,OP_DR)-bfpt79(:,OP_DZ)),b2i79(:,OP_1),ni79(:,OP_1),r2_79)*db
+                 !r4 = r4 + intx6(mu79(:,:,OP_DR),piper079(:,OP_DP),(ri_79*pst79(:,OP_DZ)+bfpt79(:,OP_DR)),b2i79(:,OP_1),ni79(:,OP_1),r2_79)*db
+                 !r4 = r4 - intx6(mu79(:,:,OP_DZ),piper079(:,OP_DP),(ri_79*pst79(:,OP_DR)-bfpt79(:,OP_DZ)),b2i79(:,OP_1),ni79(:,OP_1),r2_79)*db
                  !r4 = r4 + intx4(mu79(:,:,OP_DR),pst79(:,OP_DR)-r_79*bfpt79(:,OP_DZ),temp79a,temp79c)
                  !r4 = r4 + intx4(mu79(:,:,OP_DZ),pst79(:,OP_DZ)+r_79*bfpt79(:,OP_DR),temp79a,temp79c)
 #else
@@ -4511,15 +4687,15 @@ subroutine set_diamagnetic_velocity
 #endif
               case(2)
                  !r4 = 0.
-                 r4 = intx6(mu79(:,:,OP_1),pfi079(:,OP_DR),(ri_79*pst79(:,OP_DR)-bfpt79(:,OP_DZ)),b2i79(:,OP_1),ni79(:,OP_1),r_79)*db
-                 r4 = r4+intx6(mu79(:,:,OP_1),pfi079(:,OP_DZ),(ri_79*pst79(:,OP_DZ)+bfpt79(:,OP_DR)),b2i79(:,OP_1),ni79(:,OP_1),r_79)*db
+                 r4 = intx6(mu79(:,:,OP_1),piper079(:,OP_DR),(ri_79*pst79(:,OP_DR)-bfpt79(:,OP_DZ)),b2i79(:,OP_1),ni79(:,OP_1),r_79)*db
+                 r4 = r4+intx6(mu79(:,:,OP_1),piper079(:,OP_DZ),(ri_79*pst79(:,OP_DZ)+bfpt79(:,OP_DR)),b2i79(:,OP_1),ni79(:,OP_1),r_79)*db
               case(3)
-                 r4 = -intx6(mu79(:,:,OP_DR),pfi079(:,OP_DZ),bzt79(:,OP_1),b2i79(:,OP_1),ni79(:,OP_1),ri3_79)*db
-                 r4 = r4 + intx6(mu79(:,:,OP_DZ),pfi079(:,OP_DR),bzt79(:,OP_1),b2i79(:,OP_1),ni79(:,OP_1),ri3_79)*db
+                 r4 = -intx6(mu79(:,:,OP_DR),piper079(:,OP_DZ),bzt79(:,OP_1),b2i79(:,OP_1),ni79(:,OP_1),ri3_79)*db
+                 r4 = r4 + intx6(mu79(:,:,OP_DZ),piper079(:,OP_DR),bzt79(:,OP_1),b2i79(:,OP_1),ni79(:,OP_1),ri3_79)*db
 #if defined(USE3D) || defined(USECOMPLEX)
                  !r4=0.
-                 !r4 = -intx6(mu79(:,:,OP_DR),pfi079(:,OP_DP),(ri_79*pst79(:,OP_DR)-bfpt79(:,OP_DZ)),b2i79(:,OP_1),ni79(:,OP_1),ri3_79)*db
-                 !r4 = r4 + intx6(mu79(:,:,OP_DZ),pfi079(:,OP_DP),(ri_79*pst79(:,OP_DZ)+bfpt79(:,OP_DR)),b2i79(:,OP_1),ni79(:,OP_1),ri3_79)*db
+                 !r4 = -intx6(mu79(:,:,OP_DR),piper079(:,OP_DP),(ri_79*pst79(:,OP_DR)-bfpt79(:,OP_DZ)),b2i79(:,OP_1),ni79(:,OP_1),ri3_79)*db
+                 !r4 = r4 + intx6(mu79(:,:,OP_DZ),piper079(:,OP_DP),(ri_79*pst79(:,OP_DZ)+bfpt79(:,OP_DR)),b2i79(:,OP_1),ni79(:,OP_1),ri3_79)*db
                  !r4 = r4+intx5(mu79(:,:,OP_DR),pst79(:,OP_DZ)+r_79*bfpt79(:,OP_DR),temp79a,ri3_79,temp79c)
                  !r4 = r4-intx5(mu79(:,:,OP_DZ),pst79(:,OP_DR)-r_79*bfpt79(:,OP_DZ),temp79a,ri3_79,temp79c)
 #else
@@ -4537,12 +4713,11 @@ subroutine set_diamagnetic_velocity
             end select
          end if
          call apply_boundary_mask_vec(itri, 0, r4, imask)
-         call vector_insert_block(vsource,itri,ieq(k),r4,VEC_ADD)
+         call vector_insert_block(b1_vel,itri,ieq(k),r4,VEC_ADD)
       end do
 
    end do
-   call sum_shared(vsource)
-     b1_vel=r4_vec
+   call sum_shared(b1_vel)
      call boundary_vel(b1_vel, u_v, vz_v, chi_v)
      call newsolve(s1_0_mat, b1_vel, ierr)
      vel_vec = b1_vel
@@ -4554,7 +4729,6 @@ subroutine set_diamagnetic_velocity
 
      call destroy_vector(b1_vel)
      call destroy_vector(vel_vec)
-   vsource=0.
 
 end subroutine set_diamagnetic_velocity
 
@@ -4617,7 +4791,6 @@ subroutine filter_field(f)
    integer :: ieq(3)
    integer :: i, ntor_i
    integer, dimension(dofs_per_element) :: imask
-   type(vector_type), pointer :: vsource
    type(field_type) ::   phi_v, bz_v, psi_v
    type(field_type) ::   f_temp
    type(field_type) ::   u_field_temp, vz_field_temp, psi_field_temp, bz_field_temp
@@ -4676,13 +4849,6 @@ subroutine filter_field(f)
       ! ieq(1) = u_i
       ! ieq(2) = vz_i
       ! ieq(3) = chi_i
-
-      ! if (isplitstep .ge. 1) then
-      !    vsource => r4_vec
-      ! else
-      !    vsource => q4_vec
-      ! end if
-      ! vsource = 0.
 
       f_v = 0.
 
@@ -4796,16 +4962,16 @@ subroutine set_density
 
       call define_element_quadrature(itri, int_pts_main, int_pts_tor)
       call define_fields(itri, FIELD_PSI+FIELD_P+FIELD_N+FIELD_NI+FIELD_KIN, 1, 0)
-      ! temp79a = p179(:,OP_1) + 0.1*dt*nfi79(:,OP_1)*te079(:,OP_1)*2 &
+      ! temp79a = p179(:,OP_1) + 0.1*dt*deni79(:,OP_1)*te079(:,OP_1)*2 &
       !   -0.1*dt*n179(:,OP_1)*te079(:,OP_1)*2
-      temp79a = n179(:,OP_1) + 0.9*(nfi79(:,OP_1)+nf79(:,OP_1)) &
+      temp79a = n179(:,OP_1) + 0.9*(deni79(:,OP_1)+denf79(:,OP_1)) &
         -0.9*n179(:,OP_1)
       !where (real(rhof79(:,OP_1))>0.5)
       !    !temp79a(:)=-temp79b(:)
       !    temp79a(:)=n179(:,OP_1)
       ! end where
 
-      !temp79a = n179(:,OP_1) + 0.9*(nfi79(:,OP_1))&
+      !temp79a = n179(:,OP_1) + 0.9*(deni79(:,OP_1))&
       !          -0.5*n179(:,OP_1)
       !temp79a = n179(:,OP_1)
       if (linear.eq.0) then
@@ -4825,7 +4991,42 @@ subroutine set_density
   den_field(1) = p_v
   call destroy_field(p_v)
 
+  if (idiamagnetic_advection.eq.1) then
+     ! Long-wavelength gyrocenter polarization correction.  The poloidal velocity
+     ! stream function gives v_R=-R*u_Z and v_Z=R*u_R.  With
+     ! v=E x B/B^2 and B_phi=I/R, grad(Phi)=-I*grad(u).  Therefore
+     ! den=den+div[db*den*I*grad(u)/B^2].  Integrate the divergence
+     ! by parts to avoid differentiating the particle density.
+     call create_field(p_v)
+     p_v = 0.
+     do itri=1,local_elements()
+        call get_zone(itri, izone)
+        if (izone.ne.ZONE_PLASMA) cycle
+
+        call define_element_quadrature(itri, int_pts_main, int_pts_tor)
+        if (linear.eq.1) then
+           call define_fields(itri, FIELD_PSI+FIELD_I+FIELD_N+FIELD_B2I, 1, 1)
+        else
+           call define_fields(itri, FIELD_PSI+FIELD_I+FIELD_N+FIELD_B2I, 0, eqsubtract)
+        endif
+        call eval_ops(itri, u_field(1), ph179, rfac)
+
+        dofs = -db*( &
+             intx5(mu79(:,:,OP_DR), ph179(:,OP_DR), nt79(:,OP_1), &
+                  bztx79(:,OP_1), b2i79(:,OP_1)) &
+             + intx5(mu79(:,:,OP_DZ), ph179(:,OP_DZ), nt79(:,OP_1), &
+                  bztx79(:,OP_1), b2i79(:,OP_1)))
+        call vector_insert_block(p_v%vec,itri,1,dofs,VEC_ADD)
+     enddo
+     call sum_shared(p_v%vec)
+     call newsolve(diff2_mat, p_v%vec, ierr)
+     call add(den_field(1), p_v)
+     !den_field(1)=p_v
+     call destroy_field(p_v)
+  endif
+
   call calculate_ne(1, den_field(1), ne_field(1), eqsubtract)
+
   if(itemp.eq.0 .and. (numvar.eq.3 .or. ipres.gt.0)) then
      call calculate_temperatures(1, te_field(1), ti_field(1), &
           pe_field(1), p_field(1), ne_field(1), den_field(1), eqsubtract)
@@ -4857,7 +5058,6 @@ subroutine set_den_smooth
    integer :: k, itri, izone
    integer :: ieq(3)
    integer, dimension(dofs_per_element) :: imask
-   type(vector_type), pointer :: vsource
     type(field_type) ::   p_v
    integer :: ierr
 
@@ -4866,7 +5066,7 @@ subroutine set_den_smooth
   do itri=1,local_elements()
      call define_element_quadrature(itri,int_pts_main,int_pts_tor)
      call define_fields(itri,FIELD_P+FIELD_TE+FIELD_KIN+FIELD_N+FIELD_NI,1,0)
-     temp79a = n179(:,OP_1) + 0.9*(nfi79(:,OP_1)+nf79(:,OP_1)) &
+     temp79a = n179(:,OP_1) + 0.9*(deni79(:,OP_1)+denf79(:,OP_1)) &
         -0.9*n179(:,OP_1)
      !temp79a = n179(:,OP_1)
      !!call define_fields(itri, FIELD_PSI + FIELD_I + FIELD_P +FIELD_N+FIELD_NI+FIELD_KIN, 1, 0)
@@ -4880,8 +5080,8 @@ subroutine set_den_smooth
      !       ((ps079(:,OP_DR)-r_79*bfp079(:,OP_DZ))**2 + (ps079(:,OP_DZ)+r_79*bfp079(:,OP_DR))**2 + bz079(:,OP_1)*bz079(:,OP_1)))
 
      !temp79a=(pipar79(:,OP_1)*0+piper79(:,OP_1)*3)/3.
-     !temp79a=nfi79(:,OP_1)*te079(:,OP_1)*2
-     !temp79a=nfi79(:,OP_1)*te079(:,OP_1)+p179(:,OP_1)-n179(:,OP_1)*te0
+     !temp79a=deni79(:,OP_1)*te079(:,OP_1)*2
+     !temp79a=deni79(:,OP_1)*te079(:,OP_1)+p179(:,OP_1)-n179(:,OP_1)*te0
      !temp79a=n179(:,OP_1)
      dofs = intx2(mu79(:,:,OP_1),temp79a)
      call vector_insert_block(p_v%vec,itri,1,dofs,VEC_ADD)
