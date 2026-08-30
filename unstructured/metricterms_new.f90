@@ -1960,6 +1960,184 @@ function v1p_2(e,f,g)
   v1p_2 = temp
 end function v1p_2
 
+function v1dp0b1geom(e)
+  use basic
+  use arrays
+  use m3dc1_nint
+
+  implicit none
+
+  vectype, dimension(dofs_per_element) :: v1dp0b1geom
+  vectype, intent(in), dimension(dofs_per_element,MAX_PTS,OP_NUM) :: e
+  vectype, dimension(MAX_PTS) :: delta_p0, theta0, theta1
+  vectype, dimension(MAX_PTS) :: kappa_r, kappa_z, geom_r, geom_z
+
+  if (surface_int .or. itor.eq.0) then
+     v1dp0b1geom = 0.
+     return
+  endif
+
+  delta_p0 = pfpar079(:,OP_1)-pfper079(:,OP_1) &
+       + pipar079(:,OP_1)-piper079(:,OP_1)
+
+  kappa_r = bhat179(:,OP_1,1)*bhat079(:,OP_DR,1) &
+       + bhat179(:,OP_1,3)*bhat079(:,OP_DZ,1) &
+       + bhat079(:,OP_1,1)*bhat179(:,OP_DR,1) &
+       + bhat079(:,OP_1,3)*bhat179(:,OP_DZ,1)
+  kappa_z = bhat179(:,OP_1,1)*bhat079(:,OP_DR,3) &
+       + bhat179(:,OP_1,3)*bhat079(:,OP_DZ,3) &
+       + bhat079(:,OP_1,1)*bhat179(:,OP_DR,3) &
+       + bhat079(:,OP_1,3)*bhat179(:,OP_DZ,3)
+#if defined(USE3D) || defined(USECOMPLEX)
+  kappa_r = kappa_r &
+       + ri_79*bhat179(:,OP_1,2)*bhat079(:,OP_DP,1) &
+       + ri_79*bhat079(:,OP_1,2)*bhat179(:,OP_DP,1)
+  kappa_z = kappa_z &
+       + ri_79*bhat179(:,OP_1,2)*bhat079(:,OP_DP,3) &
+       + ri_79*bhat079(:,OP_1,2)*bhat179(:,OP_DP,3)
+#endif
+  kappa_r = kappa_r &
+       - 2.*ri_79*bhat079(:,OP_1,2)*bhat179(:,OP_1,2)
+
+  geom_r = delta_p0*kappa_r
+  geom_z = delta_p0*kappa_z
+  if (particle_couple.eq.0) then
+     theta0 = bhat079(:,OP_DR,1) + bhat079(:,OP_DZ,3)
+     theta1 = bhat179(:,OP_DR,1) + bhat179(:,OP_DZ,3)
+#if defined(USE3D) || defined(USECOMPLEX)
+     theta0 = theta0 + ri_79*bhat079(:,OP_DP,2)
+     theta1 = theta1 + ri_79*bhat179(:,OP_DP,2)
+#endif
+     theta0 = theta0 + ri_79*bhat079(:,OP_1,1)
+     theta1 = theta1 + ri_79*bhat179(:,OP_1,1)
+     geom_r = geom_r + delta_p0*( &
+          bhat179(:,OP_1,1)*theta0+bhat079(:,OP_1,1)*theta1)
+     geom_z = geom_z + delta_p0*( &
+          bhat179(:,OP_1,3)*theta0+bhat079(:,OP_1,3)*theta1)
+  endif
+
+  v1dp0b1geom = -intx3(e(:,:,OP_DZ),r_79,geom_r) &
+       + intx3(e(:,:,OP_DR),r_79,geom_z)
+end function v1dp0b1geom
+
+function v2dp0b1geom(e)
+  use basic
+  use arrays
+  use m3dc1_nint
+
+  implicit none
+
+  vectype, dimension(dofs_per_element) :: v2dp0b1geom
+  vectype, intent(in), dimension(dofs_per_element,MAX_PTS,OP_NUM) :: e
+  vectype, dimension(MAX_PTS) :: delta_p0, theta0, theta1
+  vectype, dimension(MAX_PTS) :: kappa_phi, geom_phi
+
+  if (surface_int) then
+     v2dp0b1geom = 0.
+     return
+  endif
+
+  delta_p0 = pfpar079(:,OP_1)-pfper079(:,OP_1) &
+       + pipar079(:,OP_1)-piper079(:,OP_1)
+
+  kappa_phi = bhat179(:,OP_1,1)*bhat079(:,OP_DR,2) &
+       + bhat179(:,OP_1,3)*bhat079(:,OP_DZ,2) &
+       + bhat079(:,OP_1,1)*bhat179(:,OP_DR,2) &
+       + bhat079(:,OP_1,3)*bhat179(:,OP_DZ,2)
+#if defined(USE3D) || defined(USECOMPLEX)
+  kappa_phi = kappa_phi &
+       + ri_79*bhat179(:,OP_1,2)*bhat079(:,OP_DP,2) &
+       + ri_79*bhat079(:,OP_1,2)*bhat179(:,OP_DP,2)
+#endif
+  if (itor.eq.1) then
+     kappa_phi = kappa_phi + ri_79*( &
+          bhat179(:,OP_1,1)*bhat079(:,OP_1,2) &
+          + bhat079(:,OP_1,1)*bhat179(:,OP_1,2))
+  endif
+
+  geom_phi = delta_p0*kappa_phi
+  if (particle_couple.eq.0) then
+     theta0 = bhat079(:,OP_DR,1) + bhat079(:,OP_DZ,3)
+     theta1 = bhat179(:,OP_DR,1) + bhat179(:,OP_DZ,3)
+#if defined(USE3D) || defined(USECOMPLEX)
+     theta0 = theta0 + ri_79*bhat079(:,OP_DP,2)
+     theta1 = theta1 + ri_79*bhat179(:,OP_DP,2)
+#endif
+     if (itor.eq.1) then
+        theta0 = theta0 + ri_79*bhat079(:,OP_1,1)
+        theta1 = theta1 + ri_79*bhat179(:,OP_1,1)
+     endif
+     geom_phi = geom_phi + delta_p0*( &
+          bhat179(:,OP_1,2)*theta0+bhat079(:,OP_1,2)*theta1)
+  endif
+
+  v2dp0b1geom = intx3(e(:,:,OP_1),r_79,geom_phi)
+end function v2dp0b1geom
+
+function v3dp0b1geom(e)
+  use basic
+  use arrays
+  use m3dc1_nint
+
+  implicit none
+
+  vectype, dimension(dofs_per_element) :: v3dp0b1geom
+  vectype, intent(in), dimension(dofs_per_element,MAX_PTS,OP_NUM) :: e
+  vectype, dimension(MAX_PTS) :: delta_p0, theta0, theta1
+  vectype, dimension(MAX_PTS) :: kappa_r, kappa_z, geom_r, geom_z
+
+  if (surface_int) then
+     v3dp0b1geom = 0.
+     return
+  endif
+
+  delta_p0 = pfpar079(:,OP_1)-pfper079(:,OP_1) &
+       + pipar079(:,OP_1)-piper079(:,OP_1)
+
+  kappa_r = bhat179(:,OP_1,1)*bhat079(:,OP_DR,1) &
+       + bhat179(:,OP_1,3)*bhat079(:,OP_DZ,1) &
+       + bhat079(:,OP_1,1)*bhat179(:,OP_DR,1) &
+       + bhat079(:,OP_1,3)*bhat179(:,OP_DZ,1)
+  kappa_z = bhat179(:,OP_1,1)*bhat079(:,OP_DR,3) &
+       + bhat179(:,OP_1,3)*bhat079(:,OP_DZ,3) &
+       + bhat079(:,OP_1,1)*bhat179(:,OP_DR,3) &
+       + bhat079(:,OP_1,3)*bhat179(:,OP_DZ,3)
+#if defined(USE3D) || defined(USECOMPLEX)
+  kappa_r = kappa_r &
+       + ri_79*bhat179(:,OP_1,2)*bhat079(:,OP_DP,1) &
+       + ri_79*bhat079(:,OP_1,2)*bhat179(:,OP_DP,1)
+  kappa_z = kappa_z &
+       + ri_79*bhat179(:,OP_1,2)*bhat079(:,OP_DP,3) &
+       + ri_79*bhat079(:,OP_1,2)*bhat179(:,OP_DP,3)
+#endif
+  if (itor.eq.1) then
+     kappa_r = kappa_r &
+          - 2.*ri_79*bhat079(:,OP_1,2)*bhat179(:,OP_1,2)
+  endif
+
+  geom_r = delta_p0*kappa_r
+  geom_z = delta_p0*kappa_z
+  if (particle_couple.eq.0) then
+     theta0 = bhat079(:,OP_DR,1) + bhat079(:,OP_DZ,3)
+     theta1 = bhat179(:,OP_DR,1) + bhat179(:,OP_DZ,3)
+#if defined(USE3D) || defined(USECOMPLEX)
+     theta0 = theta0 + ri_79*bhat079(:,OP_DP,2)
+     theta1 = theta1 + ri_79*bhat179(:,OP_DP,2)
+#endif
+     if (itor.eq.1) then
+        theta0 = theta0 + ri_79*bhat079(:,OP_1,1)
+        theta1 = theta1 + ri_79*bhat179(:,OP_1,1)
+     endif
+     geom_r = geom_r + delta_p0*( &
+          bhat179(:,OP_1,1)*theta0+bhat079(:,OP_1,1)*theta1)
+     geom_z = geom_z + delta_p0*( &
+          bhat179(:,OP_1,3)*theta0+bhat079(:,OP_1,3)*theta1)
+  endif
+
+  v3dp0b1geom = -intx3(e(:,:,OP_DR),ri2_79,geom_r) &
+       - intx3(e(:,:,OP_DZ),ri2_79,geom_z)
+end function v3dp0b1geom
+
 function v1pbb(e,f,g)
   use basic
   use arrays

@@ -93,7 +93,6 @@ subroutine load_stellarator_field
   use read_schaffer_field
 
   implicit none
-  integer :: ierr
 
   allocate(sf(iread_ext_field))
 
@@ -859,6 +858,7 @@ end subroutine boundary_rmp
     use m3dc1_nint
     use newvar_mod
     use boundary_conditions
+    use read_ascii
 
     implicit none
 
@@ -871,7 +871,9 @@ end subroutine boundary_rmp
 #endif
     integer :: itri, nelms, ier, ibound, ipsibound, fbound
     integer, intent(in), optional :: ilin
-    integer :: il
+    integer :: il, i, nvals, ifile, io_status
+    character(len=100) :: io_message
+    real, allocatable :: j(:,:)
 
     vectype, dimension(dofs_per_element,dofs_per_element,2,2) :: temp
     vectype, dimension(dofs_per_element,2) :: temp2
@@ -917,17 +919,71 @@ end subroutine boundary_rmp
 
     fbound = BOUNDARY_NEUMANN
 
+    if(myrank.eq.0 .and. iprint.ge.2) print *, 'reading external_j...'
+
+    ! Read external current density from external_j file
+    ! ==================================================
+    nvals = global_elms*int_pts_main*int_pts_tor
+    allocate(j(nvals,3))
+    if(myrank.eq.0) then
+       ier = 0
+       
+       ! Open the text file
+       open(newunit=ifile, file='external_j', status='old', &
+            action='read', iostat=io_status, iomsg=io_message)
+
+       ! Check if the file opened successfully
+       if (io_status /= 0) then
+          print *, "Error opening file: ", trim(io_message)
+          ier = 1
+       else 
+
+          ! 4. Read N lines from the file
+          do i=1, nvals
+             ! Read 3 floats into row 'i' of the matrix
+             read(ifile, *, iostat=io_status, iomsg=io_message) &
+                  j(i,1), j(i,2), j(i,3)
+
+             ! Check for early End-of-File (EOF) or data corruption errors
+             if (io_status /= 0) then
+                print *, "Error reading line ", i, ": ", trim(io_message)
+                ier = 1
+             end if
+          end do
+
+          close(ifile)
+       end if
+
+       if(ier.eq.0) print *, 'successfully read external_j'
+    end if
+    i = ier
+    call mpi_bcast(i, 1, MPI_INTEGER, 0, MPI_COMM_WORLD, ier)
+    if(i.ne.0) call safestop(343)
+
+    call mpi_bcast(j, 3*nvals, MPI_DOUBLE, 0, MPI_COMM_WORLD, ier)
+
+    ! Convert j from MKS to normalized units
+    j = j / (j0_norm / (c_light*1.e-5))
+
+
+    ! Solve for vector potential given external currents
+    ! ==================================================
     if(myrank.eq.0 .and. iprint.ge.2) print *, 'calculating field values...'
     nelms = local_elements()
 
     do itri=1,nelms
 
-     call define_element_quadrature(itri,int_pts_main,5)
+     call define_element_quadrature(itri,int_pts_main,int_pts_tor)
      call define_fields(itri,0,1,0)
 
-     call read_j(npoints, &
-          x_79, phi_79, z_79, &
-          temp79a, temp79b, temp79c)
+     i = (offset_elms+itri-1)*npoints
+     temp79a(1:npoints) = j(i:i+npoints,1)
+     temp79b(1:npoints) = j(i:i+npoints,2)
+     temp79c(1:npoints) = j(i:i+npoints,3)
+     
+!     call read_j(npoints, &
+!          x_79, phi_79, z_79, &
+!          temp79a, temp79b, temp79c)
 
      ! J = grad(F*) x grad(phi) - del*(psi) grad(phi) + grad_perp(psi') / R^2
      ! F* = R^2 del^2(f)
@@ -1031,6 +1087,8 @@ end subroutine boundary_rmp
 #endif
   end do
 
+  if(allocated(j)) deallocate(j)
+  
   if(myrank.eq.0 .and. iprint.ge.2) print *, "Solving for (psi, F*)..."
   call sum_shared(psi_vec)
   call boundary_j(psi_vec,jx_mat)

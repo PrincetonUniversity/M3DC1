@@ -67,7 +67,7 @@ if { ! [ is-loaded netlib-lapack/3.11.0-intel-2023.2.0-pf3ms ] } {
 #}
 
 setenv          M3DC1_VERSION   $version
-setenv          M3DC1_DIR       $root
+setenv          M3DC1_DIR       $root/unstructured
 setenv		M3DC1_ARCH	$arch
 setenv		M3DC1_MPIRUN	"srun --mpi=pmix"
 setenv		M3DC1_PETSC_PT	type

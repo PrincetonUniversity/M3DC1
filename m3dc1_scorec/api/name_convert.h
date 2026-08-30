@@ -8,6 +8,10 @@
 #define m3dc1_plane_setphi m3dc1_plane_setphi_
 #define m3dc1_plane_getphi m3dc1_plane_getphi_
 #define m3dc1_model_load m3dc1_model_load_
+#define m3dc1_modelinfo_load m3dc1_modelinfo_load_
+#define m3dc1_model_getnumedges m3dc1_model_getnumedges_
+#define m3dc1_model_getgeometricloop m3dc1_model_getgeometricloop_
+#define m3dc1_model_getmodeltype m3dc1_model_getmodeltype_
 #define m3dc1_model_print m3dc1_model_print_
 #define m3dc1_model_setnumplane m3dc1_model_setnumplane_
 #define m3dc1_model_getnumplane m3dc1_model_getnumplane_

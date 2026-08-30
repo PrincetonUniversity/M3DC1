@@ -25,7 +25,9 @@ def plot_signals(
     outfile: str | Path | None = None,
     cgs: bool = False,
     mks: bool = False,
-) -> tuple[np.ndarray, np.ndarray]:
+    xscale: float = 1.0,
+    yscale: float = 1.0,
+):
     meta = read_signals(
         signal,
         filename=filename,
@@ -37,39 +39,44 @@ def plot_signals(
         mks=mks,
         return_meta=True,
     )
-    tdata = meta.tdata
-    data = meta.data
+    tdata = np.asarray(meta.tdata) * float(xscale)
+    data = np.asarray(meta.data) * float(yscale)
     xtitle = meta.xtitle
     ylabel = meta.ylabel
 
     if outfile is not None:
         _write_ascii(outfile, tdata, data)
 
-    if not noplot:
-        if not overplot:
-            plt.figure(figsize=(10, 5))
-        for i in range(data.shape[0]):
-            plt.plot(tdata, data[i, :], label=f"{signal} {i}")
-        plt.xlabel(xtitle)
-        plt.ylabel(ylabel)
-        finite = np.asarray(data, dtype=float)
-        finite = finite[np.isfinite(finite)]
-        if finite.size > 0:
-            ymin = float(np.min(finite))
-            ymax = float(np.max(finite))
-            if ymax > ymin:
-                yrange_pad = 0.1 * (ymax - ymin)
-                ymin_pad = ymin - yrange_pad
-                ymax_pad = ymax + yrange_pad
-            else:
-                yrange_pad = max(abs(ymin), 1.0) * 0.1
-                ymin_pad = ymin - yrange_pad
-                ymax_pad = ymax + yrange_pad
-            plt.ylim(bottom=ymin_pad, top=ymax_pad)
-            if (ymin_pad < 0.0) and (ymax_pad > 0.0):
-                plt.axhline(0.0, color="black", linestyle="-", linewidth=0.8)
-        if data.shape[0] <= 12:
-            plt.legend(loc="best", fontsize=8)
-        plt.tight_layout()
+    if noplot:
+        return None, None
 
-    return tdata, data
+    if not overplot:
+        fig, ax = plt.subplots(figsize=(10, 5))
+    else:
+        ax = plt.gca()
+        fig = ax.figure
+    for i in range(data.shape[0]):
+        ax.plot(tdata, data[i, :], label=f"{signal} {i}")
+    ax.set_xlabel(xtitle)
+    ax.set_ylabel(ylabel)
+    finite = np.asarray(data, dtype=float)
+    finite = finite[np.isfinite(finite)]
+    if finite.size > 0:
+        ymin = float(np.min(finite))
+        ymax = float(np.max(finite))
+        if ymax > ymin:
+            yrange_pad = 0.1 * (ymax - ymin)
+            ymin_pad = ymin - yrange_pad
+            ymax_pad = ymax + yrange_pad
+        else:
+            yrange_pad = max(abs(ymin), 1.0) * 0.1
+            ymin_pad = ymin - yrange_pad
+            ymax_pad = ymax + yrange_pad
+        ax.set_ylim(bottom=ymin_pad, top=ymax_pad)
+        if (ymin_pad < 0.0) and (ymax_pad > 0.0):
+            ax.axhline(0.0, color="black", linestyle="-", linewidth=0.8)
+    if data.shape[0] <= 12:
+        ax.legend(loc="best", fontsize=8)
+    fig.tight_layout()
+
+    return fig, ax

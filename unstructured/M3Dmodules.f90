@@ -295,12 +295,14 @@ module basic
   integer :: no_vdg_T    ! 1 = do not include the V dot Grad(T) terms in temperature equation (for debug) 
   integer :: ibootstrap  ! bootstrap current model
   integer :: irunaway    ! runaway electron model
-  integer :: cre         ! runaway speed
+  real    :: cre         ! runaway speed
   integer :: ra_cyc      ! runaway subcycle
   real :: radiff         ! runaway diffusion
   real :: rjra           ! jra/j0
   real :: bzsign
   integer :: ra_characteristics           ! use method of characteristics
+  integer :: irunaway_kinetic             ! couple runaway electron parallel/perp pressure
+  integer :: kinetic_current              ! use fast-particle parallel current in Ohm law
   integer :: iflip       ! 1 = flip handedness
   integer :: iflip_b     ! 1 = flip equilibrium toroidal field
   integer :: iflip_j     ! 1 = flip equilibrium toroidal current density
@@ -591,15 +593,15 @@ module arrays
   type(field_type) :: rst, zst ! Stellarator geometry field
 #endif
 #ifdef USEPARTICLES
-  type(field_type) :: rho_field, nf_field, tf_field, pf_field, vfpar0_field
-  type(field_type) :: nfi_field, tfi_field, pfi_field, densmooth_field, vparsmooth_field
+  type(field_type) :: rho_field, nf_field, tf_field, vfpar0_field
+  type(field_type) :: nfi_field, tfi_field, densmooth_field, vparsmooth_field
   type(field_type) :: epar_field, den2_field
 
-  type(field_type) :: p_f_par, p_f_perp  !Kinetic pressure tensor components
-  type(field_type) :: p_i_par, p_i_perp  !Kinetic pressure tensor components
-  type(field_type) :: den_i_0, den_i_1, den_f_0, den_f_1
+  type(field_type) :: p_f_par(0:1), p_f_perp(0:1)  !Kinetic pressure tensor components
+  type(field_type) :: p_i_par(0:1), p_i_perp(0:1)  !Kinetic pressure tensor components
+  type(field_type) :: deni_field(0:1), denf_field(0:1)
   type(field_type) :: v_i_par
-  type(field_type) :: v_f_par
+  type(field_type) :: v_f_par, j_f_par
   type(field_type) :: ustar_field, vzstar_field, chistar_field
 #endif
 

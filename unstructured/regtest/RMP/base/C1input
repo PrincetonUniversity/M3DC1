@@ -132,6 +132,15 @@
 	icsubtract = 1
 	imulti_region = 1
 
+        boundary_type(1) = 1  ! First wall
+        boundary_type(2) = 1  ! First wall
+        boundary_type(5) = 2  ! Domain boundary
+        boundary_type(6) = 2  ! Domain boundary
+
+	zone_type(1) = 1   ! Plasma
+        zone_type(2) = 2   ! Conductor
+        zone_type(3) = 3   ! Vacuum
+
 
 ! Grad-Shafranov Options
 ! ======================

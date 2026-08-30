@@ -28,23 +28,28 @@ def read_lcfs(
 ):
     """Lightweight Python port of read_lcfs.pro from scalar tracks."""
     tvec = np.asarray(read_scalar("time", filename=filename, cgs=cgs, mks=mks), dtype=float).reshape(-1)
-    n = tvec.size
-    if n == 0:
+    nscalars = tvec.size
+    if nscalars == 0:
         raise ValueError("No scalar time data found.")
+    ntime = int(read_parameter("ntime", filename=filename))
+    if ntime <= 0:
+        ntime = nscalars
 
     if last:
-        idx = n - 1
+        idx = ntime - 1
     elif slice is None:
         idx = 0
     else:
         idx = int(slice)
         if idx < 0:
-            idx = n + idx
-    idx = max(0, min(idx, n - 1))
+            idx = 0
+    idx = max(0, min(idx, ntime - 1))
 
     t0 = np.asarray(get_slice_time(filename=filename, slice=idx, cgs=cgs, mks=mks), dtype=float).reshape(-1)
     if t0.size > 0:
-        it = int(np.argmin(np.abs(tvec - t0[0])))
+        dt = np.abs(tvec - t0[0])
+        dt[~np.isfinite(dt)] = np.inf
+        it = int(np.argmin(dt))
         print("slice time = ", t0)
         print("time step time: ", float(tvec[it]))
         print("time slice: ", it)

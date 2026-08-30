@@ -19,6 +19,8 @@ pro read_quad_points, filename=filename, slice=t, outfile=outfile
   
   print, 'nelms = ', nelms
   print, 'npts = ', npts
+
+  plot, mesh.quad_r._data, mesh.quad_z._data
   
   openw, ifile, outfile, /get_lun
   for i=0, nelms-1 do begin

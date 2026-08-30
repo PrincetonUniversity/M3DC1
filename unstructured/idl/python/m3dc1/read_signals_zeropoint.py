@@ -57,7 +57,7 @@ def read_signals_zeropoint(
                 continue
 
             zeros: list[float] = []
-            for j in range(1, n):
+            for j in range(n - 1, 0, -1):
                 y0 = yy[j]
                 y1 = yy[j - 1]
                 if y0 * y1 < 0.0:
@@ -67,7 +67,7 @@ def read_signals_zeropoint(
                         if len(zeros) >= int(max_points):
                             break
 
-            zp = np.asarray(zeros, dtype=float)
+            zp = np.asarray(zeros[::-1], dtype=float)
             if zp.size < 2:
                 fr = np.array([], dtype=float)
             else:

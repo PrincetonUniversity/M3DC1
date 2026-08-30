@@ -2,8 +2,6 @@ from __future__ import annotations
 
 from pathlib import Path
 
-import numpy as np
-
 from .plot_signals import plot_signals
 
 
@@ -18,7 +16,9 @@ def plot_mag_probes(
     outfile: str | Path | None = None,
     cgs: bool = False,
     mks: bool = False,
-) -> tuple[np.ndarray, np.ndarray]:
+    xscale: float = 1.0,
+    yscale: float = 1.0,
+):
     # IDL structure parity: plot_mag_probes -> plot_signals('mag_probes')
     return plot_signals(
         "mag_probes",
@@ -32,4 +32,6 @@ def plot_mag_probes(
         outfile=outfile,
         cgs=cgs,
         mks=mks,
+        xscale=xscale,
+        yscale=yscale,
     )

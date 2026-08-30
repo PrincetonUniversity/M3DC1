@@ -139,16 +139,18 @@ module m3dc1_nint
   vectype, dimension(MAX_PTS, OP_NUM) :: q179, q079, qt79, qe179, qe079, qet79
 !$OMP THREADPRIVATE(q179,q079,qt79,qe079,qet79)
 #ifdef USEPARTICLES
-  vectype, dimension(MAX_PTS, OP_NUM) :: pfpar79, pfper79, pf079
-!$OMP THREADPRIVATE(pfpar79,pfper79,pf079)
-  vectype, dimension(MAX_PTS, OP_NUM) :: pipar79, piper79, pfi079
-!$OMP THREADPRIVATE(pipar79,piper79,pfi079)
-  vectype, dimension(MAX_PTS, OP_NUM) :: vfpar79, vfpar079, vipar79
-!$OMP THREADPRIVATE(vfpar79,vfpar079,vipar79)
-  vectype, dimension(MAX_PTS, OP_NUM) :: nf79, nf079
-!$OMP THREADPRIVATE(nf79, nf079)
-  vectype, dimension(MAX_PTS, OP_NUM) :: nfi79, nfi079
-!$OMP THREADPRIVATE(nfi79, nfi079)
+  vectype, dimension(MAX_PTS, OP_NUM) :: pfpar79, pfper79, pfpar079, pfper079
+!$OMP THREADPRIVATE(pfpar79,pfper79,pfpar079,pfper079)
+  vectype, dimension(MAX_PTS, OP_NUM, 3) :: bhat079, bhat179
+!$OMP THREADPRIVATE(bhat079,bhat179)
+  vectype, dimension(MAX_PTS, OP_NUM) :: pipar79, piper79, pipar079, piper079
+!$OMP THREADPRIVATE(pipar79,piper79,pipar079,piper079)
+  vectype, dimension(MAX_PTS, OP_NUM) :: vfpar79, vfpar079, vipar79, jfpar79
+!$OMP THREADPRIVATE(vfpar79,vfpar079,vipar79,jfpar79)
+  vectype, dimension(MAX_PTS, OP_NUM) :: denf79, denf079
+!$OMP THREADPRIVATE(denf79, denf079)
+  vectype, dimension(MAX_PTS, OP_NUM) :: deni79, deni079
+!$OMP THREADPRIVATE(deni79, deni079)
   vectype, dimension(MAX_PTS, OP_NUM) :: rhof79
 !$OMP THREADPRIVATE(rhof79)
   vectype, dimension(MAX_PTS, OP_NUM) ::  phstar079, vzstar079, chstar079
@@ -639,6 +641,13 @@ contains
     type(element_data) :: d
     real :: kr_tmin, kr_tmax
     integer::ipoint
+#ifdef USEPARTICLES
+    vectype, dimension(MAX_PTS,3) :: b0raw, b1raw
+    vectype, dimension(MAX_PTS,3,3) :: db0raw, db1raw
+    vectype, dimension(MAX_PTS) :: b0sq, b0inv
+    vectype, dimension(MAX_PTS) :: b0dotb1, b1par, db0mag, db1par
+    integer :: icomp, idir, iop
+#endif
 
     fields = fieldi
 
@@ -1739,73 +1748,211 @@ contains
     ! Kinetic Pressure Terms
     ! ~~~
     if((iand(fields, FIELD_KIN).eq.FIELD_KIN)   &
-        .and. kinetic .eq. 1) then
+        .and. ((kinetic .eq. 1).or.(irunaway_kinetic .eq. 1))) then
        if(itri.eq.1 .and. myrank.eq.0 .and. iprint.ge.2) print *, "   kinetic..."
-        call eval_ops(itri, p_f_par, pfpar79, rfac)
-        call eval_ops(itri, p_f_perp, pfper79, rfac)
-        call eval_ops(itri, pf_field, pf079, rfac)
 
-        if (kinetic_fast_ion.eq.1) then
-           call eval_ops(itri, p_f_par, pfpar79, rfac)
-           call eval_ops(itri, p_f_perp, pfper79, rfac)
-           call eval_ops(itri, pf_field, pf079, rfac)
+       ! The explicit equilibrium-pressure coupling still needs B1 when
+       ! define_fields is called for the linear operator.
+       if ((ilin.eq.1).and.(ieqsub.eq.1)) then
+          call eval_ops(itri, psi_field(1), ps179, rfac)
+          call eval_ops(itri, bz_field(1), bz179, rfac)
+#if defined(USECOMPLEX) || defined(USE3D)
+          call eval_ops(itri, bfp_field(1), bfp179, rfac)
+#endif
+       endif
 
-           call eval_ops(itri, den_f_1, nf79, rfac)
-           call eval_ops(itri, nf_field, nf079, rfac)
+        if ((kinetic_fast_ion.eq.1).or.(irunaway_kinetic.eq.1)) then
+           call eval_ops(itri, p_f_par(1), pfpar79, rfac)
+           call eval_ops(itri, p_f_perp(1), pfper79, rfac)
+           call eval_ops(itri, p_f_par(0), pfpar079, rfac)
+           call eval_ops(itri, p_f_perp(0), pfper079, rfac)
 
-           call eval_ops(itri, v_f_par, vfpar79, rfac)
-           !call eval_ops(itri, v_f_par_0, vfpar079, rfac)
-           !pf079 = 0.
+           if (kinetic_fast_ion.eq.1) then
+
+              call eval_ops(itri, denf_field(1), denf79, rfac)
+              call eval_ops(itri, denf_field(0), denf079, rfac)
+
+              call eval_ops(itri, v_f_par, vfpar79, rfac)
+              call eval_ops(itri, j_f_par, jfpar79, rfac)
+              !call eval_ops(itri, v_f_par_0, vfpar079, rfac)
+           else
+              denf79 = 0.
+              denf079 = 0.
+              vfpar79 = 0.
+              jfpar79 = 0.
+           endif
         else
            pfpar79 = 0.
            pfper79 = 0.
-           pf079 = 0.
-           nf79 = 0.
-           nf079 = 0.
+           pfpar079 = 0.
+           pfper079 = 0.
+           denf79 = 0.
+           denf079 = 0.
            vfpar79 = 0.
+           jfpar79 = 0.
+        endif
+
+        if (kinetic.eq.1 .and. &
+             ((iand(fields, FIELD_PE).eq.FIELD_PE) .or. &
+              (iand(fields, FIELD_P).eq.FIELD_P))) then
+           if (ieqsub.eq.0) then
+              pt79 = pt79 + pfpar79/3. + 2.*pfper79/3.
+           else if (ieqsub.eq.1) then
+              pt79 = pt79 + pfpar079/3. + 2.*pfper079/3.
+           endif
         endif
 
         if (kinetic_thermal_ion.eq.1) then
-           call eval_ops(itri, p_i_par, pipar79, rfac)
-           call eval_ops(itri, p_i_perp, piper79, rfac)
-           call eval_ops(itri, pfi_field, pfi079, rfac)
+           call eval_ops(itri, p_i_par(1), pipar79, rfac)
+           call eval_ops(itri, p_i_perp(1), piper79, rfac)
+           call eval_ops(itri, p_i_par(0), pipar079, rfac)
+           call eval_ops(itri, p_i_perp(0), piper079, rfac)
 
-           call eval_ops(itri, den_i_1, nfi79, rfac)
-           call eval_ops(itri, nfi_field, nfi079, rfac)
+           call eval_ops(itri, deni_field(1), deni79, rfac)
+           call eval_ops(itri, deni_field(0), deni079, rfac)
 
            call eval_ops(itri, v_i_par, vipar79, rfac)
         else
            pipar79 = 0.
            piper79 = 0.
-           pfi079 = 0.
-           nfi79 = 0.
-           nfi079 = 0.
+           pipar079 = 0.
+           piper079 = 0.
+           deni79 = 0.
+           deni079 = 0.
            vipar79 = 0.
         endif
         call eval_ops(itri, rho_field, rhof79, rfac)
            !pipar79 = 0.
            !piper79 = 0.
-           !pfi079 = 0.
          
         !do ipoint=1,MAX_PTS
         !      if (real(rhof79(ipoint,OP_1))>0.85) then
         !   pipar79(ipoint,:)=0.
         !   piper79(ipoint,:)=0.
-        !   !nfi79(ipoint,:)=0.
+        !   !deni79(ipoint,:)=0.
         !   endif
         !enddo
-        call eval_ops(itri, ustar_field, phstar079)
-        call eval_ops(itri, vzstar_field, vzstar079)
-        call eval_ops(itri, chistar_field, chstar079)
-        !phstar079=0.
-        !vzstar079=0.
-        !chstar079=0.
+        if (idiamagnetic_advection.eq.1) then
+           call eval_ops(itri, ustar_field, phstar079)
+           call eval_ops(itri, vzstar_field, vzstar079)
+           call eval_ops(itri, chistar_field, chstar079)
+        else
+           phstar079=0.
+           vzstar079=0.
+           chstar079=0.
+        endif
+
+       if ((ieqsub.eq.1).and. &
+            ((particle_couple.eq.0).or.(particle_couple.eq.1)).and. &
+            ((particle_couple.eq.1).or.(kinetic_fast_ion.eq.1).or. &
+            (irunaway_kinetic.eq.1))) then
+        b0raw = 0.
+        b1raw = 0.
+        db0raw = 0.
+        db1raw = 0.
+        bhat079 = 0.
+        bhat179 = 0.
+
+        ! Cylindrical components: (R, phi, Z).
+        b0raw(:,1) = -ri_79*ps079(:,OP_DZ)
+        b0raw(:,2) =  ri_79*bz079(:,OP_1)
+        b0raw(:,3) =  ri_79*ps079(:,OP_DR)
+        b1raw(:,1) = -ri_79*ps179(:,OP_DZ)
+        b1raw(:,2) =  ri_79*bz179(:,OP_1)
+        b1raw(:,3) =  ri_79*ps179(:,OP_DR)
+
+        db0raw(:,1,1) = -ri_79*ps079(:,OP_DRZ) + ri2_79*ps079(:,OP_DZ)
+        db0raw(:,2,1) =  ri_79*bz079(:,OP_DR) - ri2_79*bz079(:,OP_1)
+        db0raw(:,3,1) =  ri_79*ps079(:,OP_DRR) - ri2_79*ps079(:,OP_DR)
+        db0raw(:,1,3) = -ri_79*ps079(:,OP_DZZ)
+        db0raw(:,2,3) =  ri_79*bz079(:,OP_DZ)
+        db0raw(:,3,3) =  ri_79*ps079(:,OP_DRZ)
+
+        db1raw(:,1,1) = -ri_79*ps179(:,OP_DRZ) + ri2_79*ps179(:,OP_DZ)
+        db1raw(:,2,1) =  ri_79*bz179(:,OP_DR) - ri2_79*bz179(:,OP_1)
+        db1raw(:,3,1) =  ri_79*ps179(:,OP_DRR) - ri2_79*ps179(:,OP_DR)
+        db1raw(:,1,3) = -ri_79*ps179(:,OP_DZZ)
+        db1raw(:,2,3) =  ri_79*bz179(:,OP_DZ)
+        db1raw(:,3,3) =  ri_79*ps179(:,OP_DRZ)
+
+#if defined(USE3D) || defined(USECOMPLEX)
+        b0raw(:,1) = b0raw(:,1) - bfp079(:,OP_DR)
+        b0raw(:,3) = b0raw(:,3) - bfp079(:,OP_DZ)
+        b1raw(:,1) = b1raw(:,1) - bfp179(:,OP_DR)
+        b1raw(:,3) = b1raw(:,3) - bfp179(:,OP_DZ)
+
+        db0raw(:,1,1) = db0raw(:,1,1) - bfp079(:,OP_DRR)
+        db0raw(:,3,1) = db0raw(:,3,1) - bfp079(:,OP_DRZ)
+        db0raw(:,1,3) = db0raw(:,1,3) - bfp079(:,OP_DRZ)
+        db0raw(:,3,3) = db0raw(:,3,3) - bfp079(:,OP_DZZ)
+        db1raw(:,1,1) = db1raw(:,1,1) - bfp179(:,OP_DRR)
+        db1raw(:,3,1) = db1raw(:,3,1) - bfp179(:,OP_DRZ)
+        db1raw(:,1,3) = db1raw(:,1,3) - bfp179(:,OP_DRZ)
+        db1raw(:,3,3) = db1raw(:,3,3) - bfp179(:,OP_DZZ)
+
+        db0raw(:,1,2) = -ri_79*ps079(:,OP_DZP) - bfp079(:,OP_DRP)
+        db0raw(:,2,2) =  ri_79*bz079(:,OP_DP)
+        db0raw(:,3,2) =  ri_79*ps079(:,OP_DRP) - bfp079(:,OP_DZP)
+        db1raw(:,1,2) = -ri_79*ps179(:,OP_DZP) - bfp179(:,OP_DRP)
+        db1raw(:,2,2) =  ri_79*bz179(:,OP_DP)
+        db1raw(:,3,2) =  ri_79*ps179(:,OP_DRP) - bfp179(:,OP_DZP)
+#endif
+
+        b0sq = 0.
+        b0inv = 0.
+        b0dotb1 = 0.
+        b1par = 0.
+        b0sq(1:npoints) = sum(b0raw(1:npoints,:)*b0raw(1:npoints,:),dim=2)
+        b0inv(1:npoints) = 1./sqrt(b0sq(1:npoints))
+        b0dotb1(1:npoints) = sum( &
+             b0raw(1:npoints,:)*b1raw(1:npoints,:),dim=2)
+        b1par(1:npoints) = b0dotb1(1:npoints)/b0sq(1:npoints)
+
+        do icomp = 1, 3
+           bhat079(1:npoints,OP_1,icomp) = &
+                b0inv(1:npoints)*b0raw(1:npoints,icomp)
+           bhat179(1:npoints,OP_1,icomp) = b0inv(1:npoints)*( &
+                b1raw(1:npoints,icomp)-b1par(1:npoints)*b0raw(1:npoints,icomp))
+        enddo
+
+        do idir = 1, 3
+           if (idir.eq.1) iop = OP_DR
+#if defined(USE3D) || defined(USECOMPLEX)
+           if (idir.eq.2) iop = OP_DP
+#else
+           if (idir.eq.2) cycle
+#endif
+           if (idir.eq.3) iop = OP_DZ
+           db0mag = 0.
+           db1par = 0.
+           db0mag(1:npoints) = sum(bhat079(1:npoints,OP_1,:)* &
+                db0raw(1:npoints,:,idir),dim=2)
+           db1par(1:npoints) = sum( &
+                db0raw(1:npoints,:,idir)*b1raw(1:npoints,:) + &
+                b0raw(1:npoints,:)*db1raw(1:npoints,:,idir),dim=2) &
+                /b0sq(1:npoints) - 2.*b1par(1:npoints)* &
+                b0inv(1:npoints)*db0mag(1:npoints)
+           do icomp = 1, 3
+              bhat079(1:npoints,iop,icomp) = b0inv(1:npoints)*( &
+                   db0raw(1:npoints,icomp,idir) &
+                   - bhat079(1:npoints,OP_1,icomp)*db0mag(1:npoints))
+              bhat179(1:npoints,iop,icomp) = b0inv(1:npoints)*( &
+                   db1raw(1:npoints,icomp,idir) &
+                   - db1par(1:npoints)*b0raw(1:npoints,icomp) &
+                   - b1par(1:npoints)*db0raw(1:npoints,icomp,idir)) &
+                   - bhat179(1:npoints,OP_1,icomp)*b0inv(1:npoints) &
+                   *db0mag(1:npoints)
+           enddo
+        enddo
+
+       endif
     endif
 #endif
 
   ! Runaway Electron Density
   ! ~~~~~~~~~~~~~~~~~~~~~~~~~
-  if((iand(fields, FIELD_RE).eq.FIELD_RE) .and. irunaway.gt.0) then
+  if((iand(fields, FIELD_RE).eq.FIELD_RE) .and. &
+       ((irunaway.gt.0).or.(kinetic_current.gt.0))) then
      if(itri.eq.1 .and. myrank.eq.0 .and. iprint.ge.2) print *, "   RE density..."
 
      if(ilin.eq.0) then

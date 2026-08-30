@@ -4,7 +4,9 @@ function chirikov, filename, psin=psin, psimid=psimid, current=cur, $
    width = island_widths(filename, psin=psin, current=cur, ntor=ntor, $
                          sum_files=sum_files, netcdf=netcdf, q=q)
 
-   if(width eq 0) then return, 0
+   if(n_elements(width) eq 1) then begin
+      if(width eq 0) then return, 0
+   end
 
    chi = fltarr(n_elements(width[*,0]), n_elements(psin[0,*])-1)
    psimid = fltarr(n_elements(psin[*,0]), n_elements(psin[0,*])-1)

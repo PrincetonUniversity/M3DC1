@@ -938,13 +938,13 @@ subroutine calculate_scalars()
       call calculate_CommonTerm_Lambda(temp79a,temp79b,temp79c,temp79d,temp79e)
      ! Jp_BS_Phi = intx3(ri_79,bzt79(:,OP_1),temp79a) 
       
-      jbs = jbs + int4(ri2_79,bzt79(:,OP_1),temp79a,mr) 
+      jbs = jbs + int3(ri2_79,temp79a,mr) 
     elseif (ibootstrap.eq.2)then
       call calculate_CommonTerm_Lambda_fordtedpsit(temp79a,temp79b,temp79c,temp79d,temp79e)
-      jbs = jbs + int4(ri2_79,bzt79(:,OP_1),temp79a,mr) 
+      jbs = jbs + int3(ri2_79,temp79a,mr) 
     elseif (ibootstrap.eq.3)then
       call calculate_CommonTerm_Lambda_fordtenormdpsit(temp79a,temp79b,temp79c,temp79d,temp79e)
-      jbs = jbs + int4(ri2_79,bzt79(:,OP_1),temp79a,mr) 
+      jbs = jbs + int3(ri2_79,temp79a,mr) 
     endif
      ! M_iz = int(dV Z*J)
      ! This is used for calculating the vertical "center" of the plasma current
@@ -2437,6 +2437,12 @@ subroutine calculate_ke()
   ! for each Fourier mode
   do N=0,NMAX
 
+     ! A reduced sector only contains physical modes divisible by nperiods.
+     if(ifull_torus.eq.0 .and. mod(N,nperiods).ne.0) then
+        keharmonic(N) = 0.
+        cycle
+     endif
+
      k = local_plane()
 
      !eq 12: U cos
@@ -2664,6 +2670,9 @@ subroutine calculate_ke()
      call mpi_allreduce(ke_N, ketotal, 1, MPI_DOUBLE_PRECISION, &
           MPI_SUM, mpi_comm_world, ier)
 
+! Expand the reduced-sector integral to the full torus.
+     if(ifull_torus.eq.0) ketotal = ketotal*nperiods
+
 ! BCL 11/6/19: All transform vectors are constant in phi
 !              so integral picks up a 2*pi
 !              this is correct for n=0, but twice size for n>0
@@ -2799,6 +2808,12 @@ subroutine calculate_bh()
 
   ! for each Fourier mode
   do N=0,BNMAX
+
+     ! A reduced sector only contains physical modes divisible by nperiods.
+     if(ifull_torus.eq.0 .and. mod(N,nperiods).ne.0) then
+        bharmonic(N) = 0.
+        cycle
+     endif
 
      k = local_plane()
 
@@ -3027,6 +3042,9 @@ subroutine calculate_bh()
      call mpi_allreduce(bh_N, bhtotal, 1, MPI_DOUBLE_PRECISION, &
                         MPI_SUM, mpi_comm_world, ier)
 
+! Expand the reduced-sector integral to the full torus.
+     if(ifull_torus.eq.0) bhtotal = bhtotal*nperiods
+
 ! BCL 11/6/19: All transform vectors are constant in phi
 !              so integral picks up a 2*pi
 !              this is correct for n=0, but twice size for n>0
@@ -3072,7 +3090,7 @@ end subroutine calculate_bh
 ! output: i1ck, i1sk
 ! eq 10
 subroutine ke_I1(NMAX, k, N, i1ck, i1sk)
-  use basic, ONLY: myrank, itor
+  use basic, ONLY: myrank, itor, ifull_torus, nperiods
   use math
   use mesh_mod
   implicit none
@@ -3107,6 +3125,7 @@ subroutine ke_I1(NMAX, k, N, i1ck, i1sk)
   if(N .eq. 0) then
      i1ck = (hm + hp)/(4.*pi)
      i1sk = 0.
+     if(ifull_torus.eq.0) i1ck = i1ck*nperiods
      return
   endif
 
@@ -3121,6 +3140,10 @@ subroutine ke_I1(NMAX, k, N, i1ck, i1sk)
        + ( hp*N*(6 + hp**2*N**2)*Cos(N*x0) + 6*hp*N*Cos(N*( hp + x0)) &
           + 12*(Sin(N*x0) - Sin(N*(hp + x0))))/(hp**3*N**4)
   i1sk = i1sk/pi
+  if(ifull_torus.eq.0) then
+     i1ck = i1ck*nperiods
+     i1sk = i1sk*nperiods
+  endif
   
 end subroutine ke_I1
 
@@ -3130,7 +3153,7 @@ end subroutine ke_I1
 ! output: i2ck, i2sk
 ! eq 10
 subroutine ke_I2(NMAX, k, N, i2ck, i2sk)
-  use basic, ONLY: myrank, itor
+  use basic, ONLY: myrank, itor, ifull_torus, nperiods
   use math
   use mesh_mod
   implicit none
@@ -3164,6 +3187,7 @@ subroutine ke_I2(NMAX, k, N, i2ck, i2sk)
   if(N .le. 0) then
      i2ck = (hp**2 - hm**2)/(24.*pi)
      i2sk = 0.
+     if(ifull_torus.eq.0) i2ck = i2ck*nperiods
      return
   endif
 
@@ -3178,6 +3202,10 @@ subroutine ke_I2(NMAX, k, N, i2ck, i2sk)
          +(hp*N*(4*Cos(N*x0) + 2*Cos(N*( hp + x0)) - hp*N*Sin(N*x0)) &
            + 6*(Sin(N*x0) - Sin(N*(hp + x0))))/(hp**2*N**4)
   i2sk = i2sk/pi
+  if(ifull_torus.eq.0) then
+     i2ck = i2ck*nperiods
+     i2sk = i2sk*nperiods
+  endif
   
 end subroutine ke_I2
 

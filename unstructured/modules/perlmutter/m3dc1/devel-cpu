@@ -60,7 +60,7 @@ if { ! [ is-loaded cpu ] } {
 }
 
 setenv          M3DC1_VERSION   $version
-setenv          M3DC1_DIR       $root
+setenv          M3DC1_DIR       $root/unstructured
 setenv		M3DC1_ARCH	perlmutter_cpu
 setenv		M3DC1_MPIRUN	srun
 

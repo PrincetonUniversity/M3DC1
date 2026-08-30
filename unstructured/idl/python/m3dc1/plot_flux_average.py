@@ -104,6 +104,7 @@ def plot_flux_average(
     val_at_q=None,
     flux_at_q_out=None,
     regularize: bool = False,
+    yscale: float = 1.0,
     print: bool = False,
     **kwargs,
 ):
@@ -167,6 +168,7 @@ def plot_flux_average(
                 stotal=stotal,
                 nolegend=True,
                 regularize=regularize,
+                yscale=yscale,
                 print=print,
                 **kwargs,
             )
@@ -223,6 +225,7 @@ def plot_flux_average(
                 nolegend=True,
                 outfile=None if not isinstance(outfile, (list, tuple)) else outfile[i],
                 regularize=regularize,
+                yscale=yscale,
                 print=print,
                 **kwargs,
             )
@@ -278,6 +281,7 @@ def plot_flux_average(
                 stotal=stotal,
                 nolegend=True,
                 regularize=regularize,
+                yscale=yscale,
                 print=print,
                 **kwargs,
             )
@@ -376,6 +380,9 @@ def plot_flux_average(
 
     if smooth is not None:
         fa = _smooth_1d(np.asarray(fa, dtype=float), int(smooth))
+
+    flux = np.asarray(flux, dtype=float)
+    fa = np.asarray(fa) * float(yscale)
 
     if not overplot:
         plt.figure(figsize=(7, 4))

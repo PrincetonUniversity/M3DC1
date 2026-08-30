@@ -10,6 +10,7 @@ from .convert_units import convert_units
 from .dimensions import dimensions
 from .get_normalizations import get_normalizations
 from .hdf5_file_test import hdf5_file_test
+from .read_mesh import read_mesh
 from .read_scalar import read_scalar
 
 
@@ -22,6 +23,7 @@ class HmnResult:
     ytitle: str
     units: str
     magnetic: bool
+    n: np.ndarray
 
 
 def _find_group_case_insensitive(h5: h5py.File, name: str):
@@ -77,10 +79,48 @@ def _orient_harmonics(h: np.ndarray, nt: int) -> np.ndarray:
     return arr if d1 <= d0 else arr.T
 
 
+def _select_n_indices(
+    data: np.ndarray,
+    n_val,
+    maxn: int | None,
+    nperiods: int,
+) -> np.ndarray:
+    available = int(data.shape[0])
+    nperiods = max(int(nperiods), 1)
+    physical = np.arange(0, available, nperiods, dtype=int)
+
+    if n_val is None:
+        if maxn is None:
+            return physical
+        count = max(int(maxn), 1)
+        return physical[:count]
+
+    requested = np.asarray(
+        n_val if isinstance(n_val, (list, tuple, np.ndarray)) else [n_val],
+        dtype=int,
+    ).reshape(-1)
+    if requested.size == 0:
+        raise ValueError("n_val must contain at least one harmonic index.")
+    bad = requested[(requested < 0) | (requested >= available)]
+    if bad.size > 0:
+        raise ValueError(
+            f"n_val {bad.tolist()} is out of range; "
+            f"available values are 0 <= n < {available}."
+        )
+    nonphysical = requested[np.mod(requested, nperiods) != 0]
+    if nonphysical.size > 0:
+        raise ValueError(
+            f"n_val values must be multiples of nperiods={nperiods}; "
+            f"got {nonphysical.tolist()}."
+        )
+    return requested
+
+
 def read_hmn(
     *,
     filename: str | Path = "C1.h5",
     maxn: int | None = None,
+    n_val=None,
     growth: bool = False,
     outfile: str | Path | None = None,
     me: bool = False,
@@ -98,11 +138,13 @@ def read_hmn(
             ytitle="",
             units="",
             magnetic=bool(me),
+            n=np.asarray([], dtype=int),
         ) if return_meta else np.asarray([], dtype=float)
 
     magnetic = bool(me)
     title = "Magnetic Energy" if magnetic else "Kinetic Energy"
     data = _read_harmonics(filename, magnetic=magnetic)
+    nperiods = max(int(read_mesh(filename=filename, slice=0).nperiods), 1)
 
     tmeta = read_scalar("time", filename=filename, cgs=cgs, mks=mks, return_meta=True)
     time = np.asarray(tmeta.data, dtype=float).reshape(-1)
@@ -116,6 +158,7 @@ def read_hmn(
             ytitle="Growth Rate" if growth else title,
             units="",
             magnetic=magnetic,
+            n=np.asarray([], dtype=int),
         ) if return_meta else np.asarray([], dtype=float)
 
     data = _orient_harmonics(data, nt=time.size)
@@ -127,10 +170,8 @@ def read_hmn(
     b0, n0, l0, mi = get_normalizations(filename=filename)
     data = convert_units(data, d, b0=b0, n0=n0, l0=l0, mi=mi, filename=filename)
 
-    if maxn is None:
-        maxn = int(data.shape[0])
-    maxn = int(max(1, min(maxn, int(data.shape[0]))))
-    data = np.asarray(data[:maxn, :], dtype=float)
+    n_indices = _select_n_indices(data, n_val, maxn, nperiods)
+    data = np.asarray(data[n_indices, :], dtype=float)
 
     if outfile is not None:
         out = np.column_stack([time.reshape(-1), data.T])
@@ -139,8 +180,8 @@ def read_hmn(
     if growth:
         tiny = np.finfo(float).tiny
         out = np.zeros_like(data, dtype=float)
-        for n in range(maxn):
-            out[n, :] = np.gradient(np.log(np.maximum(np.abs(data[n, :]), tiny)), time)
+        for i in range(data.shape[0]):
+            out[i, :] = np.gradient(np.log(np.maximum(np.abs(data[i, :]), tiny)), time)
         data = out
 
     result = HmnResult(
@@ -151,6 +192,7 @@ def read_hmn(
         ytitle="Growth Rate" if growth else title,
         units="",
         magnetic=magnetic,
+        n=n_indices,
     )
     if return_meta:
         return result

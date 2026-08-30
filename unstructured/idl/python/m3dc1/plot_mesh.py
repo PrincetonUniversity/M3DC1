@@ -44,6 +44,8 @@ def _fill_masked_from_neighbors(data: np.ndarray, out_mask: np.ndarray | None) -
 
 def plot_mesh(
     *,
+    xscale: float = 1.0,
+    yscale: float = 1.0,
     mesh=None,
     oplot=False,
     boundary=False,
@@ -59,6 +61,8 @@ def plot_mesh(
     Plot triangular mesh edges.
     """
     m = read_mesh(filename=filename, slice=slice) if mesh is None else mesh
+    xscale_f = float(xscale)
+    yscale_f = float(yscale)
     el = np.asarray(m.elements, dtype=float)
     if oplot:
         ax = plt.gca()
@@ -157,6 +161,10 @@ def plot_mesh(
         minr[1] = min(minr[1], p1[1], p2[1], p3[1])
         maxr[0] = max(maxr[0], p1[0], p2[0], p3[0])
         maxr[1] = max(maxr[1], p1[1], p2[1], p3[1])
+
+        p1 = np.asarray([p1[0] * xscale_f, p1[1] * yscale_f], dtype=float)
+        p2 = np.asarray([p2[0] * xscale_f, p2[1] * yscale_f], dtype=float)
+        p3 = np.asarray([p3[0] * xscale_f, p3[1] * yscale_f], dtype=float)
 
         if not boundary:
             ax.plot([p1[0], p2[0]], [p1[1], p2[1]], color="0.35", linewidth=0.4)

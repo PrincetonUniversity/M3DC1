@@ -1,0 +1,13 @@
+#!/bin/bash
+#SBATCH -A pppl
+#SBATCH -n 192
+#SBATCH -J regtest_NCSX
+#SBATCH -t 00:30:00
+
+# partition mesh
+PARTS=24
+$M3DC1_MPIRUN -n $PARTS split_smb circle-5K.smb part.smb $PARTS
+
+# Run M3D-C1
+$M3DC1_MPIRUN -n 192 m3dc1_3d_st -ipetsc -options_file options_bjacobi1
+

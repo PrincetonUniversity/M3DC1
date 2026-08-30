@@ -1520,6 +1520,33 @@ void m3dc1_mesh::set_node_adj_tag()
 }
 
 // **********************************************
+void m3dc1_mesh::setCoordinateSystem()
+{
+  apf::Mesh2* m = m3dc1_mesh::instance()->mesh;
+  int numNodes = m->count(0);
+
+  int pointsWithZeroY = 0;
+  double tolerance = 1e-8;
+
+  // Step 1: Iterate over the nodes and figure out number of points with zero Y.
+  for (int i = 0; i < numNodes; i++)
+  {
+    apf::MeshEntity* node = getMdsEntity(m, 0, i);
+    assert(node);
+    apf::Vector3 pos;  //position vector
+    m->getPoint(node, 0, pos);
+    if (fabs(pos[1]) < tolerance)
+      pointsWithZeroY++;
+  }
+
+  
+  // Step 2: If over 95% points have y == 0, our points are on RZ planes.
+  if (static_cast<double>(pointsWithZeroY)/numNodes > 0.95)
+    m3dc1_mesh::instance()->coordinateSystem = 1;
+}
+// **********************************************
+
+// **********************************************
 //void m3dc1_mesh::set_node_adj_tag()
 // **********************************************
 /*

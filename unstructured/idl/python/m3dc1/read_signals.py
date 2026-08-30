@@ -114,17 +114,22 @@ def read_signals(
         t = np.asarray(tmeta.data, dtype=float).reshape(-1)
         tu = tmeta.units
 
+        n_attr = int(float(read_parameter(count_attr, filename=filename)))
+        if n_attr == 0:
+            raise ValueError(f"No data for signal: {signal}")
+
+        if data.shape[0] != n_attr and data.shape[1] == n_attr:
+            data = data.T
+
         if data.shape[1] != t.size:
             if data.shape[0] == t.size:
                 data = data.T
-            else:
+            if data.shape[1] < t.size:
+                t = t[: data.shape[1]]
+            elif data.shape[1] != t.size:
                 raise ValueError(
                     f"Time length mismatch: data has {data.shape[1]} samples but time has {t.size}."
                 )
-
-        n_attr = float(read_parameter(count_attr, filename=filename))
-        if n_attr == 0:
-            raise ValueError(f"No data for signal: {signal}")
 
         data = convert_units(data, dim, filename=filename, cgs=cgs, mks=mks)
 

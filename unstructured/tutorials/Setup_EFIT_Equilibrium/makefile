@@ -12,4 +12,4 @@ interpolate :
 	sbatch batchjob.$M3DC1_ARCH.interpolate
 
 clean :
-	rm -fr *~ slurm* *.h5 part*.smb ts0-adapted*.smb geqdsk coil.dat current.dat* mesh0.smb offset.txt debug-out eqdsk-out testout profile* C1ke interpolated normcurv
+	rm -fr *~ slurm* *.h5 part*.smb ts0-adapted*.smb geqdsk coil.dat current.dat* mesh0.smb offset.txt debug-out eqdsk-out testout profile* C1ke interpolated normcurv slurm-*.out

@@ -47,6 +47,13 @@ else
   endif
 endif
 
+ifeq ($(CAD), 1)
+  OPTS := $(OPTS) -DUSECADMODEL
+  USECADMODEL = 1
+else
+  USECADMODEL = 0
+endif
+
 ifeq ($(ST), 1)
   OPTS := $(OPTS) -DUSEST 
   BIN_POSTFIX := $(BIN_POSTFIX)-st
@@ -284,18 +291,13 @@ bin : a2cc mackenbach_profiles
 	fi
 	if [ -d $(SCOREC_UTIL_DIR)/create_smb ]; then \
 		ln -s $(SCOREC_UTIL_DIR)/create_smb/create_smb bin ; \
-		ln -s $(SCOREC_UTIL_DIR)/create_smb/seed0.smb bin ; \
 		ln -s $(SCOREC_UTIL_DIR)/split_smb/split_smb bin ; \
-		ln -s $(SCOREC_UTIL_DIR)/m3dc1_meshgen/m3dc1_meshgen bin ; \
-		ln -s $(SCOREC_UTIL_DIR)/m3dc1_meshgen/convert_sim_sms bin ; \
+		ln -s $(SCOREC_UTIL_DIR)/m3dc1_meshgen/m3dc1_mfmgen bin ; \
 	else \
 		ln -s $(SCOREC_UTIL_DIR)/create_smb bin ; \
-		ln -s $(SCOREC_UTIL_DIR)/seed0.smb bin ; \
 		ln -s $(SCOREC_UTIL_DIR)/split_smb bin ; \
 		ln -s $(SCOREC_UTIL_DIR)/collapse bin ; \
-		ln -s $(MESHGEN_DIR)/m3dc1_meshgen bin ; \
 		ln -s $(MESHGEN_DIR)/m3dc1_mfmgen bin ; \
-		ln -s $(MESHGEN_DIR)/convert_sms bin ; \
 	fi
 	if [ -f $(SCOREC_UTIL_DIR)/split_smb/make_model ]; then \
 		ln -s $(SCOREC_UTIL_DIR)/split_smb/make_model bin ; \
@@ -316,9 +318,6 @@ bin : a2cc mackenbach_profiles
 	ln -s $(SRCDIR)/_$(ARCH)-3d-st-opt-125-omp/m3dc1_3d_omp_st bin
 	ln -s $(SRCDIR)/sbin/extract_profiles.sh bin
 	ln -s $(SRCDIR)/sbin/m3dc1_units.sh bin
-	ln -s $(SRCDIR)/sbin/create_mesh.sh bin
-	ln -s $(SRCDIR)/sbin/create_fixed_mesh.sh bin
-	ln -s $(SRCDIR)/sbin/part_mesh.sh bin
 
 bin_pic :
 	ln -s $(SRCDIR)/_$(ARCH)-complex-pic-opt-25/m3dc1_2d_complex_pic bin
