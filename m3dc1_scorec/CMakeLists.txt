@@ -1,3 +1,21 @@
+# Doxygen documentation
+find_package(Doxygen)
+if(DOXYGEN_FOUND)
+  configure_file(
+    "${CMAKE_CURRENT_SOURCE_DIR}/Doxyfile.in"
+    "${CMAKE_CURRENT_BINARY_DIR}/Doxyfile" @ONLY)
+  add_custom_target(doc
+    ${DOXYGEN_EXECUTABLE} ${CMAKE_CURRENT_BINARY_DIR}/Doxyfile
+    WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}
+    COMMENT "Generating API documentation with Doxygen"
+    VERBATIM)
+endif()
+
+# Generate config file
+configure_file(
+  "${CMAKE_CURRENT_SOURCE_DIR}/m3dc1_scorecConfig.cmake.in"
+  "${CMAKE_BINARY_DIR}/m3dc1_scorecConfig.cmake")
+
 #Source and header files
 set(SOURCES
   api/m3dc1_scorec.cc
@@ -72,3 +90,22 @@ endforeach()
 # show_meshcount depends on the m3dc1_scorec library (m3dc1_mesh, m3dc1_model, etc.)
 add_executable(show_meshcount utility/show_meshcount.cc)
 target_link_libraries(show_meshcount PRIVATE m3dc1_scorec)
+
+# Install rules
+install(TARGETS m3dc1_scorec
+  EXPORT m3dc1_scorecTargets
+  LIBRARY DESTINATION lib
+  ARCHIVE DESTINATION lib
+  RUNTIME DESTINATION bin
+  INCLUDES DESTINATION include)
+
+install(FILES ${HEADERS} DESTINATION include)
+
+# Install utility executables
+set(M3DC1_UTILITY_NAMES check_smb create_smb split_smb vtk_order show_meshcount)
+install(TARGETS ${M3DC1_UTILITY_NAMES} DESTINATION bin)
+
+# CPack configuration for binary distribution
+set(CPACK_GENERATOR "TGZ")
+set(CPACK_PACKAGE_VERSION "1.0.1")
+include(CPack)

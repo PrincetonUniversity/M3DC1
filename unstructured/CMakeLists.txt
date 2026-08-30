@@ -273,6 +273,17 @@ target_compile_definitions(m3dc1_library PRIVATE
   DATE_BUILT="${M3DC1_DATE_BUILT}"
   RELEASE_VERSION="${M3DC1_RELEASE_VERSION}"
 )
+
+# Cray-specific per-file optimization flags
+if(CMAKE_Fortran_COMPILER_ID STREQUAL "Cray")
+  set(CMAKE_Fortran_FLAGS_RELEASE "-O2")
+  set_source_files_properties(scorec_mesh.f90 PROPERTIES COMPILE_FLAGS -O0)
+  set_source_files_properties(transport.f90 PROPERTIES COMPILE_FLAGS -O0)
+  set_source_files_properties(particle.f90 PROPERTIES COMPILE_FLAGS -O1)
+  set_source_files_properties(ludef_t.f90 PROPERTIES COMPILE_FLAGS -O1)
+  set_source_files_properties(ludef_t_gpu.f90 PROPERTIES COMPILE_FLAGS -O1)
+endif()
+
 if(M3DC1_ENABLE_3D)
   target_compile_definitions(m3dc1_library PRIVATE USE3D MAX_PTS=125)
 else()
@@ -376,4 +387,12 @@ if(M3DC1_ENABLE_PSPLINE)
   add_executable(read_jsolver read_jsolver.f90 polar.f90)
   target_compile_definitions(read_jsolver PRIVATE READ_JSOLVER)
   target_link_libraries(read_jsolver PUBLIC PSPLINE::PSPLINE)
+endif()
+
+# Install targets
+install(TARGETS ${M3DC1_MAIN_NAME} DESTINATION bin)
+install(TARGETS a2cc mackenbach_profiles test_region DESTINATION bin)
+install(FILES ${CMAKE_CURRENT_BINARY_DIR}/m3dc1 DESTINATION bin)
+if(M3DC1_ENABLE_PSPLINE)
+  install(TARGETS readgato read_jsolver DESTINATION bin)
 endif()

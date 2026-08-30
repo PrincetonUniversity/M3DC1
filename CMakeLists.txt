@@ -1,6 +1,10 @@
 cmake_minimum_required(VERSION 3.15)
 project(m3dc1 LANGUAGES Fortran C CXX)
 
+if(NOT CMAKE_BUILD_TYPE)
+  set(CMAKE_BUILD_TYPE Release CACHE STRING "Choose the type of build." FORCE)
+endif()
+
 option(M3DC1_ENABLE_OPENMP "Enable OpenMP support" OFF)
 if(M3DC1_ENABLE_OPENMP)
   find_package(OpenMP REQUIRED COMPONENTS Fortran)
