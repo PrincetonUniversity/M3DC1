@@ -264,6 +264,7 @@ if(M3DC1_ENABLE_ADAS)
 endif()
 target_compile_definitions(m3dc1_library PRIVATE
   USESCOREC
+  USEBLAS
   ${M3DC1_MESH_DEFINE}
   ${M3DC1_VECTOR_DEFINE}
   ${M3DC1_MATRIX_DEFINE}
