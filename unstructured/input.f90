@@ -444,6 +444,8 @@ subroutine set_defaults
   call add_var_double("L_remc", L_remc, 0., "Self inductance for REMC circuit equation", model_grp)
   call add_var_double("Res_remc", Res_remc, 0., "Resistance for REMC circuit equation", model_grp)
   call add_var_double("i_remc_start", i_remc_start, 0., "Initial value of REMC circuit current (iScaleREMC=2) in A", model_grp)
+  call add_var_int("iremc_demf", iremc_demf, 0, & ! RiD
+       "1: apply REMC induced-EMF (dPsi_ext/dt) source to flux equation", model_grp)
   call add_var_int("ra_characteristics", ra_characteristics, 0, &
        "1: Use the method of characteristics to advance the RE advection equation", model_grp)
   call add_var_double("bzsign", bzsign, 0., "", model_grp)

@@ -690,6 +690,11 @@ subroutine initial_conditions()
         if(myrank.eq.0 .and. iprint.ge.2) print *, &
            "Skipping: RMP specification not currently implemented for ST."
      else
+        ! RiD: prime i_remc_circ (and remc_demf_fac) to i_remc_start before
+        ! this first external-field solve, so psx79 reflects the REMC
+        ! coil's actual initial current from step 1 onward instead of
+        ! jumping from a zero-current field after step 1 completes.
+        if(irmp.eq.3 .and. iScaleREMC.eq.2) call update_remc_circuit
         call rmp_per(1)
      end if
   end if

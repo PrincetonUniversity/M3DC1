@@ -106,21 +106,42 @@ subroutine update_remc_circuit
 
   implicit none
 
-  real :: curr_now, dt_si
+  real :: curr_now, dt_si, didt
 
   curr_now = 1.0 * totcur * 795217.0 ! Ip in Amperes
 
   if(.not.remc_circuit_init) then ! First step, initialize
      i_remc_circ = i_remc_start
      ip_prev = curr_now
+     ! RiD: dI/dt from resistive self-decay is known immediately from
+     ! i_remc_start; only the mutual-inductance/plasma-coupling term needs
+     ! a previous Ip, which isn't available yet, so approximate it as zero
+     ! for this first step only. (Forcing the whole rate to zero here, as
+     ! before, produced a spurious one-step jump in the induced-EMF source
+     ! once the real rate kicked in on the following step.)
+     if(i_remc_circ.ne.0.) then
+        remc_demf_fac = -(Res_remc/L_remc) * t0_norm
+     else
+        remc_demf_fac = 0.
+     end if
      remc_circuit_init = .true.
      return
   end if
 
   dt_si = dt * t0_norm ! s
 
-  i_remc_circ = i_remc_circ - dt_si*(Res_remc/L_remc)*i_remc_circ &
-       - (M_remc/L_remc)*(curr_now - ip_prev) ! update remc current
+  didt = -(Res_remc/L_remc)*i_remc_circ &
+       - (M_remc/L_remc)*(curr_now - ip_prev)/dt_si ! dI_remc/dt, A/s
+
+  i_remc_circ = i_remc_circ + dt_si*didt ! update remc current
+
+  ! RiD: fractional rate of change, converted to code-normalized time units,
+  ! so that flux_nolin's existing "dt * (...)" pattern applies directly
+  if(i_remc_circ.ne.0.) then
+     remc_demf_fac = (didt/i_remc_circ) * t0_norm
+  else
+     remc_demf_fac = 0.
+  end if
 
   ip_prev = curr_now ! update ip_prev
 

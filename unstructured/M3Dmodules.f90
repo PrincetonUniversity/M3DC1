@@ -314,6 +314,8 @@ module basic
   real :: L_remc ! Self inductance for REMC circuit equation
   real :: Res_remc ! Resistance for REMC circuit equation
   real :: i_remc_start ! Initial value of REMC circuit current (iScaleREMC=2)
+  integer :: iremc_demf ! RiD: 1: add induced-EMF (d Psi_ext/dt) source from REMC circuit to flux eqn
+  real :: remc_demf_fac ! RiD: (dI_remc/dt)/I_remc in normalized time units; set each step in update_remc_circuit
   integer :: iflip       ! 1 = flip handedness
   integer :: iflip_b     ! 1 = flip equilibrium toroidal field
   integer :: iflip_j     ! 1 = flip equilibrium toroidal current density
