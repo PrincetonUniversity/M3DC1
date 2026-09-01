@@ -2354,6 +2354,21 @@ end function bremsstrahlung
 ! calculate_ke
 ! ~~~~~~~~~~~~~~
 ! calculates each Fourer harmonics for kinetic energy
+
+! 08/2026 optimization: restructured so that N-independent work is no
+! longer repeated inside the harmonic loop.  Results are unchanged.
+!  - single node pass: source field data (incl. eqsubtract) is read
+!    once per node, then all 2*(NMAX+1) cos/sin transform fields
+!    (u_tc/u_ts, vz_tc/vz_ts, chi_tc/chi_ts) are written from it
+!    (previously 6 node loops per harmonic re-read the same data)
+!  - single element sweep: define_element_quadrature, define_fields
+!    and calculate_rho are called once per element, with only
+!    eval_ops + the energy integrals inside the inner N loop
+!    (previously the full element setup was redone for every N)
+!  - one batched mpi_allreduce over ke_arr(0:NMAX) instead of one
+!    scalar allreduce per harmonic
+! Remaining O(NMAX) work: 6*(NMAX+1) m3dc1_field_sum_plane collectives
+! and eval_ops calls per element.
 !======================================================================
 subroutine calculate_ke()
 #ifdef USE3D
@@ -2370,17 +2385,19 @@ subroutine calculate_ke()
   implicit none
   include 'mpif.h'
   integer :: itri, numelms, def_fields
-  real :: ke_N, ketotal, fac
+  real :: ketotal, fac
   integer :: ier, k, l, numnodes, N, icounter_t
   integer :: izone, izonedim, izone_ind
   vectype, dimension(dofs_per_node) :: vec_l
 
   real, allocatable :: i1ck(:,:), i1sk(:,:)
   real, allocatable :: i2ck(:,:), i2sk(:,:)
+  real, allocatable :: ke_arr(:), ketot_arr(:)
 
 !  type(vector_type) :: transform_field
-  type(field_type) :: u_transformc, vz_transformc, chi_transformc
-  type(field_type) :: u_transforms, vz_transforms, chi_transforms
+  type(field_type), allocatable :: u_tc(:), u_ts(:)
+  type(field_type), allocatable :: vz_tc(:), vz_ts(:)
+  type(field_type), allocatable :: chi_tc(:), chi_ts(:)
 #ifdef USEST
   type(field_type) :: vx_field, vy_field, vp_field
   vectype, dimension(dofs_per_element) :: dofs
@@ -2393,6 +2410,10 @@ subroutine calculate_ke()
   allocate(i1sk(0:nplanes-1,0:NMAX))
   allocate(i2ck(0:nplanes-1,0:NMAX))
   allocate(i2sk(0:nplanes-1,0:NMAX))
+  allocate(u_tc(0:NMAX), u_ts(0:NMAX))
+  allocate(vz_tc(0:NMAX), vz_ts(0:NMAX))
+  allocate(chi_tc(0:NMAX), chi_ts(0:NMAX))
+  allocate(ke_arr(0:NMAX), ketot_arr(0:NMAX))
 
   ! create the sin and cos arrays
   do N = 0, NMAX
@@ -2408,12 +2429,14 @@ subroutine calculate_ke()
   endif
 
   
-  call create_field(  u_transformc)
-  call create_field(  u_transforms)
-  call create_field( vz_transformc)
-  call create_field( vz_transforms)
-  call create_field(chi_transformc)
-  call create_field(chi_transforms)
+  do N=0,NMAX
+     call create_field(  u_tc(N))
+     call create_field(  u_ts(N))
+     call create_field( vz_tc(N))
+     call create_field( vz_ts(N))
+     call create_field(chi_tc(N))
+     call create_field(chi_ts(N))
+  enddo
 
 #ifdef USEST
   call create_field(vx_field)
@@ -2454,241 +2477,159 @@ subroutine calculate_ke()
 901  format("calculate_ke called-2,   ntime=",i6)
   endif
 
-  ! for each Fourier mode
-  do N=0,NMAX
+  k = local_plane()
 
+  !eq 12: build all cos/sin transforms in a single pass over the nodes,
+  !       reading the source fields only once per node
+  do icounter_t=1,numnodes
+     l = nodes_owned(icounter_t)
+#ifdef USEST
+     call get_node_data(vx_field, l , u1_l )! u1_l is R component of velocity
+     call get_node_data(vp_field, l , vz1_l )! vz1_l is phi component of velocity
+     call get_node_data(vy_field, l , chi1_l )! chi1_l is Z component of velocity
+#else
+     call get_node_data(u_field(1), l , u1_l )! u1_l is “U” (dimension 12)
+     call get_node_data(vz_field(1), l , vz1_l) ! vz1_l is “ω” ( dimension 12)
+     call get_node_data(chi_field(1), l , chi1_l ) ! chi1_l is “χ” (dimension 12)
+     if(eqsubtract.eq.1) then
+        call get_node_data(u_field(0), l , u0_l )
+        u1_l = u1_l + u0_l
+        call get_node_data(vz_field(0), l , vz0_l)
+        vz1_l = vz1_l + vz0_l
+        call get_node_data(chi_field(0), l , chi0_l )
+        chi1_l = chi1_l + chi0_l
+     end if
+#endif
+
+     do N=0,NMAX
+        ! A reduced sector only contains physical modes divisible by nperiods.
+        if(ifull_torus.eq.0 .and. mod(N,nperiods).ne.0) cycle
+
+        vec_l(1:6) = u1_l(1:6) * i1ck(k,N) + u1_l(7:12)*i2ck(k,N)
+        vec_l(7:12) = 0. ! pad with zeros
+        call set_node_data(u_tc(N),l,vec_l)
+
+        vec_l(1:6) = u1_l(1:6) * i1sk(k,N) + u1_l(7:12)*i2sk(k,N)
+        vec_l(7:12) = 0. ! pad with zeros
+        call set_node_data(u_ts(N),l,vec_l)
+
+        vec_l(1:6) = vz1_l(1:6) * i1ck(k,N) + vz1_l(7:12)*i2ck(k,N)
+        vec_l(7:12) = 0. ! pad with zeros
+        call set_node_data(vz_tc(N),l,vec_l)
+
+        vec_l(1:6) = vz1_l(1:6) * i1sk(k,N) + vz1_l(7:12)*i2sk(k,N)
+        vec_l(7:12) = 0. ! pad with zeros
+        call set_node_data(vz_ts(N),l,vec_l)
+
+        vec_l(1:6) = chi1_l(1:6) * i1ck(k,N) + chi1_l(7:12)*i2ck(k,N)
+        vec_l(7:12) = 0. ! pad with zeros
+        call set_node_data(chi_tc(N),l,vec_l)
+
+        vec_l(1:6) = chi1_l(1:6) * i1sk(k,N) + chi1_l(7:12)*i2sk(k,N)
+        vec_l(7:12) = 0. ! pad with zeros
+        call set_node_data(chi_ts(N),l,vec_l)
+     enddo
+  enddo
+
+  ! finalize all transform fields and sum them over the planes
+  do N=0,NMAX
+     ! A reduced sector only contains physical modes divisible by nperiods.
+     if(ifull_torus.eq.0 .and. mod(N,nperiods).ne.0) cycle
+     call finalize(u_tc(N)%vec)
+     call m3dc1_field_sum_plane(u_tc(N)%vec%id) ! sum vec%datator at each (R,Z) node over k
+     call finalize(u_ts(N)%vec)
+     call m3dc1_field_sum_plane(u_ts(N)%vec%id)
+     call finalize(vz_tc(N)%vec)
+     call m3dc1_field_sum_plane(vz_tc(N)%vec%id)
+     call finalize(vz_ts(N)%vec)
+     call m3dc1_field_sum_plane(vz_ts(N)%vec%id)
+     call finalize(chi_tc(N)%vec)
+     call m3dc1_field_sum_plane(chi_tc(N)%vec%id)
+     call finalize(chi_ts(N)%vec)
+     call m3dc1_field_sum_plane(chi_ts(N)%vec%id)
+  enddo
+
+  !eq 4b: Calculate energy for each Fourier Harmonic N
+  !       in a single sweep over the mesh
+
+  ke_arr = 0.
+  def_fields = FIELD_N
+  numelms = local_elements()
+
+  do itri=1,numelms
+     call m3dc1_ent_getgeomclass(2, itri-1,izonedim,izone_ind)
+     izone = zone_type(izone_ind)
+
+     if(izone.ne.1) cycle
+
+     call define_element_quadrature(itri, int_pts_diag, int_pts_tor)
+     call define_fields(itri, def_fields, 1, 0)
+     call calculate_rho(itri)
+
+     do N=0,NMAX
+        ! A reduced sector only contains physical modes divisible by nperiods.
+        if(ifull_torus.eq.0 .and. mod(N,nperiods).ne.0) cycle
+!
+!       cosine harmonics
+        call eval_ops(itri,  u_tc(N),pht79)
+        call eval_ops(itri, vz_tc(N),vzt79)
+        call eval_ops(itri,chi_tc(N),cht79)
+
+#ifdef USEST
+        ke_arr(N) = ke_arr(N) + int3(rho79(:,OP_1), pht79(:,OP_1), pht79(:,OP_1))
+        ke_arr(N) = ke_arr(N) + int3(rho79(:,OP_1), cht79(:,OP_1), cht79(:,OP_1))
+        ke_arr(N) = ke_arr(N) + int3(rho79(:,OP_1), vzt79(:,OP_1), vzt79(:,OP_1))
+#else
+        ke_arr(N) = ke_arr(N) + int4(r2_79, rho79(:,OP_1), pht79(:,OP_DR), pht79(:,OP_DR))
+        ke_arr(N) = ke_arr(N) + int4(r2_79, rho79(:,OP_1), pht79(:,OP_DZ), pht79(:,OP_DZ))
+
+        ke_arr(N) = ke_arr(N) + int4(r2_79, rho79(:,OP_1), vzt79(:,OP_1), vzt79(:,OP_1))
+
+        ke_arr(N) = ke_arr(N) + int4(ri4_79, rho79(:,OP_1), cht79(:,OP_DR), cht79(:,OP_DR))
+        ke_arr(N) = ke_arr(N) + int4(ri4_79, rho79(:,OP_1), cht79(:,OP_DZ), cht79(:,OP_DZ))
+
+        ke_arr(N) = ke_arr(N) + 2.*int4(ri_79, rho79(:,OP_1), pht79(:,OP_DR), cht79(:,OP_DZ))
+        ke_arr(N) = ke_arr(N) - 2.*int4(ri_79, rho79(:,OP_1), pht79(:,OP_DZ), cht79(:,OP_DR))
+#endif
+
+!
+!       sine harmonics
+        call eval_ops(itri,  u_ts(N),pht79)
+        call eval_ops(itri, vz_ts(N),vzt79)
+        call eval_ops(itri,chi_ts(N),cht79)
+
+#ifdef USEST
+        ke_arr(N) = ke_arr(N) + int3(rho79(:,OP_1), pht79(:,OP_1), pht79(:,OP_1))
+        ke_arr(N) = ke_arr(N) + int3(rho79(:,OP_1), cht79(:,OP_1), cht79(:,OP_1))
+        ke_arr(N) = ke_arr(N) + int3(rho79(:,OP_1), vzt79(:,OP_1), vzt79(:,OP_1))
+#else
+        ke_arr(N) = ke_arr(N) + int4(r2_79, rho79(:,OP_1), pht79(:,OP_DR), pht79(:,OP_DR))
+        ke_arr(N) = ke_arr(N) + int4(r2_79, rho79(:,OP_1), pht79(:,OP_DZ), pht79(:,OP_DZ))
+
+        ke_arr(N) = ke_arr(N) + int4(r2_79, rho79(:,OP_1), vzt79(:,OP_1), vzt79(:,OP_1))
+
+        ke_arr(N) = ke_arr(N) + int4(ri4_79, rho79(:,OP_1), cht79(:,OP_DR), cht79(:,OP_DR))
+        ke_arr(N) = ke_arr(N) + int4(ri4_79, rho79(:,OP_1), cht79(:,OP_DZ), cht79(:,OP_DZ))
+
+        ke_arr(N) = ke_arr(N) + 2.*int4(ri_79, rho79(:,OP_1), pht79(:,OP_DR), cht79(:,OP_DZ))
+        ke_arr(N) = ke_arr(N) - 2.*int4(ri_79, rho79(:,OP_1), pht79(:,OP_DZ), cht79(:,OP_DR))
+#endif
+     end do
+
+  end do
+
+  ! single batched allreduce over all harmonics
+  call mpi_allreduce(ke_arr, ketot_arr, NMAX+1, MPI_DOUBLE_PRECISION, &
+       MPI_SUM, mpi_comm_world, ier)
+
+  do N=0,NMAX
      ! A reduced sector only contains physical modes divisible by nperiods.
      if(ifull_torus.eq.0 .and. mod(N,nperiods).ne.0) then
         keharmonic(N) = 0.
         cycle
      endif
 
-     k = local_plane()
-
-     !eq 12: U cos
-     do icounter_t=1,numnodes
-        l = nodes_owned(icounter_t)
-#ifdef USEST
-        call get_node_data(vx_field, l , u1_l )! u1_l is R component of velocity 
-#else
-        call get_node_data(u_field(1), l , u1_l )! u1_l is “U” (dimension 12)
-        if(eqsubtract.eq.1) then
-           call get_node_data(u_field(0), l , u0_l )
-           u1_l = u1_l + u0_l
-        end if
-#endif
-
-        vec_l(1)= u1_l(1) * i1ck(k,N) + u1_l( 7)*i2ck(k,N)
-        vec_l(2)= u1_l(2) * i1ck(k,N) + u1_l( 8)*i2ck(k,N)
-        vec_l(3)= u1_l(3) * i1ck(k,N) + u1_l( 9)*i2ck(k,N)
-        vec_l(4)= u1_l(4) * i1ck(k,N) + u1_l(10)*i2ck(k,N)
-        vec_l(5)= u1_l(5) * i1ck(k,N) + u1_l(11)*i2ck(k,N)
-        vec_l(6)= u1_l(6) * i1ck(k,N) + u1_l(12)*i2ck(k,N)
-        vec_l(7:12) = 0. ! pad with zeros
-        
-        call set_node_data(u_transformc,l,vec_l)
-     enddo
-     call finalize(u_transformc%vec)
-     call m3dc1_field_sum_plane(u_transformc%vec%id) ! sum vec%datator at each (R,Z) node over k
-
-     
-     !eq 12: U sin
-     do icounter_t=1,numnodes
-        l = nodes_owned(icounter_t)
-#ifdef USEST
-        call get_node_data(vx_field, l , u1_l )! u1_l is R component of velocity 
-#else
-        call get_node_data(u_field(1), l , u1_l )! u1_l is “U” (dimension 12)
-        if(eqsubtract.eq.1) then
-           call get_node_data(u_field(0), l , u0_l )
-           u1_l = u1_l + u0_l
-        end if
-#endif
-
-        vec_l(1)= u1_l(1) * i1sk(k,N) + u1_l( 7)*i2sk(k,N)
-        vec_l(2)= u1_l(2) * i1sk(k,N) + u1_l( 8)*i2sk(k,N)
-        vec_l(3)= u1_l(3) * i1sk(k,N) + u1_l( 9)*i2sk(k,N)
-        vec_l(4)= u1_l(4) * i1sk(k,N) + u1_l(10)*i2sk(k,N)
-        vec_l(5)= u1_l(5) * i1sk(k,N) + u1_l(11)*i2sk(k,N)
-        vec_l(6)= u1_l(6) * i1sk(k,N) + u1_l(12)*i2sk(k,N)
-        vec_l(7:12) = 0. ! pad with zeros
-        call set_node_data(u_transforms,l,vec_l)
-     enddo
-     call finalize(u_transforms%vec)
-     call m3dc1_field_sum_plane(u_transforms%vec%id) ! sum vec%datator at each (R,Z) node over k
-
-
-     !eq 12: omega cos
-     do icounter_t=1,numnodes
-        l = nodes_owned(icounter_t)
-#ifdef USEST
-        call get_node_data(vp_field, l , vz1_l )! vz1_l is phi component of velocity 
-#else
-        call get_node_data(vz_field(1), l , vz1_l) ! vz1_l is “ω” ( dimension 12)
-        if(eqsubtract.eq.1) then
-           call get_node_data(vz_field(0), l , vz0_l)
-           vz1_l = vz1_l + vz0_l
-        end if
-#endif
-
-        vec_l(1)= vz1_l(1) * i1ck(k,N) + vz1_l( 7)*i2ck(k,N)
-        vec_l(2)= vz1_l(2) * i1ck(k,N) + vz1_l( 8)*i2ck(k,N)
-        vec_l(3)= vz1_l(3) * i1ck(k,N) + vz1_l( 9)*i2ck(k,N)
-        vec_l(4)= vz1_l(4) * i1ck(k,N) + vz1_l(10)*i2ck(k,N)
-        vec_l(5)= vz1_l(5) * i1ck(k,N) + vz1_l(11)*i2ck(k,N)
-        vec_l(6)= vz1_l(6) * i1ck(k,N) + vz1_l(12)*i2ck(k,N)
-        vec_l(7:12) = 0. ! pad with zeros
-        call set_node_data(vz_transformc,l,vec_l)
-     enddo
-     call finalize(vz_transformc%vec)
-     call m3dc1_field_sum_plane(vz_transformc%vec%id) ! sum vec%datator at each (R,Z) node over k
-
-
-     !eq 12: omega sin
-     do icounter_t=1,numnodes
-        l = nodes_owned(icounter_t)
-#ifdef USEST
-        call get_node_data(vp_field, l , vz1_l )! vz1_l is phi component of velocity 
-#else
-        call get_node_data(vz_field(1), l , vz1_l) ! vz1_l is “ω” ( dimension 12)
-        if(eqsubtract.eq.1) then
-           call get_node_data(vz_field(0), l , vz0_l)
-           vz1_l = vz1_l + vz0_l
-        end if
-#endif
-
-        vec_l(1)= vz1_l(1) * i1sk(k,N) + vz1_l( 7)*i2sk(k,N)
-        vec_l(2)= vz1_l(2) * i1sk(k,N) + vz1_l( 8)*i2sk(k,N)
-        vec_l(3)= vz1_l(3) * i1sk(k,N) + vz1_l( 9)*i2sk(k,N)
-        vec_l(4)= vz1_l(4) * i1sk(k,N) + vz1_l(10)*i2sk(k,N)
-        vec_l(5)= vz1_l(5) * i1sk(k,N) + vz1_l(11)*i2sk(k,N)
-        vec_l(6)= vz1_l(6) * i1sk(k,N) + vz1_l(12)*i2sk(k,N)
-        vec_l(7:12) = 0. ! pad with zeros
-        call set_node_data(vz_transforms,l,vec_l)
-     enddo
-     call finalize(vz_transforms%vec)
-     call m3dc1_field_sum_plane(vz_transforms%vec%id) ! sum vec%datator at each (R,Z) node over k
-
-
-     !eq 12: chi cos
-     do icounter_t=1,numnodes
-        l = nodes_owned(icounter_t)
-#ifdef USEST
-        call get_node_data(vy_field, l , chi1_l )! chi1_l is Z component of velocity 
-#else
-        call get_node_data(chi_field(1), l , chi1_l ) ! chi1_l is “χ” (dimension 12)
-        if(eqsubtract.eq.1) then
-           call get_node_data(chi_field(0), l , chi0_l )
-           chi1_l = chi1_l + chi0_l
-        end if
-#endif
-
-        vec_l(1)= chi1_l(1) * i1ck(k,N) + chi1_l( 7)*i2ck(k,N)
-        vec_l(2)= chi1_l(2) * i1ck(k,N) + chi1_l( 8)*i2ck(k,N)
-        vec_l(3)= chi1_l(3) * i1ck(k,N) + chi1_l( 9)*i2ck(k,N)
-        vec_l(4)= chi1_l(4) * i1ck(k,N) + chi1_l(10)*i2ck(k,N)
-        vec_l(5)= chi1_l(5) * i1ck(k,N) + chi1_l(11)*i2ck(k,N)
-        vec_l(6)= chi1_l(6) * i1ck(k,N) + chi1_l(12)*i2ck(k,N)
-        vec_l(7:12) = 0. ! pad with zeros
-        call set_node_data(chi_transformc,l,vec_l)
-     enddo
-     call finalize(chi_transformc%vec)
-     call m3dc1_field_sum_plane(chi_transformc%vec%id) ! sum vec%datator of size 6 at each (R,Z) node over k
-     
-
-     ! eq 12: chi sin
-     do icounter_t=1,numnodes
-        l = nodes_owned(icounter_t)
-#ifdef USEST
-        call get_node_data(vy_field, l , chi1_l )! chi1_l is Z component of velocity 
-#else
-        call get_node_data(chi_field(1), l , chi1_l ) ! chi1_l is “χ” (dimension 12)
-        if(eqsubtract.eq.1) then
-           call get_node_data(chi_field(0), l , chi0_l )
-           chi1_l = chi1_l + chi0_l
-        end if
-#endif
-
-        vec_l(1)= chi1_l(1) * i1sk(k,N) + chi1_l( 7)*i2sk(k,N)
-        vec_l(2)= chi1_l(2) * i1sk(k,N) + chi1_l( 8)*i2sk(k,N)
-        vec_l(3)= chi1_l(3) * i1sk(k,N) + chi1_l( 9)*i2sk(k,N)
-        vec_l(4)= chi1_l(4) * i1sk(k,N) + chi1_l(10)*i2sk(k,N)
-        vec_l(5)= chi1_l(5) * i1sk(k,N) + chi1_l(11)*i2sk(k,N)
-        vec_l(6)= chi1_l(6) * i1sk(k,N) + chi1_l(12)*i2sk(k,N)
-        vec_l(7:12) = 0. ! pad with zeros
-        call set_node_data(chi_transforms,l,vec_l)
-     enddo
-     call finalize(chi_transforms%vec)
-     call m3dc1_field_sum_plane(chi_transforms%vec%id) ! sum vec%datator at each (R,Z) node over k
-     
-
-     !eq 4b: Calculate energy for each Fourier Harminics N
-   
-     ke_N = 0.
-     def_fields = FIELD_N
-     numelms = local_elements()
-     
-!!$OMP PARALLEL DO REDUCTION(+:ke_N)
-     do itri=1,numelms
-        call m3dc1_ent_getgeomclass(2, itri-1,izonedim,izone_ind)
-        izone = zone_type(izone_ind)
-
-        if(izone.ne.1) cycle
-
-        call define_element_quadrature(itri, int_pts_diag, int_pts_tor)
-        call define_fields(itri, def_fields, 1, 0)
-        call calculate_rho(itri)
-!
-!       cosine harmonics
-        call eval_ops(itri,  u_transformc,pht79)
-        call eval_ops(itri, vz_transformc,vzt79)
-        call eval_ops(itri,chi_transformc,cht79)
-
-#ifdef USEST
-        ke_N = ke_N + int3(rho79(:,OP_1), pht79(:,OP_1), pht79(:,OP_1))
-        ke_N = ke_N + int3(rho79(:,OP_1), cht79(:,OP_1), cht79(:,OP_1))
-        ke_N = ke_N + int3(rho79(:,OP_1), vzt79(:,OP_1), vzt79(:,OP_1))
-#else
-        ke_N = ke_N + int4(r2_79, rho79(:,OP_1), pht79(:,OP_DR), pht79(:,OP_DR))
-        ke_N = ke_N + int4(r2_79, rho79(:,OP_1), pht79(:,OP_DZ), pht79(:,OP_DZ))
-
-        ke_N = ke_N + int4(r2_79, rho79(:,OP_1), vzt79(:,OP_1), vzt79(:,OP_1))
-
-        ke_N = ke_N + int4(ri4_79, rho79(:,OP_1), cht79(:,OP_DR), cht79(:,OP_DR))
-        ke_N = ke_N + int4(ri4_79, rho79(:,OP_1), cht79(:,OP_DZ), cht79(:,OP_DZ))
-
-        ke_N = ke_N + 2.*int4(ri_79, rho79(:,OP_1), pht79(:,OP_DR), cht79(:,OP_DZ))
-        ke_N = ke_N - 2.*int4(ri_79, rho79(:,OP_1), pht79(:,OP_DZ), cht79(:,OP_DR))
-#endif
-
-!
-!       sine harmonics
-        call eval_ops(itri,  u_transforms,pht79)
-        call eval_ops(itri, vz_transforms,vzt79)
-        call eval_ops(itri,chi_transforms,cht79)
-
-#ifdef USEST
-        ke_N = ke_N + int3(rho79(:,OP_1), pht79(:,OP_1), pht79(:,OP_1))
-        ke_N = ke_N + int3(rho79(:,OP_1), cht79(:,OP_1), cht79(:,OP_1))
-        ke_N = ke_N + int3(rho79(:,OP_1), vzt79(:,OP_1), vzt79(:,OP_1))
-#else
-        ke_N = ke_N + int4(r2_79, rho79(:,OP_1), pht79(:,OP_DR), pht79(:,OP_DR))
-        ke_N = ke_N + int4(r2_79, rho79(:,OP_1), pht79(:,OP_DZ), pht79(:,OP_DZ))
-
-        ke_N = ke_N + int4(r2_79, rho79(:,OP_1), vzt79(:,OP_1), vzt79(:,OP_1))
-
-        ke_N = ke_N + int4(ri4_79, rho79(:,OP_1), cht79(:,OP_DR), cht79(:,OP_DR))
-        ke_N = ke_N + int4(ri4_79, rho79(:,OP_1), cht79(:,OP_DZ), cht79(:,OP_DZ))
-
-        ke_N = ke_N + 2.*int4(ri_79, rho79(:,OP_1), pht79(:,OP_DR), cht79(:,OP_DZ))
-        ke_N = ke_N - 2.*int4(ri_79, rho79(:,OP_1), pht79(:,OP_DZ), cht79(:,OP_DR))
-#endif
-
-     end do
-!!$OMP END PARALLEL DO
-
-     call mpi_allreduce(ke_N, ketotal, 1, MPI_DOUBLE_PRECISION, &
-          MPI_SUM, mpi_comm_world, ier)
+     ketotal = ketot_arr(N)
 
 ! Expand the reduced-sector integral to the full torus.
      if(ifull_torus.eq.0) ketotal = ketotal*nperiods
@@ -2699,7 +2640,6 @@ subroutine calculate_ke()
      if(N.gt.0) ketotal = 0.5*ketotal
 
      keharmonic(N) = 0.5*ketotal ! 0.5 for 1/2 rho v^2
-
   end do
 
 !!!!!....we need to save keharmonic for output <===
@@ -2711,12 +2651,16 @@ subroutine calculate_ke()
   endif
 
   deallocate(i1ck, i1sk, i2ck, i2sk)
-  call destroy_field(  u_transformc)
-  call destroy_field(  u_transforms)
-  call destroy_field( vz_transformc)
-  call destroy_field( vz_transforms)
-  call destroy_field(chi_transformc)
-  call destroy_field(chi_transforms)
+  do N=0,NMAX
+     call destroy_field(  u_tc(N))
+     call destroy_field(  u_ts(N))
+     call destroy_field( vz_tc(N))
+     call destroy_field( vz_ts(N))
+     call destroy_field(chi_tc(N))
+     call destroy_field(chi_ts(N))
+  enddo
+  deallocate(u_tc, u_ts, vz_tc, vz_ts, chi_tc, chi_ts)
+  deallocate(ke_arr, ketot_arr)
 #ifdef USEST
   call destroy_field(vx_field)
   call destroy_field(vy_field)
@@ -2731,6 +2675,18 @@ end subroutine calculate_ke
 ! calculate_bh
 ! ~~~~~~~~~~~~~~
 ! calculates each Fourer harmonics for magnetic energy
+!
+! 08/2026 optimization: same restructuring as calculate_ke (see the
+! header comment there).  Results are unchanged.
+!  - single node pass reading psi/F/f' data (incl. eqsubtract and
+!    icsubtract) once per node, writing all psi_tc/psi_ts, F_tc/F_ts,
+!    fp_tc/fp_ts transform fields
+!  - single element sweep with define_element_quadrature/define_fields
+!    hoisted out of the inner N loop
+!  - one batched mpi_allreduce over bh_arr(0:BNMAX)
+! Note: when ihypeta > 2, bharmonic(ihypeta) feeds back into the
+! hyper-resistivity (bharhypeta), so calculate_scalars calls this
+! routine every step regardless of iharmonics_skip.
 !======================================================================
 subroutine calculate_bh()
 #ifdef USE3D
@@ -2746,16 +2702,18 @@ subroutine calculate_bh()
   implicit none
   include 'mpif.h'
   integer :: itri, numelms, def_fields
-  real:: bh_N, bhtotal, fac
+  real:: bhtotal, fac
   integer :: ier, k, l, numnodes, N, icounter_t
   integer :: izone, izonedim, izone_ind
   vectype, dimension(dofs_per_node) :: vec_l
 
   real, allocatable :: i1ck(:,:), i1sk(:,:)
   real, allocatable :: i2ck(:,:), i2sk(:,:)
+  real, allocatable :: bh_arr(:), bhtot_arr(:)
 
-  type(field_type) :: psi_transformc, F_transformc, fp_transformc
-  type(field_type) :: psi_transforms, F_transforms, fp_transforms
+  type(field_type), allocatable :: psi_tc(:), psi_ts(:)
+  type(field_type), allocatable :: F_tc(:), F_ts(:)
+  type(field_type), allocatable :: fp_tc(:), fp_ts(:)
 #ifdef USEST
   type(field_type) :: bx_field, by_field, bp_field
   vectype, dimension(dofs_per_element) :: dofs
@@ -2768,6 +2726,10 @@ subroutine calculate_bh()
   allocate(i1sk(0:nplanes-1,0:BNMAX))
   allocate(i2ck(0:nplanes-1,0:BNMAX))
   allocate(i2sk(0:nplanes-1,0:BNMAX))
+  allocate(psi_tc(0:BNMAX), psi_ts(0:BNMAX))
+  allocate(F_tc(0:BNMAX), F_ts(0:BNMAX))
+  allocate(fp_tc(0:BNMAX), fp_ts(0:BNMAX))
+  allocate(bh_arr(0:BNMAX), bhtot_arr(0:BNMAX))
   
   ! create the sin and cos arrays
   do N = 0, BNMAX
@@ -2782,12 +2744,14 @@ subroutine calculate_bh()
 900  format("calculate_bh called-1,   ntime  numnodes  BNMAX=",3i6)
   endif
   
-  call create_field(psi_transformc)
-  call create_field(psi_transforms)
-  call create_field(F_transformc)
-  call create_field(F_transforms)
-  call create_field(fp_transformc)
-  call create_field(fp_transforms)
+  do N=0,BNMAX
+     call create_field(psi_tc(N))
+     call create_field(psi_ts(N))
+     call create_field(F_tc(N))
+     call create_field(F_ts(N))
+     call create_field(fp_tc(N))
+     call create_field(fp_ts(N))
+  enddo
 
 #ifdef USEST
   call create_field(bx_field)
@@ -2827,241 +2791,162 @@ subroutine calculate_bh()
   endif
   
 
-  ! for each Fourier mode
-  do N=0,BNMAX
+  k = local_plane()
 
+  !eq 12: build all cos/sin transforms in a single pass over the nodes,
+  !       reading the source fields only once per node
+  do icounter_t=1,numnodes
+     l = nodes_owned(icounter_t)
+#ifdef USEST
+     call get_node_data(bx_field, l , psi1_l )! psi1_l is R component of field
+     call get_node_data(bp_field, l , bz1_l )! bz1_l is phi component of field
+     call get_node_data(by_field, l , bfp1_l )! bfp1_l is Z component of field
+#else
+     call get_node_data(psi_field(1), l, psi1_l) ! psi1_1 is ψ (dimension 12)
+     if(eqsubtract.eq.1) then
+        call get_node_data(psi_field(0), l, psi0_l)
+        psi1_l = psi1_l + psi0_l
+     end if
+     if(icsubtract.eq.1) then
+        call get_node_data(psi_coil_field, l, psi0_l)
+        psi1_l = psi1_l + psi0_l
+     end if
+     call get_node_data(bz_field(1), l, bz1_l) ! bz1_l is F (dimension 12)
+     if(eqsubtract.eq.1) then
+        call get_node_data(bz_field(0), l, bz0_l)
+        bz1_l = bz1_l + bz0_l
+     end if
+     call get_node_data(bfp_field(1), l, bfp1_l) ! bfp1_l is f (dimension 12)
+     if(eqsubtract.eq.1) then
+        call get_node_data(bfp_field(0), l, bfp0_l)
+        bfp1_l = bfp1_l + bfp0_l
+     end if
+#endif
+
+     do N=0,BNMAX
+        ! A reduced sector only contains physical modes divisible by nperiods.
+        if(ifull_torus.eq.0 .and. mod(N,nperiods).ne.0) cycle
+
+        vec_l(1:6) = psi1_l(1:6) * i1ck(k,N) + psi1_l(7:12)*i2ck(k,N)
+        vec_l(7:12) = 0. ! pad with zeros
+        call set_node_data(psi_tc(N),l,vec_l)
+
+        vec_l(1:6) = psi1_l(1:6) * i1sk(k,N) + psi1_l(7:12)*i2sk(k,N)
+        vec_l(7:12) = 0. ! pad with zeros
+        call set_node_data(psi_ts(N),l,vec_l)
+
+        vec_l(1:6) = bz1_l(1:6) * i1ck(k,N) + bz1_l(7:12)*i2ck(k,N)
+        vec_l(7:12) = 0. ! pad with zeros
+        call set_node_data(F_tc(N),l,vec_l)
+
+        vec_l(1:6) = bz1_l(1:6) * i1sk(k,N) + bz1_l(7:12)*i2sk(k,N)
+        vec_l(7:12) = 0. ! pad with zeros
+        call set_node_data(F_ts(N),l,vec_l)
+
+        vec_l(1:6) = bfp1_l(1:6) * i1ck(k,N) + bfp1_l(7:12)*i2ck(k,N)
+        vec_l(7:12) = 0. ! pad with zeros
+        call set_node_data(fp_tc(N),l,vec_l)
+
+        vec_l(1:6) = bfp1_l(1:6) * i1sk(k,N) + bfp1_l(7:12)*i2sk(k,N)
+        vec_l(7:12) = 0. ! pad with zeros
+        call set_node_data(fp_ts(N),l,vec_l)
+     enddo
+  enddo
+
+  ! finalize all transform fields and sum them over the planes
+  do N=0,BNMAX
+     ! A reduced sector only contains physical modes divisible by nperiods.
+     if(ifull_torus.eq.0 .and. mod(N,nperiods).ne.0) cycle
+     call finalize(psi_tc(N)%vec)
+     call m3dc1_field_sum_plane(psi_tc(N)%vec%id) ! sum vec%datator at each (R,Z) node over k
+     call finalize(psi_ts(N)%vec)
+     call m3dc1_field_sum_plane(psi_ts(N)%vec%id)
+     call finalize(F_tc(N)%vec)
+     call m3dc1_field_sum_plane(F_tc(N)%vec%id)
+     call finalize(F_ts(N)%vec)
+     call m3dc1_field_sum_plane(F_ts(N)%vec%id)
+     call finalize(fp_tc(N)%vec)
+     call m3dc1_field_sum_plane(fp_tc(N)%vec%id)
+     call finalize(fp_ts(N)%vec)
+     call m3dc1_field_sum_plane(fp_ts(N)%vec%id)
+  enddo
+
+  !eq 4b: Calculate energy for each Fourier Harmonic N
+  !       in a single sweep over the mesh
+
+  bh_arr = 0.
+  def_fields = 0
+  numelms = local_elements()
+
+  do itri=1,numelms
+     call m3dc1_ent_getgeomclass(2, itri-1,izonedim,izone_ind)
+     izone = zone_type(izone_ind)
+
+     if(izone.ne.1) cycle
+
+     call define_element_quadrature(itri, int_pts_diag, int_pts_tor)
+     call define_fields(itri, def_fields, 1, 0)
+
+     do N=0,BNMAX
+        ! A reduced sector only contains physical modes divisible by nperiods.
+        if(ifull_torus.eq.0 .and. mod(N,nperiods).ne.0) cycle
+!       cosine harmonics
+        call eval_ops(itri,psi_tc(N),pst79)
+        call eval_ops(itri,F_tc(N),bzt79)
+        call eval_ops(itri,fp_tc(N),bfpt79)
+
+#ifdef USEST
+        bh_arr(N) = bh_arr(N) + int2(pst79(:,OP_1), pst79(:,OP_1))
+        bh_arr(N) = bh_arr(N) + int2(bfpt79(:,OP_1), bfpt79(:,OP_1))
+        bh_arr(N) = bh_arr(N) + int2(bzt79(:,OP_1), bzt79(:,OP_1))
+#else
+        bh_arr(N) = bh_arr(N) + int3(ri2_79, pst79(:,OP_DR), pst79(:,OP_DR))   &
+                    + int3(ri2_79, pst79(:,OP_DZ), pst79(:,OP_DZ))
+
+        bh_arr(N) = bh_arr(N) + int3(ri2_79, bzt79(:,OP_1), bzt79(:,OP_1))
+
+        bh_arr(N) = bh_arr(N) + int2(bfpt79(:,OP_DR), bfpt79(:,OP_DR))   &
+                    + int2(bfpt79(:,OP_DZ), bfpt79(:,OP_DZ))
+        bh_arr(N) = bh_arr(N) - 2.*int3(ri_79, pst79(:,OP_DR), bfpt79(:,OP_DZ)) &
+                    + 2.*int3(ri_79, pst79(:,OP_DZ), bfpt79(:,OP_DR))
+#endif
+
+!       sine harmonics
+        call eval_ops(itri,psi_ts(N),pst79)
+        call eval_ops(itri,F_ts(N),bzt79)
+        call eval_ops(itri,fp_ts(N),bfpt79)
+
+#ifdef USEST
+        bh_arr(N) = bh_arr(N) + int2(pst79(:,OP_1), pst79(:,OP_1))
+        bh_arr(N) = bh_arr(N) + int2(bfpt79(:,OP_1), bfpt79(:,OP_1))
+        bh_arr(N) = bh_arr(N) + int2(bzt79(:,OP_1), bzt79(:,OP_1))
+#else
+        bh_arr(N) = bh_arr(N) + int3(ri2_79,  pst79(:,OP_DR), pst79(:,OP_DR))   &
+                    + int3(ri2_79,  pst79(:,OP_DZ), pst79(:,OP_DZ))
+
+        bh_arr(N) = bh_arr(N) + int3(ri2_79,  bzt79(:,OP_1), bzt79(:,OP_1))
+
+        bh_arr(N) = bh_arr(N) + int2(bfpt79(:,OP_DR), bfpt79(:,OP_DR))   &
+                    + int2(bfpt79(:,OP_DZ), bfpt79(:,OP_DZ))
+        bh_arr(N) = bh_arr(N) - 2.*int3(ri_79, pst79(:,OP_DR), bfpt79(:,OP_DZ)) &
+                    + 2.*int3(ri_79, pst79(:,OP_DZ), bfpt79(:,OP_DR))
+#endif
+     end do
+
+  end do
+
+  ! single batched allreduce over all harmonics
+  call mpi_allreduce(bh_arr, bhtot_arr, BNMAX+1, MPI_DOUBLE_PRECISION, &
+                     MPI_SUM, mpi_comm_world, ier)
+
+  do N=0,BNMAX
      ! A reduced sector only contains physical modes divisible by nperiods.
      if(ifull_torus.eq.0 .and. mod(N,nperiods).ne.0) then
         bharmonic(N) = 0.
         cycle
      endif
 
-     k = local_plane()
-
-     !eq 12: psi cos
-     do icounter_t=1,numnodes
-        l = nodes_owned(icounter_t)
-#ifdef USEST
-        call get_node_data(bx_field, l , psi1_l )! psi1_l is R component of field 
-#else
-        call get_node_data(psi_field(1), l, psi1_l) ! psi1_1 is ψ (dimension 12)
-        if(eqsubtract.eq.1) then
-           call get_node_data(psi_field(0), l, psi0_l)
-           psi1_l = psi1_l + psi0_l
-        end if
-        if(icsubtract.eq.1) then
-           call get_node_data(psi_coil_field, l, psi0_l)
-           psi1_l = psi1_l + psi0_l
-        end if
-#endif
-
-        vec_l(1)= psi1_l(1) * i1ck(k,N) + psi1_l( 7)*i2ck(k,N)
-        vec_l(2)= psi1_l(2) * i1ck(k,N) + psi1_l( 8)*i2ck(k,N)
-        vec_l(3)= psi1_l(3) * i1ck(k,N) + psi1_l( 9)*i2ck(k,N)
-        vec_l(4)= psi1_l(4) * i1ck(k,N) + psi1_l(10)*i2ck(k,N)
-        vec_l(5)= psi1_l(5) * i1ck(k,N) + psi1_l(11)*i2ck(k,N)
-        vec_l(6)= psi1_l(6) * i1ck(k,N) + psi1_l(12)*i2ck(k,N)
-        vec_l(7:12) = 0. ! pad with zeros
-        
-        call set_node_data(psi_transformc,l,vec_l)
-     enddo
-     call finalize(psi_transformc%vec)
-     call m3dc1_field_sum_plane(psi_transformc%vec%id) ! sum vec%datator at each (R,Z) node over k
-     
-     !eq 12: psi sin
-     do icounter_t=1,numnodes
-        l = nodes_owned(icounter_t)
-#ifdef USEST
-        call get_node_data(bx_field, l , psi1_l )! psi1_l is R component of field 
-#else
-        call get_node_data(psi_field(1), l, psi1_l) ! psi1_1 is ψ (dimension 12)
-        if(eqsubtract.eq.1) then
-           call get_node_data(psi_field(0), l, psi0_l)
-           psi1_l = psi1_l + psi0_l
-        end if
-        if(icsubtract.eq.1) then
-           call get_node_data(psi_coil_field, l, psi0_l)
-           psi1_l = psi1_l + psi0_l
-        end if
-#endif
-
-        vec_l(1)= psi1_l(1) * i1sk(k,N) + psi1_l( 7)*i2sk(k,N)
-        vec_l(2)= psi1_l(2) * i1sk(k,N) + psi1_l( 8)*i2sk(k,N)
-        vec_l(3)= psi1_l(3) * i1sk(k,N) + psi1_l( 9)*i2sk(k,N)
-        vec_l(4)= psi1_l(4) * i1sk(k,N) + psi1_l(10)*i2sk(k,N)
-        vec_l(5)= psi1_l(5) * i1sk(k,N) + psi1_l(11)*i2sk(k,N)
-        vec_l(6)= psi1_l(6) * i1sk(k,N) + psi1_l(12)*i2sk(k,N)
-        vec_l(7:12) = 0. ! pad with zeros
-        call set_node_data(psi_transforms,l,vec_l)
-     enddo
-     call finalize(psi_transforms%vec)
-     call m3dc1_field_sum_plane(psi_transforms%vec%id) ! sum vec%datator at each (R,Z) node over k
-
-     !eq 12: F cos
-     do icounter_t=1,numnodes
-        l = nodes_owned(icounter_t)
-#ifdef USEST
-        call get_node_data(bp_field, l , bz1_l )! bz1_l is phi component of field 
-#else
-        call get_node_data(bz_field(1), l, bz1_l) ! bz1_l is F (dimension 12)
-        if(eqsubtract.eq.1) then
-          call get_node_data(bz_field(0), l, bz0_l)
-          bz1_l = bz1_l + bz0_l
-       end if
-#endif
-
-        vec_l(1)= bz1_l(1) * i1ck(k,N) + bz1_l( 7)*i2ck(k,N)
-        vec_l(2)= bz1_l(2) * i1ck(k,N) + bz1_l( 8)*i2ck(k,N)
-        vec_l(3)= bz1_l(3) * i1ck(k,N) + bz1_l( 9)*i2ck(k,N)
-        vec_l(4)= bz1_l(4) * i1ck(k,N) + bz1_l(10)*i2ck(k,N)
-        vec_l(5)= bz1_l(5) * i1ck(k,N) + bz1_l(11)*i2ck(k,N)
-        vec_l(6)= bz1_l(6) * i1ck(k,N) + bz1_l(12)*i2ck(k,N)
-        vec_l(7:12) = 0. ! pad with zeros
-        call set_node_data(F_transformc,l,vec_l)
-     enddo
-     call finalize(F_transformc%vec)
-     call m3dc1_field_sum_plane(F_transformc%vec%id) ! sum vec%datator at each (R,Z) node over k
-
-
-     !eq 12: F sin
-     do icounter_t=1,numnodes
-        l = nodes_owned(icounter_t)
-#ifdef USEST
-        call get_node_data(bp_field, l , bz1_l )! bz1_l is phi component of field 
-#else
-        call get_node_data(bz_field(1), l, bz1_l) ! bz1_l is F (dimension 12)
-        if(eqsubtract.eq.1) then
-           call get_node_data(bz_field(0), l, bz0_l)
-           bz1_l = bz1_l + bz0_l
-        end if
-#endif
-
-        vec_l(1)= bz1_l(1) * i1sk(k,N) + bz1_l( 7)*i2sk(k,N)
-        vec_l(2)= bz1_l(2) * i1sk(k,N) + bz1_l( 8)*i2sk(k,N)
-        vec_l(3)= bz1_l(3) * i1sk(k,N) + bz1_l( 9)*i2sk(k,N)
-        vec_l(4)= bz1_l(4) * i1sk(k,N) + bz1_l(10)*i2sk(k,N)
-        vec_l(5)= bz1_l(5) * i1sk(k,N) + bz1_l(11)*i2sk(k,N)
-        vec_l(6)= bz1_l(6) * i1sk(k,N) + bz1_l(12)*i2sk(k,N)
-        vec_l(7:12) = 0. ! pad with zeros
-        call set_node_data(F_transforms,l,vec_l)
-     enddo
-     call finalize(F_transforms%vec)
-     call m3dc1_field_sum_plane(F_transforms%vec%id) ! sum vec%datator at each (R,Z) node over k
-     
-     !eq 12: f' cos
-     do icounter_t=1,numnodes
-        l = nodes_owned(icounter_t)
-#ifdef USEST
-        call get_node_data(by_field, l , bfp1_l )! bfp1_l is Z component of field 
-#else
-        call get_node_data(bfp_field(1), l, bfp1_l) ! bfp1_l is f (dimension 12)
-        if(eqsubtract.eq.1) then
-           call get_node_data(bfp_field(0), l, bfp0_l)
-           bfp1_l = bfp1_l + bfp0_l
-        end if
-#endif
-
-        vec_l(1)= bfp1_l(1) * i1ck(k,N) + bfp1_l( 7)*i2ck(k,N)
-        vec_l(2)= bfp1_l(2) * i1ck(k,N) + bfp1_l( 8)*i2ck(k,N)
-        vec_l(3)= bfp1_l(3) * i1ck(k,N) + bfp1_l( 9)*i2ck(k,N)
-        vec_l(4)= bfp1_l(4) * i1ck(k,N) + bfp1_l(10)*i2ck(k,N)
-        vec_l(5)= bfp1_l(5) * i1ck(k,N) + bfp1_l(11)*i2ck(k,N)
-        vec_l(6)= bfp1_l(6) * i1ck(k,N) + bfp1_l(12)*i2ck(k,N)
-        vec_l(7:12) = 0. ! pad with zeros
-        call set_node_data(fp_transformc,l,vec_l)
-     enddo
-     call finalize(fp_transformc%vec)
-     call m3dc1_field_sum_plane(fp_transformc%vec%id) ! sum vec%datator of size 6 at each (R,Z) node over k
-     
-     ! eq 12: f' sin
-     do icounter_t=1,numnodes
-        l = nodes_owned(icounter_t)
-#ifdef USEST
-        call get_node_data(by_field, l , bfp1_l )! bfp1_l is Z component of field 
-#else
-        call get_node_data(bfp_field(1), l, bfp1_l) ! bfp1_l is f (dimension 12)
-        if(eqsubtract.eq.1) then
-           call get_node_data(bfp_field(0), l, bfp0_l)
-           bfp1_l = bfp1_l + bfp0_l
-        end if
-#endif
-
-        vec_l(1)= bfp1_l(1) * i1sk(k,N) + bfp1_l( 7)*i2sk(k,N)
-        vec_l(2)= bfp1_l(2) * i1sk(k,N) + bfp1_l( 8)*i2sk(k,N)
-        vec_l(3)= bfp1_l(3) * i1sk(k,N) + bfp1_l( 9)*i2sk(k,N)
-        vec_l(4)= bfp1_l(4) * i1sk(k,N) + bfp1_l(10)*i2sk(k,N)
-        vec_l(5)= bfp1_l(5) * i1sk(k,N) + bfp1_l(11)*i2sk(k,N)
-        vec_l(6)= bfp1_l(6) * i1sk(k,N) + bfp1_l(12)*i2sk(k,N)
-        vec_l(7:12) = 0. ! pad with zeros
-        call set_node_data(fp_transforms,l,vec_l)
-     enddo
-     call finalize(fp_transforms%vec)
-     call m3dc1_field_sum_plane(fp_transforms%vec%id) ! sum vec%datator at each (R,Z) node over k
-     
-     
-     !eq 4b: Calculate energy for each Fourier Harminics N
-     
-     bh_N = 0.
-     def_fields = 0
-     numelms = local_elements()
-     
-!!$OMP PARALLEL DO REDUCTION(+:bh_N)
-     do itri=1,numelms
-        call m3dc1_ent_getgeomclass(2, itri-1,izonedim,izone_ind)
-        izone = zone_type(izone_ind)
-
-        if(izone.ne.1) cycle
-
-        call define_element_quadrature(itri, int_pts_diag, int_pts_tor)
-        call define_fields(itri, def_fields, 1, 0)
-        
-!       cosine harmonics
-        call eval_ops(itri,psi_transformc,pst79)
-        call eval_ops(itri,F_transformc,bzt79)
-        call eval_ops(itri,fp_transformc,bfpt79)
-
-#ifdef USEST
-        bh_N = bh_N + int2(pst79(:,OP_1), pst79(:,OP_1))   
-        bh_N = bh_N + int2(bfpt79(:,OP_1), bfpt79(:,OP_1))
-        bh_N = bh_N + int2(bzt79(:,OP_1), bzt79(:,OP_1))
-#else
-        bh_N = bh_N + int3(ri2_79, pst79(:,OP_DR), pst79(:,OP_DR))   &
-                    + int3(ri2_79, pst79(:,OP_DZ), pst79(:,OP_DZ))
-
-        bh_N = bh_N + int3(ri2_79, bzt79(:,OP_1), bzt79(:,OP_1))
-
-        bh_N = bh_N + int2(bfpt79(:,OP_DR), bfpt79(:,OP_DR))   &
-                    + int2(bfpt79(:,OP_DZ), bfpt79(:,OP_DZ))
-        bh_N = bh_N - 2.*int3(ri_79, pst79(:,OP_DR), bfpt79(:,OP_DZ)) &
-                    + 2.*int3(ri_79, pst79(:,OP_DZ), bfpt79(:,OP_DR))
-#endif
-
-!       sine harmonics
-        call eval_ops(itri,psi_transforms,pst79)
-        call eval_ops(itri,F_transforms,bzt79)
-        call eval_ops(itri,fp_transforms,bfpt79)
-
-#ifdef USEST
-        bh_N = bh_N + int2(pst79(:,OP_1), pst79(:,OP_1))   
-        bh_N = bh_N + int2(bfpt79(:,OP_1), bfpt79(:,OP_1))
-        bh_N = bh_N + int2(bzt79(:,OP_1), bzt79(:,OP_1))
-#else
-        bh_N = bh_N + int3(ri2_79,  pst79(:,OP_DR), pst79(:,OP_DR))   &
-                    + int3(ri2_79,  pst79(:,OP_DZ), pst79(:,OP_DZ))
-
-        bh_N = bh_N + int3(ri2_79,  bzt79(:,OP_1), bzt79(:,OP_1))
-
-        bh_N = bh_N + int2(bfpt79(:,OP_DR), bfpt79(:,OP_DR))   &
-                    + int2(bfpt79(:,OP_DZ), bfpt79(:,OP_DZ))
-        bh_N = bh_N - 2.*int3(ri_79, pst79(:,OP_DR), bfpt79(:,OP_DZ)) &
-                    + 2.*int3(ri_79, pst79(:,OP_DZ), bfpt79(:,OP_DR))
-#endif
-
-     end do
-!!$OMP END PARALLEL DO
-
-     call mpi_allreduce(bh_N, bhtotal, 1, MPI_DOUBLE_PRECISION, &
-                        MPI_SUM, mpi_comm_world, ier)
+     bhtotal = bhtot_arr(N)
 
 ! Expand the reduced-sector integral to the full torus.
      if(ifull_torus.eq.0) bhtotal = bhtotal*nperiods
@@ -3091,12 +2976,16 @@ subroutine calculate_bh()
   
   deallocate(i1ck, i1sk, i2ck, i2sk)
 
-  call destroy_field(psi_transformc)
-  call destroy_field(psi_transforms)
-  call destroy_field(F_transformc)
-  call destroy_field(F_transforms)
-  call destroy_field(fp_transformc)
-  call destroy_field(fp_transforms)
+  do N=0,BNMAX
+     call destroy_field(psi_tc(N))
+     call destroy_field(psi_ts(N))
+     call destroy_field(F_tc(N))
+     call destroy_field(F_ts(N))
+     call destroy_field(fp_tc(N))
+     call destroy_field(fp_ts(N))
+  enddo
+  deallocate(psi_tc, psi_ts, F_tc, F_ts, fp_tc, fp_ts)
+  deallocate(bh_arr, bhtot_arr)
 #ifdef USEST
   call destroy_field(bx_field)
   call destroy_field(by_field)
@@ -3165,7 +3054,7 @@ subroutine ke_I1(NMAX, k, N, i1ck, i1sk)
      i1ck = i1ck*nperiods
      i1sk = i1sk*nperiods
   endif
-  
+
 end subroutine ke_I1
 
 
@@ -3227,7 +3116,7 @@ subroutine ke_I2(NMAX, k, N, i2ck, i2sk)
      i2ck = i2ck*nperiods
      i2sk = i2sk*nperiods
   endif
-  
+
 end subroutine ke_I2
 
 
