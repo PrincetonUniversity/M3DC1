@@ -15,7 +15,7 @@ The essential build options are `M3DC1_ENABLE_3D`, `M3DC1_ENABLE_COMPLEX`, `M3DC
 - FFTW
 - NetCDF-C (with MPI support)
 - PUMI (>= 2.2.8, with Zoltan)
-- PETSc (>= 3.19, with MUMPS; add `+complex` for complex number support)
+- PETSc (>= 3.19, with MUMPS and SuperLU_DIST; add `+complex` for complex number support)
 
 ---
 
@@ -35,7 +35,7 @@ spack:
   - fftw %gcc@14.2.0
   - netcdf-c+mpi %gcc@14.2.0
   - pumi@2.2.8+zoltan ^zoltan+parmetis %gcc@14.2.0
-  - petsc ~hypre+mumps %gcc@14.2.0
+  - petsc ~hypre+mumps+superlu-dist %gcc@14.2.0
   # Use petsc +complex if complex number support is needed
 ```
 
@@ -91,6 +91,7 @@ export PETSC_ARCH=cuda
 export PREFIX=/users/yus9/lore.scorec.rpi.edu/issues_test/m3dc1_test
 
 # Build PETSc
+# For complex support, add `--with-scalar-type=complex` to the configure command.
 cd $PETSC_DIR
 ./configure \
   PETSC_ARCH=$PETSC_ARCH \
@@ -100,6 +101,7 @@ cd $PETSC_DIR
   --with-shared-libraries=0 \
   --download-mumps \
   --download-scalapack \
+  --download-superlu_dist \
   --with-openblas-dir="${OPENBLAS_RHEL9_ROOT}"
 make all check
 cd -
@@ -115,6 +117,17 @@ cmake -S hdf5 -B build-hdf5 \
   -DCMAKE_CXX_COMPILER=mpicxx \
   -DCMAKE_C_COMPILER=mpicc
 cmake --build build-hdf5 -j 8 --target install
+
+# Build netcdf
+cmake -S netcdf-c -B build-netcdf \
+  -DCMAKE_INSTALL_PREFIX=$PWD/build-netcdf/install \
+  -DBUILD_SHARED_LIBS=ON \
+  -DHDF5_ROOT=$PWD/build-hdf5/install \
+  -DNETCDF_ENABLE_HDF5=ON \
+  -DNETCDF_ENABLE_DAP=OFF \
+  -DNETCDF_ENABLE_LOGGING=ON \
+  -DNETCDF_ENABLE_LIBXML2=OFF
+cmake --build build-netcdf -j 8 --target install
 
 # Build Zoltan (from Trilinos)
 cmake -S Trilinos -B build-zoltan \
@@ -168,6 +181,7 @@ cmake -S M3DC1 -B build-m3dc1 \
   -DHDF5_ROOT=$PWD/build-hdf5/install \
   -DHDF5_INCLUDE_DIRS=$PWD/build-hdf5/install/include \
   -DHDF5_LIBRARIES=$PWD/build-hdf5/install/lib/libhdf5.so \
+  -DNetCDF_ROOT=$PWD/build-netcdf/install \
   -DM3DC1_ENABLE_3D=OFF \
   -DM3DC1_ENABLE_COMPLEX=OFF \
   -DM3DC1_ENABLE_PARTICLE=OFF \
@@ -208,6 +222,7 @@ cd ..
 
 ```bash
 # Build PETSc
+# For complex support, add `--with-scalar-type=complex` to the configure command.
 cd petsc
 ./configure \
   PETSC_ARCH=cuda \
@@ -215,8 +230,8 @@ cd petsc
   --with-shared-libraries=0 \
   --download-mumps \
   --download-scalapack \
+  --download-superlu_dist \
   --download-openblas=1
-# use --with-scalar-type=complex for complex number support
 make all
 cd ..
 
@@ -231,6 +246,17 @@ cmake -S hdf5 -B build-hdf5 \
   -DCMAKE_CXX_COMPILER=mpicxx \
   -DCMAKE_C_COMPILER=mpicc
 cmake --build build-hdf5 -j 8 --target install
+
+# Build netcdf
+cmake -S netcdf-c -B build-netcdf \
+  -DCMAKE_INSTALL_PREFIX=$PWD/build-netcdf/install \
+  -DBUILD_SHARED_LIBS=ON \
+  -DHDF5_ROOT=$PWD/build-hdf5/install \
+  -DNETCDF_ENABLE_HDF5=ON \
+  -DNETCDF_ENABLE_DAP=OFF \
+  -DNETCDF_ENABLE_LOGGING=ON \
+  -DNETCDF_ENABLE_LIBXML2=OFF
+cmake --build build-netcdf -j 8 --target install
 
 # Build Zoltan (from Trilinos)
 cmake -S Trilinos -B build-zoltan \
@@ -283,6 +309,7 @@ cmake -S M3DC1 -B build-m3dc1 \
   -DHDF5_ROOT=$PWD/build-hdf5/install \
   -DHDF5_INCLUDE_DIRS=$PWD/build-hdf5/install/include \
   -DHDF5_LIBRARIES=$PWD/build-hdf5/install/lib/libhdf5.so \
+  -DNetCDF_ROOT=$PWD/build-netcdf/install \
   -DM3DC1_ENABLE_3D=OFF \
   -DM3DC1_ENABLE_COMPLEX=OFF \
   -DM3DC1_ENABLE_PARTICLE=OFF \
