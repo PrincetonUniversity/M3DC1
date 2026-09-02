@@ -66,9 +66,9 @@ module region
     end subroutine destroy_plane
 
     subroutine create_region_from_file(r, filename, ierr)
+      use mpi
       implicit none
 
-      include 'mpif.h'
 
       type(region_type), intent(inout) :: r
       character(len=*), intent(in) :: filename

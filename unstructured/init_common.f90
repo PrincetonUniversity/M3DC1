@@ -654,6 +654,7 @@ end subroutine kinetic_eq
 #endif     
 
 subroutine nre_eq
+  use mpi
   use basic
   use arrays
   use diagnostics
@@ -664,7 +665,6 @@ subroutine nre_eq
   use pellet
 
   implicit none
-  include 'mpif.h'
 
   type(field_type) :: nre_vec
   integer :: itri, numelms, def_fields

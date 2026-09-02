@@ -1,4 +1,5 @@
 Program m3dc1_skeleton
+  use mpi
   use mesh
   use m3dc1_data
   use matdef
@@ -7,7 +8,6 @@ Program m3dc1_skeleton
 
   implicit none
 
-  include 'mpif.h'
 
   integer :: ierr
   real :: tstart, tend
@@ -146,12 +146,12 @@ end subroutine rotation
   ! populates the *tri arrays
   !============================================================
   subroutine tridef
+    use mpi
     use math
     use mesh
 
     implicit none
 
-    include 'mpif.h'
   
     type(element_data) :: d
     integer :: itri, i, j, k, ii, jj, numelms, numnodes, ndofs

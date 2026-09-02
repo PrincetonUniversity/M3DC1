@@ -1,102 +1,44 @@
-cmake_minimum_required(VERSION 3.8)
+cmake_minimum_required(VERSION 3.15)
 project(m3dc1 LANGUAGES Fortran C CXX)
 
-# macro(checkSetParam varName isRequired)
-#   if("${${varName}}" STREQUAL "") # if varName is empty
-#     set(${varName} $ENV{${varName}})
-#     if(("${${varName}}" STREQUAL "") AND ${isRequired}) # if ENV{varName} is empty also
-#       message(FATAL_ERROR
-#         "${varName} is not defined or in the environment, please specify ${varName}")
-#     endif()
-#   endif()
-# endmacro(checkSetParam varName)
+if(NOT CMAKE_BUILD_TYPE)
+  set(CMAKE_BUILD_TYPE Release CACHE STRING "Choose the type of build." FORCE)
+endif()
 
-option(ENABLE_OPENMP "Enable OpenMP support" OFF)
-option(ENABLE_COMPLEX "Build complex version" OFF)
-option(ENABLE_3D "Build 3D version" OFF)
-option(ENABLE_ST "Build stellarator version " OFF)
-option(ENABLE_PARTICLE "Enable kinetic particle module" OFF)
+option(M3DC1_ENABLE_OPENMP "Enable OpenMP support" OFF)
+if(M3DC1_ENABLE_OPENMP)
+  find_package(OpenMP REQUIRED COMPONENTS Fortran)
+endif()
+option(M3DC1_ENABLE_COMPLEX "Build complex version" OFF)
+option(M3DC1_ENABLE_3D "Build 3D version" OFF)
+option(M3DC1_ENABLE_ST "Build stellarator version " OFF)
+option(M3DC1_ENABLE_PARTICLE "Enable kinetic particle module" OFF)
+option(M3DC1_ENABLE_GPU "Use GPU/OpenACC Fortran kernels" OFF)
+option(M3DC1_ENABLE_ADAS "Enable ADAS radiation data support" OFF)
+option(M3DC1_ENABLE_TRILINOS "Enable Trilinos support" OFF)
+option(M3DC1_ENABLE_PSPLINE "Enable PSPLINE support for readgato/read_jsolver" OFF)
+option(M3DC1_DOWNLOAD_ADAS_DATA "Download OpenADAS ADF11 data as part of the default build" OFF)
+set(M3DC1_ADAS_DATA_DIR "${CMAKE_BINARY_DIR}/adas/adf11"
+  CACHE PATH "Path to OpenADAS ADF11 data directory")
 
 cmake_host_system_information(RESULT HOST QUERY HOSTNAME)
 message(STATUS "Configuring to build on: ${HOST}")
 
-# # rhel/centos place x86-64 libs in lib64 instead of lib
-# # this *shouldn't* effect searching the lib directory
-# # first on other distros where the default install location
-# # is lib instead of lib64 (like debian derivatives)
-# set_property(GLOBAL PROPERTY FIND_LIBRARY_USE_LIB64_PATHS TRUE)
 
-# prefer static libraries unless we explicitly specify no to
-# set(CMAKE_FIND_LIBRARY_SUFFIXES ".a" ".so")
-# if(BUILD_SHARED_LIBS)
-#   set(CMAKE_FIND_LIBRARY_SUFFIXES ".so" ".a")
-# endif()
+list(APPEND CMAKE_MODULE_PATH "${CMAKE_CURRENT_LIST_DIR}/cmake"
+                              "${CMAKE_CURRENT_LIST_DIR}/m3dc1_scorec/cmake")
+find_package(PETSc REQUIRED)
 
-# set the build type logically
- # default is Debug if .git directory exists
- # otherwise default is Release
-# list(APPEND CMAKE_MODULE_PATH "${CMAKE_CURRENT_SOURCE_DIR}/cmake")
-# include(BuildType)
+# Automatically set exe linker flags from PETSc pkg-config data.
+# Construct -L<dir> flags from PETSC_LIBRARY_DIRS.
+string(REPLACE ";" " -L" _m3dc1_petsc_libdirs_flags "${PETSC_LIBRARY_DIRS}")
+if(_m3dc1_petsc_libdirs_flags)
+  set(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} -L${_m3dc1_petsc_libdirs_flags}")
+endif()
+# Append PETSc's extra LDFLAGS (which include rpath from pkg-config).
+if(PETSC_LDFLAGS_OTHER)
+  set(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} ${PETSC_LDFLAGS_OTHER}")
+endif()
 
-# # add C++ compiler flags
-# if("${CMAKE_CXX_COMPILER_ID}" STREQUAL "Cray")
-#   # todo :  set cray-specific cxx flags
-#   set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS}")
-# elseif("${CMAKE_CXX_COMPILER_ID}" STREQUAL "XL")
-#   # todo :  check for regular xl vs bg/q xl compiler
-#   #         currently assuming bg/q
-#   set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -qflag=w -glanglvl=extended0x")
-# elseif("${CMAKE_CXX_COMPILER_ID}" STREQUAL "Intel")
-#   # todo :  set intel-specific cxx flags
-#   set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS}")
-# elseif("${CMAKE_CXX_COMPILER_ID}" STREQUAL "GNU")
-#   # todo :  version checks to see which c++ standards are available
-#   #         and warn/error if the version is incompatible
-#   set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++0x -Wall -Wextra")
-# elseif("${CMAKE_CXX_COMPILER_ID}" STREQUAL "Clang")
-#   # todo :  version checks to see which c++ standards are available
-#   #         and warn/error if the version is incompatible
-#   set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++1z -Wall -Wextra")
-# endif()
-
-# # add C compiler flags
-# if("${CMAKE_C_COMPILER_ID}" STREQUAL "Cray")
-#   # todo :  set cray-specific c flags
-#   set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS}")
-# elseif("${CMAKE_C_COMPILER_ID}" STREQUAL "XL")
-#   # todo :  set xl-specific c flags
-#   set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS}")
-# elseif("${CMAKE_C_COMPILER_ID}" STREQUAL "Intel")
-#   # todo :  set intel-specific c flags
-#   set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS}")
-# elseif("${CMAKE_C_COMPILER_ID}" STREQUAL "GNU")
-#   # todo :  version checks to see which c standards are available
-#   #         and warn/error if the version is incompatible
-#   set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -Wall -Wextra")
-# elseif("${CMAKE_CXX_COMPILER_ID}" STREQUAL "Clang")
-#   # todo :  version checks to see which c++ standards are available
-#   #         and warn/error if the version is incompatible
-#   set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -Wall -Wextra")
-# endif()
-
-# # add Fortran compiler flags
-# if("${CMAKE_Fortran_COMPILER_ID}" STREQUAL "Cray")
-#   # todo : set cray-specific fortran flags
-#   set(CMAKE_Fortran_FLAGS "${CMAKE_Fortran_FLAGS}")
-# elseif("${CMAKE_Fortran_COMPILER_ID}" STREQUAL "XL")
-#   # todo : set xl-specific fortran flags
-#   set(CMAKE_Fortran_FLAGS "${CMAKE_Fortran_FLAGS}")
-# elseif("${CMAKE_Fortran_COMPILER_ID}" STREQUAL "Intel")
-#   # todo : set intel-specific fortran flags
-#   set(CMAKE_Fortran_FLAGS "${CMAKE_Fortran_FLAGS} -g noarg_temp_created")
-# elseif("${CMAKE_Fortran_COMPILER_ID}" STREQUAL "GNU")
-#   set(CMAKE_Fortran_FLAGS "${CMAKE_Fortran_FLAGS} -fdefault-real-8 -Wall -cpp")
-# elseif("${CMAKE_Fortran_COMPILER_ID}" STREQUAL "Clang")
-#   set(CMAKE_Fortran_FLAGS "${CMAKE_Fortran_FLAGS} -fdefault-real-8 -Wall -cpp")
-# endif()
-
-message(STATUS "Configuring m3dc1_scorec")
-add_subdirectory(m3dc1_scorec EXCLUDE_FROM_ALL)
-message(STATUS "Configuring unstructured")
+add_subdirectory(m3dc1_scorec)
 add_subdirectory(unstructured)
-

@@ -30,12 +30,12 @@ contains
   ! hdf5_initialize
   ! ===============
   subroutine hdf5_initialize(restart, error)
+    use mpi
     use hdf5
     use basic
 
     implicit none
 
-    include 'mpif.h'
 
     logical, intent(in) :: restart     ! if true, do not overwrite file
     integer, intent(out) :: error

@@ -2,7 +2,7 @@ module petsc_vector_mod
 
   implicit none
 
-#include "finclude/petscvecdef.h"
+!#include <petsc/finclude/petscvecdef.h>
 
   type :: petsc_vector
      Vec :: vec
@@ -132,7 +132,7 @@ contains
   subroutine petsc_vector_create(v,n)
     use mesh_mod
     implicit none
-#include "finclude/petsc.h"
+!#include <petsc/finclude/petsc.h>
 
     type(petsc_vector), intent(inout) :: v
     integer, intent(in) :: n
@@ -183,7 +183,7 @@ contains
   subroutine petsc_vector_copy(vout,vin)
     use mesh_mod
     implicit none
-#include "finclude/petscvec.h"
+!#include <petsc/finclude/petscvec.h>
 
     type(petsc_vector), intent(inout) :: vout    
     type(petsc_vector), intent(in) :: vin
@@ -223,7 +223,7 @@ contains
   !======================================================================
   subroutine petsc_vector_const_real(v,s)
     implicit none
-#include "finclude/petscvec.h"
+!#include <petsc/finclude/petscvec.h>
 
     type(petsc_vector), intent(inout) :: v
     real, intent(in) :: s
@@ -244,7 +244,7 @@ contains
   subroutine petsc_vector_add(vout,vin)
     use mesh_mod
     implicit none
-#include "finclude/petscvec.h"
+!#include <petsc/finclude/petscvec.h>
     type(petsc_vector), intent(inout) :: vout    
     type(petsc_vector), intent(in) :: vin
     
@@ -284,7 +284,7 @@ contains
   !======================================================================
   subroutine petsc_vector_multiply_real(v, s)
     implicit none
-#include "finclude/petscvec.h"
+!#include <petsc/finclude/petscvec.h>
     type(petsc_vector), intent(inout) :: v
     real, intent(in) :: s
     integer :: ierr
@@ -319,7 +319,7 @@ contains
   !======================================================================
   subroutine petsc_vector_insert_real(v, i, s, iop)
     implicit none
-#include "finclude/petscvec.h"
+!#include <petsc/finclude/petscvec.h>
     
     type(petsc_vector), intent(inout) :: v
     real, intent(in) :: s
@@ -346,7 +346,7 @@ contains
 #ifdef USECOMPLEX
   subroutine petsc_vector_insert_complex(v, i, s, iop)
     implicit none
-#include "finclude/petscvec.h"
+!#include <petsc/finclude/petscvec.h>
     
     type(petsc_vector), intent(inout) :: v
     complex, intent(in) :: s
@@ -374,7 +374,7 @@ contains
 
   subroutine petsc_vector_sum_shared(v)
     implicit none
-#include "finclude/petscvec.h"
+!#include <petsc/finclude/petscvec.h>
 
     type(petsc_vector), intent(inout) :: v
     integer :: ierr
@@ -391,7 +391,7 @@ contains
 
   subroutine petsc_vector_finalize(v)
     implicit none
-#include "finclude/petscvec.h"
+!#include <petsc/finclude/petscvec.h>
 
     type(petsc_vector), intent(inout) :: v
     integer :: ierr
@@ -471,7 +471,7 @@ contains
 
   logical function petsc_vector_is_nan(v)
     implicit none
-#include "finclude/petsc.h"
+!#include <petsc/finclude/petsc.h>
     type(petsc_vector), intent(in) :: v
     integer :: ierr
     PetscScalar :: y(1)
@@ -489,7 +489,7 @@ contains
     use element
     use mesh_mod
     implicit none
-#include "finclude/petsc.h"
+!#include <petsc/finclude/petsc.h>
 
     type(petsc_vector), intent(in) :: v
     integer, intent(in) :: inode, iplace
@@ -546,7 +546,7 @@ contains
     use element
     use mesh_mod
     implicit none
-#include "finclude/petsc.h"
+!#include <petsc/finclude/petsc.h>
     type(petsc_vector), intent(in) :: v
     integer, intent(in) :: inode, iplace
     complex, intent(out), dimension(dofs_per_node) :: data
@@ -600,7 +600,7 @@ contains
     use element
     use mesh_mod
     implicit none
-#include "finclude/petscvec.h"
+!#include <petsc/finclude/petscvec.h>
     type(petsc_vector), intent(inout) :: v
     integer, intent(in) :: inode, iplace
     real, intent(in), dimension(dofs_per_node) :: data
@@ -649,7 +649,7 @@ contains
     use element
     use mesh_mod
     implicit none
-#include "finclude/petscvec.h"
+!#include <petsc/finclude/petscvec.h>
     type(petsc_vector), intent(inout) :: v
     integer, intent(in) :: inode, iplace
     complex, intent(in), dimension(dofs_per_node) :: data
@@ -738,7 +738,7 @@ contains
 
   subroutine petsc_vector_write(v, file)
     implicit none
-#include "finclude/petsc.h"    
+!#include <petsc/finclude/petsc.h>    
     type(vector_type), intent(in) :: v
     character(len=*) :: file
 

@@ -327,13 +327,13 @@ end subroutine scaleback
 
 
 subroutine variable_timestep
+  use mpi
 
   use basic
   use arrays
   use diagnostics
 
   implicit none
-  include 'mpif.h'
   integer :: ierr
 
 #ifdef USE3D

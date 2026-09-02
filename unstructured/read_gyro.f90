@@ -37,10 +37,10 @@ module gyro
 contains
 
   subroutine load_gyro(ierr)
+    use mpi
 
     implicit none
 
-    include 'mpif.h'
 
     integer, intent(out) :: ierr
 

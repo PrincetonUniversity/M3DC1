@@ -1,6 +1,7 @@
 module scorec_matrix_mod
 
   use element
+  use mpi
 
   implicit none
 
@@ -187,16 +188,8 @@ contains
 
 #ifndef M3DC1_TRILINOS
 
-#if PETSC_VERSION >= 38
     use petsc
     implicit none
-#elif PETSC_VERSION >= 36
-    implicit none
-#include "petsc/finclude/petsc.h"
-#else
-    implicit none
-#include "finclude/petsc.h"
-#endif
 
 #endif
 
@@ -444,16 +437,8 @@ contains
   subroutine scorec_matrix_solve(mat, v, ierr)
     use vector_mod
 
-#if PETSC_VERSION >= 38
     use petsc
     implicit none
-#elif PETSC_VERSION >= 36
-    implicit none
-#include "petsc/finclude/petsc.h"
-#else
-    implicit none
-#include "finclude/petsc.h"
-#endif
     
     type(scorec_matrix), intent(in) :: mat
     type(vector_type), intent(inout) :: v
@@ -498,16 +483,8 @@ contains
 
   subroutine scorec_matrix_solve_with_guess(mat, v, x_guess, ierr)
    use vector_mod
-#if PETSC_VERSION >= 38
    use petsc
    implicit none
-#elif PETSC_VERSION >= 36
-   implicit none
-#include "petsc/finclude/petsc.h"
-#else
-   implicit none
-#include "finclude/petsc.h"
-#endif
    
    type(scorec_matrix), intent(in) :: mat
    type(vector_type), intent(inout) :: v, x_guess

@@ -1,535 +1,399 @@
-cmake_minimum_required(VERSION 3.12)
+set(M3DC1_MESH_MOD "scorec_mesh_mod" CACHE STRING
+  "Mesh module name")
+set(M3DC1_VECTOR_MOD "scorec_vector_mod" CACHE STRING
+  "Vector module name")
+set(M3DC1_MATRIX_MOD "scorec_matrix_mod" CACHE STRING
+  "Matrix module name")
+set(M3DC1_VECTOR_TYPE "scorec_vector" CACHE STRING
+  "Vector derived-type name")
+set(M3DC1_MATRIX_TYPE "scorec_matrix" CACHE STRING
+  "Matrix derived-type name")
 
-# set(CMAKE_DISABLE_SOURCE_CHANGES ON)
-# set(CMAKE_DISABLE_IN_SOURCE_BUILD ON)
+message(STATUS "M3DC1 mesh   backend : ${M3DC1_MESH_MOD}")
+message(STATUS "M3DC1 vector backend : ${M3DC1_VECTOR_MOD}  (type = ${M3DC1_VECTOR_TYPE})")
+message(STATUS "M3DC1 matrix backend : ${M3DC1_MATRIX_MOD}  (type = ${M3DC1_MATRIX_TYPE})")
 
-project(m3dc1_unstructured LANGUAGES Fortran C CXX)
 
+set(M3DC1_LIBRARY_SOURCES
+  adapt.f90
+  auxiliary_fields.f90
+  biharmonic.f90
+  bootstrap.f90
+  boundary.f90
+  coil_sets.f90
+  coils.f90
+  control.f90
+  diagnostics.f90
+  electric_field.f90
+  electrostatic_potential.f90
+  element.f90
+  error_estimate.f90
+  field.f90
+  fit_magnetics.f90
+  fftw_fortran.c
+  geometry.f90
+  get_pc_skip_count.f90
+  gsl_wrapper.c
+  gradshafranov.f90
+  gyroviscosity.f90
+  harned_mikic.f90
+  hdf5_output.f90
+  hypervisc.f90
+  init_3ddiffusion.f90
+  init_3dwave.f90
+  init_basicj.f90
+  init_basicq.f90
+  init_circle.f90
+  init_common.f90
+  init_conds.f90
+  init_cyl.f90
+  init_dskbal.f90
+  init_eigen.f90
+  init_eqdsk.f90
+  init_force_free.f90
+  init_frs.f90
+  init_ftz.f90
+  init_gem.f90
+  init_gmode.f90
+  init_intkink.f90
+  init_jsolver.f90
+  read_jsolver.f90
+  readaeqdsk.f90
+  init_kstar.f90
+  init_lz.f90
+  init_mri.f90
+  init_rotating_cylinder.f90
+  init_rwm.f90
+  init_solovev.f90
+  init_strauss.f90
+  init_taylor.f90
+  init_tilt.f90
+  init_vmec.f90
+  init_wave.f90
+  input.f90
+  interpolate.f90
+  iterdb.f90
+  kprad_m3dc1.f90
+  kprad.f90
+  ludef_t.f90
+  m3dc1_nint.f90
+  M3Dmodules.f90
+  math.f90
+  metricterms_new.f90
+  model.f90
+  neutral_beam.f90
+  newvar.f90
+  newpar.f90
+  nintegrate_mod.f90
+  output.f90
+  parallel_heat_flux.f90
+  parse_solver_options.c
+  particle.f90
+  pellet.f90
+  physical_mesh.f90
+  polar.f90
+  radiation.f90
+  random.c
+  read_ascii.f90
+  read_dskbal.f90
+  read_gyro.f90
+  read_neo.f90
+  read_namelist.cpp
+  read_schaffer_field.f90
+  read_vmec.f90
+  readgeqdsk.f90
+  region.f90
+  resistive_wall.f90
+  restart_hdf5.f90
+  rmp.f90
+  runaway_advection.f90
+  runaway.f90
+  scorec_adapt.f90
+  signal_handler.f90
+  spline.f90
+  temperature_plots.f90
+  time_step_split.f90
+  time_step_unsplit.f90
+  time_step.f90
+  transport.f90
+  two_fluid.f90
+  wall.f90
+  mesh_mod.F90
+  vector_mod.F90
+  matrix_mod.F90
+)
 
-if("${PROJECT_SOURCE_DIR}" STREQUAL "${PROJECT_BINARY_DIR}")
-   message(SEND_ERROR "In-source builds are not allowed.")
-endif("${PROJECT_SOURCE_DIR}" STREQUAL "${PROJECT_BINARY_DIR}")
-
-# enable_language(Fortran)
-
-list(APPEND CMAKE_MODULE_PATH "${CMAKE_CURRENT_SOURCE_DIR}/cmake")
-
-if(NOT CMAKE_BUILD_TYPE)
-  set(CMAKE_BUILD_TYPE Release CACHE STRING "Choose the type of build." FORCE)
-endif()
-
-# set(CMAKE_CXX_FLAGS "-Wall -Wextra")
-# set(CMAKE_CXX_FLAGS_DEBUG "-g")
-# set(CMAKE_CXX_FLAGS_RELEASE "-O3")
-
-set(CMAKE_Fortran_PREPROCESS "ON")
-
-# option(BUILD_SHARED_LIBS "Build using shared libraries" OFF)
-
-set(SOURCES
-    scorec_mesh.f90
-    scorec_vector.f90
-    scorec_matrix.f90
-    scorec_adapt.f90
-    # PETScInterface.cpp
-    physical_mesh.f90
-    read_vmec.f90
-    fftw_fortran.c
-    read_namelist.cpp
-    gsl_wrapper.c
-    # random.c
-    spline.f90
-    kprad.f90
-    math.f90
-    read_ascii.f90
-    interpolate.f90
-    control.f90
-    iterdb.f90
-    read_gyro.f90
-    read_neo.f90
-    region.f90
-    signal_handler.f90
-    radiation.f90
-    element.f90
-    field.f90
-    nintegrate_mod.f90
-    M3Dmodules.f90
-    resistive_wall.f90
-    m3dc1_nint.f90
-    boundary.f90
-    gyroviscosity.f90
-    bootstrap.f90
-    metricterms_new.f90
-    # metricterms_new_gpu.f90
-    two_fluid.f90
-    harned_mikic.f90
-    biharmonic.f90
-    electric_field.f90
-    pellet.f90
-    parallel_heat_flux.f90
-    temperature_plots.f90
-    electrostatic_potential.f90
-    newvar.f90
-    runaway.f90
-    diagnostics.f90
-    read_schaffer_field.f90
-    neutral_beam.f90
-    coils.f90
-    coil_sets.f90
-    model.f90
-    fit_magnetics.f90
-    wall.f90
-    init_common.f90
-    gradshafranov.f90
-    rmp.f90
-    kprad_m3dc1.f90
-    readgeqdsk.f90
-    read_jsolver.f90
-    read_dskbal.f90
-    init_cyl.f90
-    init_rwm.f90
-    init_solovev.f90
-    init_circle.f90
-    init_basicj.f90
-    init_tilt.f90
-    init_taylor.f90
-    init_force_free.f90
-    init_gem.f90
-    init_wave.f90
-    init_gmode.f90
-    init_strauss.f90
-    init_mri.f90
-    init_rotating_cylinder.f90
-    init_eqdsk.f90
-    init_dskbal.f90
-    init_jsolver.f90
-    init_3dwave.f90
-    init_3ddiffusion.f90
-    init_frs.f90
-    init_ftz.f90
-    init_eigen.f90
-    init_intkink.f90
-    init_lz.f90
-    init_kstar.f90
-    init_basicq.f90
-    init_vmec.f90
-    transport.f90
-    auxiliary_fields.f90
-    runaway_advection.f90
-    time_step_split.f90
-    time_step_unsplit.f90
-    hdf5_output.f90
-    particle.f90
-    time_step.f90
-    output.f90
-    restart_hdf5.f90
-    error_estimate.f90
-    adapt.f90
-    input.f90
-    ludef_t.f90
-    # ludef_t_gpu.f90
-    init_conds.f90
-    # get_pc_skip_count.f90
-    hypervisc.f90
-    geometry.f90
-    newpar.f90
-    )
-
-set(BIN_NAME m3dc1)
-
-# find_package(PETSc)
-# if(PETSC_FOUND AND USEPETSC)
-#   set(PETSC_SOURCES
-#       basic_mesh.f90
-#       petsc_vector.f90
-#       petsc_matrix.f90)
-#   set(SOURCES "${SOURCES};${PETSC_SOURCES}")
-#   list(APPEND DEFS -DUSEPETSC -Dmesh_mod=basic_mesh_mod -Dvector_mod=petsc_vector_mod -Dmatrix_mod=petsc_matrix_mod)
-#   set(POSTFIX "${POSTFIX}-petsc")
-# elseif(PETSC_FOUND)
-#   include(${CMAKE_SOURCE_DIR}/cmake/petsc.cmake)
-#   petsc_get_version()
-#   message(STATUS "Petsc version detected as : ${PETSC_VERSION}")
-#   list(APPEND DEFS -DPETSC_FORTRAN_PETSCTRUTH_INT -DPETSC_VERSION=${PETSC_VERSION})
-# endif()
-find_package(PkgConfig REQUIRED)
-# list(APPEND PKG_CONFIG_EXECUTABLE "--static")
-
-# pkg_check_modules (PETSC REQUIRED PETSc)
-pkg_search_module(PETSC PETSc IMPORTED_TARGET REQUIRED)
-message(STATUS "PETSc version: ${PETSC_VERSION}")
-message(STATUS "PETSc prefix: ${PETSC_PREFIX}")
-message(STATUS "PETSc include dirs: ${PETSC_INCLUDE_DIRS}")
-message(STATUS "PETSc library dirs: ${PETSC_LIBRARY_DIRS}")
-
-# foreach(ITR ${PETSC_LINK_LIBRARIES})
-#     if(ITR MATCHES "liblapack\.a")
-#       set(LAPACK_LIBRARY ${ITR})
-#     endif()
-# endforeach()
-# list(FILTER PETSC_LINK_LIBRARIES EXCLUDE REGEX "liblapack\.a")
-# foreach(ITR ${PETSC_LINK_LIBRARIES})
-#     if(ITR MATCHES "libblas\.a")
-#       list(FIND PETSC_LINK_LIBRARIES ${ITR} IDX)
-#     endif()
-# endforeach()
-# list(INSERT PETSC_LINK_LIBRARIES ${IDX} ${LAPACK_LIBRARY})
-# message(STATUS "Found PETSc ${PETSC_STATIC_LIBRARIES}")
-set(PETSC_LINK_LIBRARIES "")
-set(PETSC_LINK_OPTIONS "")
-set(_petsc_search_paths "")
- # message(STATUS "Found PETSc ${PETSC_LINK_LIBRARIES}")
-message(STATUS "PETSc static link flags from pkg-config: ${PETSC_STATIC_LDFLAGS}")
-# list(FIND PETSC_STATIC_LDFLAGS "-lmetis" _index)
-# math(EXPR _index "${_index}+1")
-# message(STATUS "Found PETSc ${_index}")
-# list(SUBLIST PETSC_STATIC_LDFLAGS 0 ${_index} PETSC_STATIC_LDFLAGS_MODIFIED)
-# message(STATUS "Found PETSc ${PETSC_STATIC_LDFLAGS_MODIFIED}")
-
-# if(ENABLE_STATIC)
-#   set(STATIC_LIST lapack blas)
-# endif()
-foreach (flag IN LISTS PETSC_STATIC_LDFLAGS)
-  if (flag MATCHES "^-L(.*)")
-    list(APPEND _petsc_search_paths "${CMAKE_MATCH_1}")
-    continue()
-  endif()
-
-  if (flag MATCHES "^-l(.*)")
-    set(_pkg_search "${CMAKE_MATCH_1}")
-
-    # if (${_pkg_search} IN_LIST STATIC_LIST)
-    #   message(STATUS "Found PETSc ${_pkg_search}")
-    #   set(_pkg_search "lib${_pkg_search}.a")
-    # endif()
-
-    if(_petsc_search_paths)
-      # Firstly search in -L paths
-      find_library(pkgcfg_lib_PETSC_${_pkg_search}
-                   NAMES ${_pkg_search}
-                   HINTS ${_petsc_search_paths} NO_DEFAULT_PATH)
-    endif()
-    find_library(pkgcfg_lib_PETSC_${_pkg_search}
-                 NAMES ${_pkg_search})
-    if(pkgcfg_lib_PETSC_${_pkg_search})
-      list(APPEND PETSC_LINK_LIBRARIES "${pkgcfg_lib_PETSC_${_pkg_search}}")
-    else()
-      list(APPEND PETSC_LINK_LIBRARIES ${_pkg_search})
-    endif()
-  elseif(flag MATCHES "^/.+\\.(a|so|dylib)$")
-    list(APPEND PETSC_LINK_LIBRARIES "${flag}")
-  elseif(flag MATCHES "^-")
-    list(APPEND PETSC_LINK_OPTIONS "${flag}")
-  else()
-    list(APPEND PETSC_LINK_LIBRARIES "${flag}")
-  endif()
-endforeach()
-# message(STATUS "Found PETSc ${PETSC_LIBRARIES}")
-message(STATUS "PETSc link libraries: ${PETSC_LINK_LIBRARIES}")
-message(STATUS "PETSc link options: ${PETSC_LINK_OPTIONS}")
-# list(TRANSFORM PETSC_LINK_LIBRARIES REPLACE "libpthread\.a" "libpthread.so")
-# list(FILTER PETSC_LINK_LIBRARIES EXCLUDE REGEX "libpthread")
-list(FILTER PETSC_LINK_LIBRARIES EXCLUDE REGEX "libcuda\.so")
-# list(FILTER PETSC_LINK_LIBRARIES EXCLUDE REGEX "libsci_cray\.a")
-list(REMOVE_DUPLICATES PETSC_LINK_LIBRARIES)
-list(REMOVE_DUPLICATES PETSC_LINK_OPTIONS)
-set_property(TARGET PkgConfig::PETSC PROPERTY
-  INTERFACE_LINK_LIBRARIES "${PETSC_LINK_LIBRARIES}")
-if(PETSC_LINK_OPTIONS)
-  set_property(TARGET PkgConfig::PETSC PROPERTY
-    INTERFACE_LINK_OPTIONS "${PETSC_LINK_OPTIONS}")
-endif()
-
-pkg_search_module(FFTW fftw3 IMPORTED_TARGET REQUIRED)
-message(STATUS "Found fftw3 ${FFTW_LINK_LIBRARIES}")
-
-pkg_search_module(GSL gsl IMPORTED_TARGET REQUIRED)
-# list(FILTER GSL_LINK_LIBRARIES EXCLUDE REGEX "libm")
-# list(TRANSFORM GSL_LINK_LIBRARIES REPLACE "libm\.a" "libm.so")
-message(STATUS "Found gsl ${GSL_LINK_LIBRARIES}")
-# set_property(TARGET PkgConfig::GSL PROPERTY
-#   INTERFACE_LINK_LIBRARIES "${GSL_LINK_LIBRARIES}")
-
-#find_package(TRILINOS)
-# if(TRILINOS_FOUND AND USETRILINOS)
-#   list(APPEND DEFS -DM3DC1_TRILINOS)
-#   set(POSTFIX "${POSTFIX}-trilinos")
-# endif()
-
-find_package(Zoltan REQUIRED)
-find_package(Scorec REQUIRED)
-# if(SCOREC_FOUND AND USESCOREC)
-#   if(TRILINOS_FOUND AND USETRILINOS)
-#     set(SCOREC_SOURCES
-#         scorec_mesh.f90
-#         scorec_vector.f90
-#         scorec_matrix.f90)
-#   endif()
-#   if(PETSC_FOUND AND USESCOREC)
-#     set(SCOREC_SOURCES
-#         scorec_mesh.f90
-#         scorec_vector.f90
-#         scorec_matrix.f90
-#         PETScInterface.cpp)
-#   endif()
-#   set(SOURCES "${SOURCES};${SCOREC_SOURCES}")
-#   list(APPEND DEFS -DUSESCOREC -Dmesh_mod=scorec_mesh_mod -Dvector_mod=scorec_vector_mod -Dmatrix_mod=scorec_matrix_mod -Dmatrix_type=scorec_matrix -Dvector_type=scorec_vector)
-#   if(USERW)
-#     list(APPEND DEFS -DUSERW)
-#     set(POSTFIX "${POSTFIX}-rw")
-#   else()
-#     list(APPEND DEFS -Dglobalinsertval=insertval -Dglobalentdofs=entdofs)
-#   endif()
-# endif()
-
-# if(MATRIX_DUMP)
-#   list(APPEND DEFS -DMATRIX_DUMP)
-# endif()
-
-#find_package(PARMETIS)
-#find_package(METIS)
-
-find_package(ZLIB)
-set(HDF5_PREFER_PARALLEL ON)
-find_package(HDF5 REQUIRED COMPONENTS Fortran HL)
-if (HDF5_HL_LIBRARIES MATCHES "libhdf5_hl_fortran\.a")
-  set(HDF5_USE_STATIC_LIBRARIES TRUE)
-  find_package(HDF5 REQUIRED COMPONENTS Fortran HL)
-endif()
-if (HDF5_FOUND)
-    message(STATUS "HDF5 version: ${HDF5_VERSION}")
-else ()
-    message(FATAL_ERROR "HDF5 not found.")
-endif ()
-message(STATUS "HDF5_IS_PARALLEL = ${HDF5_IS_PARALLEL}")
-message(STATUS "HDF5_INCLUDE_DIRS = ${HDF5_INCLUDE_DIRS}")
-message(STATUS "HDF5_LIBRARIES = ${HDF5_LIBRARIES}")
-
-find_package(netCDF
-  HINTS ${CMAKE_PREFIX_PATH}
-  PATHS /usr /usr/local
-  PATH_SUFFIXES
-    cmake/netCDF_mpi
-    lib/cmake/netCDF_mpi
-    lib64/cmake/netCDF_mpi
-    lib/${CMAKE_LIBRARY_ARCHITECTURE}/cmake/netCDF_mpi
-  NO_DEFAULT_PATH)
-if(NOT netCDF_FOUND)
-  find_package(netCDF)
-endif()
-if(netCDF_FOUND)
-  if(TARGET netCDF::netcdf)
-    set(M3DC1_NETCDF_TARGET netCDF::netcdf)
-    get_target_property(M3DC1_NETCDF_INTERFACE_LINK_LIBRARIES netCDF::netcdf INTERFACE_LINK_LIBRARIES)
-  else()
-    set(M3DC1_NETCDF_TARGET ${netCDF_LIBRARIES})
-    set(M3DC1_NETCDF_INTERFACE_LINK_LIBRARIES ${netCDF_LIBRARIES})
-  endif()
-  message(STATUS "Found NetCDF CMake config: ${netCDF_DIR}")
-  message(STATUS "Found NetCDF ${NetCDFVersion}")
-  message(STATUS "NetCDF include dirs: ${netCDF_INCLUDE_DIR}")
-  message(STATUS "NetCDF libraries: ${M3DC1_NETCDF_TARGET}")
-  message(STATUS "NetCDF interface link libraries: ${M3DC1_NETCDF_INTERFACE_LINK_LIBRARIES}")
+if(M3DC1_MESH_MOD STREQUAL "scorec_mesh_mod")
+  list(APPEND M3DC1_LIBRARY_SOURCES scorec_mesh.f90)
+  set(M3DC1_MESH_DEFINE M3DC1_MESH_IS_SCOREC)
+elseif(M3DC1_MESH_MOD STREQUAL "basic_mesh_mod")
+  list(APPEND M3DC1_LIBRARY_SOURCES basic_mesh.f90)
+  set(M3DC1_MESH_DEFINE M3DC1_MESH_IS_BASIC)
 else()
-  pkg_search_module(NETCDF netcdf-mpi netcdf IMPORTED_TARGET REQUIRED)
-  set(M3DC1_NETCDF_TARGET PkgConfig::NETCDF)
-  message(STATUS "Found NetCDF ${NETCDF_VERSION}")
-  message(STATUS "Found NetCDF module: ${NETCDF_MODULE_NAME}")
-  message(STATUS "NetCDF include dirs: ${NETCDF_INCLUDE_DIRS}")
-  message(STATUS "NetCDF libraries: ${NETCDF_LINK_LIBRARIES}")
+  message(FATAL_ERROR "Unknown M3DC1_MESH_MOD=${M3DC1_MESH_MOD}")
 endif()
 
-pkg_search_module(NETCDF-Fortran netcdf-fortran IMPORTED_TARGET REQUIRED)
-set(M3DC1_NETCDF_FORTRAN_TARGET PkgConfig::NETCDF-Fortran)
-message(STATUS "Found NetCDF-Fortran ${NETCDF-Fortran_VERSION}")
-message(STATUS "Found NetCDF-Fortran module: ${NETCDF-Fortran_MODULE_NAME}")
-message(STATUS "NetCDF-Fortran include dirs: ${NETCDF-Fortran_INCLUDE_DIRS}")
-message(STATUS "NetCDF-Fortran libraries: ${NETCDF-Fortran_LINK_LIBRARIES}")
+if(M3DC1_VECTOR_MOD STREQUAL "scorec_vector_mod")
+  list(APPEND M3DC1_LIBRARY_SOURCES scorec_vector.f90)
+  set(M3DC1_VECTOR_DEFINE M3DC1_VECTOR_IS_SCOREC)
+elseif(M3DC1_VECTOR_MOD STREQUAL "petsc_vector_mod")
+  list(APPEND M3DC1_LIBRARY_SOURCES petsc_vector.f90)
+  set(M3DC1_VECTOR_DEFINE M3DC1_VECTOR_IS_PETSC)
+else()
+  message(FATAL_ERROR "Unknown M3DC1_VECTOR_MOD=${M3DC1_VECTOR_MOD}")
+endif()
 
-# find_package(netCDF-Fortran REQUIRED)
-# if (netCDF_FOUND)
-#     message(STATUS "netCDF found: ${netCDF_VERSION}")
-# else ()
-#     message(FATAL_ERROR "netCDF not found.")
-# endif ()
+if(M3DC1_MATRIX_MOD STREQUAL "scorec_matrix_mod")
+  list(APPEND M3DC1_LIBRARY_SOURCES scorec_matrix.f90)
+  set(M3DC1_MATRIX_DEFINE M3DC1_MATRIX_IS_SCOREC)
+elseif(M3DC1_MATRIX_MOD STREQUAL "petsc_matrix_mod")
+  list(APPEND M3DC1_LIBRARY_SOURCES petsc_matrix.f90)
+  set(M3DC1_MATRIX_DEFINE M3DC1_MATRIX_IS_PETSC)
+else()
+  message(FATAL_ERROR "Unknown M3DC1_MATRIX_MOD=${M3DC1_MATRIX_MOD}")
+endif()
 
-#find_package(ZLIB)
-# find_package(GSL REQUIRED)
-# find_package(FFTW REQUIRED)
+if(M3DC1_ENABLE_GPU)
+  list(REMOVE_ITEM M3DC1_SOURCES ludef_t.f90 metricterms_new.f90)
+  list(APPEND M3DC1_SOURCES ludef_t_gpu.f90 metricterms_new_gpu.f90)
+endif()
+
+if(NOT DEFINED M3DC1_ADAS_DATA_DIR)
+  set(M3DC1_ADAS_DATA_DIR "${CMAKE_BINARY_DIR}/adas/adf11"
+    CACHE PATH "Path to OpenADAS ADF11 data directory")
+endif()
+set(M3DC1_OPENADAS_SOURCE_DIR "${CMAKE_BINARY_DIR}/adas/source")
+set(M3DC1_OPENADAS_SOURCE_NAMES
+  xxrptn
+  xfelem
+  i4unit
+  i4fctn
+  xxword
+  xxcase
+  xxslen
+  xxdata_11
+)
+foreach(_openadas_source_name IN LISTS M3DC1_OPENADAS_SOURCE_NAMES)
+  list(APPEND M3DC1_OPENADAS_SOURCES
+    "${M3DC1_OPENADAS_SOURCE_DIR}/${_openadas_source_name}.f")
+endforeach()
+set_source_files_properties(${M3DC1_OPENADAS_SOURCES} PROPERTIES GENERATED TRUE)
+set(M3DC1_OPENADAS_DATA_FILES
+  "${M3DC1_ADAS_DATA_DIR}/scd85/scd85_ar.dat"
+  "${M3DC1_ADAS_DATA_DIR}/scd89/scd89_b.dat"
+  "${M3DC1_ADAS_DATA_DIR}/plt89/plt89_b.dat"
+  "${M3DC1_ADAS_DATA_DIR}/plt89/plt89_ar.dat"
+  "${M3DC1_ADAS_DATA_DIR}/scd96/scd96_he.dat"
+  "${M3DC1_ADAS_DATA_DIR}/scd96/scd96_be.dat"
+  "${M3DC1_ADAS_DATA_DIR}/scd96/scd96_c.dat"
+  "${M3DC1_ADAS_DATA_DIR}/scd96/scd96_ne.dat"
+  "${M3DC1_ADAS_DATA_DIR}/plt96/plt96_he.dat"
+  "${M3DC1_ADAS_DATA_DIR}/plt96/plt96_be.dat"
+  "${M3DC1_ADAS_DATA_DIR}/plt96/plt96_c.dat"
+  "${M3DC1_ADAS_DATA_DIR}/plt96/plt96_ne.dat"
+)
+set(M3DC1_OPENADAS_STAMP "${CMAKE_BINARY_DIR}/adas/.openadas.stamp")
+add_custom_command(
+  OUTPUT
+    "${M3DC1_OPENADAS_STAMP}"
+    ${M3DC1_OPENADAS_SOURCES}
+    ${M3DC1_OPENADAS_DATA_FILES}
+  COMMAND "${CMAKE_COMMAND}"
+    "-DOUT_DIR=${CMAKE_BINARY_DIR}/adas"
+    "-DADF11_DIR=${M3DC1_ADAS_DATA_DIR}"
+    -P "${PROJECT_SOURCE_DIR}/cmake/DownloadOpenADAS.cmake"
+  COMMAND "${CMAKE_COMMAND}" -E touch "${M3DC1_OPENADAS_STAMP}"
+  COMMENT "Downloading OpenADAS ADF11 data and reader sources"
+  VERBATIM)
+set(_download_open_adas_all)
+if(M3DC1_DOWNLOAD_ADAS_DATA)
+  set(_download_open_adas_all ALL)
+endif()
+add_custom_target(download_open_adas ${_download_open_adas_all}
+  DEPENDS "${M3DC1_OPENADAS_STAMP}")
+
+if(M3DC1_ENABLE_ADAS)
+  list(APPEND M3DC1_LIBRARY_SOURCES adas_m3dc1.f90)
+  add_library(openadas_reader STATIC ${M3DC1_OPENADAS_SOURCES})
+  add_dependencies(openadas_reader download_open_adas)
+endif()
 
 find_package(MPI REQUIRED)
-get_property(MPI_LINK_LIBRARIES TARGET MPI::MPI_Fortran PROPERTY INTERFACE_LINK_LIBRARIES)
-list(FILTER MPI_LINK_LIBRARIES EXCLUDE REGEX "libcuda\.so")
-set_property(TARGET MPI::MPI_Fortran PROPERTY
-  INTERFACE_LINK_LIBRARIES "${MPI_LINK_LIBRARIES}")
+find_package(HDF5 COMPONENTS Fortran HL REQUIRED)
+find_package(GSL REQUIRED)
+find_package(LAPACK REQUIRED)
+find_path(FFTW3_INCLUDE_DIR NAMES fftw3.h REQUIRED)
+find_library(FFTW3_LIBRARY NAMES fftw3 REQUIRED)
 
-set(M3DC1_SCOREC_LIB_NAME m3dc1_scorec)
-if(ENABLE_3D)
-  set(BIN_NAME "${BIN_NAME}_3d")
-  list(APPEND DEFS -DUSE3D -Dvectype=real -DMAX_PTS=125)
-  if(ENABLE_ST)
-    set(BIN_NAME "${BIN_NAME}_st")
-    list(APPEND DEFS -DUSEST)
-    # if(PAR)
-    #   set(POSTFIX "${POSTFIX}-pix")
-    # else()
-    #   set(POSTFIX "${POSTFIX}-complex")
-    # endif()
-  else()
-    list(APPEND DEFS -Dvectype=real)
-  endif()
-  # set(POSTFIX "${POSTFIX}-125")
+if(M3DC1_ENABLE_ST)
+  find_library(NETCDF_C_LIBRARY NAMES netcdf
+    HINTS ${NetCDF_ROOT}
+    PATH_SUFFIXES lib lib64
+    REQUIRED)
+endif()
+
+if(PETSC_VERSION MATCHES "^([0-9]+)\\.([0-9]+)")
+  math(EXPR M3DC1_PETSC_VERSION_CODE "${CMAKE_MATCH_1} * 10 + ${CMAKE_MATCH_2}")
 else()
-  set(BIN_NAME "${BIN_NAME}_2d")
-  list(APPEND DEFS -DMAX_PTS=25)
-  # set(POSTFIX "${POSTFIX}-25")
-  if(ENABLE_COMPLEX)
-    set(BIN_NAME "${BIN_NAME}_complex")
-    list(APPEND DEFS -Dvectype=complex -DUSECOMPLEX)
-    set(M3DC1_SCOREC_LIB_NAME ${M3DC1_SCOREC_LIB_NAME}_complex)
-    # if(PAR)
-    #   set(POSTFIX "${POSTFIX}-pix")
-    # else()
-    #   set(POSTFIX "${POSTFIX}-complex")
-    # endif()
-  else()
-    list(APPEND DEFS -Dvectype=real)
-  endif()
+  set(M3DC1_PETSC_VERSION_CODE 0)
 endif()
-if(ENABLE_PARTICLE)
-  set(BIN_NAME "${BIN_NAME}_pic")
-  list(APPEND DEFS -DUSEPARTICLES)
+string(TIMESTAMP M3DC1_DATE_BUILT "%a %b %d %H:%M:%S %Y")
+file(READ "${CMAKE_CURRENT_SOURCE_DIR}/release_version" M3DC1_RELEASE_VERSION)
+string(STRIP "${M3DC1_RELEASE_VERSION}" M3DC1_RELEASE_VERSION)
+
+add_library(m3dc1_library ${M3DC1_LIBRARY_SOURCES})
+
+target_include_directories(m3dc1_library PRIVATE ${FFTW3_INCLUDE_DIR})
+target_link_libraries(m3dc1_library PUBLIC
+  m3dc1::scorec
+  MPI::MPI_Fortran
+  PETSc::PETSc
+  hdf5::hdf5_fortran
+  hdf5::hdf5_hl_fortran
+  GSL::gsl
+  LAPACK::LAPACK
+  ${FFTW3_LIBRARY}
+)
+if(M3DC1_ENABLE_ST)
+  target_link_libraries(m3dc1_library PUBLIC
+    ${NETCDF_C_LIBRARY}
+  )
 endif()
+if(M3DC1_ENABLE_ADAS)
+  target_link_libraries(m3dc1_library PRIVATE openadas_reader)
+endif()
+target_compile_definitions(m3dc1_library PRIVATE
+  USESCOREC
+  USEBLAS
+  ${M3DC1_MESH_DEFINE}
+  ${M3DC1_VECTOR_DEFINE}
+  ${M3DC1_MATRIX_DEFINE}
+  vector_type=${M3DC1_VECTOR_TYPE}
+  matrix_type=${M3DC1_MATRIX_TYPE}
+  PETSC_VERSION=${M3DC1_PETSC_VERSION_CODE}
+  DATE_BUILT="${M3DC1_DATE_BUILT}"
+  RELEASE_VERSION="${M3DC1_RELEASE_VERSION}"
+)
 
-# if(USEOMP)
-#   set(POSTFIX "${POSTFIX}-omp")
-# endif()
-
-execute_process(COMMAND date OUTPUT_VARIABLE DATE)
-string(REGEX REPLACE "\n$" "" DATE "${DATE}")
-message(STATUS "Build date : ${DATE}")
-execute_process(COMMAND cat ${CMAKE_CURRENT_SOURCE_DIR}/release_version OUTPUT_VARIABLE VERSION)
-string(REGEX REPLACE "\n$" "" VERSION "${VERSION}")
-message(STATUS "Release version : ${VERSION}")
-list(APPEND DEFS -DUSESCOREC -Dmesh_mod=scorec_mesh_mod -Dvector_mod=scorec_vector_mod -Dmatrix_mod=scorec_matrix_mod -Dmatrix_type=scorec_matrix -Dvector_type=scorec_vector -DPETSC_VERSION=990 -DUSEBLAS -DDATE_BUILT='${DATE}' -DRELEASE_VERSION='${VERSION}')
-
-# if(NOT ARCH)
-#   if(M3DC1_ARCH)
-#     set(ARCH ${M3DC1_ARCH})
-#   else()
-#     set(ARCH ${HOST})
-#   endif()
-# endif()
-# set(POSTFIX "${ARCH}${POSTFIX}")
-
-# include(cmake/${ARCH}.cmake)
-
-#set(CMAKE_Fortran_FLAGS "${CMAKE_Fortran_FLAGS} -ffree-line-length-none")
-
-#todo : build depency list as we go instead of adding all at the end (trilinos, etc)
-
-# if(COM)
-#   set(BIN_NAME "${BIN_NAME}_complex")
-# endif()
-
-set_source_files_properties(
-  scorec_vector.f90
-  PROPERTIES
-  OBJECT_DEPENDS ${CMAKE_CURRENT_BINARY_DIR}/CMakeFiles/${BIN_NAME}.dir/scorec_mesh.f90.o
-  )
-
-set_source_files_properties(
-  scorec_matrix.f90
-  PROPERTIES
-  OBJECT_DEPENDS ${CMAKE_CURRENT_BINARY_DIR}/CMakeFiles/${BIN_NAME}.dir/scorec_vector.f90.o
-  )
-
-set_source_files_properties(
-  field.f90
-  PROPERTIES
-  OBJECT_DEPENDS "${CMAKE_CURRENT_BINARY_DIR}/CMakeFiles/${BIN_NAME}.dir/scorec_vector.f90.o;${CMAKE_CURRENT_BINARY_DIR}/CMakeFiles/${BIN_NAME}.dir/scorec_matrix.f90.o"
-  )
-
-set_source_files_properties(
-  M3Dmodules.f90
-  PROPERTIES
-  OBJECT_DEPENDS ${CMAKE_CURRENT_BINARY_DIR}/CMakeFiles/${BIN_NAME}.dir/scorec_mesh.f90.o
-  )
-
-set_source_files_properties(
-  nintegrate_mod.f90
-  PROPERTIES
-  OBJECT_DEPENDS ${CMAKE_CURRENT_BINARY_DIR}/CMakeFiles/${BIN_NAME}.dir/scorec_mesh.f90.o
-  )
-
-if (CMAKE_Fortran_COMPILER_ID STREQUAL "Cray")
+# Cray-specific per-file optimization flags
+if(CMAKE_Fortran_COMPILER_ID STREQUAL "Cray")
   set(CMAKE_Fortran_FLAGS_RELEASE "-O2")
-  set_source_files_properties( scorec_mesh.f90 PROPERTIES COMPILE_FLAGS -O0 )
-  set_source_files_properties( transport.f90 PROPERTIES COMPILE_FLAGS -O0 )
-  set_source_files_properties( particle.f90 PROPERTIES COMPILE_FLAGS -O1 )
-  set_source_files_properties( ludef_t.f90 PROPERTIES COMPILE_FLAGS -O1 )
-  set_source_files_properties( ludef_t_gpu.f90 PROPERTIES COMPILE_FLAGS -O1 )
+  set_source_files_properties(scorec_mesh.f90 PROPERTIES COMPILE_FLAGS -O0)
+  set_source_files_properties(transport.f90 PROPERTIES COMPILE_FLAGS -O0)
+  set_source_files_properties(particle.f90 PROPERTIES COMPILE_FLAGS -O1)
+  set_source_files_properties(ludef_t.f90 PROPERTIES COMPILE_FLAGS -O1)
+  set_source_files_properties(ludef_t_gpu.f90 PROPERTIES COMPILE_FLAGS -O1)
 endif()
-add_executable(${BIN_NAME} ${SOURCES})
-# set_target_properties(${BIN_NAME} PROPERTIES Fortran_MODULE_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}/${BIN_NAME}_mods)
-set_property(TARGET ${BIN_NAME} PROPERTY LINKER_LANGUAGE Fortran)
-target_include_directories(${BIN_NAME} PRIVATE ${SCOREC_INCLUDE_DIRS} ${ZOLTAN_INCLUDE_DIRS} ${HDF5_INCLUDE_DIRS})
-target_link_libraries(${BIN_NAME} PRIVATE ${M3DC1_NETCDF_FORTRAN_TARGET} ${M3DC1_NETCDF_TARGET}
-  ${HDF5_HL_LIBRARIES} ${HDF5_LIBRARIES}
- # netCDF::netcdff
-  ${M3DC1_SCOREC_LIB_NAME} ${SCOREC_LIBRARIES} ${ZOLTAN_LIBRARIES}
-  PkgConfig::PETSC PkgConfig::FFTW PkgConfig::GSL MPI::MPI_Fortran stdc++)
-# target_link_directories(m3dc1_2d ${PETSC_STATIC_LIBRARY_DIRECTORIES})
-target_compile_definitions(${BIN_NAME} PRIVATE ${DEFS})
-if (CMAKE_Fortran_COMPILER_ID STREQUAL "Cray")
-  target_compile_options(${BIN_NAME} PRIVATE $<$<COMPILE_LANGUAGE:Fortran>:-s real64>)
-elseif (CMAKE_Fortran_COMPILER_ID STREQUAL "GNU")
-  target_compile_options(${BIN_NAME} PRIVATE $<$<COMPILE_LANGUAGE:Fortran>:-fdefault-real-8>)
-  target_compile_options(${BIN_NAME} PRIVATE $<$<COMPILE_LANGUAGE:Fortran>:-fdefault-double-8>)
-  if (CMAKE_Fortran_COMPILER_VERSION VERSION_GREATER_EQUAL 10)
-  target_compile_options(${BIN_NAME} PRIVATE $<$<COMPILE_LANGUAGE:Fortran>:-fallow-argument-mismatch>)
-  endif()
-  target_compile_options(${BIN_NAME} PRIVATE $<$<COMPILE_LANGUAGE:Fortran>:-ffree-line-length-512>)
+
+if(M3DC1_ENABLE_3D)
+  target_compile_definitions(m3dc1_library PRIVATE USE3D MAX_PTS=125)
 else()
-  target_compile_options(${BIN_NAME} PRIVATE $<$<COMPILE_LANGUAGE:Fortran>:-r8>)
+  target_compile_definitions(m3dc1_library PRIVATE MAX_PTS=25)
 endif()
-install(TARGETS ${BIN_NAME} DESTINATION ".")
-# get_property(TTT TARGET m3dc1_3d PROPERTY
-#   INTERFACE_LINK_LIBRARIES)
-list(FILTER CMAKE_C_IMPLICIT_LINK_LIBRARIES EXCLUDE REGEX "^c$")
-list(FILTER CMAKE_CXX_IMPLICIT_LINK_LIBRARIES EXCLUDE REGEX "^c$")
-message(STATUS "Fortran implicit link libraries: ${CMAKE_Fortran_IMPLICIT_LINK_LIBRARIES}")
-message(STATUS "C implicit link libraries: ${CMAKE_C_IMPLICIT_LINK_LIBRARIES}")
-message(STATUS "CXX implicit link libraries: ${CMAKE_CXX_IMPLICIT_LINK_LIBRARIES}")
-# set(CMAKE_Fortran_IMPLICIT_LINK_LIBRARIES "")
-# set(CMAKE_C_IMPLICIT_LINK_LIBRARIES "")
-# set(CMAKE_CXX_IMPLICIT_LINK_LIBRARIES "")
-
-if(ENABLE_OPENMP)
-    find_package(OpenMP REQUIRED)
-    # Add OpenMP flags for C and Fortran
-    # if(OpenMP_C_FOUND)
-    #   target_link_libraries(${BIN_NAME} PRIVATE OpenMP::OpenMP_C)
-    # endif()
-
-    if(OpenMP_Fortran_FOUND)
-      target_link_libraries(${BIN_NAME} PRIVATE OpenMP::OpenMP_Fortran)
-    endif()
-
-    message(STATUS "OpenMP enabled for C and Fortran")
+if(M3DC1_ENABLE_ST)
+  target_compile_definitions(m3dc1_library PRIVATE USEST)
+endif()
+if(M3DC1_ENABLE_COMPLEX)
+  target_compile_definitions(m3dc1_library PRIVATE vectype=complex USECOMPLEX)
 else()
-    message(STATUS "OpenMP not enabled")
+  target_compile_definitions(m3dc1_library PRIVATE vectype=real)
+endif()
+if(M3DC1_ENABLE_OPENMP)
+  target_link_libraries(m3dc1_library PUBLIC OpenMP::OpenMP_Fortran)
+endif()
+if(M3DC1_ENABLE_PARTICLE)
+  target_compile_definitions(m3dc1_library PRIVATE USEPARTICLES)
+endif()
+if(M3DC1_ENABLE_ADAS)
+  target_compile_definitions(m3dc1_library PRIVATE USEADAS)
+endif()
+set_target_properties(m3dc1_library PROPERTIES Fortran_MODULE_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR})
+
+target_compile_options(m3dc1_library PUBLIC
+  # GNU
+  $<$<COMPILE_LANG_AND_ID:Fortran,GNU>:-cpp>
+  $<$<COMPILE_LANG_AND_ID:Fortran,GNU>:-fdefault-real-8>
+  $<$<COMPILE_LANG_AND_ID:Fortran,GNU>:-fdefault-double-8>
+  $<$<COMPILE_LANG_AND_ID:Fortran,GNU>:-fallow-argument-mismatch>
+  $<$<COMPILE_LANG_AND_ID:Fortran,GNU>:-ffree-line-length-none>
+
+  # Intel Classic
+  $<$<COMPILE_LANG_AND_ID:Fortran,Intel>:-fpp>
+  $<$<COMPILE_LANG_AND_ID:Fortran,Intel>:-r8>
+
+  # IntelLLVM (ifx)
+  $<$<COMPILE_LANG_AND_ID:Fortran,IntelLLVM>:-fpp>
+  $<$<COMPILE_LANG_AND_ID:Fortran,IntelLLVM>:-r8>
+
+  # LLVM Flang
+  $<$<COMPILE_LANG_AND_ID:Fortran,LLVMFlang>:-cpp>
+  $<$<COMPILE_LANG_AND_ID:Fortran,LLVMFlang>:-fdefault-real-8>
+  $<$<COMPILE_LANG_AND_ID:Fortran,LLVMFlang>:-fdefault-double-8>
+
+  # Cray Compiling Environment
+  $<$<COMPILE_LANG_AND_ID:Fortran,Cray>:-eZ>
+  $<$<COMPILE_LANG_AND_ID:Fortran,Cray>:-s>
+  $<$<COMPILE_LANG_AND_ID:Fortran,Cray>:real64>
+  $<$<COMPILE_LANG_AND_ID:Fortran,Cray>:-ef>
+)
+
+# --- Build main executable name per Makefile convention ---
+set(M3DC1_MAIN_NAME m3dc1)
+if(M3DC1_ENABLE_3D)
+  string(APPEND M3DC1_MAIN_NAME "_3d")
+else()
+  string(APPEND M3DC1_MAIN_NAME "_2d")
+endif()
+if(M3DC1_ENABLE_TRILINOS)
+  string(APPEND M3DC1_MAIN_NAME "_trilinos")
+endif()
+if(M3DC1_ENABLE_COMPLEX)
+  string(APPEND M3DC1_MAIN_NAME "_complex")
+endif()
+if(M3DC1_ENABLE_OPENMP)
+  string(APPEND M3DC1_MAIN_NAME "_omp")
+endif()
+if(M3DC1_ENABLE_ST)
+  string(APPEND M3DC1_MAIN_NAME "_st")
+endif()
+if(M3DC1_ENABLE_PARTICLE)
+  string(APPEND M3DC1_MAIN_NAME "_pic")
 endif()
 
-#find_package(PSPLINE)
-#add_executable(readgato polar.f90 readgato.f90)
-#target_link_libraries(readgato ${PSPLINE_LIBRARIES})
+add_executable(${M3DC1_MAIN_NAME} $<TARGET_OBJECTS:m3dc1_library>)
+target_link_libraries(${M3DC1_MAIN_NAME} PRIVATE m3dc1_library)
 
-#add_executable(read_jsolver polar.f90 read_jsolver_exec.f90)
-#target_link_libraries(read_jsolver ${PSPLINE_LIBRARIES})
+add_custom_target(m3dc1 ALL
+  COMMAND ${CMAKE_COMMAND} -E create_symlink ${M3DC1_MAIN_NAME} m3dc1
+  DEPENDS ${M3DC1_MAIN_NAME}
+  WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}
+  COMMENT "Creating symlink: m3dc1 -> ${M3DC1_MAIN_NAME}")
 
-#add_executable(a2cc readaeqdsk.f90 a2cc.f90)
-#target_link_libraries(a2cc )
-#target_compile_definitions(a2cc PUBLIC ${DEFS})
+add_executable(a2cc a2cc.f90)
+target_link_libraries(a2cc PUBLIC m3dc1_library)
 
-#add_executable(kprad kprad.f90 kprad_test.f90)
+add_executable(mackenbach_profiles mackenbach_profiles.f90)
+
+# add_executable(kprad kprad.f90 kprad_test.f90)
+
+add_executable(test_region test_region.f90)
+target_link_libraries(test_region PUBLIC m3dc1_library)
+
+
+if(M3DC1_ENABLE_PSPLINE)
+  find_package(PSPLINE REQUIRED)
+  add_executable(readgato readgato.f90)
+  target_link_libraries(readgato PUBLIC m3dc1_library PSPLINE::PSPLINE)
+
+  add_executable(read_jsolver read_jsolver.f90 polar.f90)
+  target_compile_definitions(read_jsolver PRIVATE READ_JSOLVER)
+  target_link_libraries(read_jsolver PUBLIC PSPLINE::PSPLINE)
+endif()
+
+# Install targets
+install(TARGETS ${M3DC1_MAIN_NAME} DESTINATION bin)
+install(TARGETS a2cc mackenbach_profiles test_region DESTINATION bin)
+install(FILES ${CMAKE_CURRENT_BINARY_DIR}/m3dc1 DESTINATION bin)
+if(M3DC1_ENABLE_PSPLINE)
+  install(TARGETS readgato read_jsolver DESTINATION bin)
+endif()

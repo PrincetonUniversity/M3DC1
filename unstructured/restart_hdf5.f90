@@ -9,6 +9,7 @@ module restart_hdf5
 contains
   
   subroutine rdrestart_hdf5()
+    use mpi
     use basic
     use hdf5_output
     use hdf5
@@ -20,7 +21,6 @@ contains
 
     implicit none
 
-    include 'mpif.h'
 
     integer :: error
     integer(HID_T) :: root_id, scalar_group_id, time_id, eq_time_id, pel_group_id, mesh_id

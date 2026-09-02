@@ -1,61 +1,20 @@
-#This is the top M3DC1_SCOREC CMakeList File for the Build
-
-#Setting Version Number, Project Name
-cmake_minimum_required (VERSION 2.8)
-project (m3dc1_scorec)
-enable_language (Fortran)
-
-# make sure that the default is a RELEASE
-if (NOT CMAKE_BUILD_TYPE)
-  set (CMAKE_BUILD_TYPE RELEASE CACHE STRING
-      "Choose the type of build, options are: None Debug Release."
-      FORCE)
-endif (NOT CMAKE_BUILD_TYPE)
-
-# default installation
-#get_filename_component (default_prefix ".." ABSOLUTE)
-#set (CMAKE_INSTALL_PREFIX ${default_prefix} CACHE STRING
-#      "Choose the installation directory; by default it installs in the NORMA directory."
-#      FORCE)
-
-# FFLAGS depend on the compiler
-get_filename_component (Fortran_COMPILER_NAME ${CMAKE_Fortran_COMPILER} NAME)
-message (Fortran_COMPILER_NAME = ${Fortran_COMPILER_NAME})
-
-#unless building shared libs, then select static libs 
-# if both static and shared libs are available 
-set(CMAKE_FIND_LIBRARY_SUFFIXES ".a" ".so") 
-if(BUILD_SHARED_LIBS)
-  set(CMAKE_FIND_LIBRARY_SUFFIXES ".so" ".a")
-endif()
-
-#Settings options for testing
-enable_testing()
-include(CTest)
-#This will be set to ON by the CTest driver script (and only by that)
-option(ENABLE_TESTING "Build for CTest" OFF)
-set(MPIRUN "mpirun"
-    CACHE string 
-    "the mpirun or srun executable")
-set(MPIRUN_PROCFLAG "-np"
-    CACHE string 
-    "the command line flag to give process count to MPIRUN")
-
-#Doxygen generation system
+# Doxygen documentation
 find_package(Doxygen)
 if(DOXYGEN_FOUND)
-configure_file(${CMAKE_CURRENT_SOURCE_DIR}/Doxyfile.in
-               ${CMAKE_CURRENT_BINARY_DIR}/Doxyfile @ONLY)
-add_custom_target(doc
-${DOXYGEN_EXECUTABLE} ${CMAKE_CURRENT_BINARY_DIR}/Doxyfile
-WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}
-COMMENT "Generating API documentation with Doxygen" VERBATIM
-)
-endif(DOXYGEN_FOUND)
+  configure_file(
+    "${CMAKE_CURRENT_SOURCE_DIR}/Doxyfile.in"
+    "${CMAKE_CURRENT_BINARY_DIR}/Doxyfile" @ONLY)
+  add_custom_target(doc
+    ${DOXYGEN_EXECUTABLE} ${CMAKE_CURRENT_BINARY_DIR}/Doxyfile
+    WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}
+    COMMENT "Generating API documentation with Doxygen"
+    VERBATIM)
+endif()
 
+# Generate config file
 configure_file(
-    "${CMAKE_CURRENT_SOURCE_DIR}/m3dc1_scorecConfig.cmake.in"
-    "${CMAKE_BINARY_DIR}/m3dc1_scorecConfig.cmake")
+  "${CMAKE_CURRENT_SOURCE_DIR}/m3dc1_scorecConfig.cmake.in"
+  "${CMAKE_BINARY_DIR}/m3dc1_scorecConfig.cmake")
 
 #Source and header files
 set(SOURCES
@@ -97,143 +56,56 @@ set(HEADERS
   #include/ReducedQuinticExplicit.h
   include/slntransferUtil.h
   include/Expression.h
-
   include/ReducedQuintic.h)
 
-set(CMAKE_MODULE_PATH 
-   ${CMAKE_MODULE_PATH} 
-   "${CMAKE_CURRENT_SOURCE_DIR}/cmake/")
 
-include_directories(${CMAKE_CURRENT_SOURCE_DIR}/include)
-include_directories(${CMAKE_CURRENT_SOURCE_DIR}/api)
-set(TARGET_LIB_NAME m3dc1_scorec)
+find_package(SCOREC CONFIG REQUIRED)
+find_package(LAPACK REQUIRED)
+find_package(MPI REQUIRED COMPONENTS C)
 
-find_package(Scorec QUIET REQUIRED)
-include_directories(${SCOREC_INCLUDE_DIRS})
-set(DEP_LIBS ${DEP_LIBS} ${SCOREC_LIBRARIES} )
+add_library(m3dc1_scorec ${SOURCES})
+add_library(m3dc1::scorec ALIAS m3dc1_scorec)
+target_link_libraries(m3dc1_scorec PUBLIC SCOREC::core PETSc::PETSc LAPACK::LAPACK MPI::MPI_C)
+target_include_directories(m3dc1_scorec PUBLIC
+  "${CMAKE_CURRENT_SOURCE_DIR}/api"
+  "${CMAKE_CURRENT_SOURCE_DIR}/include"
+)
+target_compile_definitions(m3dc1_scorec PRIVATE M3DC1_PETSC)
 
-if (ENABLE_SIMMETRIX)
-set(ENABLE_PETSC "OFF")
-set(ENABLE_TRILINOS "OFF")
-find_package(Simmetrix QUIET REQUIRED)
-include_directories(${SIMMETRIX_INCLUDE_DIRS})
-set(DEP_LIBS ${DEP_LIBS} ${SIMMETRIX_LIBRARIES} )
-set(TARGET_LIB_NAME ${TARGET_LIB_NAME}_simmetrix)
-find_package(Lapack QUIET REQUIRED)
-set(DEP_LIBS ${DEP_LIBS} ${LAPACK_LIBRARIES} )
-  add_executable(m3dc1_meshgen test/meshgen/m3dc1_meshgen.cc)
-  target_link_libraries(m3dc1_meshgen ${DEP_LIBS})
-  target_link_libraries(m3dc1_meshgen ${TARGET_LIB_NAME})
-  INSTALL(TARGETS m3dc1_meshgen RUNTIME DESTINATION ${CMAKE_INSTALL_PREFIX}/bin)
-  add_executable(convert_sim_sms test/meshgen/convert_sim_sms.cc)
-  target_link_libraries(convert_sim_sms ${DEP_LIBS})
-  target_link_libraries(convert_sim_sms ${TARGET_LIB_NAME})
-  INSTALL(TARGETS convert_sim_sms RUNTIME DESTINATION ${CMAKE_INSTALL_PREFIX}/bin)
-  add_executable(convert_polar test/convert_polar/main.cc)
-  target_link_libraries(convert_polar ${DEP_LIBS})
-  target_link_libraries(convert_polar ${TARGET_LIB_NAME})
-  INSTALL(TARGETS convert_polar RUNTIME DESTINATION ${CMAKE_INSTALL_PREFIX}/bin)
-elseif (ENABLE_TRILINOS)
-find_package(Trilinos QUIET REQUIRED)
-find_package(Boost QUIET REQUIRED)
-include_directories(${TRILINOS_INCLUDE_DIRS})
-set(DEP_LIBS ${DEP_LIBS} ${TRILINOS_LIBRARIES})
-set(DEP_LIBS ${DEP_LIBS} ${BOOST_LIBRARIES})
-set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -DM3DC1_TRILINOS")
-set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -DM3DC1_TRILINOS")
-set(TARGET_LIB_NAME ${TARGET_LIB_NAME}_trilinos)
-else()
-  set(ENABLE_PETSC "ON")
-endif()
+# --- Utility executables (SCOREC tools) ---
+# Utilities that only depend on SCOREC core
+set(M3DC1_UTILITY_CORE_SOURCES
+  utility/check_smb.cc
+  utility/create_smb.cc
+  utility/split_smb.cc
+  utility/vtk_order.cc
+)
 
-option(ENABLE_ZOLTAN "Enable Zoltan interface [ON|OFF]" ON)
-message(STATUS "ENABLE_ZOLTAN: " ${ENABLE_ZOLTAN})
+foreach(_util_src IN LISTS M3DC1_UTILITY_CORE_SOURCES)
+  get_filename_component(_util_name ${_util_src} NAME_WE)
+  add_executable(${_util_name} ${_util_src})
+  target_link_libraries(${_util_name} PRIVATE SCOREC::core MPI::MPI_C)
+endforeach()
 
-if (ENABLE_ZOLTAN)
-find_library(ZOLTAN_LIBRARY zoltan)
-if (NOT EXISTS "${ZOLTAN_LIBRARY}")
-  message(FATAL ERROR "ZOLTAN library not found")
-endif()
-else()
-set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -DDISABLE_ZOLTAN")
-set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -DDISABLE_ZOLTAN")
-endif()
+# show_meshcount depends on the m3dc1_scorec library (m3dc1_mesh, m3dc1_model, etc.)
+add_executable(show_meshcount utility/show_meshcount.cc)
+target_link_libraries(show_meshcount PRIVATE m3dc1_scorec)
 
-if (ENABLE_PETSC)
-set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -DM3DC1_PETSC")
-set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -DM3DC1_PETSC")
-#find_package(Hdf5 QUIET REQUIRED)
-#set(DEP_LIBS ${DEP_LIBS} ${HDF5_LIBRARIES} )
-find_package(Petsc QUIET REQUIRED)
-include_directories(${PETSC_INCLUDE_DIRS})
-set(DEP_LIBS ${DEP_LIBS} ${PETSC_LIBRARIES} )
-endif()
+# Install rules
+install(TARGETS m3dc1_scorec
+  EXPORT m3dc1_scorecTargets
+  LIBRARY DESTINATION lib
+  ARCHIVE DESTINATION lib
+  RUNTIME DESTINATION bin
+  INCLUDES DESTINATION include)
 
-if(ENABLE_COMPLEX)
-set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -DPETSC_USE_COMPLEX")
-set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -DPETSC_USE_COMPLEX")
-set(TARGET_LIB_NAME ${TARGET_LIB_NAME}_complex)
-endif()
+install(FILES ${HEADERS} DESTINATION include)
 
-# if(ENABLE_OPENMP)
-#   if(${CMAKE_CXX_COMPILER_ID} STREQUAL "GNU")
-#     set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -fopenmp")
-#     set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -fopenmp")
-#   elseif (${CMAKE_CXX_COMPILER_ID} STREQUAL "Intel")
-#     set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -qopenmp")
-#     set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -qopenmp")
-#   else()
-#     message(WARNING "Unexpected compiler type ${CMAKE_CXX_COMPILER_ID}")
-#   endif()
-#   set(TARGET_LIB_NAME ${TARGET_LIB_NAME}_openmp)
-# endif()
+# Install utility executables
+set(M3DC1_UTILITY_NAMES check_smb create_smb split_smb vtk_order show_meshcount)
+install(TARGETS ${M3DC1_UTILITY_NAMES} DESTINATION bin)
 
-add_library(${TARGET_LIB_NAME} ${SOURCES})
-target_link_libraries(${TARGET_LIB_NAME} ${DEP_LIBS})
-
-INSTALL(FILES ${HEADERS} DESTINATION include)
-INSTALL(TARGETS ${TARGET_LIB_NAME}
-      LIBRARY DESTINATION lib
-      ARCHIVE DESTINATION lib)
-
-if (ENABLE_TESTING)
-if (ENABLE_PETSC)
-  add_executable(solver test/solver/main.cc)
-  target_link_libraries(solver ${DEP_LIBS})
-  target_link_libraries(solver ${TARGET_LIB_NAME})
-  INSTALL(TARGETS solver RUNTIME DESTINATION ${CMAKE_INSTALL_PREFIX}/bin)
-endif()
-
-if (ENABLE_TRILINOS)
-    add_executable(epetra test/epetra/main.cc)
-    target_link_libraries(epetra ${DEP_LIBS})
-    target_link_libraries(epetra ${TARGET_LIB_NAME})
-    INSTALL(TARGETS epetra RUNTIME DESTINATION ${CMAKE_INSTALL_PREFIX}/bin)
-endif()
-add_executable(show_meshcount test/create_smb/show_meshcount.cc)
-target_link_libraries(show_meshcount ${DEP_LIBS})
-target_link_libraries(show_meshcount ${TARGET_LIB_NAME})
-INSTALL(TARGETS show_meshcount RUNTIME DESTINATION ${CMAKE_INSTALL_PREFIX}/bin)
-endif()
-
-#add_executable(ghosting_test test/ghosting/main.cc)
-#target_link_libraries(ghosting_test ${DEP_LIBS})
-#target_link_libraries(ghosting_test ${TARGET_LIB_NAME})
-#INSTALL(TARGETS ghosting_test RUNTIME DESTINATION ${CMAKE_INSTALL_PREFIX}/bin)
-
-#binary distribution package
+# CPack configuration for binary distribution
 set(CPACK_GENERATOR "TGZ")
 set(CPACK_PACKAGE_VERSION "1.0.1")
 include(CPack)
-
-message("ENV_FLAGS = $ENV{FFLAGS}")
-message("CMAKE_C_FLAGS = ${CMAKE_C_FLAGS}")
-message("CMAKE_CXX_FLAGS = ${CMAKE_CXX_FLAGS}")
-message("CMAKE_Fortran_COMPILER_INIT = ${CMAKE_Fortran_COMPILER_INIT}")
-message("CMAKE_Fortran_COMPILER_FULLPATH =
-${CMAKE_Fortran_COMPILER_FULLPATH}")
-message("CMAKE_Fortran_COMPILER = ${CMAKE_Fortran_COMPILER}")
-message("CMAKE_Fortran_FLAGS = ${CMAKE_Fortran_FLAGS}")
-message("CMAKE_INSTALL_PREFIX = ${CMAKE_INSTALL_PREFIX}")
-
-
