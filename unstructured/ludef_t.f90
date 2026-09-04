@@ -2752,7 +2752,7 @@ subroutine flux_nolin(trialx, r4term)
   ! in update_remc_circuit (rmp.f90). See flux_nolin_conductor for the
   ! matching conductor-zone source.
   if(iremc_demf.gt.0 .and. use_external_fields .and. iScaleREMC.eq.2) then
-     r4term = r4term - dt*remc_demf_fac* &
+     r4term = r4term + dt*remc_demf_fac* &
           intx2(trialx(:,:,OP_1), psx79(:,OP_1))
   endif
 
@@ -2780,9 +2780,14 @@ subroutine flux_nolin_conductor(trialx, r4term)
   r4term = 0.
 
   if(iremc_demf.gt.0 .and. use_external_fields .and. iScaleREMC.eq.2) then
-     r4term = r4term - dt*remc_demf_fac* &
+     r4term = r4term + dt*remc_demf_fac* &
           intx2(trialx(:,:,OP_1), psx79(:,OP_1))
   endif
+
+  !if(igauge.eq.1) then
+  !   r4term = r4term - dt* &
+  !        vloop*intx1(trialx(:,:,OP_1))/toroidal_period
+  !endif
 
 end subroutine flux_nolin_conductor
 

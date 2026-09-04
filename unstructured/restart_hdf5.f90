@@ -29,7 +29,9 @@ contains
     integer :: times_output_in, i3d_in, istartnew, i
     real :: xnullt,znullt,xnull2t,znull2t
     real :: totcur_restart
+    real :: demf_fac_restart
     logical :: remc_exists
+    logical :: demf_fac_exists
 
     call h5gopen_f(file_id, "/", root_id, error)
 
@@ -273,7 +275,11 @@ contains
           call read_scalar(scalar_group_id, "i_remc_circ",      i_remc_circ, ntime, error)
           call read_scalar(scalar_group_id, "toroidal_current", totcur_restart, ntime, error)
           ip_prev = 1.0 * totcur_restart * 795217.0 ! matches curr_now conversion in update_remc_circuit
-          call mark_remc_circuit_restored
+          call h5lexists_f(scalar_group_id, "remc_demf_fac", demf_fac_exists, error)
+          if(demf_fac_exists) then
+             call read_scalar(scalar_group_id, "remc_demf_fac", demf_fac_restart, ntime, error)
+          end if
+          call mark_remc_circuit_restored(demf_fac_restart, demf_fac_exists)
        else
           i_remc_circ = 0.
        end if

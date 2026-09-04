@@ -21,19 +21,77 @@ module rmp
   
   real :: ip_prev = 0., i_remc_circ = 0. ! Variables for REMC circuit equation (iScaleREMC=2)
   logical, private :: remc_circuit_init = .false.
+  real, private :: remc_demf_fac_restart = 0. ! remc_demf_fac as of the last checkpoint; blend source for the post-restart ramp
+  integer, private :: remc_restart_ntime0 = -1 ! ntime at restart; -1 = no restart blend in progress (fresh start)
 
 contains
 
 !==============================================================================
 ! Called on restart when i_remc_circ has been successfully read back from
 ! C1.h5, so that update_remc_circuit does not overwrite it with its
-! first-step initialization on the next call.
-subroutine mark_remc_circuit_restored
+! first-step initialization on the next call. demf_fac_in/demf_fac_valid is
+! the remc_demf_fac value read back from the checkpoint (demf_fac_valid is
+! .false. for an older checkpoint that predates saving it). update_remc_circuit
+! then blends remc_demf_fac from this restored value toward its freshly
+! computed value over n_remc_ramp steps, so that any discontinuity -- e.g.
+! from changing Res_remc/L_remc/M_remc in the input file at restart -- is
+! smoothed instead of hitting the flux equation as a single-step jump. If
+! nothing changed at restart, the restored value already matches the freshly
+! computed one, so the blend is a no-op.
+subroutine mark_remc_circuit_restored(demf_fac_in, demf_fac_valid)
+  use basic
+
   implicit none
 
+  real, intent(in) :: demf_fac_in
+  logical, intent(in) :: demf_fac_valid
+
   remc_circuit_init = .true.
+  remc_restart_ntime0 = ntime
+
+  if(demf_fac_valid) then
+     remc_demf_fac_restart = demf_fac_in
+  else ! older checkpoint without a saved remc_demf_fac: recompute directly, no blend source available
+     if(i_remc_circ.ne.0.) then
+        remc_demf_fac_restart = -(Res_remc/L_remc) * t0_norm * remc_ramp_frac()
+     else
+        remc_demf_fac_restart = 0.
+     end if
+  end if
+  remc_demf_fac = remc_demf_fac_restart
 
 end subroutine mark_remc_circuit_restored
+
+!==============================================================================
+! Smoothstep fraction of the way from ntime0 to ntime0+duration (clamped to
+! [0,1]); 1 immediately if duration.le.0. ntime is restored verbatim on
+! restart, so counting from a fixed ntime0 is restart-proof with no special
+! handling needed beyond what's already tracked in ntime0 itself.
+real function remc_smoothstep_frac(ntime_start, duration)
+  use basic
+
+  implicit none
+
+  integer, intent(in) :: ntime_start, duration
+
+  if(duration.gt.0) then
+     remc_smoothstep_frac = min(max(real(ntime-ntime_start)/real(duration), 0.), 1.)
+     remc_smoothstep_frac = remc_smoothstep_frac*remc_smoothstep_frac*(3. - 2.*remc_smoothstep_frac)
+  else
+     remc_smoothstep_frac = 1.
+  end if
+
+end function remc_smoothstep_frac
+
+!==============================================================================
+real function remc_ramp_frac()
+  use basic
+
+  implicit none
+
+  remc_ramp_frac = remc_smoothstep_frac(0, n_remc_ramp)
+
+end function remc_ramp_frac
 
 !==============================================================================
 subroutine rmp_per(ilin)
@@ -106,21 +164,17 @@ subroutine update_remc_circuit
 
   implicit none
 
-  real :: curr_now, dt_si, didt
+  real :: curr_now, dt_si, didt, ramp_frac, demf_target, blend_frac
 
   curr_now = 1.0 * totcur * 795217.0 ! Ip in Amperes
+
+  ramp_frac = remc_ramp_frac()
 
   if(.not.remc_circuit_init) then ! First step, initialize
      i_remc_circ = i_remc_start
      ip_prev = curr_now
-     ! RiD: dI/dt from resistive self-decay is known immediately from
-     ! i_remc_start; only the mutual-inductance/plasma-coupling term needs
-     ! a previous Ip, which isn't available yet, so approximate it as zero
-     ! for this first step only. (Forcing the whole rate to zero here, as
-     ! before, produced a spurious one-step jump in the induced-EMF source
-     ! once the real rate kicked in on the following step.)
      if(i_remc_circ.ne.0.) then
-        remc_demf_fac = -(Res_remc/L_remc) * t0_norm
+        remc_demf_fac = -(Res_remc/L_remc) * t0_norm * ramp_frac ! Factor used for calculating the REMC EMF
      else
         remc_demf_fac = 0.
      end if
@@ -131,16 +185,26 @@ subroutine update_remc_circuit
   dt_si = dt * t0_norm ! s
 
   didt = -(Res_remc/L_remc)*i_remc_circ &
-       - (M_remc/L_remc)*(curr_now - ip_prev)/dt_si ! dI_remc/dt, A/s
+       - (M_remc/L_remc)*(curr_now - ip_prev)/dt_si ! dI_remc/dt, A/s, Circuit Equation
 
   i_remc_circ = i_remc_circ + dt_si*didt ! update remc current
 
-  ! RiD: fractional rate of change, converted to code-normalized time units,
-  ! so that flux_nolin's existing "dt * (...)" pattern applies directly
+  ! RiD: fractional rate of change, converted to code-normalized time units
   if(i_remc_circ.ne.0.) then
-     remc_demf_fac = (didt/i_remc_circ) * t0_norm
+     demf_target = (didt/i_remc_circ) * t0_norm * ramp_frac !ramp_fac accounts for temporal smoothing of REMC EMF
   else
-     remc_demf_fac = 0.
+     demf_target = 0.
+  end if
+
+  ! Blend from the value in effect at the last checkpoint toward demf_target
+  ! over n_remc_ramp steps following a restart (see mark_remc_circuit_restored).
+  ! No-op once blend_frac saturates at 1, and a no-op throughout on a fresh
+  ! start (remc_restart_ntime0 stays -1).
+  if(remc_restart_ntime0.ge.0) then
+     blend_frac = remc_smoothstep_frac(remc_restart_ntime0, n_remc_ramp)
+     remc_demf_fac = (1.-blend_frac)*remc_demf_fac_restart + blend_frac*demf_target
+  else
+     remc_demf_fac = demf_target
   end if
 
   ip_prev = curr_now ! update ip_prev
