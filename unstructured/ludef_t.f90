@@ -2752,8 +2752,13 @@ subroutine flux_nolin(trialx, r4term)
   ! in update_remc_circuit (rmp.f90). See flux_nolin_conductor for the
   ! matching conductor-zone source.
   if(iremc_demf.gt.0 .and. use_external_fields .and. iScaleREMC.eq.2) then
-     r4term = r4term + dt*remc_demf_fac* &
-          intx2(trialx(:,:,OP_1), psx79(:,OP_1))
+     if(jadv.eq.0) then
+        r4term = r4term + dt*remc_demf_fac* &
+             intx2(trialx(:,:,OP_1), psx79(:,OP_1))
+     else
+        r4term = r4term + dt*remc_demf_fac* &
+             intx3(trialx(:,:,OP_GS), ri2_79, psx79(:,OP_1))
+     endif
   endif
 
 end subroutine flux_nolin
@@ -2780,8 +2785,13 @@ subroutine flux_nolin_conductor(trialx, r4term)
   r4term = 0.
 
   if(iremc_demf.gt.0 .and. use_external_fields .and. iScaleREMC.eq.2) then
-     r4term = r4term + dt*remc_demf_fac* &
-          intx2(trialx(:,:,OP_1), psx79(:,OP_1))
+     if(jadv.eq.0) then
+        r4term = r4term + dt*remc_demf_fac* &
+             intx2(trialx(:,:,OP_1), psx79(:,OP_1))
+     else
+        r4term = r4term + dt*remc_demf_fac* &
+             intx3(trialx(:,:,OP_GS), ri2_79, psx79(:,OP_1))
+     endif
   endif
 
   !if(igauge.eq.1) then
