@@ -2753,10 +2753,10 @@ subroutine flux_nolin(trialx, r4term)
   ! matching conductor-zone source.
   if(iremc_demf.gt.0 .and. use_external_fields .and. iScaleREMC.eq.2) then
      if(jadv.eq.0) then
-        r4term = r4term + dt*remc_demf_fac* &
+        r4term = r4term - dt*remc_demf_fac* &
              intx2(trialx(:,:,OP_1), psx79(:,OP_1))
      else
-        r4term = r4term + dt*remc_demf_fac* &
+        r4term = r4term - dt*remc_demf_fac* &
              intx3(trialx(:,:,OP_GS), ri2_79, psx79(:,OP_1))
      endif
   endif
@@ -2786,10 +2786,10 @@ subroutine flux_nolin_conductor(trialx, r4term)
 
   if(iremc_demf.gt.0 .and. use_external_fields .and. iScaleREMC.eq.2) then
      if(jadv.eq.0) then
-        r4term = r4term + dt*remc_demf_fac* &
+        r4term = r4term - dt*remc_demf_fac* &
              intx2(trialx(:,:,OP_1), psx79(:,OP_1))
      else
-        r4term = r4term + dt*remc_demf_fac* &
+        r4term = r4term - dt*remc_demf_fac* &
              intx3(trialx(:,:,OP_GS), ri2_79, psx79(:,OP_1))
      endif
   endif
