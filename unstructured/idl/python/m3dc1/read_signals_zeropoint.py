@@ -51,6 +51,15 @@ def read_signals_zeropoint(
             tt = np.asarray(tdata, dtype=float).reshape(-1)
             yy = np.asarray(data[i, :], dtype=float).reshape(-1)
             n = min(tt.size, yy.size)
+            valid = np.flatnonzero(
+                np.isfinite(tt[:n]) & np.isfinite(yy[:n])
+            )
+            if valid.size > 0:
+                n = int(valid[-1]) + 1
+                tt = tt[:n]
+                yy = yy[:n]
+            else:
+                n = 0
             if n < 2:
                 zero_points.append(np.array([], dtype=float))
                 frequency.append(np.array([], dtype=float))
@@ -60,6 +69,13 @@ def read_signals_zeropoint(
             for j in range(n - 1, 0, -1):
                 y0 = yy[j]
                 y1 = yy[j - 1]
+                if not (
+                    np.isfinite(tt[j])
+                    and np.isfinite(tt[j - 1])
+                    and np.isfinite(y0)
+                    and np.isfinite(y1)
+                ):
+                    continue
                 if y0 * y1 < 0.0:
                     zt = (tt[j] * abs(y1) + tt[j - 1] * abs(y0)) / (abs(y1) + abs(y0))
                     if len(zeros) == 0 or abs(zeros[-1] - zt) > float(min_sep):

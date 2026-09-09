@@ -183,7 +183,7 @@ subroutine vorticity_lin(trialx, lin, ssterm, ddterm, r_bf, q_bf, advfield, &
              +  v1uvn  (trialx,lin,vzstar079,rho79) &
              +  v1uchin2(trialx,lin,chstar079,rho79)
         ssterm(:,u_g) = ssterm(:,u_g) -     0.5     *dt*tempx
-        ddterm(:,u_g) = ddterm(:,u_g) + (1.-0.5*bdf)*dt*temp
+        ddterm(:,u_g) = ddterm(:,u_g) + (1.-0.5*bdf)*dt*tempx
      endif
 #endif
 
@@ -636,7 +636,7 @@ subroutine vorticity_nolin(trialx, r4term)
      r4term = r4term - dt*v1dp0b1geom(trialx)
   endif
   if ((particle_couple.eq.0).and.(eqsubtract.eq.1).and. &
-       (((kinetic.eq.1).and.(kinetic_fast_ion.eq.1)).or.(irunaway_kinetic.eq.1))) then
+       ((kinetic.eq.1).or.(irunaway_kinetic.eq.1))) then
      r4term = r4term + dt*v1pbb1psi(trialx,pfpar079-pfper079+pipar079-piper079,b2i79(:,OP_1),ps179)
      if (i3d.eq.1 .and. numvar.ge.2) then
         r4term = r4term + dt*v1pbb1f(trialx,pfpar079-pfper079+pipar079-piper079,b2i79(:,OP_1),bfp179)
@@ -1211,7 +1211,7 @@ subroutine axial_vel_nolin(trialx, r4term)
      r4term = r4term - dt*v2dp0b1geom(trialx)
   endif
   if ((particle_couple.eq.0).and.(eqsubtract.eq.1).and. &
-       (((kinetic.eq.1).and.(kinetic_fast_ion.eq.1)).or.(irunaway_kinetic.eq.1))) then
+       ((kinetic.eq.1).or.(irunaway_kinetic.eq.1))) then
      r4term = r4term + dt*v2pbb1psi(trialx,pfpar079-pfper079+pipar079-piper079,b2i79(:,OP_1),ps179)
      if (i3d.eq.1 .and. numvar.ge.2) then
         r4term = r4term + dt*v2pbb1f(trialx,pfpar079-pfper079+pipar079-piper079,b2i79(:,OP_1),bfp179)
@@ -1630,7 +1630,7 @@ subroutine compression_lin(trialx, lin, ssterm, ddterm, r_bf, q_bf, advfield, &
 
 #ifndef USEPARTICLES
      ! two-fluid contribution
-     if(db .gt. 0 .and. itwofluid.gt.1) then
+     if(db .gt. 0 .and. itwofluid.eq.2) then
         tempx = v3hupsi(trialx,lin,pstx79) & 
              + v3hub  (trialx,lin,bztx79)
         if(i3d.eq.1) tempx = tempx + v3huf(trialx,lin,bfptx79)
@@ -1653,7 +1653,7 @@ subroutine compression_lin(trialx, lin, ssterm, ddterm, r_bf, q_bf, advfield, &
 
 #ifndef USEPARTICLES
      ! two-fluid contribution
-     if(db .gt. 0 .and. itwofluid.gt.1) then
+     if(db .gt. 0 .and. itwofluid.eq.2) then
         tempx = v3hvpsi(trialx,lin,pstx79) & 
              + v3hvb  (trialx,lin,bztx79)
         if(i3d.eq.1) tempx = tempx + v3hvf(trialx,lin,bfptx79)
@@ -1677,7 +1677,7 @@ subroutine compression_lin(trialx, lin, ssterm, ddterm, r_bf, q_bf, advfield, &
 
 #ifndef USEPARTICLES
      ! two-fluid contribution
-     if(db .gt. 0 .and. itwofluid.gt.1) then
+     if(db .gt. 0 .and. itwofluid.eq.2) then
         tempx = v3hchipsi(trialx,lin,pstx79) & 
              + v3hchib  (trialx,lin,bztx79)
         if(i3d.eq.1) tempx = tempx + v3hchif(trialx,lin,bfptx79)
@@ -1858,7 +1858,7 @@ subroutine compression_nolin(trialx, r4term)
      r4term = r4term - dt*v3dp0b1geom(trialx)
   endif
   if ((particle_couple.eq.0).and.(eqsubtract.eq.1).and. &
-       (((kinetic.eq.1).and.(kinetic_fast_ion.eq.1)).or.(irunaway_kinetic.eq.1))) then
+       ((kinetic.eq.1).or.(irunaway_kinetic.eq.1))) then
      r4term = r4term + dt*v3pbb1psi(trialx,pfpar079-pfper079+pipar079-piper079,b2i79(:,OP_1),ps179)
      if (i3d.eq.1 .and. numvar.ge.2) then
         r4term = r4term + dt*v3pbb1f(trialx,pfpar079-pfper079+pipar079-piper079,b2i79(:,OP_1),bfp179)
@@ -2640,7 +2640,7 @@ subroutine flux_lin(trialx, lin, ssterm, ddterm, q_ni, r_bf, q_bf, izone)
 #ifdef USEPARTICLES
         tempx = b1psi2bfn(trialx,pst79,pst79,bzt79,bfpt79,lin)*db
         ssterm(:,den_g) = ssterm(:,den_g) -     thimpf     *dt*tempx
-        ddterm(:,den_g) = ddterm(:,den_g) + (1.-thimpf*bdf)*dt*temp
+        ddterm(:,den_g) = ddterm(:,den_g) + (1.-thimpf*bdf)*dt*tempx
 #else
         tempx = b1psi2bfpe(trialx,pst79,pst79,bzt79,bfpt79,lin)*db
         ssterm(:,pe_g) = ssterm(:,pe_g) -     thimpf     *dt*tempx
@@ -4984,7 +4984,7 @@ subroutine ludefall(ivel_def, idens_def, ipres_def, ipressplit_def,  ifield_def)
   if(rad_source) def_fields = def_fields + FIELD_RAD
 
   if(gyro.eq.1 .or. amupar.ne.0 .or. kappar.ne.0 .or. ikapparfunc.eq.2 .or. &
-       kinetic.ne.0 .or. irunaway_kinetic.eq.1) then
+       kinetic.ne.0 .or. irunaway_kinetic.eq.1 .or. itwofluid.eq.3) then
      def_fields = def_fields + FIELD_B2I
   endif
 
@@ -5964,7 +5964,7 @@ subroutine ludefden_n(itri)
   if(itime_independent.eq.0) ddterm = ddterm + tempxx*bdf
 
 #ifdef USEPARTICLES
-  if((kinetic.eq.0).or.(kinetic_thermal_ion.eq.0)) then
+  if((kinetic.eq.0).or.(kinetic_thermal_ion.eq.0).or.(db.eq.0.)) then
 #endif
   do j=1,dofs_per_element
      

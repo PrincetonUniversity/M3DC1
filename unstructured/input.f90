@@ -421,7 +421,7 @@ subroutine set_defaults
   call add_var_int("igauge", igauge, 0, "", model_grp)
   call add_var_int("inertia", inertia, 1, &
        "1: Include V.Grad(V) terms", model_grp)
-  call add_var_int("itwofluid", itwofluid, 1, &
+  call add_var_int("itwofluid", itwofluid, 0, &
        "1: -electron 2F,  2: ion 2F", model_grp)
   call add_var_int("ibootstrap", ibootstrap, 0, "", model_grp)
   call add_var_int("irunaway", irunaway, 0, "", model_grp)

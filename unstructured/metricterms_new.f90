@@ -7591,7 +7591,8 @@ function b1psi2bfn(e,f,g,h,i,j)
   temp79a = temp79a - (j(:,OP_DR)*i(:,OP_DR) + j(:,OP_DZ)*i(:,OP_DZ))   &
                     + ri2_79*h(:,OP_1)*j(:,OP_DP)
 #endif
-  temp79a = temp79a*b2i79(:,OP_1)*ri2_79*ni79(:,OP_1)*te079(:,OP_1)
+  temp79a = temp79a*b2i79(:,OP_1)*ri2_79*ni79(:,OP_1) &
+                  *2.0*te079(:,OP_1)
 
 
   if(jadv.eq.0) then
@@ -8476,7 +8477,7 @@ function b2psi2bfn(e,f,g,h,i,j)
   temp79a = temp79a - (j(:,OP_DR)*i(:,OP_DR) + j(:,OP_DZ)*i(:,OP_DZ))   &
                     + ri2_79*h(:,OP_1)*j(:,OP_DP)
 #endif
-  temp79a = temp79a*b2i79(:,OP_1)*ni79(:,OP_1)*te079(:,OP_1)
+  temp79a = temp79a*b2i79(:,OP_1)*ni79(:,OP_1)*2.0*te079(:,OP_1)
 
 
   temp = intx4(e(:,:,OP_DR),ri2_79,temp79a,g(:,OP_DR))    &

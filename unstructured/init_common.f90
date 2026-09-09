@@ -647,7 +647,8 @@ subroutine kinetic_eq
      call newvar_solve(den_vec%vec,mass_mat_lhs)
      rho_field = den_vec
   endif
-
+  pe_field(0) = p_field(0)
+  call mult(pe_field(0), pefac)
   call destroy_field(den_vec)
 
 end subroutine kinetic_eq

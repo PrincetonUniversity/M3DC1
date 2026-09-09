@@ -380,7 +380,7 @@ subroutine particle_post_initialize
    call get_field_coefs(1, .true.)
    if (kinetic_thermal_ion.eq.1) then
       if (idiamagnetic_advection.eq.1) call set_diamagnetic_velocity
-      call set_den_smooth
+      if (db.ne.0.) call set_den_smooth
    endif
 end subroutine particle_post_initialize
 
@@ -1172,10 +1172,10 @@ subroutine init_particles(lrestart, ierr)
       call define_element_quadrature(itri, int_pts_main, int_pts_tor)
       call define_fields(itri, FIELD_PSI+FIELD_I+FIELD_B2I, 1, linear)
       tempxx = intxx2(mu79(:, :, OP_1), nu79(:, :, OP_1))
-      !tempxx = tempxx + smooth_dens_parallel*(intxx2(mu79(:, :, OP_DZZ), nu79(:, :, OP_DZZ)) + intxx2(mu79(:, :, OP_DRR), nu79(:, :, OP_DRR)))
-!#ifdef USE3D
-!      tempxx = tempxx + smooth_dens_parallel*intxx3(mu79(:, :, OP_DPP), nu79(:, :, OP_DPP), ri4_79)
-!#endif
+      !tempxx = tempxx + smooth_par*(intxx2(mu79(:, :, OP_DZZ), nu79(:, :, OP_DZZ)) + intxx2(mu79(:, :, OP_DRR), nu79(:, :, OP_DRR)))
+#ifdef USE3D
+      !tempxx = tempxx + smooth_par*intxx3(mu79(:, :, OP_DPP), nu79(:, :, OP_DPP), ri4_79)
+#endif
       tempxx = tempxx + smooth_dens_parallel*(&
             + intxx5(mu79(:,:,OP_DZ),nu79(:,:,OP_DZ),ri_79*pst79(:,OP_DR)-&
                      bfpt79(:,OP_DZ),ri_79*pst79(:,OP_DR)-bfpt79(:,OP_DZ),b2i79(:,OP_1)) &
@@ -1192,11 +1192,19 @@ subroutine init_particles(lrestart, ierr)
 #if defined(USE3D) || defined(USECOMPLEX)
             - intxx5(mu79(:,:,OP_DR),nu79(:,:,OP_DP),ri_79*pst79(:,OP_DZ)+&
                      bfpt79(:,OP_DR),ri2_79*bzt79(:,OP_1),b2i79(:,OP_1)) &
+#endif
+#if defined(USE3D)
             + intxx5(mu79(:,:,OP_DP),nu79(:,:,OP_DZ),ri2_79*bzt79(:,OP_1),ri_79*pst79(:,OP_DR)-&
                      bfpt79(:,OP_DZ),b2i79(:,OP_1)) &
             - intxx5(mu79(:,:,OP_DP),nu79(:,:,OP_DR),ri2_79*bzt79(:,OP_1),ri_79*pst79(:,OP_DZ)+&
                      bfpt79(:,OP_DR),b2i79(:,OP_1)) &
             + intxx5(mu79(:,:,OP_DP),nu79(:,:,OP_DP),ri2_79*bzt79(:,OP_1),ri2_79*bzt79(:,OP_1),b2i79(:,OP_1)) &
+#elif defined(USECOMPLEX)
+            - intxx5(mu79(:,:,OP_1),nu79(:,:,OP_DZP),ri2_79*bzt79(:,OP_1),ri_79*pst79(:,OP_DR)-&
+                     bfpt79(:,OP_DZ),b2i79(:,OP_1)) &
+            + intxx5(mu79(:,:,OP_1),nu79(:,:,OP_DRP),ri2_79*bzt79(:,OP_1),ri_79*pst79(:,OP_DZ)+&
+                     bfpt79(:,OP_DR),b2i79(:,OP_1)) &
+            - intxx5(mu79(:,:,OP_1),nu79(:,:,OP_DPP),ri2_79*bzt79(:,OP_1),ri2_79*bzt79(:,OP_1),b2i79(:,OP_1)) &
 #endif
             )
 
@@ -1630,7 +1638,7 @@ subroutine fdot(x, v, w, dxdt, dvdt, dwdt, dEpdt, itri, kel, f00, ierr, sps, B00
 #endif
 
             te0=dot_product(geomterms2%g, elfieldcoefs(kel(ipoint))%te0)
-            if (ifullf_particle.eq.1) te0 = te0 + dot_product(geomterms2%g, elfieldcoefs(kel(ipoint))%te0)
+            if (ifullf_particle.eq.1) te0 = te0 + dot_product(geomterms2%g, elfieldcoefs(kel(ipoint))%te)
             temp = temp*te0
 #ifdef USECOMPLEX
             gradpe = gradpe + real(temp*exp(rfac_particle*x2(2)))
@@ -1740,7 +1748,8 @@ subroutine fdot(x, v, w, dxdt, dvdt, dwdt, dEpdt, itri, kel, f00, ierr, sps, B00
 
    ne0 = dot_product(geomterms%g, elfieldcoefs(itri)%ne0)
    if (ifullf_particle.eq.1) ne0 = ne0 + dot_product(geomterms%g, elfieldcoefs(itri)%ne)
-   if ((kinetic_thermal_ion_particle.eq.1).and.(particle_couple.ge.0)) then
+   if ((kinetic_thermal_ion_particle.eq.1).and.(particle_couple.ge.0) &
+        .and.(db.gt.0.)) then
       if (particle_linear_particle .eq. 1) then
          E_cyl = E_cyl + bhat0*(dot_product(-gradpe,bhat0)+j0xb)/ne0
       else
@@ -2159,7 +2168,7 @@ subroutine particle_step(pdt)
    call filter_fields
    call calculate_electric_fields(linear)
    do isubcycle=1,particle_subcycles
-      if (kinetic_thermal_ion.eq.1) then
+      if ((kinetic_thermal_ion.eq.1).and.(db.ne.0.)) then
          call set_den_smooth
       endif
       !Advance particle positions
@@ -2194,8 +2203,9 @@ subroutine particle_step(pdt)
       !Compute particle pressure tensor components
       call update_particle_pressure(isubcycle == particle_subcycles)
       call mpi_barrier(mpi_comm_world, ierr)
-    if ((kinetic_thermal_ion.eq.1).and.(particle_couple.ge.0)) then
-         call set_density
+      if ((kinetic_thermal_ion.eq.1).and.(particle_couple.ge.0) &
+         .and.(db.ne.0.)) then
+         call set_density(isubcycle == particle_subcycles)
       endif
       call mpi_barrier(mpi_comm_world, ierr)
   enddo
@@ -3470,7 +3480,7 @@ subroutine particle_pressure_rhs(full_update)
          else
             xtemp = pdata(ipart)%x
             vtemp = pdata(ipart)%v
-            !if (vspdims .eq. 5) call advancex(xtemp, vtemp, -t0_norm*dt/particle_substeps/2) !unreachable code
+            if (vspdims .eq. 5) call advancex(xtemp, vtemp, -t0_norm*dt/particle_substeps/2)
             call get_geom_terms(xtemp, itri, &
                                 geomterms, .false., ierr)
          end if
@@ -3801,10 +3811,15 @@ subroutine solve_pi_tensor(full_update)
    integer :: ierr
 
    if (.not.full_update) then
-      call sum_shared(denf_field(1)%vec)
-      call newsolve(diff2_mat, denf_field(1)%vec, ierr)
-      call sum_shared(deni_field(1)%vec)
-      call newsolve(diff2_mat, deni_field(1)%vec, ierr)
+      if (((kinetic.eq.1).and.(kinetic_fast_ion.eq.1)).or. &
+          (irunaway_kinetic.eq.1)) then
+         call sum_shared(denf_field(1)%vec)
+         call newsolve(diff2_mat, denf_field(1)%vec, ierr)
+      endif
+      if ((kinetic.eq.1).and.(kinetic_thermal_ion.eq.1)) then
+         call sum_shared(deni_field(1)%vec)
+         call newsolve(diff2_mat, deni_field(1)%vec, ierr)
+      endif
       return
    endif
 
@@ -4931,7 +4946,7 @@ subroutine filter_fields
 end subroutine filter_fields
 
 
-subroutine set_density
+subroutine set_density(full_update)
 
    use mesh_mod
    use basic
@@ -4949,6 +4964,7 @@ subroutine set_density
 
    implicit none
 
+   logical, intent(in) :: full_update
    type(field_type) ::   p_v
    vectype, dimension(dofs_per_element) :: dofs
    integer :: k, itri, izone
@@ -5025,6 +5041,8 @@ subroutine set_density
      call destroy_field(p_v)
   endif
 
+  if (.not.full_update) return
+
   call calculate_ne(1, den_field(1), ne_field(1), eqsubtract)
 
   if(itemp.eq.0 .and. (numvar.eq.3 .or. ipres.gt.0)) then
@@ -5066,8 +5084,9 @@ subroutine set_den_smooth
   do itri=1,local_elements()
      call define_element_quadrature(itri,int_pts_main,int_pts_tor)
      call define_fields(itri,FIELD_P+FIELD_TE+FIELD_KIN+FIELD_N+FIELD_NI,1,0)
-     temp79a = n179(:,OP_1) + 0.9*(deni79(:,OP_1)+denf79(:,OP_1)) &
-        -0.9*n179(:,OP_1)
+     temp79a = n179(:,OP_1)
+     !+ 0.9*(deni79(:,OP_1)+denf79(:,OP_1)) &
+        !-0.9*n179(:,OP_1)
      !temp79a = n179(:,OP_1)
      !!call define_fields(itri, FIELD_PSI + FIELD_I + FIELD_P +FIELD_N+FIELD_NI+FIELD_KIN, 1, 0)
      !!temp79a= ((ri_79*ps079(:,OP_DR)-bfp079(:,OP_DZ))*p079(:,OP_DZ) &
