@@ -554,9 +554,14 @@ subroutine rmp_field(n, nt, np, x, phi, z, br, bphi, bz, p)
 					remc_br, remc_bphi, remc_bz) ! RiD: Calculating B-field
 			end do
 
-			br = -twopi*remc_br
-			bphi = -twopi*remc_bphi
-			bz = -twopi*remc_bz
+			! RiD: NOT -twopi here -- coil_arc is a direct Biot-Savart line
+			! integral (already physically normalized via fac=curr/2), unlike
+			! coil()'s Fourier/pi-normalized integral() which needs -twopi to
+			! convert back to a physical field. Only the sign flip (matching
+			! this codebase's established B/psi sign convention) is needed.
+			br = -remc_br
+			bphi = -remc_bphi
+			bz = -remc_bz
 			if(present(p)) p = 0.
 
 		else

@@ -817,9 +817,14 @@ end subroutine pane
 ! curr is expected in the same amu0/twopi-normalized convention as
 ! ic_na (see load_coils above): curr = amu0*I/twopi for a physical
 ! current I. The standard Biot-Savart prefactor amu0*I/(4*pi) is then
-! curr/2 -- this normalization should be checked against gvect's exact
-! elliptic-integral result for a full-circle arc before trusting
-! quantitative results.
+! curr/2. Unlike coil() (which needs an external -twopi factor to undo
+! its internal Fourier/pi-normalized integral()), this routine's output
+! is already physically normalized -- verified analytically by matching
+! the on-axis field of a full-circle arc (remc_nseg=1) against the
+! standard closed-form B_z = mu0*I*r1^2/(2*(r1^2+dz^2)^1.5): it comes
+! out equal in magnitude and opposite in sign to coil()'s -twopi-scaled
+! result, so callers should apply only a sign flip (see rmp_field
+! case(3)), not an additional twopi factor.
 !======================================================================
 subroutine coil_arc(curr, r1, z1, phi1, phi2, nbs, npts, r0, phi0, z0, br, bphi, bz)
   implicit none
