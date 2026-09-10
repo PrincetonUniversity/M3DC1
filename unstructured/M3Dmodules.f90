@@ -317,6 +317,10 @@ module basic
   integer :: iremc_demf ! RiD: 1: add induced-EMF (d Psi_ext/dt) source from REMC circuit to flux eqn
   real :: remc_demf_fac ! RiD: (dI_remc/dt)/I_remc in normalized time units; set each step in update_remc_circuit
   integer :: n_remc_ramp ! RiD: number of timesteps to smoothly ramp remc_demf_fac on from 0 (avoids CN ringing from an abrupt onset); 0 = no ramp
+  integer :: iremc_geom ! RiD: 1: model the REMC coil as remc_nseg discretized 3D Biot-Savart arcs instead of the axisymmetric two-sector model (irmp=3 only)
+  integer :: remc_nseg ! RiD: number of REMC coil toroidal arc segments (iremc_geom=1)
+  real :: remc_Rpos ! RiD: REMC coil major radius [m] (iremc_geom=1)
+  integer :: remc_nbs ! RiD: number of Biot-Savart sub-segments per REMC arc (iremc_geom=1)
   integer :: iflip       ! 1 = flip handedness
   integer :: iflip_b     ! 1 = flip equilibrium toroidal field
   integer :: iflip_j     ! 1 = flip equilibrium toroidal current density
@@ -564,6 +568,7 @@ module arrays
 
   ! Arrays containing external fields
   type(field_type) :: psi_ext, bz_ext, bf_ext, bfp_ext
+  type(field_type) :: psi_remc_0 ! RiD: cached REMC coil flux at unit current (iremc_geom=1)
 
   ! Arrays containing auxiliary variables
   type(field_type) :: jphi_field

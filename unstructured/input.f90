@@ -448,6 +448,15 @@ subroutine set_defaults
        "1: apply REMC induced-EMF (dPsi_ext/dt) source to flux equation", model_grp)
   call add_var_int("n_remc_ramp", n_remc_ramp, 10, & ! RiD
        "number of timesteps to smoothly ramp REMC induced-EMF source on from 0", model_grp)
+  call add_var_int("iremc_geom", iremc_geom, 0, & ! RiD
+       "1: model REMC coil as discretized 3D Biot-Savart arcs instead of the axisymmetric two-sector model (irmp=3 only)", model_grp)
+  call add_var_int("remc_nseg", remc_nseg, 2, "Number of REMC coil toroidal arc segments (iremc_geom=1)", model_grp)
+  call add_var_double("remc_Rpos", remc_Rpos, 0., "REMC coil major radius [m] (iremc_geom=1)", model_grp)
+  call add_var_int("remc_nbs", remc_nbs, 20, "Number of Biot-Savart sub-segments per REMC arc (iremc_geom=1)", model_grp)
+  call add_var_double_array("remc_Zpos", remc_Zpos, max_remc_seg, 0., &
+       "REMC coil arc Z position [m] per segment (iremc_geom=1)", model_grp)
+  call add_var_double_array("remc_leg_pos", remc_leg_pos, max_remc_seg, 0., &
+       "REMC coil leg (arc boundary) toroidal angle [rad] per segment (iremc_geom=1)", model_grp)
   call add_var_int("ra_characteristics", ra_characteristics, 0, &
        "1: Use the method of characteristics to advance the RE advection equation", model_grp)
   call add_var_double("bzsign", bzsign, 0., "", model_grp)

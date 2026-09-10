@@ -374,6 +374,8 @@ contains
          if(itaylor.eq.41) then
             if(myrank.eq.0 .and. iprint.ge.2) print *, &
                  "Skipping: RMP specification not currently implemented for ST."
+         else if(irmp.eq.3 .and. iScaleREMC.eq.2 .and. iremc_geom.eq.1) then
+            call update_remc_field_bs
          else
             call rmp_per
          end if
@@ -394,6 +396,7 @@ contains
     use arrays
     use hdf5_output
     use kprad_m3dc1
+    use rmp
 
     implicit none
 
@@ -404,6 +407,7 @@ contains
     integer(HID_T) :: group_id
     integer :: nelms, ilin, i
     character(len=64) :: field_name
+    logical :: remc0_exists
 
     ilin = 1 - equilibrium
     error = 0
@@ -455,9 +459,20 @@ contains
     if (extsubtract_in.eq.1) then
        call h5r_read_field(group_id, "psi_ext", psi_ext, nelms, error)
        call h5r_read_field(group_id,   "I_ext",  bz_ext, nelms, error)
-       call h5r_read_field(group_id,   "f_ext",  bf_ext, nelms, error)       
+       call h5r_read_field(group_id,   "f_ext",  bf_ext, nelms, error)
        if(irestart_fp.eq.1) then
           call h5r_read_field(group_id, "fp_ext", bfp_ext, nelms, error)
+       end if
+       if(irmp.eq.3 .and. iremc_geom.eq.1) then
+          ! RiD: psi_remc_0 (unit-current REMC flux) is only recomputed via
+          ! update_remc_field_bs if it isn't found here -- an older
+          ! checkpoint predating this feature simply falls through to a
+          ! lazy recompute on the next call.
+          call h5lexists_f(group_id, "psi_remc_0", remc0_exists, error)
+          if(remc0_exists) then
+             call h5r_read_field(group_id, "psi_remc_0", psi_remc_0, nelms, error)
+             call mark_psi_remc_0_ready
+          end if
        end if
     end if
 

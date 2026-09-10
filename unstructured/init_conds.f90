@@ -695,7 +695,11 @@ subroutine initial_conditions()
         ! coil's actual initial current from step 1 onward instead of
         ! jumping from a zero-current field after step 1 completes.
         if(irmp.eq.3 .and. iScaleREMC.eq.2) call update_remc_circuit
-        call rmp_per(1)
+        if(irmp.eq.3 .and. iScaleREMC.eq.2 .and. iremc_geom.eq.1) then
+           call update_remc_field_bs
+        else
+           call rmp_per(1)
+        end if
      end if
   end if
 #ifdef USEST

@@ -12,6 +12,8 @@ module rmp
   real, dimension(maxcoils) :: pf_shift, pf_shift_angle
   real :: rmp_atten
 
+  real, dimension(max_remc_seg) :: remc_Zpos, remc_leg_pos ! RiD: REMC arc Z [m] / toroidal bounds [rad] per segment (iremc_geom=1)
+
   real, dimension(maxfilaments), private :: xc_na, zc_na
   complex, dimension(maxfilaments), private :: ic_na
   integer, private :: nc_na
@@ -23,6 +25,9 @@ module rmp
   logical, private :: remc_circuit_init = .false.
   real, private :: remc_demf_fac_restart = 0. ! remc_demf_fac as of the last checkpoint; blend source for the post-restart ramp
   integer, private :: remc_restart_ntime0 = -1 ! ntime at restart; -1 = no restart blend in progress (fresh start)
+
+  logical, private :: remc_unit_current = .false. ! RiD: when .true., case(3)'s iremc_geom=1 branch uses I_remc=1 (for building psi_remc_0)
+  logical, private :: psi_remc_0_ready = .false. ! RiD: .true. once psi_remc_0 has been computed (or read back from a checkpoint)
 
 contains
 
@@ -212,6 +217,50 @@ subroutine update_remc_circuit
 end subroutine update_remc_circuit
 
 !==============================================================================
+! RiD: Rebuild psi_ext for the iremc_geom=1 REMC Biot-Savart model. The
+! coil geometry never changes, so the field it produces is exactly linear
+! in the REMC current: psi_remc_0 (the field at unit current) is computed
+! once via rmp_per(1) with remc_unit_current=.true. and cached, then every
+! subsequent call just copies psi_remc_0 and rescales by the instantaneous
+! I_remc_circ -- avoiding the full per-step Biot-Savart + weak-form solve.
+subroutine update_remc_field_bs
+  use basic
+  use arrays
+  use field
+  use math
+
+  implicit none
+
+  real :: I_remc_now
+
+  if(.not.psi_remc_0_ready) then
+     remc_unit_current = .true.
+     call rmp_per(1)
+     remc_unit_current = .false.
+     psi_remc_0 = psi_ext
+     psi_remc_0_ready = .true.
+  end if
+
+  if(real(ic_na(1)).ne.0.) then
+     I_remc_now = (i_remc_circ*amu0/twopi) * sign(1., real(ic_na(1)))
+  else
+     I_remc_now = 0.
+  end if
+
+  psi_ext = psi_remc_0
+  call mult(psi_ext, I_remc_now)
+
+end subroutine update_remc_field_bs
+
+!==============================================================================
+! RiD: setter for the private psi_remc_0_ready flag, called from
+! restart_hdf5.f90 after psi_remc_0 has been read back from a checkpoint.
+subroutine mark_psi_remc_0_ready
+  implicit none
+  psi_remc_0_ready = .true.
+end subroutine mark_psi_remc_0_ready
+
+!==============================================================================
 ! For free boundary stellarator and 3D fields
 
 subroutine load_stellarator_field
@@ -356,6 +405,10 @@ subroutine rmp_field(n, nt, np, x, phi, z, br, bphi, bz, p)
 #endif
   real :: Z_remc, R_remc, remc_fac, curr_now, phi_now
   complex :: I_remc
+  real :: I_remc_r
+  real, dimension(n) :: remc_br, remc_bphi, remc_bz
+  real :: phi1_arc, phi2_arc
+  integer :: iseg
 
   br = 0.
   bphi = 0.
@@ -470,57 +523,87 @@ subroutine rmp_field(n, nt, np, x, phi, z, br, bphi, bz, p)
                         remc_fac = 1.0
                 end if
                 
-		! REMC Current and position
-		 I_remc = remc_fac * ic_na(1) ! current * mu0 / (2*pi)
-		 Z_remc = 1.0 * zc_na(1)
-		 R_remc = 1.0 * xc_na(1)
-		 
-	! ***** Debugging ***** ! 
+		if(iremc_geom.eq.1) then
+			if(remc_nseg.gt.max_remc_seg) then
+				if(myrank.eq.0) print *, 'Error: remc_nseg exceeds max_remc_seg', remc_nseg, max_remc_seg
+				call safestop(302)
+			end if
+			! RiD: 3D Biot-Savart REMC geometry -- remc_nseg discretized
+			! toroidal arcs (legs not modeled), replacing the two-sector
+			! axisymmetric coil() hack below. See coil_arc (coils.f90).
+			if(remc_unit_current) then
+				I_remc_r = 1.
+			else
+				I_remc_r = remc_fac * real(ic_na(1)) ! current * mu0 / (2*pi)
+			end if
+
+			remc_br = 0.
+			remc_bphi = 0.
+			remc_bz = 0.
+			do iseg=1, remc_nseg
+				phi1_arc = remc_leg_pos(iseg)
+				if(iseg.lt.remc_nseg) then
+					phi2_arc = remc_leg_pos(iseg+1)
+				else
+					phi2_arc = remc_leg_pos(1)
+				end if
+				if(phi2_arc.le.phi1_arc) phi2_arc = phi2_arc + twopi
+
+				call coil_arc(I_remc_r, remc_Rpos, remc_Zpos(iseg), &
+					phi1_arc, phi2_arc, remc_nbs, n, x, phi, z, &
+					remc_br, remc_bphi, remc_bz) ! RiD: Calculating B-field
+			end do
+
+			br = -twopi*remc_br
+			bphi = -twopi*remc_bphi
+			bz = -twopi*remc_bz
+			if(present(p)) p = 0.
+
+		else
+			! REMC Current and position
+			 I_remc = remc_fac * ic_na(1) ! current * mu0 / (2*pi)
+			 Z_remc = 1.0 * zc_na(1)
+			 R_remc = 1.0 * xc_na(1)
+
+		! ***** Debugging ***** ! 
        ! if((myrank.eq.0)) then
 	!		print *, 'Ip (MA) = ', (totcur*795217.0/1.e6)
 	!		print *, 'remc_fac = ', (remc_fac)
 	!		print *, 'I_remc [kA] = ', (I_remc * twopi / amu0 *1.e-3)
 	!	end if
         ! ********************* !
-                 
-		 
-             
-        do i=1, nt
-        
-			fr   = 0.    ! B_R
-			fphi = 0.    ! B_phi
-			fz   = 0.    ! B_Z
-			
-			! *tanh((phi((i-1)*np+1)-3.141)/0.5)
-			! Z_remc = cos(phi((i-1)*np+1)) * zc_na(1)
-			if (phi((i-1)*np+1).lt.twopi/2) then
-				Z_remc = -1.0 * zc_na(1)
-			else
-				Z_remc = 1.0 * zc_na(1)
-			end if
-        
+
+		 do i=1, nt
+
+				fr   = 0.    ! B_R
+				fphi = 0.    ! B_phi
+				fz   = 0.    ! B_Z
+
+				! *tanh((phi((i-1)*np+1)-3.141)/0.5)
+				! Z_remc = cos(phi((i-1)*np+1)) * zc_na(1)
+				if (phi((i-1)*np+1).lt.twopi/2) then
+					Z_remc = -1.0 * zc_na(1)
+				else
+					Z_remc = 1.0 * zc_na(1)
+				end if
+
 !~ 			call pane(I_remc,R_remc,R_remc,&
 !~ 			Z_remc,&
 !~ 			zc_na(2),np,x,z,ntor,fr,fphi,fz) ! RiD: Calculating B-field
 
-			call coil(I_remc,R_remc,Z_remc,&
+				call coil(I_remc,R_remc,Z_remc,&
 			np,x,z,0,fr,fphi,fz) ! RiD: Calculating B-field
-			
-			
-! 			if(myrank.eq.1) print *, &
-! 			'Z_remc, phi = ', Z_remc,&
-! 			 phi((i-1)*np+1)
-        
-			br((i-1)*np+1:i*np) = real(fr(1:np))
-			bphi((i-1)*np+1:i*np) = real(fphi(1:np))
-			bz((i-1)*np+1:i*np) = real(fz(1:np))
-		 end do
 
+				br((i-1)*np+1:i*np) = real(fr(1:np))
+				bphi((i-1)*np+1:i*np) = real(fphi(1:np))
+				bz((i-1)*np+1:i*np) = real(fz(1:np))
+			 end do
 
-		 br = -twopi*br
-		 bphi = -twopi*bphi
-		 bz = -twopi*bz
-		 if(present(p)) p = 0. 
+			 br = -twopi*br
+			 bphi = -twopi*bphi
+			 bz = -twopi*bz
+			 if(present(p)) p = 0. 
+		end if
 
         !!!!!! RiD: Trying a n = 1 + n = 2  REMC !!!!!
      case(4)

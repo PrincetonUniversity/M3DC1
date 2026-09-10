@@ -397,7 +397,11 @@ Program Reducedquintic
                 endif
      else if (irmp.eq.3 .and. iScaleREMC.eq.2) then
         call update_remc_circuit ! RiD: Update the REMC current
-        call rmp_per
+        if(iremc_geom.eq.1) then
+           call update_remc_field_bs ! RiD: cheap psi_ext = I_remc(t)*psi_remc_0 rescale
+        else
+           call rmp_per
+        end if
         if (myrank.eq.0) then
                  print *, "Recalculated REMC, totcur =", totcur
                  print *, "i_remc_circ [kA] = ", i_remc_circ/1.e3
@@ -1415,6 +1419,7 @@ if (ispradapt .eq. 1) then
         call create_field(bz_ext, "bz_ext")
         call create_field(bf_ext, "bf_ext")
         call create_field(bfp_ext, "bfp_ext")
+        if(irmp.eq.3 .and. iremc_geom.eq.1) call create_field(psi_remc_0, "psi_remc_0")
         use_external_fields = .true.
      end if
 else
@@ -1471,6 +1476,7 @@ else
         call create_field(bz_ext)
         call create_field(bf_ext)
         call create_field(bfp_ext)
+        if(irmp.eq.3 .and. iremc_geom.eq.1) call create_field(psi_remc_0)
         use_external_fields = .true.
      end if
 endif
