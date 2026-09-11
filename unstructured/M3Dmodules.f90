@@ -569,6 +569,7 @@ module arrays
   ! Arrays containing external fields
   type(field_type) :: psi_ext, bz_ext, bf_ext, bfp_ext
   type(field_type) :: psi_remc_0 ! RiD: cached REMC coil flux at unit current (iremc_geom=1,2)
+  type(field_type) :: bz_remc_0, bf_remc_0, bfp_remc_0 ! RiD: cached REMC coil I(=R*Bphi)/f/fp at unit current (iremc_geom=1,2)
 
   ! Arrays containing auxiliary variables
   type(field_type) :: jphi_field

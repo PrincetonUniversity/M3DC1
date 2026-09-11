@@ -407,7 +407,7 @@ contains
     integer(HID_T) :: group_id
     integer :: nelms, ilin, i
     character(len=64) :: field_name
-    logical :: remc0_exists
+    logical :: remc0_exists, remc0_bz_exists, remc0_bf_exists, remc0_bfp_exists
 
     ilin = 1 - equilibrium
     error = 0
@@ -464,13 +464,21 @@ contains
           call h5r_read_field(group_id, "fp_ext", bfp_ext, nelms, error)
        end if
        if(irmp.eq.3 .and. (iremc_geom.eq.1 .or. iremc_geom.eq.2)) then
-          ! RiD: psi_remc_0 (unit-current REMC flux) is only recomputed via
-          ! update_remc_field_bs if it isn't found here -- an older
-          ! checkpoint predating this feature simply falls through to a
-          ! lazy recompute on the next call.
+          ! RiD: psi_remc_0/bz_remc_0/bf_remc_0/bfp_remc_0 (unit-current
+          ! REMC fields) are only recomputed via update_remc_field_bs if
+          ! they aren't all found here -- an older checkpoint predating
+          ! this feature (or predating the bz/bf/bfp addition) simply
+          ! falls through to a lazy recompute of all four on the next call.
           call h5lexists_f(group_id, "psi_remc_0", remc0_exists, error)
-          if(remc0_exists) then
+          call h5lexists_f(group_id, "bz_remc_0", remc0_bz_exists, error)
+          call h5lexists_f(group_id, "bf_remc_0", remc0_bf_exists, error)
+          call h5lexists_f(group_id, "bfp_remc_0", remc0_bfp_exists, error)
+          if(remc0_exists .and. remc0_bz_exists .and. &
+             remc0_bf_exists .and. remc0_bfp_exists) then
              call h5r_read_field(group_id, "psi_remc_0", psi_remc_0, nelms, error)
+             call h5r_read_field(group_id, "bz_remc_0", bz_remc_0, nelms, error)
+             call h5r_read_field(group_id, "bf_remc_0", bf_remc_0, nelms, error)
+             call h5r_read_field(group_id, "bfp_remc_0", bfp_remc_0, nelms, error)
              call mark_psi_remc_0_ready
           end if
        end if

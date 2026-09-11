@@ -217,13 +217,14 @@ subroutine update_remc_circuit
 end subroutine update_remc_circuit
 
 !==============================================================================
-! RiD: Rebuild psi_ext for the iremc_geom=1 (Biot-Savart arcs) or
-! iremc_geom=2 (coil() per segment) REMC models. The coil geometry never
-! changes, so the field it produces is exactly linear in the REMC
-! current: psi_remc_0 (the field at unit current) is computed once via
-! rmp_per(1) with remc_unit_current=.true. and cached, then every
-! subsequent call just copies psi_remc_0 and rescales by the instantaneous
-! I_remc_circ -- avoiding the full per-step field build + weak-form solve.
+! RiD: Rebuild psi_ext/bz_ext/bf_ext/bfp_ext for the iremc_geom=1
+! (Biot-Savart arcs) or iremc_geom=2 (coil() per segment) REMC models. The
+! coil geometry never changes, so the fields it produces are exactly
+! linear in the REMC current: psi_remc_0/bz_remc_0/bf_remc_0/bfp_remc_0
+! (the fields at unit current) are computed once via rmp_per(1) with
+! remc_unit_current=.true. and cached, then every subsequent call just
+! copies them and rescales by the instantaneous I_remc_circ -- avoiding
+! the full per-step field build + weak-form solve.
 subroutine update_remc_field_bs
   use basic
   use arrays
@@ -239,6 +240,9 @@ subroutine update_remc_field_bs
      call rmp_per(1)
      remc_unit_current = .false.
      psi_remc_0 = psi_ext
+     bz_remc_0 = bz_ext
+     bf_remc_0 = bf_ext
+     bfp_remc_0 = bfp_ext
      psi_remc_0_ready = .true.
   end if
 
@@ -251,11 +255,21 @@ subroutine update_remc_field_bs
   psi_ext = psi_remc_0
   call mult(psi_ext, I_remc_now)
 
+  bz_ext = bz_remc_0
+  call mult(bz_ext, I_remc_now)
+
+  bf_ext = bf_remc_0
+  call mult(bf_ext, I_remc_now)
+
+  bfp_ext = bfp_remc_0
+  call mult(bfp_ext, I_remc_now)
+
 end subroutine update_remc_field_bs
 
 !==============================================================================
 ! RiD: setter for the private psi_remc_0_ready flag, called from
-! restart_hdf5.f90 after psi_remc_0 has been read back from a checkpoint.
+! restart_hdf5.f90 after psi_remc_0/bz_remc_0/bf_remc_0/bfp_remc_0 have
+! all been read back from a checkpoint.
 subroutine mark_psi_remc_0_ready
   implicit none
   psi_remc_0_ready = .true.

@@ -1244,8 +1244,12 @@ subroutine output_fields(time_group_id, equilibrium, error)
      call write_field(group_id, "I_ext", bz_ext, nelms, error)
      call write_field(group_id, "f_ext", bf_ext, nelms, error)
      call write_field(group_id, "fp_ext", bfp_ext, nelms, error)
-     if(irmp.eq.3 .and. (iremc_geom.eq.1 .or. iremc_geom.eq.2)) &
-          call write_field(group_id, "psi_remc_0", psi_remc_0, nelms, error)
+     if(irmp.eq.3 .and. (iremc_geom.eq.1 .or. iremc_geom.eq.2)) then
+        call write_field(group_id, "psi_remc_0", psi_remc_0, nelms, error)
+        call write_field(group_id, "bz_remc_0", bz_remc_0, nelms, error)
+        call write_field(group_id, "bf_remc_0", bf_remc_0, nelms, error)
+        call write_field(group_id, "bfp_remc_0", bfp_remc_0, nelms, error)
+     end if
   endif
 
   if(ikprad.ne.0) then

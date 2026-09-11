@@ -1419,7 +1419,12 @@ if (ispradapt .eq. 1) then
         call create_field(bz_ext, "bz_ext")
         call create_field(bf_ext, "bf_ext")
         call create_field(bfp_ext, "bfp_ext")
-        if(irmp.eq.3 .and. (iremc_geom.eq.1 .or. iremc_geom.eq.2)) call create_field(psi_remc_0, "psi_remc_0")
+        if(irmp.eq.3 .and. (iremc_geom.eq.1 .or. iremc_geom.eq.2)) then
+           call create_field(psi_remc_0, "psi_remc_0")
+           call create_field(bz_remc_0, "bz_remc_0")
+           call create_field(bf_remc_0, "bf_remc_0")
+           call create_field(bfp_remc_0, "bfp_remc_0")
+        end if
         use_external_fields = .true.
      end if
 else
@@ -1476,7 +1481,12 @@ else
         call create_field(bz_ext)
         call create_field(bf_ext)
         call create_field(bfp_ext)
-        if(irmp.eq.3 .and. (iremc_geom.eq.1 .or. iremc_geom.eq.2)) call create_field(psi_remc_0)
+        if(irmp.eq.3 .and. (iremc_geom.eq.1 .or. iremc_geom.eq.2)) then
+           call create_field(psi_remc_0)
+           call create_field(bz_remc_0)
+           call create_field(bf_remc_0)
+           call create_field(bfp_remc_0)
+        end if
         use_external_fields = .true.
      end if
 endif
