@@ -374,7 +374,7 @@ contains
          if(itaylor.eq.41) then
             if(myrank.eq.0 .and. iprint.ge.2) print *, &
                  "Skipping: RMP specification not currently implemented for ST."
-         else if(irmp.eq.3 .and. iScaleREMC.eq.2 .and. iremc_geom.eq.1) then
+         else if(irmp.eq.3 .and. iScaleREMC.eq.2 .and. (iremc_geom.eq.1 .or. iremc_geom.eq.2)) then
             call update_remc_field_bs
          else
             call rmp_per
@@ -463,7 +463,7 @@ contains
        if(irestart_fp.eq.1) then
           call h5r_read_field(group_id, "fp_ext", bfp_ext, nelms, error)
        end if
-       if(irmp.eq.3 .and. iremc_geom.eq.1) then
+       if(irmp.eq.3 .and. (iremc_geom.eq.1 .or. iremc_geom.eq.2)) then
           ! RiD: psi_remc_0 (unit-current REMC flux) is only recomputed via
           ! update_remc_field_bs if it isn't found here -- an older
           ! checkpoint predating this feature simply falls through to a

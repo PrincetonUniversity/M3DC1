@@ -12,7 +12,7 @@ module rmp
   real, dimension(maxcoils) :: pf_shift, pf_shift_angle
   real :: rmp_atten
 
-  real, dimension(max_remc_seg) :: remc_Zpos, remc_leg_pos ! RiD: REMC arc Z [m] / toroidal bounds [rad] per segment (iremc_geom=1)
+  real, dimension(max_remc_seg) :: remc_Zpos, remc_leg_pos ! RiD: REMC arc Z [m] / toroidal bounds [rad] per segment (iremc_geom=1,2)
 
   real, dimension(maxfilaments), private :: xc_na, zc_na
   complex, dimension(maxfilaments), private :: ic_na
@@ -26,7 +26,7 @@ module rmp
   real, private :: remc_demf_fac_restart = 0. ! remc_demf_fac as of the last checkpoint; blend source for the post-restart ramp
   integer, private :: remc_restart_ntime0 = -1 ! ntime at restart; -1 = no restart blend in progress (fresh start)
 
-  logical, private :: remc_unit_current = .false. ! RiD: when .true., case(3)'s iremc_geom=1 branch uses I_remc=1 (for building psi_remc_0)
+  logical, private :: remc_unit_current = .false. ! RiD: when .true., case(3)'s iremc_geom=1/2 branches use I_remc=1 (for building psi_remc_0)
   logical, private :: psi_remc_0_ready = .false. ! RiD: .true. once psi_remc_0 has been computed (or read back from a checkpoint)
 
 contains
@@ -217,12 +217,13 @@ subroutine update_remc_circuit
 end subroutine update_remc_circuit
 
 !==============================================================================
-! RiD: Rebuild psi_ext for the iremc_geom=1 REMC Biot-Savart model. The
-! coil geometry never changes, so the field it produces is exactly linear
-! in the REMC current: psi_remc_0 (the field at unit current) is computed
-! once via rmp_per(1) with remc_unit_current=.true. and cached, then every
+! RiD: Rebuild psi_ext for the iremc_geom=1 (Biot-Savart arcs) or
+! iremc_geom=2 (coil() per segment) REMC models. The coil geometry never
+! changes, so the field it produces is exactly linear in the REMC
+! current: psi_remc_0 (the field at unit current) is computed once via
+! rmp_per(1) with remc_unit_current=.true. and cached, then every
 ! subsequent call just copies psi_remc_0 and rescales by the instantaneous
-! I_remc_circ -- avoiding the full per-step Biot-Savart + weak-form solve.
+! I_remc_circ -- avoiding the full per-step field build + weak-form solve.
 subroutine update_remc_field_bs
   use basic
   use arrays
@@ -562,6 +563,64 @@ subroutine rmp_field(n, nt, np, x, phi, z, br, bphi, bz, p)
 			br = -remc_br
 			bphi = -remc_bphi
 			bz = -remc_bz
+			if(present(p)) p = 0.
+
+		else if(iremc_geom.eq.2) then
+			if(remc_nseg.gt.max_remc_seg) then
+				if(myrank.eq.0) print *, 'Error: remc_nseg exceeds max_remc_seg', remc_nseg, max_remc_seg
+				call safestop(302)
+			end if
+			! RiD: Same remc_nseg/remc_Rpos/remc_Zpos/remc_leg_pos coil shape
+			! as iremc_geom=1, but each segment modeled as a full axisymmetric
+			! coil() loop instead of a bounded coil_arc -- coil() has no
+			! phi1/phi2 arguments, so (unlike the iremc_geom=1 do-iseg loop,
+			! which superposes every arc's Biot-Savart contribution onto every
+			! point) here the output toroidal planes are looped instead, and
+			! each plane uses the coil() field of whichever segment's phi
+			! range (from remc_leg_pos, same wraparound convention as
+			! iremc_geom=1) contains that plane's phi. This generalizes the
+			! hardcoded two-sector coil() hack in the branch below.
+			if(remc_unit_current) then
+				I_remc = (1.,0.)
+			else
+				I_remc = remc_fac * ic_na(1) ! current * mu0 / (2*pi)
+			end if
+
+			do i=1, nt
+				fr   = 0.    ! B_R
+				fphi = 0.    ! B_phi
+				fz   = 0.    ! B_Z
+
+				phi_now = modulo(phi((i-1)*np+1), twopi)
+
+				iseg = remc_nseg
+				do j=1, remc_nseg
+					phi1_arc = remc_leg_pos(j)
+					if(j.lt.remc_nseg) then
+						phi2_arc = remc_leg_pos(j+1)
+					else
+						phi2_arc = remc_leg_pos(1)
+					end if
+					if(phi2_arc.le.phi1_arc) phi2_arc = phi2_arc + twopi
+
+					if((phi_now.ge.phi1_arc .and. phi_now.lt.phi2_arc) .or. &
+					   (phi_now+twopi.ge.phi1_arc .and. phi_now+twopi.lt.phi2_arc)) then
+						iseg = j
+						exit
+					end if
+				end do
+
+				call coil(I_remc,remc_Rpos,remc_Zpos(iseg),&
+					np,x,z,0,fr,fphi,fz) ! RiD: Calculating B-field
+
+				br((i-1)*np+1:i*np) = real(fr(1:np))
+				bphi((i-1)*np+1:i*np) = real(fphi(1:np))
+				bz((i-1)*np+1:i*np) = real(fz(1:np))
+			end do
+
+			br = -twopi*br
+			bphi = -twopi*bphi
+			bz = -twopi*bz
 			if(present(p)) p = 0.
 
 		else
