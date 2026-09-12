@@ -457,6 +457,8 @@ subroutine set_defaults
        "REMC coil arc Z position [m] per segment (iremc_geom=1,2)", model_grp)
   call add_var_double_array("remc_leg_pos", remc_leg_pos, max_remc_seg, 0., &
        "REMC coil leg (arc boundary) toroidal angle [rad] per segment (iremc_geom=1,2)", model_grp)
+  call add_var_double("remc_leg_R", remc_leg_R, 0., &
+       "Radial position [m] of the REMC vertical connecting legs (iremc_geom=1); may differ from remc_Rpos", model_grp)
   call add_var_int("ra_characteristics", ra_characteristics, 0, &
        "1: Use the method of characteristics to advance the RE advection equation", model_grp)
   call add_var_double("bzsign", bzsign, 0., "", model_grp)

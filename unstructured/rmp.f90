@@ -423,7 +423,7 @@ subroutine rmp_field(n, nt, np, x, phi, z, br, bphi, bz, p)
   real :: I_remc_r
   real, dimension(n) :: remc_br, remc_bphi, remc_bz
   real :: phi1_arc, phi2_arc
-  integer :: iseg
+  integer :: iseg, inext
 
   br = 0.
   bphi = 0.
@@ -544,8 +544,10 @@ subroutine rmp_field(n, nt, np, x, phi, z, br, bphi, bz, p)
 				call safestop(302)
 			end if
 			! RiD: 3D Biot-Savart REMC geometry -- remc_nseg discretized
-			! toroidal arcs (legs not modeled), replacing the two-sector
-			! axisymmetric coil() hack below. See coil_arc (coils.f90).
+			! toroidal arcs plus vertical connecting legs (at remc_leg_R,
+			! which may differ from remc_Rpos), replacing the two-sector
+			! axisymmetric coil() hack below. See coil_arc and
+			! coil_vertical_legs (coils.f90).
 			if(remc_unit_current) then
 				I_remc_r = 1.
 			else
@@ -558,14 +560,22 @@ subroutine rmp_field(n, nt, np, x, phi, z, br, bphi, bz, p)
 			do iseg=1, remc_nseg
 				phi1_arc = remc_leg_pos(iseg)
 				if(iseg.lt.remc_nseg) then
-					phi2_arc = remc_leg_pos(iseg+1)
+					inext = iseg+1
 				else
-					phi2_arc = remc_leg_pos(1)
+					inext = 1
 				end if
+				phi2_arc = remc_leg_pos(inext)
 				if(phi2_arc.le.phi1_arc) phi2_arc = phi2_arc + twopi
 
 				call coil_arc(I_remc_r, remc_Rpos, remc_Zpos(iseg), &
 					phi1_arc, phi2_arc, remc_nbs, n, x, phi, z, &
+					remc_br, remc_bphi, remc_bz) ! RiD: Calculating B-field
+
+				! RiD: vertical connecting leg between this arc and the next,
+				! at the boundary toroidal angle phi2_arc, running from this
+				! arc's Z to the next arc's Z. See coil_vertical_legs (coils.f90).
+				call coil_vertical_legs(I_remc_r, remc_Rpos, remc_Zpos(iseg), &
+					remc_Zpos(inext), phi2_arc, remc_leg_R, remc_nbs, n, x, phi, z, &
 					remc_br, remc_bphi, remc_bz) ! RiD: Calculating B-field
 			end do
 

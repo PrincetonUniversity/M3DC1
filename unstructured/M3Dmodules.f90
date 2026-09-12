@@ -321,6 +321,7 @@ module basic
   integer :: remc_nseg ! RiD: number of REMC coil toroidal arc segments (iremc_geom=1,2)
   real :: remc_Rpos ! RiD: REMC coil major radius [m] (iremc_geom=1,2)
   integer :: remc_nbs ! RiD: number of Biot-Savart sub-segments per REMC arc (iremc_geom=1)
+  real :: remc_leg_R ! RiD: radial position [m] of the REMC vertical connecting legs (iremc_geom=1); may differ from remc_Rpos
   integer :: iflip       ! 1 = flip handedness
   integer :: iflip_b     ! 1 = flip equilibrium toroidal field
   integer :: iflip_j     ! 1 = flip equilibrium toroidal current density
