@@ -502,7 +502,8 @@ PetscErrorCode setKspType_cudss(Mat A, PetscInt nplanes, KSP *out_ksp)
     KSP ksp;
     PetscCall(KSPCreate(comm, &ksp));
     PetscCall(KSPSetOperators(ksp, A, A));
-    PetscCall(KSPSetTolerances(ksp, .000001, .000000001, PETSC_DEFAULT, 1000));
+    PetscCall(KSPSetTolerances(ksp, 1.e-9, PETSC_DEFAULT, PETSC_DEFAULT, 10000));
+    PetscCall(KSPSetType(ksp, KSPGMRES));
     PetscCall(KSPSetFromOptions(ksp));
 
     /* Install our cuDSS block-Jacobi as a PCShell (overrides -pc_type).
@@ -531,7 +532,7 @@ PetscErrorCode setKspType_cudss(Mat A, PetscInt nplanes, KSP *out_ksp)
  * m3dc1_scorec's matrix_solve::solve_cudss; per-rep in main() below) and are
  * NOT destroyed here.
  * ------------------------------------------------------------------------- */
-PetscErrorCode petsc_cudss_solve(KSP ksp, Mat A, Vec b, Vec x,
+PetscErrorCode petsc_cudss_solve(KSP ksp, Mat A, Vec b, Vec *x,
                                  PetscInt nplanes,
                                  PetscBool use_initial_guess,
                                  PetscInt *out_its)
@@ -542,12 +543,12 @@ PetscErrorCode petsc_cudss_solve(KSP ksp, Mat A, Vec b, Vec x,
     PetscCall(PetscObjectGetComm((PetscObject)A, &comm));
 
     if (!use_initial_guess)
-        PetscCall(VecZeroEntries(x));
+        PetscCall(VecZeroEntries(*x));
     PetscCall(KSPSetInitialGuessNonzero(ksp, use_initial_guess));
 
     PetscLogDouble t0, t1;
     PetscCall(PetscTime(&t0));
-    PetscCall(KSPSolve(ksp, b, x));
+    PetscCall(KSPSolve(ksp, b, *x));
     PetscCall(PetscTime(&t1));
 
     PetscInt its;
@@ -683,7 +684,7 @@ int main(int argc, char **argv) {
         PetscCall(PetscTime(&t0));
         KSP ksp;
         PetscCall(setKspType_cudss(A, nplanes, &ksp));
-        PetscCall(petsc_cudss_solve(ksp, A, b, x, nplanes, has_x0, &its));
+        PetscCall(petsc_cudss_solve(ksp, A, b, &x, nplanes, has_x0, &its));
         PetscCall(PetscTime(&t1));
         PetscCall(KSPDestroy(&ksp));
 

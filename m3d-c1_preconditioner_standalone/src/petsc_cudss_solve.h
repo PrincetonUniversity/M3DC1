@@ -43,7 +43,7 @@ extern "C" {
 
 PetscErrorCode setKspType_cudss(Mat A, PetscInt nplanes, KSP *out_ksp);
 
-PetscErrorCode petsc_cudss_solve(KSP ksp, Mat A, Vec b, Vec x,
+PetscErrorCode petsc_cudss_solve(KSP ksp, Mat A, Vec b, Vec *x,
                                  PetscInt nplanes,
                                  PetscBool use_initial_guess,
                                  PetscInt *out_its);
