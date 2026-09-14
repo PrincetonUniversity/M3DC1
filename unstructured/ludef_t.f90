@@ -3470,7 +3470,47 @@ subroutine axial_field_nolin(trialx, r4term)
         end if
      end if
   end if
+
+  ! RiD: REMC induced-EMF (d I_ext/dt) source. SI_ext = dI_ext/dt =
+  ! remc_demf_fac * bz_ext (I_ext = bz_ext = F = R*Bphi from the REMC
+  ! coil), since bz_ext is exactly linear in the REMC coil current.
+  ! remc_demf_fac = (dI_remc/dt)/I_remc is computed each step in
+  ! update_remc_circuit (rmp.f90). 
+  if(iremc_demf.gt.0 .and. use_external_fields .and. iScaleREMC.eq.2) then
+     r4term = r4term - dt*remc_demf_fac* &
+          intx3(trialx(:,:,OP_1), ri2_79, bzx79(:,OP_1))
+  endif
+
 end subroutine axial_field_nolin
+
+
+!==============================================================================
+! RiD: REMC induced-EMF (d I_ext/dt) source for the axial-field (I) equation
+! in the conductor zone. Split out from axial_field_nolin (which is
+! plasma-zone-only) so that the plasma-only VxB/JxB terms there are
+! untouched. SI_ext = dI_ext/dt = remc_demf_fac * bz_ext, where bz_ext is
+! linear in the REMC coil current and remc_demf_fac = (dI_remc/dt)/I_remc
+! is computed each step in update_remc_circuit (rmp.f90).
+subroutine axial_field_nolin_conductor(trialx, r4term)
+
+  use basic
+  use m3dc1_nint
+
+  implicit none
+
+  vectype, intent(in), dimension(dofs_per_element, MAX_PTS, OP_NUM) :: trialx
+  vectype, intent(out), dimension(dofs_per_element) :: r4term
+
+  r4term = 0.
+
+  if(numvar.lt.2) return
+
+  if(iremc_demf.gt.0 .and. use_external_fields .and. iScaleREMC.eq.2) then
+     r4term = r4term - dt*remc_demf_fac* &
+          intx3(trialx(:,:,OP_1), ri2_79, bzx79(:,OP_1))
+  endif
+
+end subroutine axial_field_nolin_conductor
 
 
 !======================================================================
@@ -5559,7 +5599,11 @@ subroutine ludefphi_n(itri)
            call flux_nolin_conductor(mu79,q4) ! RiD: REMC induced-EMF source
         end if
      else if(ieq(k).eq.bz_i .and. numvar.ge.2) then
-        if(izone.eq.ZONE_PLASMA) call axial_field_nolin(mu79,q4)
+        if(izone.eq.ZONE_PLASMA) then
+           call axial_field_nolin(mu79,q4)
+        else if(izone.eq.ZONE_CONDUCTOR) then
+           call axial_field_nolin_conductor(mu79,q4) ! RiD: REMC induced-EMF source
+        end if
      else if(ieq(k).eq.ppe_i .and. ipressplit.eq.0 .and. numvar.ge.3) then
         if(izone.eq.ZONE_PLASMA) call pressure_nolin(mu79,q4,ipres.eq.0)
      else if(ieq(k).eq.bf_i .and. imp_bf.eq.1) then
