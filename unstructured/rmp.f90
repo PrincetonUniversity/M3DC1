@@ -577,8 +577,8 @@ subroutine rmp_field(n, nt, np, x, phi, z, br, bphi, bz, p)
 				! at the boundary toroidal angle phi2_arc, running from this
 				! arc's Z to the next arc's Z. See coil_vertical_legs (coils.f90).
 				call coil_vertical_legs(I_remc_r, remc_Rpos, remc_Zpos(iseg), &
-					remc_Zpos(inext), phi2_arc, remc_leg_R, remc_nbs, n, x, phi, z, &
-					remc_br, remc_bphi, remc_bz) ! RiD: Calculating B-field
+					remc_Zpos(inext), phi2_arc, remc_leg_R, 4, n, x, phi, z, &
+					remc_br, remc_bphi, remc_bz) ! RiD: Calculating B-field (4 segments)
 
 				! RiD: radial segments closing the gap between the arc radius
 				! (remc_Rpos) and the leg radius (remc_leg_R): one at this arc's
@@ -587,11 +587,11 @@ subroutine rmp_field(n, nt, np, x, phi, z, br, bphi, bz, p)
 				! start). No-ops (zero-length) if remc_leg_R equals remc_Rpos.
 				! See coil_radial_legs (coils.f90).
 				call coil_radial_legs(I_remc_r, remc_Rpos, remc_leg_R, remc_Zpos(iseg), &
-					phi2_arc, remc_nbs, n, x, phi, z, &
-					remc_br, remc_bphi, remc_bz) ! RiD: Calculating B-field
+					phi2_arc, 1, n, x, phi, z, &
+					remc_br, remc_bphi, remc_bz) ! RiD: Calculating B-field (1 segment: exact for a straight line)
 				call coil_radial_legs(I_remc_r, remc_leg_R, remc_Rpos, remc_Zpos(inext), &
-					phi2_arc, remc_nbs, n, x, phi, z, &
-					remc_br, remc_bphi, remc_bz) ! RiD: Calculating B-field
+					phi2_arc, 1, n, x, phi, z, &
+					remc_br, remc_bphi, remc_bz) ! RiD: Calculating B-field (1 segment: exact for a straight line)
 			end do
 
 			! RiD: NOT -twopi here -- coil_arc is a direct Biot-Savart line
