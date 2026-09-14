@@ -63,6 +63,7 @@ from .plot_hmn import plot_hmn
 from .plot_poincare import plot_poincare
 from .plot_particle_distribution import plot_particle_distribution
 from .plot_particle_distribution_com import plot_particle_distribution_com
+from .particle_loss_boundary import ParticleLossBoundary, particle_loss_boundary
 from .plot_signals import plot_signals
 from .schaffer_plot import schaffer_plot
 from .read_signals import read_signals
@@ -141,6 +142,8 @@ __all__ = [
     "plot_poincare",
     "plot_particle_distribution",
     "plot_particle_distribution_com",
+    "ParticleLossBoundary",
+    "particle_loss_boundary",
     "plot_signals",
     "schaffer_plot",
     "read_signals",
