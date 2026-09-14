@@ -1002,4 +1002,100 @@ subroutine coil_vertical_legs(curr, r1, z1, z2, phi1, remc_leg_R, nbs, npts, r0,
 
 end subroutine coil_vertical_legs
 
+!======================================================================
+! coil_radial_legs
+! ~~~~~~~~~~~~~~~~
+! Adds the magnetic field (br, bphi, bz) at observation points
+! (r0, phi0, z0) due to a single radial connecting segment of current
+! at fixed toroidal angle phi1 and height z1, spanning radius r1 to
+! r2, discretized into nbs straight sub-segments and summed via the
+! same exact finite-segment Biot-Savart formula as coil_arc/
+! coil_vertical_legs. This is the piece that closes the current path
+! between a toroidal arc (at the coil's own radius) and a vertical
+! leg (at remc_leg_R), when the two radii differ.
+!
+! curr uses the same amu0/twopi-normalized convention as coil_arc/
+! ic_na (see load_coils above).
+!======================================================================
+subroutine coil_radial_legs(curr, r1, r2, z1, phi1, nbs, npts, r0, phi0, z0, br, bphi, bz)
+  implicit none
+
+  real, intent(in) :: curr, r1, r2, z1, phi1
+  integer, intent(in) :: nbs, npts
+  real, intent(in), dimension(npts) :: r0, phi0, z0
+  real, intent(inout), dimension(npts) :: br, bphi, bz
+
+  real, parameter :: reg2 = 1e-8 ! regularization to avoid on-segment singularity
+
+  real, dimension(npts) :: cos0, sin0, x0, y0
+  real, dimension(npts) :: ax, ay, az
+  real, dimension(npts) :: t, rho2, jfac
+  real, dimension(npts) :: cx, cy, cz
+  real, dimension(npts) :: bxc, byc
+
+  real :: xa, ya, za, xb, yb, zb
+  real :: dx, dy, dz, seglen, dhx, dhy, dhz
+  real :: fac, cosp, sinp, rk
+  integer :: k
+
+  cos0 = cos(phi0)
+  sin0 = sin(phi0)
+  x0 = r0*cos0
+  y0 = r0*sin0
+
+  fac = curr/2.
+
+  cosp = cos(phi1)
+  sinp = sin(phi1)
+
+  xa = r1*cosp
+  ya = r1*sinp
+  za = z1
+
+  do k=1, nbs
+     rk = r1 + (r2-r1)*real(k)/real(nbs)
+     xb = rk*cosp
+     yb = rk*sinp
+     zb = z1
+
+     dx = xb - xa
+     dy = yb - ya
+     dz = zb - za
+     seglen = sqrt(dx*dx + dy*dy + dz*dz)
+
+     if(seglen.gt.0.) then
+        dhx = dx/seglen
+        dhy = dy/seglen
+        dhz = dz/seglen
+
+        ax = x0 - xa
+        ay = y0 - ya
+        az = z0 - za
+
+        t = ax*dhx + ay*dhy + az*dhz
+
+        cx = dhy*az - dhz*ay
+        cy = dhz*ax - dhx*az
+        cz = dhx*ay - dhy*ax
+
+        rho2 = (ax*ax + ay*ay + az*az) - t*t + reg2
+
+        jfac = fac/rho2 * ( (seglen-t)/sqrt(rho2+(seglen-t)**2) &
+                           + t/sqrt(rho2+t**2) )
+
+        bxc = cx*jfac
+        byc = cy*jfac
+        bz  = bz + cz*jfac
+
+        br   = br   + bxc*cos0 + byc*sin0
+        bphi = bphi - bxc*sin0 + byc*cos0
+     end if
+
+     xa = xb
+     ya = yb
+     za = zb
+  end do
+
+end subroutine coil_radial_legs
+
 end module coils

@@ -544,10 +544,12 @@ subroutine rmp_field(n, nt, np, x, phi, z, br, bphi, bz, p)
 				call safestop(302)
 			end if
 			! RiD: 3D Biot-Savart REMC geometry -- remc_nseg discretized
-			! toroidal arcs plus vertical connecting legs (at remc_leg_R,
-			! which may differ from remc_Rpos), replacing the two-sector
-			! axisymmetric coil() hack below. See coil_arc and
-			! coil_vertical_legs (coils.f90).
+			! toroidal arcs, vertical connecting legs (at remc_leg_R, which
+			! may differ from remc_Rpos), and radial segments closing the gap
+			! between the two radii, forming one continuous closed current
+			! path when remc_leg_R differs from remc_Rpos. Replaces the
+			! two-sector axisymmetric coil() hack below. See coil_arc,
+			! coil_vertical_legs, and coil_radial_legs (coils.f90).
 			if(remc_unit_current) then
 				I_remc_r = 1.
 			else
@@ -576,6 +578,19 @@ subroutine rmp_field(n, nt, np, x, phi, z, br, bphi, bz, p)
 				! arc's Z to the next arc's Z. See coil_vertical_legs (coils.f90).
 				call coil_vertical_legs(I_remc_r, remc_Rpos, remc_Zpos(iseg), &
 					remc_Zpos(inext), phi2_arc, remc_leg_R, remc_nbs, n, x, phi, z, &
+					remc_br, remc_bphi, remc_bz) ! RiD: Calculating B-field
+
+				! RiD: radial segments closing the gap between the arc radius
+				! (remc_Rpos) and the leg radius (remc_leg_R): one at this arc's
+				! own Z (connecting the arc's end to the leg's bottom), one at
+				! the next arc's Z (connecting the leg's top to the next arc's
+				! start). No-ops (zero-length) if remc_leg_R equals remc_Rpos.
+				! See coil_radial_legs (coils.f90).
+				call coil_radial_legs(I_remc_r, remc_Rpos, remc_leg_R, remc_Zpos(iseg), &
+					phi2_arc, remc_nbs, n, x, phi, z, &
+					remc_br, remc_bphi, remc_bz) ! RiD: Calculating B-field
+				call coil_radial_legs(I_remc_r, remc_leg_R, remc_Rpos, remc_Zpos(inext), &
+					phi2_arc, remc_nbs, n, x, phi, z, &
 					remc_br, remc_bphi, remc_bz) ! RiD: Calculating B-field
 			end do
 
