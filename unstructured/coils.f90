@@ -810,21 +810,12 @@ end subroutine pane
 ! (r0, phi0, z0) due to a single toroidal arc of current at fixed
 ! (r1, z1), spanning toroidal angle phi1 to phi2, discretized into nbs
 ! straight filament sub-segments and summed via the exact
-! finite-segment Biot-Savart formula (no toroidal-harmonic assumption,
-! genuinely non-axisymmetric). Unlike coil()/pane(), this represents
-! only an open arc -- no connecting legs are modeled.
+! finite-segment Biot-Savart formula 
 !
 ! curr is expected in the same amu0/twopi-normalized convention as
 ! ic_na (see load_coils above): curr = amu0*I/twopi for a physical
 ! current I. The standard Biot-Savart prefactor amu0*I/(4*pi) is then
-! curr/2. Unlike coil() (which needs an external -twopi factor to undo
-! its internal Fourier/pi-normalized integral()), this routine's output
-! is already physically normalized -- verified analytically by matching
-! the on-axis field of a full-circle arc (remc_nseg=1) against the
-! standard closed-form B_z = mu0*I*r1^2/(2*(r1^2+dz^2)^1.5): it comes
-! out equal in magnitude and opposite in sign to coil()'s -twopi-scaled
-! result, so callers should apply only a sign flip (see rmp_field
-! case(3)), not an additional twopi factor.
+! curr/2.
 !======================================================================
 subroutine coil_arc(curr, r1, z1, phi1, phi2, nbs, npts, r0, phi0, z0, br, bphi, bz)
   implicit none
@@ -834,7 +825,7 @@ subroutine coil_arc(curr, r1, z1, phi1, phi2, nbs, npts, r0, phi0, z0, br, bphi,
   real, intent(in), dimension(npts) :: r0, phi0, z0
   real, intent(inout), dimension(npts) :: br, bphi, bz
 
-  real, parameter :: reg2 = 1e-8 ! regularization to avoid on-segment singularity
+  real, parameter :: reg2 = 1e-3 ! regularization to avoid on-segment singularity
 
   real, dimension(npts) :: cos0, sin0, x0, y0
   real, dimension(npts) :: ax, ay, az
@@ -928,7 +919,7 @@ subroutine coil_vertical_legs(curr, r1, z1, z2, phi1, remc_leg_R, nbs, npts, r0,
   real, intent(in), dimension(npts) :: r0, phi0, z0
   real, intent(inout), dimension(npts) :: br, bphi, bz
 
-  real, parameter :: reg2 = 1e-8 ! regularization to avoid on-segment singularity
+  real, parameter :: reg2 = 1e-3 ! regularization to avoid on-segment singularity
 
   real, dimension(npts) :: cos0, sin0, x0, y0
   real, dimension(npts) :: ax, ay, az
@@ -1025,7 +1016,7 @@ subroutine coil_radial_legs(curr, r1, r2, z1, phi1, nbs, npts, r0, phi0, z0, br,
   real, intent(in), dimension(npts) :: r0, phi0, z0
   real, intent(inout), dimension(npts) :: br, bphi, bz
 
-  real, parameter :: reg2 = 1e-8 ! regularization to avoid on-segment singularity
+  real, parameter :: reg2 = 1e-3 ! regularization to avoid on-segment singularity
 
   real, dimension(npts) :: cos0, sin0, x0, y0
   real, dimension(npts) :: ax, ay, az
