@@ -28,6 +28,7 @@ module rmp
 
   logical, private :: remc_unit_current = .false. ! RiD: when .true., case(3)'s iremc_geom=1/2 branches use I_remc=1 (for building psi_remc_0)
   logical, private :: psi_remc_0_ready = .false. ! RiD: .true. once psi_remc_0 has been computed (or read back from a checkpoint)
+  logical, private :: rmp_coils_loaded = .false. ! RiD: .true. once xc_na/zc_na/ic_na have been read from rmp_coil.dat/rmp_current.dat
 
 contains
 
@@ -64,6 +65,7 @@ subroutine mark_remc_circuit_restored(demf_fac_in, demf_fac_valid)
      end if
   end if
   remc_demf_fac = remc_demf_fac_restart
+  if(iremc_demf.eq.0) remc_demf_fac = 0. ! RiD: EMF term off -> keep stored value at 0
 
 end subroutine mark_remc_circuit_restored
 
@@ -183,6 +185,7 @@ subroutine update_remc_circuit
      else
         remc_demf_fac = 0.
      end if
+     if(iremc_demf.eq.0) remc_demf_fac = 0. ! RiD: EMF term off -> keep stored value at 0
      remc_circuit_init = .true.
      return
   end if
@@ -211,6 +214,7 @@ subroutine update_remc_circuit
   else
      remc_demf_fac = demf_target
   end if
+  if(iremc_demf.eq.0) remc_demf_fac = 0. ! RiD: EMF term off -> keep stored value at 0
 
   ip_prev = curr_now ! update ip_prev
 
@@ -244,6 +248,17 @@ subroutine update_remc_field_bs
      bf_remc_0 = bf_ext
      bfp_remc_0 = bfp_ext
      psi_remc_0_ready = .true.
+  end if
+
+  ! RiD: on a restart whose checkpoint already holds psi_remc_0 etc., the
+  ! rmp_per(1) branch above is skipped, so calculate_external_fields (which
+  ! is what normally reads rmp_coil.dat/rmp_current.dat into ic_na) never
+  ! runs. ic_na(1) would then still be 0 and the sign() below would zero
+  ! the REMC field for the rest of the run -- so load the coil files here.
+  if(.not.rmp_coils_loaded) then
+     call load_coils(xc_na, zc_na, ic_na, nc_na, &
+          'rmp_coil.dat', 'rmp_current.dat')
+     rmp_coils_loaded = .true.
   end if
 
   if(real(ic_na(1)).ne.0.) then
@@ -899,6 +914,7 @@ subroutine calculate_external_fields(ilin)
   if ((irmp .eq. 1) .or. (irmp .ge. 3)) then
      call load_coils(xc_na, zc_na, ic_na, nc_na, &
           'rmp_coil.dat', 'rmp_current.dat')
+     rmp_coils_loaded = .true. ! RiD: see update_remc_field_bs
   end if
   if((any(pf_tilt.ne.0.) .or. any(pf_shift.ne.0.)) &
        .and. numcoils_vac.eq.0) then

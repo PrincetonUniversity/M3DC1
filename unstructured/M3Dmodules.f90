@@ -315,7 +315,7 @@ module basic
   real :: Res_remc ! Resistance for REMC circuit equation
   real :: i_remc_start ! Initial value of REMC circuit current (iScaleREMC=2)
   integer :: iremc_demf ! RiD: 1: add induced-EMF (d Psi_ext/dt) source from REMC circuit to flux eqn
-  real :: remc_demf_fac ! RiD: (dI_remc/dt)/I_remc in normalized time units; set each step in update_remc_circuit
+  real :: remc_demf_fac = 0. ! RiD: (dI_remc/dt)/I_remc in normalized time units; set each step in update_remc_circuit; forced to 0 when iremc_demf=0
   integer :: n_remc_ramp ! RiD: number of timesteps to smoothly ramp remc_demf_fac on from 0 (avoids CN ringing from an abrupt onset); 0 = no ramp
   integer :: iremc_geom ! RiD: 1: model the REMC coil as remc_nseg discretized 3D Biot-Savart arcs; 2: same remc_nseg segment shape, but each modeled as an axisymmetric coil() loop instead of a Biot-Savart arc; either replaces the axisymmetric two-sector model (irmp=3 only)
   integer :: remc_nseg ! RiD: number of REMC coil toroidal arc segments (iremc_geom=1,2)
