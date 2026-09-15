@@ -825,7 +825,7 @@ subroutine coil_arc(curr, r1, z1, phi1, phi2, nbs, npts, r0, phi0, z0, br, bphi,
   real, intent(in), dimension(npts) :: r0, phi0, z0
   real, intent(inout), dimension(npts) :: br, bphi, bz
 
-  real, parameter :: reg2 = 1e-3 ! regularization to avoid on-segment singularity
+  real, parameter :: reg2 = 1e-4 ! regularization to avoid on-segment singularity
 
   real, dimension(npts) :: cos0, sin0, x0, y0
   real, dimension(npts) :: ax, ay, az
@@ -919,7 +919,7 @@ subroutine coil_vertical_legs(curr, r1, z1, z2, phi1, remc_leg_R, nbs, npts, r0,
   real, intent(in), dimension(npts) :: r0, phi0, z0
   real, intent(inout), dimension(npts) :: br, bphi, bz
 
-  real, parameter :: reg2 = 1e-3 ! regularization to avoid on-segment singularity
+  real, parameter :: reg2 = 1e-4 ! regularization to avoid on-segment singularity
 
   real, dimension(npts) :: cos0, sin0, x0, y0
   real, dimension(npts) :: ax, ay, az
@@ -1016,7 +1016,7 @@ subroutine coil_radial_legs(curr, r1, r2, z1, phi1, nbs, npts, r0, phi0, z0, br,
   real, intent(in), dimension(npts) :: r0, phi0, z0
   real, intent(inout), dimension(npts) :: br, bphi, bz
 
-  real, parameter :: reg2 = 1e-3 ! regularization to avoid on-segment singularity
+  real, parameter :: reg2 = 1e-4 ! regularization to avoid on-segment singularity
 
   real, dimension(npts) :: cos0, sin0, x0, y0
   real, dimension(npts) :: ax, ay, az
