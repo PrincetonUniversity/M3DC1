@@ -328,8 +328,8 @@ contains
 											1.0*Dens_ion)/Dens_imp ! Impurity Ionization
 									Zimp = min(ZmaxImp,Zimp) ! Maximum Impurity Ionization = ZmaxImp
 						END IF
-						if (x > 0.03) then ! Bound of the Neural Network
-								x = 0.03
+						if (x > nn_max_dreicer) then ! Bound of the Neural Network
+								x = nn_max_dreicer
 						endif
 						sd = getDreicerHesslow(Dens_ion,Dens_imp,&
 												ZmaxImp,ZImp,x,Temp) ! [per cubic m per s]

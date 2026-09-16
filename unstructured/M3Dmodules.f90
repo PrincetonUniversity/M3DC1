@@ -302,6 +302,7 @@ module basic
   real :: bzsign
   integer :: ra_characteristics           ! use method of characteristics
   integer :: iDreicer ! 1 = Classical, 2 = Partially Screened, 0 = Off
+  real :: nn_max_dreicer ! Upper bound of E/E_D for which the partially screened Dreicer neural network is valid
   integer :: iTritBeta ! Toggles Tritium Source
   integer :: iAvalanche ! 1 = RP; 2 = Hesslow Model; 3 = Modified RP
   integer :: iCompton ! Toggles Compton RE term

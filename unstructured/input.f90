@@ -430,6 +430,8 @@ subroutine set_defaults
   call add_var_double("radiff", radiff, 0., "", model_grp)
   call add_var_double("rjra", rjra, 0., "", model_grp)
   call add_var_int("iDreicer", iDreicer, 1, "", model_grp)
+  call add_var_double("nn_max_dreicer", nn_max_dreicer, 0.13, &
+       "Upper bound of E/E_D for the partially screened Dreicer neural network", model_grp)
   call add_var_int("iTritBeta", iTritBeta, 0, "", model_grp)
   call add_var_int("iCompton", iCompton, 0, "", model_grp)
   call add_var_int("iAvalanche", iAvalanche, 1, "", model_grp)
