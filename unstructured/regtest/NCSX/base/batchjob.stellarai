@@ -1,0 +1,30 @@
+#!/bin/bash
+##SBATCH -A pppl
+#SBATCH --nodes=1
+#SBATCH --ntasks-per-node=64
+#SBATCH -J NCSX
+#SBATCH -t 00:30:00
+#SBATCH -o C1stdout
+
+touch started
+
+# partition mesh
+#PARTS=8
+#$M3DC1_MPIRUN -n $PARTS split_smb circle-858.smb part.smb $PARTS
+#echo $? > mesh_partitioned
+
+# Run M3D-C1
+#$M3DC1_MPIRUN -n 64 /projects/M3DC1/jinchen/SRC/M3DC1_20240308/unstructured/_stellarai-3d-st-opt-125/m3dc1_3d_st -options_file options_bjacobi1
+#$M3DC1_MPIRUN -n 64 /projects/M3DC1/jinchen/SRC/M3DC1_20240308/unstructured/_stellarai_intel-3d-st-opt-125/m3dc1_3d_st -options_file options_bjacobi1
+
+#export LD_LIBRARY_PATH=/projects/M3DC1/PETSC/petsc.20220201/real-stellarai-gcc14-gO2/lib:$LD_LIBRARY_PATH
+#echo $LD_LIBRARY_PATH
+
+$M3DC1_MPIRUN -n 64 \
+./m3dc1_3d_st \
+-options_file options_bjacobi1
+
+touch finished
+
+
+

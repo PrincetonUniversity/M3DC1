@@ -147,10 +147,11 @@ contains
     call PetscMemorySetGetMaximumUsage(ierr);
   end subroutine printMemStatTotalStart
   subroutine printMemStatTotal
+#include "petsc/finclude/petsc.h"
     !call cc_printMemStatTotal
     use petsc
     implicit none
-    real :: mem, mem_max
+    PetscLogDouble :: mem, mem_max
     integer :: myrank, ierr
 
     call MPI_Comm_rank(MPI_COMM_WORLD, myrank, ierr)

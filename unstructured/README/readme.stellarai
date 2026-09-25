@@ -1,0 +1,17 @@
+
+1. doc
+https://researchcomputing.princeton.edu/systems/stellarai
+
+2. login
+ssh jinchen@sai-amd.princeton.edu
+
+3. setup & compile
+cd Your_M3DC1_Code_Dir
+setenv M3DC1_CODE_DIR `pwd`
+module use $M3DC1_CODE_DIR/unstructured/modules/stellarai
+module load m3dc1/devel
+cd unstructured
+make all ARCH=stellarai
+
+4. regtests
+regtest/*/base/batchjob.stellarai

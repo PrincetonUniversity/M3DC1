@@ -1,0 +1,27 @@
+#!/bin/bash
+##SBATCH -A pppl
+#SBATCH -N 1
+#SBATCH --ntasks-per-node=16
+#SBATCH --cpus-per-task=1
+#SBATCH -J adapt
+#SBATCH -t 0:10:00
+#SBATCH -o C1stdout
+
+touch started
+
+# partition mesh
+#PARTS=$SLURM_NTASKS
+#$M3DC1_MPIRUN -n $PARTS split_smb circle-0.02-0.0-0.0-2K.smb part.smb $PARTS
+#echo $? > mesh_partitioned
+
+# Run M3D-C1
+#$M3DC1_MPIRUN -n $SLURM_NTASKS /projects/M3DC1/jinchen/SRC/M3DC1_20240308/unstructured/_stellar-opt-25/m3dc1_2d
+
+$M3DC1_MPIRUN -n $SLURM_NTASKS ./m3dc1_2d
+$M3DC1_MPIRUN -n $SLURM_NTASKS ./collapse circle-0.02-0.0-0.0.dmg ts0-adapted.smb mesh.smb $SLURM_NTASKS
+
+if ! [ -f mesh0.smb ]; then
+    echo 0 > C1ke
+fi
+
+touch finished
