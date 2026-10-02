@@ -69,9 +69,9 @@ contains
   end subroutine unload_neo
 
   subroutine read_neo_expnorm(ierr)
+    use mpi
     implicit none
 
-    include 'mpif.h'
 
     integer, intent(out) :: ierr
     integer, parameter :: ifile=22
@@ -113,9 +113,9 @@ contains
   end subroutine read_neo_expnorm
 
   subroutine read_neo_grid(ierr)
+    use mpi
     implicit none
 
-    include 'mpif.h'
 
     integer, intent(out) :: ierr
     integer, parameter :: ifile=22
@@ -185,9 +185,9 @@ contains
 
 
   subroutine read_neo_vel_fourier(ierr)
+    use mpi
     implicit none
 
-    include 'mpif.h'
 
     integer, intent(out) :: ierr
     integer, parameter :: ifile=23

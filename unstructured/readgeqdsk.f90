@@ -16,9 +16,9 @@ module eqdsk
 contains
 
 subroutine load_eqdsk(ierr)
+  use mpi
   implicit none
 
-  include 'mpif.h'
 
   integer, intent(out) :: ierr
 

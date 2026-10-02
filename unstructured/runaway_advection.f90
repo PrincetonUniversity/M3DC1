@@ -105,9 +105,9 @@ contains
 ! Note: any changes to the "particle" user-defined datatype must be reflected
 !       in the definitions of pnvars, pblklen, ptyps, and pdspls below.
 subroutine define_mpi_particle(ierr)
+  use mpi
    implicit none
 
-   include 'mpif.h'
 
    integer, intent(out) :: ierr
    integer, parameter :: pnvars = 10
@@ -151,9 +151,9 @@ subroutine define_mpi_particle(ierr)
 end subroutine define_mpi_particle
 
 subroutine define_mpi_elfield(ierr)
+  use mpi
    implicit none
 
-   include 'mpif.h'
 
    integer, intent(out) :: ierr
    integer, parameter :: pnvars = 12
@@ -201,11 +201,11 @@ subroutine define_mpi_elfield(ierr)
 end subroutine define_mpi_elfield
 !---------------------------------------------------------------------------
 subroutine runaway_advection_initialize
+  use mpi
    use basic
    use diagnostics
    use auxiliary_fields
    implicit none
-   include 'mpif.h'
 
    integer, parameter :: trunit = 120
    real :: tstart, tend
@@ -256,13 +256,13 @@ real function tri_area(x1, z1, x2, z2, x3, z3)
 end function tri_area
 !---------------------------------------------------------------------------
 subroutine init_particles(lrestart, ierr)
+  use mpi
    use basic
    use arrays
    use m3dc1_nint
    use gradshafranov
    use read_ascii
    implicit none
-   include 'mpif.h'
 
    logical, intent(in) :: lrestart
    integer, intent(out) :: ierr
@@ -700,10 +700,10 @@ subroutine init_particles(lrestart, ierr)
 end subroutine init_particles
 
 subroutine advance_particles(tinc)
+  use mpi
    use basic  !For MPI variables
    use omp_lib
    implicit none
-   include 'mpif.h'
 
    real, intent(in) :: tinc  !Time increment for particle advance
    type(elfield), dimension(nneighbors + 1) :: elcoefs
@@ -1221,11 +1221,11 @@ subroutine fdot(x, v, w, dxdt, dvdt, dwdt, dEpdt, itri, ierr)
 end subroutine fdot
 !---------------------------------------------------------------------------
 subroutine runaway_advection_step(pdt)
+  use mpi
    use basic
    use diagnostics
    use auxiliary_fields
    implicit none
-   include 'mpif.h'
 
    real, intent(in) :: pdt
 
@@ -1257,11 +1257,11 @@ subroutine runaway_advection_step(pdt)
 end subroutine runaway_advection_step
 !---------------------------------------------------------------------------
 subroutine update_particle_pressure
+  use mpi
    use basic
    use arrays
    use diagnostics
    implicit none
-   include 'mpif.h'
 
    real    :: tstart, tend
    integer :: ierr
@@ -1670,11 +1670,11 @@ subroutine get_geom_terms(x, ielm, gh, ic2, ierr)
 end subroutine get_geom_terms
 !---------------------------------------------------------------------------
 subroutine get_field_coefs(eq)
+  use mpi
    use arrays
    use basic
    use auxiliary_fields
    implicit none
-   include 'mpif.h'
 
    !type(elfield), intent(out) :: fh  !Field handle
    integer, intent(in) :: eq

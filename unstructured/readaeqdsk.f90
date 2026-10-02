@@ -71,11 +71,11 @@ module eqdsk_a
 contains
 
 subroutine load_eqdsk_a(filename)
+  use mpi
 
   implicit none
 
 #ifdef USEMPI
-  include 'mpif.h'
 #endif
 
   character(len=*), intent(in) :: filename

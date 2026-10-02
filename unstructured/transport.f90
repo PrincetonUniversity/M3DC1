@@ -1577,6 +1577,7 @@ end function bs_func
 ! define_transport_coefficients
 ! =============================
 subroutine define_transport_coefficients()
+  use mpi
 
   use basic
   use arrays
@@ -1590,7 +1591,6 @@ subroutine define_transport_coefficients()
 
   implicit none
 
-  include 'mpif.h'
 
   integer :: itri, izone, izone_index
   integer :: numelms, def_fields,ier
