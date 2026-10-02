@@ -354,7 +354,7 @@ contains
               ! ***** ACTIVATED SOURCES ****** !
               ! Tritium Beta Source - by defualt assumes 0.5*ni is Tritium
               if (iTritBeta.eq.1) then ! Tritium Beta Calculation
-				sbeta = 0.5 * Dens_ion * beta_source(Ed) ! Tritium beta source [per cubic m per s]
+				sbeta = iTritBeta_frac * Dens_ion * beta_source(Ed) ! Tritium beta source [per cubic m per s]
               endif
               ! Compton Source
               if (iCompton.eq.1) then ! Compton Source for SPARC

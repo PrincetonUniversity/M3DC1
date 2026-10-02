@@ -434,6 +434,7 @@ subroutine set_defaults
        "Upper bound of E/E_D for the partially screened Dreicer neural network", model_grp)
   call add_var_double("nn_max_dreicer_prev", nn_max_dreicer_prev, -1., "", model_grp)
   call add_var_int("iTritBeta", iTritBeta, 0, "", model_grp)
+  call add_var_double("iTritBeta_frac", iTritBeta_frac, 0.5, "", model_grp)
   call add_var_int("iCompton", iCompton, 0, "", model_grp)
   call add_var_int("iAvalanche", iAvalanche, 1, "", model_grp)
   call add_var_int("iHT", iHT, 0, &

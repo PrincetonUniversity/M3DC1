@@ -305,6 +305,7 @@ module basic
   real :: nn_max_dreicer ! Upper bound of E/E_D for which the partially screened Dreicer neural network is valid
   real :: nn_max_dreicer_prev
   integer :: iTritBeta ! Toggles Tritium Source
+  real :: iTritBeta_frac ! Fraction used by the tritium beta-decay source; default = 0.5
   integer :: iAvalanche ! 1 = RP; 2 = Hesslow Model; 3 = Modified RP
   integer :: iCompton ! Toggles Compton RE term
   integer :: iHT ! Toggles hot-tail runaway source
