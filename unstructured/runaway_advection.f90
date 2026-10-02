@@ -61,7 +61,8 @@ module runaway_advection
    integer :: linear_particle, psubsteps, eqsubtract_particle, itor_particle
 !$acc declare create(linear_particle, psubsteps,eqsubtract_particle,itor_particle)
    real :: dt_particle, t0_norm_particle, v0_norm_particle, b0_norm_particle
-!$acc declare create(dt_particle, t0_norm_particle, v0_norm_particle,b0_norm_particle)
+   real :: cre_particle
+!$acc declare create(dt_particle, t0_norm_particle, v0_norm_particle,b0_norm_particle,cre_particle)
    complex :: rfac_particle
 !$acc declare create(rfac_particle)
    real, dimension(:, :, :), pointer :: mesh_coord !Neighbor tracking arrays
@@ -92,6 +93,12 @@ module runaway_advection
    integer :: nelms, nelms_global, nnodes_global
    real :: toroidal_period_particle
 !$acc declare create(toroidal_period_particle)
+   real :: gamma_re = 1
+   real :: xi2_re = 0.9999
+   real :: q_re = -1.60217662e-19
+   real :: m_re = 9.10938356e-31
+   real :: qm_re
+!$acc declare create(gamma_re,xi2_re,q_re,m_re,qm_re)
 contains
 
 !Define MPI datatype for particle communication
@@ -233,7 +240,8 @@ subroutine runaway_advection_initialize
    end if
    !call particle_step(dt*t0_norm)
 
-   !call update_particle_pressure
+   call update_particle_pressure
+   call set_nre
 
    call MPI_Barrier(MPI_COMM_WORLD, ierr)
 end subroutine runaway_advection_initialize
@@ -482,7 +490,10 @@ subroutine init_particles(lrestart, ierr)
    eqsubtract_particle = eqsubtract
    itor_particle = itor
    toroidal_period_particle = toroidal_period
+   write(0,*) cre
    if (cre==0) cre=3.0e8/(v0_norm/100.)
+   cre_particle = (v0_norm/100.*cre)/2.99792458e8
+   qm_re = q_re/(gamma_re*m_re)
    !psubsteps = 16*dt*cre
    psubsteps = ra_cyc
    ra_cyc = 1
@@ -584,21 +595,30 @@ subroutine init_particles(lrestart, ierr)
                dpar%x(3) = z_79(ipar)
                dpar%x(2) = phi_79(ipar)
                dpar%jel = itri
-               dpar%v(1) =  v0_norm/100*cre*bzsign
-               dpar%v(2) = 0.
+               call get_geom_terms(dpar%x, itri, geomterms, .false., ierr)
+               call getBcyl(dpar%x, elfieldcoefs(itri), geomterms, Bcyl, deltaB)
+               B0 = sqrt(dot_product(Bcyl, Bcyl))
+               dpar%v(1) = 2.99792458e8*bzsign*sqrt(xi2_re)
+               if (B0.gt.0.) then
+                  dpar%v(2) = 0.5*(2.99792458e8)**2*(1. - xi2_re)/(qm_re*B0)
+               else
+                  dpar%v(2) = 0.
+               endif
                !pdata(ielm)%ion(ip)%v(1) = 100000.                        !v_parallel
 
                dpar%wt = 0.
                dpar%f0 = 0.
                dpar%deleted = .false.
-               call get_geom_terms(dpar%x, itri, geomterms, .false., ierr)
-               dpar%f0=dot_product(geomterms%g, elfieldcoefs(itri)%nrev1)
                locparts2 = (itri-1)*npoints+ipar
                dpar%gid = locparts2
                !locparts2 = locparts2-(ielm_min-1)*npoints
                !if (gid_min>locparts2) gid_min=locparts2
                !if (gid_max<locparts2) gid_max=locparts2
                locparts = locparts + 1
+               dpar%x(1) = dpar%x(1)-0.1*gamma_re/60
+               call get_geom_terms(dpar%x, itri, geomterms, .false., ierr)
+               if (ierr .eq. 0) dpar%f0=dot_product(geomterms%g, elfieldcoefs(itri)%nrev1)
+               ! dpar%x(1) = dpar%x(1)+0.1*gamma_re/60
                !pdata(locparts2) = dpar
                pdata_local(locparts) = dpar
             else
@@ -656,7 +676,9 @@ subroutine init_particles(lrestart, ierr)
 !!$acc enter data create(pdata(starty:endy)) async(blocky)
 !$acc update device(mesh_coord,neighborlist,mesh_zone)
 !!$acc update device(pdata(starty:endy)) async(blocky)
-!$acc update device(dt_particle,t0_norm_particle,v0_norm_particle,b0_norm_particle,rfac_particle,linear_particle,eqsubtract_particle,itor_particle,toroidal_period_particle,psubsteps)
+!$acc update device(dt_particle,t0_norm_particle,v0_norm_particle,b0_norm_particle, &
+!$acc& rfac_particle,linear_particle,eqsubtract_particle,itor_particle, &
+!$acc& toroidal_period_particle,psubsteps,cre_particle,gamma_re,xi2_re,q_re,m_re,qm_re)
    end if !hostrank
 #endif
 
@@ -754,6 +776,8 @@ end subroutine advance_particles
 !
 subroutine rk4(part, dt, last_step, ierr)
 !$acc routine seq
+use basic, only:ntime, ntime0
+
    implicit none
 
    type(particle), intent(inout) :: part
@@ -810,6 +834,9 @@ subroutine rk4(part, dt, last_step, ierr)
 
    if (last_step) then
       !Determine final particle element location
+      ! if (ntime.eq.1) then
+      !    part%x(1)=part%x(1)-0.1*gamma_re/60
+      ! endif
       call get_geom_terms(part%x, itri, geomterms, .false., ierr)
       if (ierr.eq.1) return
       part%f0=dot_product(geomterms%g, elfieldcoefs(itri)%nrev1)
@@ -864,7 +891,8 @@ subroutine fdot(x, v, w, dxdt, dvdt, dwdt, dEpdt, itri, ierr)
    !ierr = 0
 
    !Need terms to compute fields to calculate acceleration
-   call get_geom_terms(x, itri, geomterms, .false., ierr)
+   !call get_geom_terms(x, itri, geomterms, .false., ierr)
+   call get_geom_terms(x, itri, geomterms, .true., ierr)
    if (ierr .eq. 0) then
       if (mesh_zone(itri).ne.ZONE_PLASMA) ierr=1
    endif
@@ -877,9 +905,12 @@ subroutine fdot(x, v, w, dxdt, dvdt, dwdt, dEpdt, itri, ierr)
    if (itor_particle.eq.1) Rinv = 1.0/x(1)
 
    !Calculate time derivatives
-   !call getBcylprime(x, elfieldcoefs(itri), geomterms, B0_cyl, deltaB, dB0dR, dB0dphi, dB0dz, dB1dR, dB1dphi, dB1dz)
-   call getBcyl(x, elfieldcoefs(itri), geomterms, B0_cyl, deltaB)
+   call getBcylprime(x, elfieldcoefs(itri), geomterms, B0_cyl, deltaB, &
+        dB0dR, dB0dphi, dB0dz, dB1dR, dB1dphi, dB1dz)
    B_cyl = B0_cyl + deltaB
+   dBdR = dB0dR + dB1dR
+   dBdphi = dB0dphi + dB1dphi
+   dBdz = dB0dz + dB1dz
    !call getBcyl(x, elfieldcoefs(itri), geomterms, B_cyl, deltaB, gradB0, gradB1, dB1)
    !write(0,*) B_cyl(1), B_cyl(1), B_cyl(2)
    B0inv = 1.0/sqrt(dot_product(B0_cyl, B0_cyl))  !1/magnitude of B
@@ -907,54 +938,129 @@ subroutine fdot(x, v, w, dxdt, dvdt, dwdt, dEpdt, itri, ierr)
       !   gradpe=0.
       !   j0xb=0.
 
-   Bstar0 = B0_cyl
-   !Bstar = B_cyl
+    ! Gradient of B0 = grad(B.B)/(2 B0) = (B . grad B)/B0
+   gradB0(1) = dot_product(bhat0, dB0dR)
+   gradB0(2) = Rinv*dot_product(bhat0, dB0dphi)
+   gradB0(3) = dot_product(bhat0, dB0dz)
+
+   ! Curl of bhat = curl(B/B0) = curl(B)/B0 - (grad B0 x B)/(B0**2)
+   BxgrdB(1) = B0_cyl(2)*gradB0(3) - B0_cyl(3)*gradB0(2)
+   BxgrdB(2) = B0_cyl(3)*gradB0(1) - B0_cyl(1)*gradB0(3)
+   BxgrdB(3) = B0_cyl(1)*gradB0(2) - B0_cyl(2)*gradB0(1)
+
+   Jcyl(1) = Rinv*dB0dphi(3) - dB0dz(2)
+   Jcyl(2) = dB0dz(1) - dB0dR(3)
+   Jcyl(3) = dB0dR(2) - Rinv*dB0dphi(1)
+   !if (itor.eq.1) Jcyl(3) = Jcyl(3) + Rinv*B_cyl(2)
+   Jcyl(3) = Jcyl(3) + Rinv*B0_cyl(2)
+
+   !tmp1 = (v(1)*v(1)) * (B0inv*B0inv)/qm_ion
+   !tmp2 = tmp1*B0inv + v(2)*(B0inv*B0inv)
+   !weqvD = tmp2*BxgrdB + tmp1*(Jcyl - dot_product(bhat, Jcyl)*bhat)
+   svec = (Jcyl + BxgrdB*B0inv)*B0inv
+
+   Bstar0 = B0_cyl + (v(1)/qm_re)*svec
+   !Bstar0 = B0_cyl ! fluid particle
    Bss0 = dot_product(Bstar0, bhat0)
 
-   svec0 = 0.
+   svec0 = v(2)*gradB0 ! - g_mks/qm_ion
    !svec = svec - E_cyl  ! - g_mks/qm_ion
    !svec = v(2)*gradB0  ! - g_mks/qm_ion
+   !svec0 = 0. ! fluid particle
 
    dxdt0(1) = (v(1)*Bstar0(1) + bhat0(2)*svec0(3) - bhat0(3)*svec0(2))/Bss0
    dxdt0(2) = (v(1)*Bstar0(2) + bhat0(3)*svec0(1) - bhat0(1)*svec0(3))/Bss0
    dxdt0(3) = (v(1)*Bstar0(3) + bhat0(1)*svec0(2) - bhat0(2)*svec0(1))/Bss0
+   !dxdt0(1) = (v(1)*Bstar0(1) + 0*bhat0(2)*svec0(3) - 0*bhat0(3)*svec0(2))/Bss0
+   !dxdt0(2) = (v(1)*Bstar0(2) + 0*bhat0(3)*svec0(1) - 0*bhat0(1)*svec0(3))/Bss0
+   !dxdt0(3) = (v(1)*Bstar0(3) + 0*bhat0(1)*svec0(2) - 0*bhat0(2)*svec0(1))/Bss0
+   !dxdt0(1) = (v(1)*Bstar0(1) + bhat0(2)*svec0(3) - bhat0(3)*svec0(2))/B00 !fluid particle
+   !dxdt0(2) = (v(1)*Bstar0(2) + bhat0(3)*svec0(1) - bhat0(1)*svec0(3))/B00 !fluid particle
+   !dxdt0(3) = (v(1)*Bstar0(3) + bhat0(1)*svec0(2) - bhat0(2)*svec0(1))/B00 !fluid particle
 
-   dvdt0(1) = 0.
-   !dvdt0(1) = -qm_ion*dot_product(bhat0, svec)
-   !dvdt(1) = 0
+   dvdt0(1) = -qm_re*dot_product(Bstar0, svec0)/Bss0
+   !dvdt0(1) = -qm_ion(sps)*dot_product(bhat0, svec0)
+   !dvdt0(1) = 0 ! fluid particle
    dvdt0(2) = 0. !magnetic moment is conserved.
-
-   dxdt0(2) = Rinv*dxdt0(2)  !phi-dot = (v_phi / R) for cylindrical case
 
    !call getBcylprime(x, elfieldcoefs(itri), geomterms, B_cyl, deltaB, dBdR, dBdphi, dBdz, .false.)
    !call getBcyl(x, fhptr, geomterms, B_cyl, deltaB, gradB0, gradB1,1)
 
    ! Gradient of B0 = grad(B.B)/(2 B0) = (B . grad B)/B0
+   if (linear_particle .eq. 1) then
+      gradB(1) = dot_product(bhat0, dBdR)
+      gradB(2) = Rinv*dot_product(bhat0, dBdphi)
+      gradB(3) = dot_product(bhat0, dBdz)
+   else
+      gradB(1) = dot_product(bhat, dBdR)
+      gradB(2) = Rinv*dot_product(bhat, dBdphi)
+      gradB(3) = dot_product(bhat, dBdz)
+   end if
 
-   Bstar = B_cyl
-   !Bstar = B_cyl
+   ! Curl of bhat = curl(B/B0) = curl(B)/B0 - (grad B0 x B)/(B0**2)
+   if (linear_particle .eq. 1) then
+      BxgrdB(1) = B0_cyl(2)*gradB(3) - B0_cyl(3)*gradB(2)
+      BxgrdB(2) = B0_cyl(3)*gradB(1) - B0_cyl(1)*gradB(3)
+      BxgrdB(3) = B0_cyl(1)*gradB(2) - B0_cyl(2)*gradB(1)
+   else
+      BxgrdB(1) = B_cyl(2)*gradB(3) - B_cyl(3)*gradB(2)
+      BxgrdB(2) = B_cyl(3)*gradB(1) - B_cyl(1)*gradB(3)
+      BxgrdB(3) = B_cyl(1)*gradB(2) - B_cyl(2)*gradB(1)
+   end if
+
+   Jcyl(1) = Rinv*dBdphi(3) - dBdz(2)
+   Jcyl(2) = dBdz(1) - dBdR(3)
+   Jcyl(3) = dBdR(2) - Rinv*dBdphi(1)
+   !if (itor.eq.1) Jcyl(3) = Jcyl(3) + Rinv*B_cyl(2)
+   Jcyl(3) = Jcyl(3) + Rinv*B_cyl(2)
+
+   !tmp1 = (v(1)*v(1)) * (B0inv*B0inv)/qm_ion
+   !tmp2 = tmp1*B0inv + v(2)*(B0inv*B0inv)
+   !weqvD = tmp2*BxgrdB + tmp1*(Jcyl - dot_product(bhat, Jcyl)*bhat)
+   if (linear_particle .eq. 1) then
+      svec = (Jcyl + BxgrdB*B0inv)*B0inv
+   else
+      svec = (Jcyl + BxgrdB*Binv)*Binv
+   end if
+
+   Bstar = B_cyl + (v(1)/qm_re)*svec
+   !Bstar = B_cyl ! fluid particle
    Bss = dot_product(Bstar, bhat)
 
-   svec = 0.
-   svec = svec - E_cyl  ! - g_mks/qm_ion
+   svec = v(2)*gradB ! - g_mks/qm_ion
+   !svec = svec - E_cyl  ! - g_mks/qm_ion
+   !svec2 = -E_cyl ! fluid particle
+   !svec = 0.
+   !svec = v(2)*gradB0  ! - g_mks/qm_ion
 
    if (linear_particle .eq. 1) then
       dxdt(1) = (v(1)*Bstar(1) + bhat0(2)*svec(3) - bhat0(3)*svec(2))/Bss0
       dxdt(2) = (v(1)*Bstar(2) + bhat0(3)*svec(1) - bhat0(1)*svec(3))/Bss0
       dxdt(3) = (v(1)*Bstar(3) + bhat0(1)*svec(2) - bhat0(2)*svec(1))/Bss0
+      !dxdt(1) = (v(1)*Bstar(1) + bhat0(2)*svec2(3) - bhat0(3)*svec2(2))/Bss0
+      !dxdt(2) = (v(1)*Bstar(2) + bhat0(3)*svec2(1) - bhat0(1)*svec2(3))/Bss0
+      !dxdt(3) = (v(1)*Bstar(3) + bhat0(1)*svec2(2) - bhat0(2)*svec2(1))/Bss0
+      !dxdt(1) = (v(1)*Bstar(1) + bhat0(2)*svec(3) - bhat0(3)*svec(2))/B00 !fluid particle
+      !dxdt(2) = (v(1)*Bstar(2) + bhat0(3)*svec(1) - bhat0(1)*svec(3))/B00 !fluid particle
+      !dxdt(3) = (v(1)*Bstar(3) + bhat0(1)*svec(2) - bhat0(2)*svec(1))/B00 !fluid particle
 
-      dvdt(1) = 0.
+      dvdt(1) = -qm_re*(dot_product(Bstar0, svec)+dot_product(Bstar, svec0)-dot_product(Bstar0,svec0))/Bss0
+      !dvdt(1) = -qm_ion(sps)*(dot_product(Bstar0, svec0))/Bss0
+      !dvdt(1) = -qm_ion(sps)*dot_product(bhat0, svec)
+      !dvdt(1) = 0
       dvdt(2) = 0. !magnetic moment is conserved.
    else
       dxdt(1) = (v(1)*Bstar(1) + bhat(2)*svec(3) - bhat(3)*svec(2))/Bss
       dxdt(2) = (v(1)*Bstar(2) + bhat(3)*svec(1) - bhat(1)*svec(3))/Bss
       dxdt(3) = (v(1)*Bstar(3) + bhat(1)*svec(2) - bhat(2)*svec(1))/Bss
 
-      dvdt(1) = 0.
+      dvdt(1) = -qm_re*dot_product(Bstar, svec)/Bss
+      !dvdt(1) = -qm_ion*dot_product(bhat0, svec)
+      !dvdt(1) = 0 ! fluid particle
       dvdt(2) = 0. !magnetic moment is conserved.
    end if
 
-   dxdt(2) = Rinv*dxdt(2)  !phi-dot = (v_phi / R) for cylindrical case
+
 
    if (eqsubtract_particle.eq.1) then
    !Weights evolve in delta-f method only.
@@ -963,48 +1069,70 @@ subroutine fdot(x, v, w, dxdt, dvdt, dwdt, dEpdt, itri, ierr)
    !weqv1(2) = ((E_cyl(3)*B_cyl(1) - E_cyl(1)*B_cyl(3))*B0inv + v(1)*deltaB(2))*B0inv
    !weqv1(3) = ((E_cyl(1)*B_cyl(2) - E_cyl(2)*B_cyl(1))*B0inv + v(1)*deltaB(3))*B0inv
    !spd = sqrt(v(1)*v(1) + 2.0*qm_ion*v(2)/B0inv)
-   weqv1 = dxdt - dxdt0
+   weqv1 = cre_particle*(dxdt - dxdt0)
    !weqa1 = dvdt - dvdt0
    !dBdt = dot_product(weqv1, gradB0)
    !dEdt = m_ion*v(1)*weqa1(1) + q_ion*v(2)*dBdt
    !dxidt = weqa1(1)/spd-v(1)/spd**2*(dEdt/m_ion/spd)
 #ifdef USECOMPLEX
-    x2=x
-    x2(2)=x2(2)-3.1415926/2./abs(rfac_particle)
-   call getBcyl(x2, elfieldcoefs(itri), geomterms, B0_cyl, deltaB)
+   x2=x
+   x2(2)=x2(2)-3.1415926/2./abs(rfac_particle)
+   call getBcylprime(x2, elfieldcoefs(itri), geomterms, B0_cyl, deltaB, &
+        dB0dR, dB0dphi, dB0dz, dB1dR, dB1dphi, dB1dz)
+   call getEcyl(x2, elfieldcoefs(itri), geomterms, E_cyl)
+
    B_cyl = B0_cyl + deltaB
+   dBdR = dB0dR + dB1dR
+   dBdphi = dB0dphi + dB1dphi
+   dBdz = dB0dz + dB1dz
    Binv = 1.0/sqrt(dot_product(B_cyl, B_cyl))  !1/magnitude of B
-   bhat = B_cyl*Binv                         !Unit vector in b direction
-
-      call getEcyl(x2, elfieldcoefs(itri), geomterms, E_cyl)
-
-   Bstar = B_cyl
-   !Bstar = B_cyl
-   Bss = dot_product(Bstar, bhat)
-
-   svec = 0.
-   svec = svec - E_cyl  ! - g_mks/qm_ion
+   bhat = B_cyl*Binv                           !Unit vector in b direction
 
    if (linear_particle .eq. 1) then
-      dxdt(1) = (v(1)*Bstar(1) + bhat0(2)*svec(3) - bhat0(3)*svec(2))/Bss0
-      dxdt(2) = (v(1)*Bstar(2) + bhat0(3)*svec(1) - bhat0(1)*svec(3))/Bss0
-      dxdt(3) = (v(1)*Bstar(3) + bhat0(1)*svec(2) - bhat0(2)*svec(1))/Bss0
+      gradB(1) = dot_product(bhat0, dBdR)
+      gradB(2) = Rinv*dot_product(bhat0, dBdphi)
+      gradB(3) = dot_product(bhat0, dBdz)
 
-      dvdt(1) = 0.
-      dvdt(2) = 0. !magnetic moment is conserved.
+      BxgrdB(1) = B0_cyl(2)*gradB(3) - B0_cyl(3)*gradB(2)
+      BxgrdB(2) = B0_cyl(3)*gradB(1) - B0_cyl(1)*gradB(3)
+      BxgrdB(3) = B0_cyl(1)*gradB(2) - B0_cyl(2)*gradB(1)
    else
-      !dxdt(1) = (v(1)*Bstar(1) + bhat(2)*svec(3) - bhat(3)*svec(2))/Bss
-      !dxdt(2) = (v(1)*Bstar(2) + bhat(3)*svec(1) - bhat(1)*svec(3))/Bss
-      !dxdt(3) = (v(1)*Bstar(3) + bhat(1)*svec(2) - bhat(2)*svec(1))/Bss
+      gradB(1) = dot_product(bhat, dBdR)
+      gradB(2) = Rinv*dot_product(bhat, dBdphi)
+      gradB(3) = dot_product(bhat, dBdz)
 
-      !dvdt(1) = 0.
-      !dvdt(2) = 0. !magnetic moment is conserved.
+      BxgrdB(1) = B_cyl(2)*gradB(3) - B_cyl(3)*gradB(2)
+      BxgrdB(2) = B_cyl(3)*gradB(1) - B_cyl(1)*gradB(3)
+      BxgrdB(3) = B_cyl(1)*gradB(2) - B_cyl(2)*gradB(1)
    end if
 
-   dxdt(2) = Rinv*dxdt(2)  !phi-dot = (v_phi / R) for cylindrical case
+   Jcyl(1) = Rinv*dBdphi(3) - dBdz(2)
+   Jcyl(2) = dBdz(1) - dBdR(3)
+   Jcyl(3) = dBdR(2) - Rinv*dBdphi(1)
+   Jcyl(3) = Jcyl(3) + Rinv*B_cyl(2)
 
-   weqv1 = weqv1+(0,1)*(dxdt - dxdt0)
+   if (linear_particle .eq. 1) then
+      svec = (Jcyl + BxgrdB*B0inv)*B0inv
+   else
+      svec = (Jcyl + BxgrdB*Binv)*Binv
+   end if
+   Bstar = B_cyl + (v(1)/qm_re)*svec
+   Bss = dot_product(Bstar, bhat)
 
+   svec = v(2)*gradB
+   !svec = svec - E_cyl
+
+   if (linear_particle .eq. 1) then
+      dxdt2(1) = (v(1)*Bstar(1) + bhat0(2)*svec(3) - bhat0(3)*svec(2))/Bss0
+      dxdt2(2) = (v(1)*Bstar(2) + bhat0(3)*svec(1) - bhat0(1)*svec(3))/Bss0
+      dxdt2(3) = (v(1)*Bstar(3) + bhat0(1)*svec(2) - bhat0(2)*svec(1))/Bss0
+   else
+      dxdt2(1) = (v(1)*Bstar(1) + bhat(2)*svec(3) - bhat(3)*svec(2))/Bss
+      dxdt2(2) = (v(1)*Bstar(2) + bhat(3)*svec(1) - bhat(1)*svec(3))/Bss
+      dxdt2(3) = (v(1)*Bstar(3) + bhat(1)*svec(2) - bhat(2)*svec(1))/Bss
+   end if
+
+   weqv1 = weqv1+(0,1)*cre_particle*(dxdt2 - dxdt0)
 #endif
 
 
@@ -1075,14 +1203,16 @@ subroutine fdot(x, v, w, dxdt, dvdt, dwdt, dEpdt, itri, ierr)
       dwdt = 0.
    endif
    if (linear_particle .eq. 1) then
-      dxdt = -dxdt0
-      dvdt = -dvdt0
+      dxdt = -cre_particle*dxdt0
+      dvdt = -cre_particle*dvdt0
       !dxdt=0.
       !dvdt=0.
    else
-      dxdt = -dxdt
-      dvdt = -dvdt
+      dxdt = -cre_particle*dxdt
+      dvdt = -cre_particle*dvdt
+      ! dvdt=0.
    end if
+   dxdt(2) = Rinv*dxdt(2)  !phi-dot = (v_phi / R) for cylindrical case
 
    !dwdt = (1.-w)/(dt_particle*t0_norm_particle)
    !B0=1./B0inv
@@ -1768,7 +1898,7 @@ subroutine getBcylprime(x, fh, gh, Bcyl, deltaB, dB0dR, dB0dphi, dB0dz, dB1dR, d
 
    !tempphi(1) = tempphi(1) - dot_product(fh%Bfpv1, gh%drphi)
    !tempphi(3) = tempphi(3) - dot_product(fh%Bfpv1, gh%dzphi)
-   !dB1dphi = tempphi
+   dB1dphi = tempphi
 
    tempz(1) = tempz(1) - dot_product(gh%drz, fh%Bfpv1)
    tempz(3) = tempz(3) - dot_product(gh%dzz, fh%Bfpv1)
@@ -1835,7 +1965,7 @@ end subroutine getEcyl
 
     real, dimension(dofs_per_element,coeffs_per_element) :: cl
     real, dimension(dofs_per_element) :: wnuhere, deltaBhere
-    vectype, dimension(dofs_per_element) :: dofspa, dofspe
+    vectype, dimension(dofs_per_element) :: dofsnre, dofspa, dofspe, dofspa0, dofspe0
 !#ifdef USECOMPLEX
     complex, dimension(dofs_per_element) :: dofspan, dofspen
     complex phfac
@@ -1844,7 +1974,7 @@ end subroutine getEcyl
     real, dimension(vspdims) :: vperp
     !type(elfield), dimension(nneighbors+1) :: elcoefs
     type(xgeomterms) :: geomterms
-    real             :: B0, vpar, ppar, pperp
+    real             :: B0, vpar, ppar, pperp, pfpar_fac, pfper_fac
     integer          :: i,ierr, ielm, ielm_local, ielm_global, ipart, part_index, itri, tridex, isghost
     !integer          :: ibp, iwe, iok
     type(element_data) :: eldat
@@ -1875,6 +2005,20 @@ end subroutine getEcyl
     !   endif
     !enddo
     nre_vec=0.
+#ifdef USEPARTICLES
+    p_f_par(1)%vec=0.
+    p_f_perp(1)%vec=0.
+    if (ntime.eq.ntime0) then
+       p_f_par(0)%vec=0.
+       p_f_perp(0)%vec=0.
+    endif
+#endif
+#ifdef USEPARTICLES
+    pfpar_fac = gamma_re*xi2_re*9.10938356e-31*2.99792458e8 &
+         / (1.60217662e-19*(b0_norm/1.e4)*(l0_norm/100.))
+    pfper_fac = gamma_re*(1. - xi2_re)*0.5*9.10938356e-31*2.99792458e8 &
+         / (1.60217662e-19*(b0_norm/1.e4)*(l0_norm/100.))
+#endif
 
      do ielm=1,nelms
        !call m3dc1_ent_isghost(2, ielm-1, isghost)
@@ -1887,10 +2031,24 @@ end subroutine getEcyl
       call get_zone(ielm, izone)
       if (izone.ne.ZONE_PLASMA) cycle
 
+      dofsnre = 0.
+#ifdef USEPARTICLES
       dofspa = 0.
+      dofspe = 0.
+      dofspa0 = 0.
+      dofspe0 = 0.
+#endif
 
       call define_element_quadrature(ielm,int_pts_main,int_pts_tor)
-      call define_fields(ielm,FIELD_PSI+FIELD_RE,1,0)
+      call define_fields(ielm,FIELD_PSI+FIELD_RE,1,1)
+#ifdef USEPARTICLES
+      pfpar79(:,OP_1) = 0.
+      pfper79(:,OP_1) = 0.
+      if (ntime.eq.ntime0) then
+         pfpar079(:,OP_1) = nre079(:,OP_1)*pfpar_fac
+         pfper079(:,OP_1) = nre079(:,OP_1)*pfper_fac
+      endif
+#endif
 
       !call get_element_nodes(ielm, nodeids)
     
@@ -1986,6 +2144,10 @@ end subroutine getEcyl
              pdata(ipart)%wt=0.
              pdata(ipart)%f0=0.
              nre179(part_index,OP_1) = 0
+#ifdef USEPARTICLES
+             pfpar79(part_index,OP_1) = 0.
+             pfper79(part_index,OP_1) = 0.
+#endif
              cycle
           endif
           if (pdata(ipart)%jel/=ielm_global) cycle
@@ -2050,6 +2212,10 @@ end subroutine getEcyl
           !if (pdata(ipart)%f0==0) write(0,*) "Wrong",pdata(ipart)%gid
           !write(0,*) x_79(part_index),pdata(ipart)%x(1)
           nre179(part_index,OP_1) = (pdata(ipart)%wt+pdata(ipart)%f0)
+#ifdef USEPARTICLES
+          pfpar79(part_index,OP_1) = nre179(part_index,OP_1)*pfpar_fac
+          pfper79(part_index,OP_1) = nre179(part_index,OP_1)*pfper_fac
+#endif
         !call get_geom_terms(pdata(ipart)%x, itri, geomterms, .false., ierr)
         !pdata(ipart)%f0=dot_product(geomterms%g, elfieldcoefs(itri)%jrev1)
 
@@ -2065,6 +2231,10 @@ end subroutine getEcyl
           !Extract appropriate Fourier component of particle contribution
           phfac = exp(rfac*newphi)
           nre179(part_index,OP_1) = pdata(ipart)%wt+phfac*pdata(ipart)%f0
+#ifdef USEPARTICLES
+          pfpar79(part_index,OP_1) = nre179(part_index,OP_1)*pfpar_fac
+          pfper79(part_index,OP_1) = nre179(part_index,OP_1)*pfper_fac
+#endif
           !nre179(part_index,OP_1) = pdata(ipart)%wt
           !nre179(part_index,OP_1) = pdata(ipart)%f0
           pdata(ipart)%wt = 0.
@@ -2079,13 +2249,29 @@ end subroutine getEcyl
 #ifndef USECOMPLEX
        !if (linear_particle.eq.0) nre179(:,OP_1)=nre179(:,OP_1)-nre079(:,OP_1)
 #endif
-          dofspa = intx2(mu79(:,:,OP_1),nre179(:,OP_1))
+          dofsnre = intx2(mu79(:,:,OP_1),nre179(:,OP_1))
+#ifdef USEPARTICLES
+          dofspa = intx2(mu79(:,:,OP_1),pfpar79(:,OP_1))
+          dofspe = intx2(mu79(:,:,OP_1),pfper79(:,OP_1))
+          if (ntime.eq.ntime0) then
+             dofspa0 = intx2(mu79(:,:,OP_1),pfpar079(:,OP_1))
+             dofspe0 = intx2(mu79(:,:,OP_1),pfper079(:,OP_1))
+          endif
+#endif
        !PRINT *,'DB',myrank,ielm,pdata(ielm)%np,ibp,iwe,iok
 
        !Insert element sums into field data
        ! Note: this is only correct if the local index ielm refers to the
        !  same element in meshes with and without ghost zone layers!
-       call vector_insert_block(nre_vec%vec,  ielm, 1, dofspa, VEC_ADD)
+       call vector_insert_block(nre_vec%vec,  ielm, 1, dofsnre, VEC_ADD)
+#ifdef USEPARTICLES
+       call vector_insert_block(p_f_par(1)%vec,  ielm, 1, dofspa, VEC_ADD)
+       call vector_insert_block(p_f_perp(1)%vec, ielm, 1, dofspe, VEC_ADD)
+       if (ntime.eq.ntime0) then
+          call vector_insert_block(p_f_par(0)%vec,  ielm, 1, dofspa0, VEC_ADD)
+          call vector_insert_block(p_f_perp(0)%vec, ielm, 1, dofspe0, VEC_ADD)
+       endif
+#endif
        !call vector_insert_block(nre_vec%vec, ielm, 1, dofspe, VEC_ADD)
 
 enddo !ielm
@@ -2103,23 +2289,31 @@ subroutine solve_pi_tensor
    implicit none
    integer :: ierr
 
-   !call newvar_solve(p_f_par%vec,  diff_mat)
-   !call newvar_solve(p_f_perp%vec,  diff_mat)
-   !call newvar_solve(p_i_par%vec,  diff_mat)
-   !call newvar_solve(p_i_perp%vec,  diff_mat)
-   !call newvar_solve(den_f_1%vec,  diff_mat)
-   !call newvar_solve(den_f_0%vec,  diff_mat)
+   !call newvar_solve(p_f_par(1)%vec,  diff_mat)
+   !call newvar_solve(p_f_perp(1)%vec,  diff_mat)
+   !call newvar_solve(p_i_par(1)%vec,  diff_mat)
+   !call newvar_solve(p_i_perp(1)%vec,  diff_mat)
+   !call newvar_solve(denf_field(1)%vec,  diff_mat)
+   !call newvar_solve(denf_field(0)%vec,  diff_mat)
    call sum_shared(nre_vec%vec)
    call newsolve(diff2_mat, nre_vec%vec, ierr)
    nreoB_field(1)=nre_vec
-   ! call sum_shared(p_f_par%vec)
-   ! call newsolve(diff2_mat, p_f_par%vec, ierr)
-   ! call sum_shared(p_f_perp%vec)
-   ! call newsolve(diff2_mat, p_f_perp%vec, ierr)
-   ! call sum_shared(den_f_1%vec)
-   ! call newsolve(diff2_mat, den_f_1%vec, ierr)
-   ! call sum_shared(den_f_0%vec)
-   ! call newsolve(diff2_mat, den_f_0%vec, ierr)
+#ifdef USEPARTICLES
+   call sum_shared(p_f_par(1)%vec)
+   call newsolve(diff2_mat, p_f_par(1)%vec, ierr)
+   call sum_shared(p_f_perp(1)%vec)
+   call newsolve(diff2_mat, p_f_perp(1)%vec, ierr)
+   if (ntime.eq.ntime0) then
+      call sum_shared(p_f_par(0)%vec)
+      call newsolve(diff2_mat, p_f_par(0)%vec, ierr)
+      call sum_shared(p_f_perp(0)%vec)
+      call newsolve(diff2_mat, p_f_perp(0)%vec, ierr)
+   endif
+#endif
+   ! call sum_shared(denf_field(1)%vec)
+   ! call newsolve(diff2_mat, denf_field(1)%vec, ierr)
+   ! call sum_shared(denf_field(0)%vec)
+   ! call newsolve(diff2_mat, denf_field(0)%vec, ierr)
 end subroutine solve_pi_tensor
 
 subroutine set_nreoB
@@ -2168,8 +2362,8 @@ subroutine set_nreoB
      !       ((ps079(:,OP_DR)-r_79*bfp079(:,OP_DZ))**2 + (ps079(:,OP_DZ)+r_79*bfp079(:,OP_DR))**2 + bz079(:,OP_1)*bz079(:,OP_1)))
 
      !temp79a=(pipar79(:,OP_1)*0+piper79(:,OP_1)*3)/3.
-     !temp79a=nfi79(:,OP_1)*te079(:,OP_1)*2
-     !temp79a=nfi79(:,OP_1)*te079(:,OP_1)+p179(:,OP_1)-n179(:,OP_1)*te0
+     !temp79a=deni79(:,OP_1)*te079(:,OP_1)*2
+     !temp79a=deni79(:,OP_1)*te079(:,OP_1)+p179(:,OP_1)-n179(:,OP_1)*te0
      !temp79a=n179(:,OP_1)
      dofs = intx2(mu79(:,:,OP_1),temp79a)
      dofs2 = intx2(mu79(:,:,OP_1),temp79b)
@@ -2232,8 +2426,8 @@ subroutine set_nre
      !       ((ps079(:,OP_DR)-r_79*bfp079(:,OP_DZ))**2 + (ps079(:,OP_DZ)+r_79*bfp079(:,OP_DR))**2 + bz079(:,OP_1)*bz079(:,OP_1)))
 
      !temp79a=(pipar79(:,OP_1)*0+piper79(:,OP_1)*3)/3.
-     !temp79a=nfi79(:,OP_1)*te079(:,OP_1)*2
-     !temp79a=nfi79(:,OP_1)*te079(:,OP_1)+p179(:,OP_1)-n179(:,OP_1)*te0
+     !temp79a=deni79(:,OP_1)*te079(:,OP_1)*2
+     !temp79a=deni79(:,OP_1)*te079(:,OP_1)+p179(:,OP_1)-n179(:,OP_1)*te0
      !temp79a=n179(:,OP_1)
      dofs = intx2(mu79(:,:,OP_1),temp79a)
      call vector_insert_block(p_v%vec,itri,1,dofs,VEC_ADD)

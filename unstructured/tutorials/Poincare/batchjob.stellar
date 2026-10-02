@@ -1,0 +1,7 @@
+#!/bin/bash
+#SBATCH -A pppl
+#SBATCH -n 32
+#SBATCH -J NCSX_trace
+#SBATCH -t 0:10:00
+
+$M3DC1_MPIRUN -n 32 trace -m3dc1 ../Stellarator/C1.h5 2 -R0 1.59 -p 32 -dR 0.004 -s 400 -t 500

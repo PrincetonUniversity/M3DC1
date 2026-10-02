@@ -9,6 +9,7 @@ from matplotlib.lines import Line2D
 
 from .get_colors import get_colors
 from .lcfs import lcfs
+from .plot_mesh import plot_mesh
 from .read_field import read_field
 
 
@@ -26,7 +27,9 @@ def plot_shape(
     cgs: bool = False,
     mks: bool = True,
     iso: bool = True,
+    boundary: bool = False,
     levels=None,
+    psilim: float | None = None,
     **kwargs,
 ):
     """
@@ -67,16 +70,44 @@ def plot_shape(
         psi2d = psi[0, :, :] if psi.ndim == 3 else psi
         xv = np.asarray(meta.r, dtype=float).reshape(-1)
         zv = np.asarray(meta.z, dtype=float).reshape(-1)
+        contour_data = np.asarray(psi2d)
+        if meta.mask is not None:
+            mesh_mask = np.asarray(meta.mask)
+            if mesh_mask.ndim == 3:
+                mesh_mask = mesh_mask[0]
+            if mesh_mask.shape == contour_data.shape:
+                contour_data = np.ma.masked_where(mesh_mask == 1, contour_data)
 
         if levels is None:
             lc = lcfs(psi2d, xv, zv, filename=fn, slice=timeslice, cgs=cgs, mks=mks)
-            contour_levels = np.arange(22, dtype=float) / 20.0 * (lc.psilim - lc.flux0) + lc.flux0
-            if lc.psilim < lc.flux0:
+            limit_flux = lc.psilim if psilim is None else float(psilim)
+            if not np.isfinite(limit_flux):
+                raise ValueError(f"psilim must be finite, got {psilim!r}.")
+            contour_levels = np.arange(22, dtype=float) / 20.0 * (limit_flux - lc.flux0) + lc.flux0
+            if limit_flux < lc.flux0:
                 contour_levels = contour_levels[::-1]
         else:
             contour_levels = np.asarray(levels, dtype=float).reshape(-1)
 
-        ax.contour(xv, zv, psi2d.T, levels=contour_levels, colors=[colors[i]], linewidths=1.0)
+        ax.contour(
+            xv,
+            zv,
+            contour_data.T,
+            levels=contour_levels,
+            colors=[colors[i]],
+            linewidths=1.0,
+            corner_mask=False,
+        )
+        if boundary:
+            plot_mesh(
+                oplot=True,
+                boundary=True,
+                logical=logical,
+                points=points,
+                phi=phi,
+                filename=fn,
+                slice=timeslice,
+            )
 
         if legend_names is not None and i < len(legend_names):
             handles.append(Line2D([0], [0], color=colors[i], linewidth=1.0, label=str(legend_names[i])))

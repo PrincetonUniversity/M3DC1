@@ -71,6 +71,8 @@ def plot_field(
     mask_val=None,
     boundary: bool = False,
     q_contours=None,
+    flux_contours=None,
+    psilim: float | None = None,
     overplot: bool = False,
     phi: float = 0.0,
     logical: bool = False,
@@ -348,7 +350,23 @@ def plot_field(
     if q_contours is not None:
         fval = flux_at_q(q_contours, points=points, filename=filename, **plot_kwargs)
         if np.asarray(fval).size > 0 and float(np.asarray(fval).reshape(-1)[0]) != 0.0:
-            plot_flux_contour(fval, points=points, overplot=True, filename=filename, slice=primary_slice, xscale=xscale_f, yscale=yscale_f, **plot_kwargs)
+            plot_flux_contour(fval, points=points, overplot=True, filename=filename, slice=primary_slice, iso=iso, xscale=xscale_f, yscale=yscale_f, **plot_kwargs)
+
+    if flux_contours is not None:
+        plot_flux_contour(
+            flux_contours,
+            points=points,
+            overplot=True,
+            filename=filename,
+            slice=primary_slice,
+            iso=iso,
+            xscale=xscale_f,
+            yscale=yscale_f,
+            logical=logical,
+            phi=phi,
+            psilim=psilim,
+            **plot_kwargs,
+        )
 
     if axis:
         ax, _ = nulls(axis=True, xpoints=True, filename=filename, slice=primary_slice, **plot_kwargs)
@@ -360,7 +378,16 @@ def plot_field(
         plt.plot([ax0 - dx, ax0 + dx], [ax1 + dy, ax1 - dy], color="tab:red")
 
     if lcfs:
-        plot_lcfs(overplot=True, filename=filename, slice=primary_slice, points=points, xscale=xscale_f, yscale=yscale_f, **plot_kwargs)
+        plot_lcfs(
+            psival=psilim,
+            overplot=True,
+            filename=filename,
+            slice=primary_slice,
+            points=points,
+            xscale=xscale_f,
+            yscale=yscale_f,
+            **plot_kwargs,
+        )
 
     if coils:
         plot_coils(filename=filename, overplot=True, xscale=xscale_f, yscale=yscale_f, **plot_kwargs)
