@@ -468,12 +468,9 @@ contains
                                      nht, dt_si, nht_new)
               
 				  if (abs(nht_new*cre*ec*va) .gt. 0.1*abs(ri*bz)) then ! RiD: Capping the HT current to 10% of plasma current
-						  nht_new = 0.1*abs(ri*bz)/(cre*ec*va)
+						  nht_new = max(0.1*abs(ri*bz)/(cre*ec*va), nht) ! never below nht, so sht >= 0
 						  sht = (nht_new - nht)/dt_si
 				  endif
-				  ! RiD: First step after restart only re-baselines nht (not saved in restart
-				  ! files); the existing hot-tail population is already in nre
-				  if (ntime.eq.ntime0+1) sht = 0.
               endif
               
               dndt = ((sd*esign + &
@@ -495,12 +492,9 @@ contains
                   ! of the local total current density (abs(ri*bz)),
                   ! recomputing sht so dndt/nrel stay consistent.
                   if (abs(nht_new*cre*ec*va) .gt. 0.1*abs(ri*bz)) then
-                      nht_new = 0.1*abs(ri*bz)/(cre*ec*va)
+                      nht_new = max(0.1*abs(ri*bz)/(cre*ec*va), nht) ! never below nht, so sht >= 0
                       sht = (nht_new - nht)/dt_si
                   endif
-                  ! RiD: First step after restart only re-baselines nht (not saved in restart
-                  ! files); the existing hot-tail population is already in nre
-                  if (ntime.eq.ntime0+1) sht = 0.
               else
                   sht = 0.
                   nht_new = nht
@@ -594,6 +588,10 @@ contains
        n0_ht = ht79(:,OP_1)*n0_norm*1e6 ! Reference elec. density [per cubic m]
        call eval_ops(itri, nht_field, ht79, rfac)
        nht_prev = ht79(:,OP_1)
+       ! RiD: nht is not saved in restart files, so on the first step after a
+       ! restart use the RE density as the previous hot-tail density.
+       ! nre is a current density [A/m^2]; nht is a density [1/m^3].
+       if(ntime.eq.ntime0+1) nht_prev = abs(nre)/(cre*ec*va)
        t_ht = time*t0_norm - t_ht0 ! Elapsed time since the hot-tail reference slice
     else
        T0_ht = 0.
