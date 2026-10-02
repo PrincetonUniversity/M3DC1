@@ -61,6 +61,17 @@ module runaway_mod
       -6.3644_dp, -6.2465_dp, -6.1070_dp, -5.9219_dp, -5.6535_dp, &
       -5.3213_dp, -4.6937_dp, -4.6598_dp /)
 
+  ! --- CARBON DATA (Size 6) ---
+  ! ln_aBar = ln(144, 118, 95, 70, 42, 39)
+  ! ln_I    = ln(I/(m_e c^2)), I = (65.9, 92.6, 134.8, 214.2, 486.2, 539.5) eV, m_e c^2 = 5.11e5 eV
+  real(dp), parameter, dimension(6) :: C_ln_aBar_const = (/ &
+       4.9698_dp, 4.7707_dp, 4.5539_dp, 4.2485_dp, 3.7377_dp, &
+       3.6636_dp /)
+
+  real(dp), parameter, dimension(6) :: C_ln_I_const = (/ &
+      -8.9560_dp, -8.6158_dp, -8.2403_dp, -7.7772_dp, -6.9575_dp, &
+      -6.8535_dp /)
+
 contains
 
   subroutine runaway_deallocate()
@@ -264,6 +275,7 @@ contains
     ! RiD: Additional variables for partially screened avalnching model
     real :: Zval(2), Z0high(2), Z0low(2), Z0val(2), nj(2)
     real :: ne_free, Ech, Estar, lnAc, Ylow, Yhigh, weight , ntot, Zeff_val
+    character(len=2) :: imp_element ! Impurity species for Hesslow avalanching coefficients
     
     
     dndt = 0.
@@ -413,10 +425,19 @@ contains
 					Ylow = 0.0 ! Avalanching rates
 					Yhigh = 0.0
 					
+					select case (kprad_z) ! Pick impurity coefficients (default Ne)
+					case (6)
+						imp_element = "C"
+					case (18)
+						imp_element = "Ar"
+					case default
+						imp_element = "Ne"
+					end select
+					
 					call getHesslowAvalanchingRate(Estar,Zval,Z0low,nj, &
-						2,Temp,"Ne",btoroidal*ri,Ylow)
+						2,Temp,imp_element,btoroidal*ri,Ylow)
 					call getHesslowAvalanchingRate(Estar,Zval,Z0high,nj, &
-						2,Temp,"Ne",btoroidal*ri,Yhigh)
+						2,Temp,imp_element,btoroidal*ri,Yhigh)
 					sa = (1.0_dp - weight) * Ylow + weight * Yhigh ! Combine [per second]
 !~ 					!! ****** RiD: For Debugging *****!!
 !~ 					!if (true) then ! Printing
@@ -909,7 +930,7 @@ contains
 	
 	pure function getEc_eff(Z,Z0,nj,nSpecies,T,B,element) result(Eceff_out)
 	
-	!~ # Returns the effective critical electric field in [V/m] with Ne or Ar impurities 
+	!~ # Returns the effective critical electric field in [V/m] with Ne, Ar or C impurities 
 	!~ # INPUTS:
 	!~ #       Z   : atomic number of each ion species
 	!~ #       Z0  : net charge of plasma for each ion species
@@ -917,7 +938,7 @@ contains
 	!~ #       Z, Z0 and nj must be arrays of length nSpecies
 	!~ #       T   : temperature [eV]  (for calculation of the Coulomb logarithm)
 	!~ #       B   : magnetic field [T]
-	!~ #       element: "Ne" or "Ar"
+	!~ #       element: "Ne", "Ar" or "C"
 	
 		implicit none
 		
@@ -950,6 +971,9 @@ contains
 		else if (trim(element) == "Ar") then
 			ln_aBar(1:18) = Ar_ln_aBar_const
 			ln_I(1:18)    = Ar_ln_I_const
+		else if (trim(element) == "C") then
+			ln_aBar(1:6) = C_ln_aBar_const
+			ln_I(1:6)    = C_ln_I_const
 		else
 			Eceff_out = 0.0_dp
 			return
@@ -1010,7 +1034,7 @@ contains
 !~ 		# Z0 = ionization level
 !~ 		# nj = density [per cubic m]
 !~ 		# T = temperature [eV]
-!~ 		# element = 'Ne' or 'Ar'
+!~ 		# element = 'Ne', 'Ar' or 'C'
 
 		! Constants !
 		integer, parameter :: dp = kind(1.0d0)
@@ -1042,6 +1066,9 @@ contains
 		else if (trim(element) == "Ar") then
 			ln_aBar(1:18) = Ar_ln_aBar_const
 			ln_I(1:18)    = Ar_ln_I_const
+		else if (trim(element) == "C") then
+			ln_aBar(1:6) = C_ln_aBar_const
+			ln_I(1:6)    = C_ln_I_const
 		else
 			nuD = 1.0_dp + sum((Z0**2)*nj) / sum(Z0*nj) ! Just use the fully screened frequencies
 			nuS = 1.0_dp
@@ -1167,7 +1194,7 @@ contains
 !~ 	# Z0 = ionization level; first element of array is 1, next is Neon ionization
 !~ 	# nj = density of each species [per cubic m]
 !~ 	# T = temperature [eV]
-!~ 	# element = either 'Ar' or 'Ne'
+!~ 	# element = 'Ar', 'Ne' or 'C'
 !~  # Yav = output rate [per s]
 
 	implicit none
