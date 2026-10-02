@@ -29,6 +29,7 @@ Program Reducedquintic
   use m3dc1_vel_prof
   use hypervisc
   use runaway_advection
+  use runaway_mod, only: read_HT_slice
   use rmp
   use signal_handler
 #ifdef _OPENACC
@@ -271,6 +272,7 @@ Program Reducedquintic
 
   if(irestart.ne.0) then
      call hdf5_reconcile_version(version_in, ier)
+     if(irunaway.eq.2 .and. iHT.eq.1) call read_HT_slice()
   end if
 
   ntime0 = ntime

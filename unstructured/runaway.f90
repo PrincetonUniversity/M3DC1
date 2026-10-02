@@ -127,7 +127,8 @@ contains
     nht_new_field = 0.
     t_ht0 = 0.
 
-    if(iHT.eq.1) call read_HT_slice()
+    ! read_HT_slice is called from newpar.f90 after the restart file is read,
+    ! since C1.h5 is not yet open here
   end subroutine runaway_init
 
   ! RiD: Read the reference temperature/density profile, and the
@@ -259,6 +260,7 @@ contains
     
     ! RiD: Additional variables for partially screened Dreicer term
     real :: ZImp, ZmaxImp
+    real :: nn_max_dreicer_eff ! blend of nn_max_dreicer_prev -> nn_max_dreicer, tanh-smoothed over 10 timesteps post-restart
     ! RiD: Additional variables for partially screened avalnching model
     real :: Zval(2), Z0high(2), Z0low(2), Z0val(2), nj(2)
     real :: ne_free, Ech, Estar, lnAc, Ylow, Yhigh, weight , ntot, Zeff_val
@@ -328,8 +330,11 @@ contains
 											1.0*Dens_ion)/Dens_imp ! Impurity Ionization
 									Zimp = min(ZmaxImp,Zimp) ! Maximum Impurity Ionization = ZmaxImp
 						END IF
-						if (x > nn_max_dreicer) then ! Bound of the Neural Network
-								x = nn_max_dreicer
+						! Bound of the Neural Network
+						nn_max_dreicer_eff = nn_max_dreicer_prev + 0.5*(1.+tanh(5.*(real(ntime-ntime0)/12.-0.5)))* &
+								(nn_max_dreicer-nn_max_dreicer_prev)
+						if (x > nn_max_dreicer_eff) then
+								x = nn_max_dreicer_eff
 						endif
 						sd = getDreicerHesslow(Dens_ion,Dens_imp,&
 												ZmaxImp,ZImp,x,Temp) ! [per cubic m per s]
@@ -466,6 +471,9 @@ contains
 						  nht_new = 0.1*abs(ri*bz)/(cre*ec*va)
 						  sht = (nht_new - nht)/dt_si
 				  endif
+				  ! RiD: First step after restart only re-baselines nht (not saved in restart
+				  ! files); the existing hot-tail population is already in nre
+				  if (ntime.eq.ntime0+1) sht = 0.
               endif
               
               dndt = ((sd*esign + &
@@ -490,6 +498,9 @@ contains
                       nht_new = 0.1*abs(ri*bz)/(cre*ec*va)
                       sht = (nht_new - nht)/dt_si
                   endif
+                  ! RiD: First step after restart only re-baselines nht (not saved in restart
+                  ! files); the existing hot-tail population is already in nre
+                  if (ntime.eq.ntime0+1) sht = 0.
               else
                   sht = 0.
                   nht_new = nht
