@@ -45,10 +45,11 @@ module gradshafranov
 
   real, dimension(maxfilaments) :: xc_vac, zc_vac
   complex, dimension(maxfilaments) :: ic_vac, ic_out
-  integer :: numcoils_vac
+  integer :: numcoils_vac, numcoils_pf
   integer, dimension(maxfilaments) :: coil_mask
   integer, dimension(maxfilaments) :: filaments
 
+  integer :: igs_store_coils
   real, dimension(maxcoils) :: gs_vertical_feedback
   real, dimension(maxcoils) :: gs_radial_feedback
   real, dimension(maxcoils) :: gs_vertical_feedback_i
@@ -191,8 +192,18 @@ subroutine coil_feedback(itnum)
   if(myrank.eq.0 .and. iprint.ge.1) &
        print *, "Calculating fields due to coils in feedback loop"
   psi_coil_field = 0.
-  call field_from_coils(xc_vac,zc_vac,ic_out,numcoils_vac, &
-       psi_coil_field,0,ierr)
+  
+  if(igs_store_coils.eq.0) then
+     call field_from_coils(xc_vac,zc_vac,ic_out,numcoils_vac,psi_coil_field,0,ierr)
+  elseif(igs_store_coils.eq.1) then
+     if(.not.allocated(psi_coil_fields)) then
+        call store_field_from_coils(xc_vac,zc_vac,numcoils_vac,numcoils_pf,&
+                                    psi_coil_fields,coil_mask,0,ierr)
+     end if
+     call field_from_coils(xc_vac,zc_vac,ic_out,numcoils_vac,psi_coil_field,0,ierr,&
+                           numcoils_pf,psi_coil_fields,coil_mask)
+  end if
+
   if(myrank.eq.0 .and. iprint.ge.2) &
        print *, "Done calculating fields due to coils"
   if(ierr.ne.0) call safestop(5)
@@ -267,7 +278,7 @@ subroutine pf_coil_field(ierr)
   select case(idevice)
   case(-1)
      call load_coils(xc,zc,ic,numcoils,'coil.dat','current.dat',coil_mask,&
-          filaments)
+          filaments,numcoils_pf)
      xc_vac = xc
      zc_vac = zc
      ic_vac = ic
@@ -291,7 +302,16 @@ subroutine pf_coil_field(ierr)
   ! Field due to coil currents
   if(myrank.eq.0 .and. iprint.ge.1) &
        print *, "Calculating fields due to coils"
-  call field_from_coils(xc,zc,ic,numcoils,psi_coil_field,ipole,ierr)
+  if(igs_store_coils.eq.0) then
+     call field_from_coils(xc,zc,ic,numcoils,psi_coil_field,ipole,ierr)
+  elseif(igs_store_coils.eq.1) then
+     if(.not.allocated(psi_coil_fields)) then
+        call store_field_from_coils(xc,zc,numcoils,numcoils_pf,&
+                                    psi_coil_fields,coil_mask,ipole,ierr)
+     end if
+     call field_from_coils(xc,zc,ic,numcoils,psi_coil_field,ipole,ierr,&
+                           numcoils_pf,psi_coil_fields,coil_mask)
+  end if
   if(myrank.eq.0 .and. iprint.ge.1) &
        print *, "Done calculating fields due to coils"
   if(ierr.ne.0) call safestop(5)
