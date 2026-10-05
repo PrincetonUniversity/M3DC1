@@ -10,17 +10,15 @@
 touch started
 
 # partition mesh
-#PARTS=16
-#$M3DC1_MPIRUN -n $PARTS split_smb circle-0.10-0.0-0.0-1K.smb part.smb $PARTS
-#echo $? > mesh_partitioned
+PARTS=16
+$M3DC1_MPIRUN -n $PARTS split_smb circle-0.10-0.0-0.0-1K.smb part.smb $PARTS
+echo $? > mesh_partitioned
 
 # Run M3D-C1
-#$M3DC1_MPIRUN -n 64 ../../../stellar.intel2021/_stellarai-3d-opt-60/m3dc1_3d -options_file options_bjacobi.type_superludist 
-
 #advisor --collect=tripcounts --flop --project-dir=./advisor_mpi_results -- \
 #advisor --collect=survey --project-dir=./advisor_mpi_results -- \
 
-$M3DC1_MPIRUN -n 64 ./m3dc1_3d -options_file options_bjacobi.type_superludist 
+$M3DC1_MPIRUN -n 64 m3dc1_3d -options_file options_bjacobi.type_superludist 
 
 #advixe-gui ./advisor_mpi_results/
 
