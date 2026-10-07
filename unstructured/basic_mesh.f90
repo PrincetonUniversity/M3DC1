@@ -287,33 +287,36 @@ contains
 
   subroutine load_mesh
 
+    use petscmat
+    use petscis
+    use petscao
+    use petscsys
     use math
 
     implicit none
 
-#include "finclude/petsc.h"
 !#ifndef PETSC_31
-!#include "finclude/petscvec.h"
-!#include "finclude/petscmat.h"
-!#include "finclude/petscis.h"
+!#include <petsc/finclude/petscvec.h>
+!#include <petsc/finclude/petscmat.h>
+!#include <petsc/finclude/petscis.h>
 !#endif
-#include "finclude/petscis.h90"
+!#include <petsc/finclude/petscis.h>
 
     integer :: num_global_elements
     type(node_type), allocatable :: global_node(:)
     type(element_type), allocatable :: global_elm(:)
-    Mat :: connectivity, adjacency
-    MatPartitioning :: partitioning
+    type(tMat) :: connectivity, adjacency
+    type(tMatPartitioning) :: partitioning
     integer :: i, j, k, ierr, rank, size, itri
     integer :: min_node, max_node
     integer, allocatable :: local_id(:)
     logical, allocatable :: is_ghost(:)
-    PetscInt, pointer :: idx(:)
+    integer, pointer :: idx(:)
     integer, allocatable :: nodes_per_proc(:), nodes_per_proc_local(:)
     integer :: new_id(1)
-    IS :: global_numbering, node_distribution
-    AO :: ordering
-    PetscViewer :: pv
+    type(tIS) :: global_numbering, node_distribution
+    type(tAO) :: ordering
+    type(tPetscViewer) :: pv
 
     bb(1) = 0.185
     bb(2) = -1.45
@@ -386,7 +389,7 @@ contains
        call MatDestroy(adjacency, ierr)
        call ISPartitioningToNumbering(node_distribution,global_numbering,ierr)
        
-       call AOCreateBasicIS(global_numbering, PETSC_NULL, ordering, ierr)
+       call AOCreateBasicIS(global_numbering, PETSC_NULL_IS, ordering, ierr)
        
        call PetscViewerASCIIOpen(PETSC_COMM_WORLD,'node_distribution',pv,ierr)
        call ISView(node_distribution, pv, ierr)
@@ -405,11 +408,11 @@ contains
        allocate(nodes_per_proc_local(size), nodes_per_proc(size))
        nodes_per_proc_local = 0
 
-       call ISGetIndicesF90(node_distribution, idx, ierr)
+       call ISGetIndices(node_distribution, idx, ierr)
        do i=1, num_local_nodes
           nodes_per_proc_local(idx(i)+1) = nodes_per_proc_local(idx(i)+1) + 1
        end do
-       call ISRestoreIndicesF90(node_distribution, idx, ierr)
+       call ISRestoreIndices(node_distribution, idx, ierr)
        
        call mpi_allreduce(nodes_per_proc_local, nodes_per_proc, size, &
             MPI_INTEGER, MPI_SUM, MPI_COMM_WORLD, ierr)

@@ -1,6 +1,6 @@
 module error_estimate
+  use mpi
   use m3dc1_nint
-#include "mpif.h"
   integer, parameter :: EOP_1 = 1
   integer, parameter :: EOP_DX = 2
   integer, parameter :: EOP_DY = 3

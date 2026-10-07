@@ -15,10 +15,10 @@ module read_schaffer_field
 contains
 
   subroutine load_schaffer_field(sf, filename, isamp, isamp_pol, ierr)
+    use mpi
     use math
     implicit none
 
-    include 'mpif.h'
 
     type(schaffer_field), intent(inout) :: sf
     character(len=*), intent(in) :: filename
@@ -369,9 +369,9 @@ contains
 
   subroutine get_external_field(sf,r1,phi1,z1,br_out,bphi_out,bz_out,p_out, &
        npts)
+         use mpi
     implicit none
 
-    include 'mpif.h'
 
     type(schaffer_field), intent(in) :: sf
     integer, intent(in) :: npts

@@ -127,11 +127,11 @@ contains
   end subroutine create_rectangular_mesh
 
   subroutine load_mesh
+    use mpi
     use math
 
     implicit none
 
-    include "mpif.h"
 
     integer :: num_global_elements
     type(node_type), allocatable :: global_node(:)
