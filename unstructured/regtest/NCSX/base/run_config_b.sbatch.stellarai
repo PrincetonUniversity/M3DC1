@@ -1,0 +1,69 @@
+#!/bin/bash
+#SBATCH --nodes=1
+#SBATCH --ntasks-per-node=8
+#SBATCH --gpus-per-node=8
+#SBATCH -c 12
+#SBATCH -t 00:30:00
+#SBATCH -o slurm-%j.out
+#
+# stellar-ai version of run_config_b.sbatch (Perlmutter).  Changes:
+#   - modules: gcc/14 + openmpi/cuda-13.2/gcc/5.0.10 + cudatoolkit/13.2
+#     (single CUDA toolkit; PETSc real-stellarai-gcc14-cuda100-gO2 was linked
+#     against it -- keep 13.4 out of LD_LIBRARY_PATH or cuBLAS fails at VecNorm)
+#   - no NVHPC nvToolsExt hack, no Cray GTL hack, no MPICH_GPU_SUPPORT_ENABLED:
+#     CUDA-awareness is built into this OpenMPI (UCX)
+#   - NCCL_DIR must be exported by hand (no nccl module on stellar-ai)
+#
+# One GPU per plane ("Config B"): PETSc LGMRES (aijcusparse/cuda) with a cuDSS
+# block-Jacobi PCShell, 1 plane per rank -> each plane block is a SINGLE-GPU
+# cuDSS LU solve (no comm layer, no NCCL).  See README §3.1.
+
+set -euo pipefail
+cd "${SLURM_SUBMIT_DIR}"
+
+BINARY="./m3dc1_3d_st"
+[[ -x "$BINARY" ]] || { echo "ERROR: $BINARY not found in $(pwd)"; exit 2; }
+
+# cuDSS runtime lib (0.8.0.10); NCCL for the comm-layer symbols linked into
+# the binary (unused in Config B but required at load time).
+CUDSS_LIB="/scratch/gpfs/CSD/jinchen/m3dc1/lib"
+export LD_LIBRARY_PATH="$CUDSS_LIB:${LD_LIBRARY_PATH:-}"
+
+export OMP_NUM_THREADS=1
+export SLURM_CPU_BIND="cores"
+# If transfers stage through host memory or hang, pin UCX GPU transports:
+#export UCX_TLS=rc,sm,cuda_copy,cuda_ipc
+# Single node: pin UCX to shared-memory + CUDA transports, NO IB/RoCE.
+# This node's 13 mlx5 devices have only RoCE-v1 link-local GIDs (index 0, no
+# IPv4 -- see log.info), so once cuDSS initializes CUDA early, UCX re-ranks
+# transports, prefers rc/dc on the GPU NICs (mlx5_4-7), and the wire-up times
+# out at the first big exchange (m3dc1_mesh_build3d):
+#   "pml_ucx.c:940 ucx send failed: Endpoint timeout"
+# With cudsssolve=0 no CUDA context exists yet, UCX stays on sm, no error.
+# On one node sm+cuda_ipc covers everything; UCX_NET_DEVICES not needed.
+export UCX_TLS=self,sm,cuda_copy,cuda_ipc
+export OMPI_MCA_pml=ucx
+# Multi-node later: instead of the UCX_TLS line above, select working RoCE
+# ports explicitly (check link state with: ibv_devinfo | grep -B5 ACTIVE):
+#export UCX_NET_DEVICES=mlx5_4:1,mlx5_5:1,mlx5_6:1,mlx5_7:1
+#export UCX_IB_GID_INDEX=0   # only GID index present (RoCE v1)
+
+LOG_VIEW=":profile.txt,:profile.fg:ascii_flamegraph,:profile.xml:ascii_xml"
+
+echo "=== petsc_cudss Config B: $SLURM_NTASKS ranks / 1 node, single-GPU cuDSS per plane, -log_view $LOG_VIEW ==="
+echo "Binary: $BINARY"
+echo "CPUs per task: $SLURM_CPUS_PER_TASK"
+echo "Dir:    $(pwd)"
+echo "Nodes:  $SLURM_JOB_NUM_NODES  Tasks: $SLURM_NTASKS  GPUs/node: ${SLURM_GPUS_PER_NODE#*:}"
+echo ""
+
+export UCX_LOG_LEVEL=info
+srun -n $SLURM_NTASKS -c $SLURM_CPUS_PER_TASK --cpu-bind=cores --gpu-bind=none --export=ALL \
+	--mpi=pmix \
+	"$BINARY" \
+	-cudsssolve 1 \
+	-ksp_monitor_true_residual \
+	-log_view "$LOG_VIEW" -log_view_gpu_time \
+	-ksp_view \
+
+

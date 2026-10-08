@@ -3,15 +3,18 @@
 https://researchcomputing.princeton.edu/systems/stellarai
 
 2. login
-ssh your_user_name@sai-amd.princeton.edu
+ssh your_user_name@stellarai-vis2.princeton.edu
 
 3. setup & compile
 cd Your_M3DC1_Code_Dir
 setenv M3DC1_CODE_DIR `pwd`
 module use $M3DC1_CODE_DIR/unstructured/modules/stellarai
-module load m3dc1/devel
+module load m3dc1/devel_gpu
 cd unstructured
-make all ARCH=stellarai
+make all ARCH=stellarai_gpu
 
-4. regtests
-regtest/*/base/batchjob.stellarai
+4. job scripts
+one-plane-to-one-MPI-rank and one-GPU configuration:
+regtest/NCSX/base/run_config_b.sbatch.stellarai
+
+

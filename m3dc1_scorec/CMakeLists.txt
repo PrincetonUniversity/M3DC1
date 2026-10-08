@@ -188,6 +188,8 @@ if (ENABLE_CUDSS)
   if (ENABLE_COMPLEX)
     message(FATAL_ERROR "ENABLE_CUDSS supports real builds only (disable ENABLE_COMPLEX)")
   endif()
+  set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -DPETSC_USE_CUDSS")
+  set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -DPETSC_USE_CUDSS")
   # Library target m3dc1_cudss; normally added by the repo root CMakeLists.
   # Its INTERFACE properties propagate the M3DC1_CUDSS define, the
   # petsc_cudss_solve.h include dir, and the cuDSS/CUDA link libraries.

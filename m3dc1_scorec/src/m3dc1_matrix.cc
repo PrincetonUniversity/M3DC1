@@ -24,7 +24,9 @@
 using std::complex;
 #endif
 
+#ifdef PETSC_USE_CUDSS
 #include "petsc_cudss_solve.h"
+#endif
 
 using std::vector;
 
@@ -683,6 +685,7 @@ int m3dc1_matrix::setupParaMat() {
   CHKERRQ(ierr);
   ierr = MatSetBlockSize(_A, dofPerEnt);
 
+#ifdef PETSC_USE_CUDSS
   // -cudsssolve <id>: use the cuDSS block-Jacobi PCShell solver for this matrix
   PetscInt cudss_id = -1;
   PetscOptionsGetInt(NULL, NULL, "-cudsssolve", &cudss_id, NULL);
@@ -691,6 +694,7 @@ int m3dc1_matrix::setupParaMat() {
 	  ierr = MatSetType(_A, MATMPIAIJCUSPARSE);
 	  CHKERRQ(ierr);
   } else {
+#endif
   ierr = MatSetType(_A, MATMPIAIJ);
   CHKERRQ(ierr);
   if(mymatrix_id==5) {
@@ -698,7 +702,9 @@ int m3dc1_matrix::setupParaMat() {
           if (!PCU_Comm_Self())
                   std::cout<<"[M3DC1 INFO] "<<__func__<<": Lable Mat A="<<mymatrix_id<<" to be hard\n";
   }
+#ifdef PETSC_USE_CUDSS
   }
+#endif
   ierr = MatSetFromOptions(_A);
   CHKERRQ(ierr);
   // cj  if (!PCU_Comm_Self()) std::cout<<"[M3DC1 INFO] "<<__func__<<":
@@ -1434,6 +1440,7 @@ int matrix_solve::solve_with_guess(FieldID field_id, FieldID xVec_guess) {
   return M3DC1_SUCCESS;
 }
 
+#ifdef PETSC_USE_CUDSS
 // solve using the cuDSS block-Jacobi PCShell (petsc_cudss_solve.c);
 // selected per matrix id via -cudsssolve <id> in the api dispatch
 int matrix_solve::solve_cudss(FieldID field_id) {
@@ -1529,6 +1536,7 @@ int matrix_solve::solve_cudss_with_guess(FieldID field_id, FieldID xVec_guess) {
   return M3DC1_SUCCESS;
 #endif
 }
+#endif
 
 int matrix_solve::setKspType() {
   PetscErrorCode ierr;
