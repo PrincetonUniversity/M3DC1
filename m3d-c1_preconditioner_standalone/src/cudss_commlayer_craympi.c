@@ -77,6 +77,8 @@ static MPI_Datatype map_dtype(cudssDataType_t dt)
         case CUDSS_R_64F: return MPI_DOUBLE;     /* 64-bit real         */
         case CUDSS_R_32F: return MPI_FLOAT;      /* 32-bit real         */
         case CUDSS_R_64I: return MPI_LONG_LONG;  /* 64-bit signed int   */
+        case CUDSS_C_64F: return MPI_C_DOUBLE_COMPLEX; /* complex double */
+        case CUDSS_C_32F: return MPI_C_FLOAT_COMPLEX;  /* complex float  */
         default:
             fprintf(stderr,
                     "[cudss_commlayer_craympi] FATAL: unmapped cudssDataType_t "
