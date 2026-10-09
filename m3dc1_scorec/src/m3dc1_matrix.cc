@@ -1444,12 +1444,6 @@ int matrix_solve::solve_with_guess(FieldID field_id, FieldID xVec_guess) {
 // solve using the cuDSS block-Jacobi PCShell (petsc_cudss_solve.c);
 // selected per matrix id via -cudsssolve <id> in the api dispatch
 int matrix_solve::solve_cudss(FieldID field_id) {
-#ifdef PETSC_USE_COMPLEX
-  if (!PCU_Comm_Self())
-    std::cout << "[M3DC1 ERROR] " << __func__
-              << ": cuDSS solve path supports real builds only\n";
-  return M3DC1_FAILURE;
-#else
   Vec x, b;
   int ierr;
   ierr = MatCreateVecs(_A, &x, &b); // inherits GPU type from _A
@@ -1489,17 +1483,10 @@ int matrix_solve::solve_cudss(FieldID field_id) {
   CHKERRQ(ierr);
   mat_status = M3DC1_SOLVED;
   return M3DC1_SUCCESS;
-#endif
 }
 
 // cuDSS solve with non-zero initial guess
 int matrix_solve::solve_cudss_with_guess(FieldID field_id, FieldID xVec_guess) {
-#ifdef PETSC_USE_COMPLEX
-  if (!PCU_Comm_Self())
-    std::cout << "[M3DC1 ERROR] " << __func__
-              << ": cuDSS solve path supports real builds only\n";
-  return M3DC1_FAILURE;
-#else
   Vec x, b;
   int ierr;
   ierr = MatCreateVecs(_A, &x, &b);
@@ -1534,7 +1521,6 @@ int matrix_solve::solve_cudss_with_guess(FieldID field_id, FieldID xVec_guess) {
   CHKERRQ(ierr);
   mat_status = M3DC1_SOLVED;
   return M3DC1_SUCCESS;
-#endif
 }
 #endif
 

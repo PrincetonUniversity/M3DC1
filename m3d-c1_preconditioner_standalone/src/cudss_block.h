@@ -25,6 +25,17 @@
 
 #include <mpi.h>
 
+/* Scalar type: real (double) by default; complex (cuDoubleComplex) when built
+ * with -DCUDSS_BLOCK_COMPLEX (set by CMake ENABLE_COMPLEX).  cuDoubleComplex
+ * is layout-compatible with PETSc's complex PetscScalar (C99 double complex /
+ * C++ std::complex<double>): two contiguous doubles {re, im}. */
+#ifdef CUDSS_BLOCK_COMPLEX
+#include <cuComplex.h>
+typedef cuDoubleComplex cudss_scalar_t;
+#else
+typedef double cudss_scalar_t;
+#endif
+
 #ifdef __cplusplus
 extern "C" {
 #endif
@@ -40,7 +51,7 @@ typedef struct CudssBlock CudssBlock;
  *   local_first_row   0-based, plane-relative index of this rank's first row.
  *   h_rowptr          int32[local_n+1], LOCAL CSR offsets (start at 0).
  *   h_colidx          int32[local_nnz], PLANE-LOCAL (global-within-plane) cols.
- *   h_vals            double[local_nnz], matching values.
+ *   h_vals            cudss_scalar_t[local_nnz], matching values.
  *   local_nnz         number of local nonzeros.
  *   comm_lib_path     path to libcudss_commlayer_nccl.so.0 (used only when the
  *                     plane spans >1 rank; may be NULL otherwise).
@@ -54,7 +65,7 @@ CudssBlock *cudss_block_create(MPI_Comm plane_comm,
                                int local_first_row,
                                const int *h_rowptr,
                                const int *h_colidx,
-                               const double *h_vals,
+                               const cudss_scalar_t *h_vals,
                                long long local_nnz,
                                const char *comm_lib_path);
 
@@ -65,7 +76,8 @@ CudssBlock *cudss_block_create(MPI_Comm plane_comm,
  * Both are on the current device.  Synchronizes the device on return so the
  * result is visible to the caller's (PETSc) stream.
  */
-void cudss_block_solve(CudssBlock *blk, const double *d_rhs, double *d_sol);
+void cudss_block_solve(CudssBlock *blk, const cudss_scalar_t *d_rhs,
+                       cudss_scalar_t *d_sol);
 
 /*
  * Re-run the NUMERIC factorization only, reusing the symbolic ANALYSIS already

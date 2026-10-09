@@ -61,9 +61,24 @@
 #include "cudss_block.h"
 #include "petsc_cudss_solve.h"
 
+/* The cuDSS block scalar must match PETSc's scalar: both real (double) or both
+ * complex (cuDoubleComplex / PetscScalar, layout-compatible: two contiguous
+ * doubles {re, im}).  CUDSS_BLOCK_COMPLEX is set by the build when
+ * ENABLE_COMPLEX=ON. */
+#if defined(PETSC_USE_COMPLEX) && !defined(CUDSS_BLOCK_COMPLEX)
+#error "complex PETSc requires building the cuDSS path with -DCUDSS_BLOCK_COMPLEX"
+#endif
+#if !defined(PETSC_USE_COMPLEX) && defined(CUDSS_BLOCK_COMPLEX)
+#error "-DCUDSS_BLOCK_COMPLEX requires a complex PETSc build (PETSC_USE_COMPLEX)"
+#endif
+
 static void swap4(void *p) { char *c=(char*)p, t=c[0]; c[0]=c[3]; c[3]=t; t=c[1]; c[1]=c[2]; c[2]=t; }
 static void swap8(void *p) { char *c=(char*)p; for(int i=0;i<4;i++){char t=c[i];c[i]=c[7-i];c[7-i]=t;} }
 static int read_i32(FILE *f) { int v; fread(&v,4,1,f); swap4(&v); return v; }
+
+/* PETSc binary scalars are big-endian doubles; a complex scalar is two of
+ * them (re, im).  DBLS_PER_SCALAR lets the readers below handle both. */
+#define DBLS_PER_SCALAR ((long long)(sizeof(PetscScalar) / 8))
 
 static void compute_row_range(PetscInt n_global, PetscMPIInt rank, PetscMPIInt nprocs,
                               PetscInt nplanes, PetscInt *out_start, PetscInt *out_n)
@@ -144,14 +159,16 @@ static PetscErrorCode ReadMatrixParallel(const char *path, Mat *pA, MPI_Comm com
 
     PetscScalar *val;
     PetscCall(PetscMalloc1(local_nnz, &val));
-    fseek(f, val_base + nnz_before * 8, SEEK_SET);
+    fseek(f, val_base + nnz_before * 8 * DBLS_PER_SCALAR, SEEK_SET);
     {
-        long long remaining = local_nnz, offset = 0;
+        /* read in units of 8-byte doubles (2 per scalar when complex) */
+        double *vd = (double *)val;
+        long long remaining = local_nnz * DBLS_PER_SCALAR, offset = 0;
         while (remaining > 0) {
             long long chunk = (remaining > 100000000LL) ? 100000000LL : remaining;
-            if ((long long)fread(val + offset, 8, (size_t)chunk, f) != chunk)
+            if ((long long)fread(vd + offset, 8, (size_t)chunk, f) != chunk)
                 SETERRQ(PETSC_COMM_SELF, PETSC_ERR_FILE_READ, "val read fail");
-            for (long long i = 0; i < chunk; i++) swap8(&val[offset + i]);
+            for (long long i = 0; i < chunk; i++) swap8(&vd[offset + i]);
             offset += chunk; remaining -= chunk;
         }
     }
@@ -247,10 +264,14 @@ static PetscErrorCode ReadVectorParallel(const char *path, Vec *pv, MPI_Comm com
 
     PetscScalar *data;
     PetscCall(PetscMalloc1(local_n, &data));
-    fseek(f, 8 + local_start * 8, SEEK_SET);
-    if ((PetscInt)fread(data, 8, local_n, f) != local_n)
-        SETERRQ(PETSC_COMM_SELF, PETSC_ERR_FILE_READ, "Vector read fail");
-    for (PetscInt i = 0; i < local_n; i++) swap8(&data[i]);
+    fseek(f, 8 + local_start * 8 * DBLS_PER_SCALAR, SEEK_SET);
+    {
+        double *dd = (double *)data;
+        long long ndbl = (long long)local_n * DBLS_PER_SCALAR;
+        if ((long long)fread(dd, 8, (size_t)ndbl, f) != ndbl)
+            SETERRQ(PETSC_COMM_SELF, PETSC_ERR_FILE_READ, "Vector read fail");
+        for (long long i = 0; i < ndbl; i++) swap8(&dd[i]);
+    }
     fclose(f);
 
     PetscCall(VecCreate(comm, pv));
@@ -285,7 +306,7 @@ static PetscErrorCode ExtractPlaneBlock(Mat A,
                                         PetscInt plane_start, PetscInt plane_end,
                                         PetscInt local_start, PetscInt local_n,
                                         int **out_rowptr, int **out_colidx,
-                                        double **out_vals, long long *out_nnz)
+                                        PetscScalar **out_vals, long long *out_nnz)
 {
     PetscFunctionBeginUser;
     int *rowptr;
@@ -304,7 +325,7 @@ static PetscErrorCode ExtractPlaneBlock(Mat A,
     }
     long long nnz = rowptr[local_n];
     int *colidx;
-    double *vout;
+    PetscScalar *vout;
     PetscCall(PetscMalloc1(nnz, &colidx));
     PetscCall(PetscMalloc1(nnz, &vout));
     long long pos = 0;
@@ -316,7 +337,7 @@ static PetscErrorCode ExtractPlaneBlock(Mat A,
         for (PetscInt j = 0; j < ncols; j++) {
             if (cols[j] >= plane_start && cols[j] < plane_end) {
                 colidx[pos] = (int)(cols[j] - plane_start);
-                vout[pos]   = (double)PetscRealPart(vals[j]);
+                vout[pos]   = vals[j];
                 pos++;
             }
         }
@@ -344,7 +365,9 @@ static PetscErrorCode CudssPCApply(PC pc, Vec xin, Vec xout)
     PetscScalar *d_out;
     PetscCall(VecCUDAGetArrayRead(xin, &d_in));
     PetscCall(VecCUDAGetArrayWrite(xout, &d_out));
-    cudss_block_solve(ctx->blk, (const double *)d_in, (double *)d_out);
+    /* PetscScalar and cudss_scalar_t are layout-compatible (enforced by the
+     * compile-time guard above): double/double or complex double pair. */
+    cudss_block_solve(ctx->blk, (const cudss_scalar_t *)d_in, (cudss_scalar_t *)d_out);
     PetscCall(VecCUDARestoreArrayRead(xin, &d_in));
     PetscCall(VecCUDARestoreArrayWrite(xout, &d_out));
     PetscFunctionReturn(PETSC_SUCCESS);
@@ -467,7 +490,7 @@ PetscErrorCode setKspType_cudss(Mat A, PetscInt nplanes, KSP *out_ksp)
         PetscPrintf(comm, "  comm layer: %s\n", comm_lib);
 
     int *blk_rowptr, *blk_colidx;
-    double *blk_vals;
+    PetscScalar *blk_vals;
     long long blk_nnz;
     PetscLogDouble t_ext0, t_ext1;
     PetscCall(PetscTime(&t_ext0));
@@ -483,7 +506,8 @@ PetscErrorCode setKspType_cudss(Mat A, PetscInt nplanes, KSP *out_ksp)
     PetscCall(PetscTime(&t_setup0));
     pcctx->blk = cudss_block_create(plane_comm, (int)rows_per_plane, (int)local_n,
                                     (int)(local_start - plane_start),
-                                    blk_rowptr, blk_colidx, blk_vals, blk_nnz, comm_lib);
+                                    blk_rowptr, blk_colidx,
+                                    (const cudss_scalar_t *)blk_vals, blk_nnz, comm_lib);
     pcctx->plane_comm = plane_comm;
     PetscCall(PetscTime(&t_setup1));
     PetscCall(PetscFree(blk_rowptr));

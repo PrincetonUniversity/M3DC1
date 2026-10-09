@@ -12,7 +12,8 @@
  *   - plane-aligned distribution: nplanes > 0, nprocs % nplanes == 0, each
  *     rank's ownership range lies entirely inside one plane's row block;
  *   - A/b/x use GPU types (-mat_type aijcusparse -vec_type cuda);
- *   - real double scalars (cuDSS path).
+ *   - scalar type must match the build: real double by default, complex
+ *     double when built with -DCUDSS_BLOCK_COMPLEX + complex PETSc.
  *
  * setKspType_cudss is the cuDSS analogue of matrix_solve::setKspType():
  * one-time setup that extracts the plane diagonal block from A, runs cuDSS

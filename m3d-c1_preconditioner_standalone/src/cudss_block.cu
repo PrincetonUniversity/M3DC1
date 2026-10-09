@@ -24,6 +24,13 @@
 
 #include "cudss_block.h"
 
+/* cuDSS value type matching cudss_scalar_t (see cudss_block.h). */
+#ifdef CUDSS_BLOCK_COMPLEX
+#define CUDSS_SCALAR_DTYPE CUDSS_C_64F
+#else
+#define CUDSS_SCALAR_DTYPE CUDSS_R_64F
+#endif
+
 #define CUDA_CHECK(call) do { cudaError_t e=(call); if(e!=cudaSuccess){fprintf(stderr,"[cudss_block] CUDA %s:%d: %s\n",__FILE__,__LINE__,cudaGetErrorString(e));exit(1);}}while(0)
 #define CUDSS_CHECK(call) do { cudssStatus_t s=(call); if(s!=CUDSS_STATUS_SUCCESS){fprintf(stderr,"[cudss_block] cuDSS %s:%d: status=%d\n",__FILE__,__LINE__,(int)s);exit(1);}}while(0)
 #define NCCL_CHECK(call) do { ncclResult_t r=(call); if(r!=ncclSuccess){fprintf(stderr,"[cudss_block] NCCL %s:%d: %s\n",__FILE__,__LINE__,ncclGetErrorString(r));exit(1);}}while(0)
@@ -40,10 +47,10 @@ struct CudssBlock {
     /* device CSR */
     int    *d_rowptr;
     int    *d_colidx;
-    double *d_vals;
+    cudss_scalar_t *d_vals;
     /* device dense rhs/sol (local segment) */
-    double *d_rhs;
-    double *d_sol;
+    cudss_scalar_t *d_rhs;
+    cudss_scalar_t *d_sol;
 
     cudssHandle_t handle;
     cudssConfig_t config;
@@ -71,7 +78,7 @@ CudssBlock *cudss_block_create(MPI_Comm plane_comm,
                                int local_first_row,
                                const int *h_rowptr,
                                const int *h_colidx,
-                               const double *h_vals,
+                               const cudss_scalar_t *h_vals,
                                long long local_nnz,
                                const char *comm_lib_path)
 {
@@ -110,12 +117,12 @@ CudssBlock *cudss_block_create(MPI_Comm plane_comm,
     /* ---- upload local CSR + allocate rhs/sol ---- */
     CUDA_CHECK(cudaMalloc(&blk->d_rowptr, (size_t)(local_n + 1) * sizeof(int)));
     CUDA_CHECK(cudaMalloc(&blk->d_colidx, (size_t)local_nnz * sizeof(int)));
-    CUDA_CHECK(cudaMalloc(&blk->d_vals,   (size_t)local_nnz * sizeof(double)));
-    CUDA_CHECK(cudaMalloc(&blk->d_rhs,    (size_t)local_n * sizeof(double)));
-    CUDA_CHECK(cudaMalloc(&blk->d_sol,    (size_t)local_n * sizeof(double)));
+    CUDA_CHECK(cudaMalloc(&blk->d_vals,   (size_t)local_nnz * sizeof(cudss_scalar_t)));
+    CUDA_CHECK(cudaMalloc(&blk->d_rhs,    (size_t)local_n * sizeof(cudss_scalar_t)));
+    CUDA_CHECK(cudaMalloc(&blk->d_sol,    (size_t)local_n * sizeof(cudss_scalar_t)));
     CUDA_CHECK(cudaMemcpy(blk->d_rowptr, h_rowptr, (size_t)(local_n + 1) * sizeof(int), cudaMemcpyHostToDevice));
     CUDA_CHECK(cudaMemcpy(blk->d_colidx, h_colidx, (size_t)local_nnz * sizeof(int), cudaMemcpyHostToDevice));
-    CUDA_CHECK(cudaMemcpy(blk->d_vals,   h_vals,   (size_t)local_nnz * sizeof(double), cudaMemcpyHostToDevice));
+    CUDA_CHECK(cudaMemcpy(blk->d_vals,   h_vals,   (size_t)local_nnz * sizeof(cudss_scalar_t), cudaMemcpyHostToDevice));
 
     /* ---- NCCL comm for MGMN (skipped for the cray-mpich shim) ---- */
     if (blk->mgmn && !blk->use_mpi_comm) {
@@ -336,13 +343,13 @@ CudssBlock *cudss_block_create(MPI_Comm plane_comm,
     int64_t mat_nnz = (int64_t)global_nnz;
     CUDSS_CHECK(cudssMatrixCreateCsr(&blk->mat, mat_n, mat_n, mat_nnz,
         blk->d_rowptr, NULL, blk->d_colidx, blk->d_vals,
-        CUDSS_R_32I, CUDSS_R_32I, CUDSS_R_64F, CUDSS_MTYPE_GENERAL, CUDSS_MVIEW_FULL, CUDSS_BASE_ZERO));
+        CUDSS_R_32I, CUDSS_R_32I, CUDSS_SCALAR_DTYPE, CUDSS_MTYPE_GENERAL, CUDSS_MVIEW_FULL, CUDSS_BASE_ZERO));
 
     int64_t dn_n = blk->mgmn ? (int64_t)n_global_plane : (int64_t)local_n;
     CUDSS_CHECK(cudssMatrixCreateDn(&blk->rhs_mat, dn_n, 1, (int64_t)local_n,
-        blk->d_rhs, CUDSS_R_64F, CUDSS_LAYOUT_COL_MAJOR));
+        blk->d_rhs, CUDSS_SCALAR_DTYPE, CUDSS_LAYOUT_COL_MAJOR));
     CUDSS_CHECK(cudssMatrixCreateDn(&blk->sol_mat, dn_n, 1, (int64_t)local_n,
-        blk->d_sol, CUDSS_R_64F, CUDSS_LAYOUT_COL_MAJOR));
+        blk->d_sol, CUDSS_SCALAR_DTYPE, CUDSS_LAYOUT_COL_MAJOR));
 
     if (blk->mgmn) {
         int64_t first = (int64_t)local_first_row;
@@ -390,11 +397,11 @@ double cudss_block_refactor(CudssBlock *blk)
 }
 
 extern "C"
-void cudss_block_solve(CudssBlock *blk, const double *d_rhs, double *d_sol)
+void cudss_block_solve(CudssBlock *blk, const cudss_scalar_t *d_rhs, cudss_scalar_t *d_sol)
 {
     /* Stage the PETSc-provided local segment into our owned buffers so the
      * cuDSS dense descriptors keep stable device pointers across applies. */
-    CUDA_CHECK(cudaMemcpy(blk->d_rhs, d_rhs, (size_t)blk->local_n * sizeof(double), cudaMemcpyDeviceToDevice));
+    CUDA_CHECK(cudaMemcpy(blk->d_rhs, d_rhs, (size_t)blk->local_n * sizeof(cudss_scalar_t), cudaMemcpyDeviceToDevice));
 
     CUDA_CHECK(cudaEventRecord(blk->ev0));
     CUDSS_CHECK(cudssExecute(blk->handle, CUDSS_PHASE_SOLVE, blk->config, blk->data,
@@ -406,7 +413,7 @@ void cudss_block_solve(CudssBlock *blk, const double *d_rhs, double *d_sol)
     blk->solve_ms += ms;
     blk->n_solves++;
 
-    CUDA_CHECK(cudaMemcpy(d_sol, blk->d_sol, (size_t)blk->local_n * sizeof(double), cudaMemcpyDeviceToDevice));
+    CUDA_CHECK(cudaMemcpy(d_sol, blk->d_sol, (size_t)blk->local_n * sizeof(cudss_scalar_t), cudaMemcpyDeviceToDevice));
     CUDA_CHECK(cudaDeviceSynchronize());
 }
 

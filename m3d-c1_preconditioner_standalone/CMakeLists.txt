@@ -51,6 +51,18 @@ add_library(m3dc1_cudss STATIC
   src/petsc_cudss_solve.c
   src/cudss_block.cu)
 
+# Complex scalars (PETSc complex build): switch the cuDSS path to
+# cuDoubleComplex / CUDSS_C_64F.  Inherits ENABLE_COMPLEX when entered via
+# add_subdirectory() from m3dc1_scorec; settable standalone too.
+# PUBLIC so consumers including cudss_block.h see the same cudss_scalar_t.
+option(ENABLE_COMPLEX "Use complex scalars (must match PETSc) [ON|OFF]" OFF)
+if (ENABLE_COMPLEX)
+  target_compile_definitions(m3dc1_cudss PUBLIC CUDSS_BLOCK_COMPLEX)
+  # libm3dc1_cudss_complex.a, following the libm3dc1_scorec_complex.a pattern
+  # (the CMake target name stays m3dc1_cudss; only the archive is renamed)
+  set_target_properties(m3dc1_cudss PROPERTIES OUTPUT_NAME m3dc1_cudss_complex)
+endif()
+
 # library build: compile out the file-based benchmark main()
 set_source_files_properties(src/petsc_cudss_solve.c
   PROPERTIES COMPILE_DEFINITIONS "CUDSS_NO_MAIN")
