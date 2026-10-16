@@ -47,10 +47,16 @@
  *                       something else, converges, and reports meaningless numbers.
  *   -nreps <N>          repeat the solve N times (default 1).  With N>1 the
  *                       last rep is logged in its own "Benchmark" stage and the
- *                       earlier ones in "Warmup".
+ *                       earlier ones in "Warmup".  Each rep is self-contained
+ *                       (extract + ANALYSIS + FACTORIZATION + solve), matching
+ *                       the library entry point petsc_cudss_solve_mg() that
+ *                       m3dc1_scorec calls per timestep.
  *   -mg_devices <N>     GPUs per plane block in single-process MG mode
  *                       (default 1 = plain single-GPU).  Forwarded to
- *                       cudss_block as CUDSS_MG_DEVICES.
+ *                       cudss_block as CUDSS_MG_DEVICES.  Read in
+ *                       setKspType_cudss_mg, so it also applies when this file
+ *                       is used as a library from m3dc1_scorec
+ *                       (-cudsssolve_mg).
  *   -cudss_comm_lib <f> cuDSS comm-layer .so; MGMN only (>1 rank/plane).
  *                       Defaults to the vendored NCCL layer at
  *                       ${CUDSS_DIR:-deps/cudss}/lib/libcudss_commlayer_nccl.so.0.
@@ -67,10 +73,28 @@
 #include <errno.h>
 #include <limits.h>
 #include "cudss_block.h"
+#include "petsc_cudss_solve.h"
+
+/* The cuDSS block scalar must match PETSc's scalar: both real (double) or both
+ * complex (cuDoubleComplex / PetscScalar, layout-compatible: two contiguous
+ * doubles {re, im}).  CUDSS_BLOCK_COMPLEX is set by the build when
+ * ENABLE_COMPLEX=ON. */
+#if defined(PETSC_USE_COMPLEX) && !defined(CUDSS_BLOCK_COMPLEX)
+#error "complex PETSc requires building the cuDSS path with -DCUDSS_BLOCK_COMPLEX"
+#endif
+#if !defined(PETSC_USE_COMPLEX) && defined(CUDSS_BLOCK_COMPLEX)
+#error "-DCUDSS_BLOCK_COMPLEX requires a complex PETSc build (PETSC_USE_COMPLEX)"
+#endif
+_Static_assert(sizeof(PetscScalar) == sizeof(cudss_scalar_t),
+               "PETSc scalar type and CUDSS_BLOCK_COMPLEX mismatch");
 
 static void swap4(void *p) { char *c=(char*)p, t=c[0]; c[0]=c[3]; c[3]=t; t=c[1]; c[1]=c[2]; c[2]=t; }
 static void swap8(void *p) { char *c=(char*)p; for(int i=0;i<4;i++){char t=c[i];c[i]=c[7-i];c[7-i]=t;} }
 static int read_i32(FILE *f) { int v; fread(&v,4,1,f); swap4(&v); return v; }
+
+/* PETSc binary scalars are big-endian doubles; a complex scalar is two of
+ * them (re, im).  DBLS_PER_SCALAR lets the readers below handle both. */
+#define DBLS_PER_SCALAR ((long long)(sizeof(PetscScalar) / 8))
 
 static void compute_row_range(PetscInt n_global, PetscMPIInt rank, PetscMPIInt nprocs,
                               PetscInt nplanes, PetscInt *out_start, PetscInt *out_n)
@@ -151,14 +175,16 @@ static PetscErrorCode ReadMatrixParallel(const char *path, Mat *pA, MPI_Comm com
 
     PetscScalar *val;
     PetscCall(PetscMalloc1(local_nnz, &val));
-    fseek(f, val_base + nnz_before * 8, SEEK_SET);
+    fseek(f, val_base + nnz_before * 8 * DBLS_PER_SCALAR, SEEK_SET);
     {
-        long long remaining = local_nnz, offset = 0;
+        /* read in units of 8-byte doubles (2 per scalar when complex) */
+        double *vd = (double *)val;
+        long long remaining = local_nnz * DBLS_PER_SCALAR, offset = 0;
         while (remaining > 0) {
             long long chunk = (remaining > 100000000LL) ? 100000000LL : remaining;
-            if ((long long)fread(val + offset, 8, (size_t)chunk, f) != chunk)
+            if ((long long)fread(vd + offset, 8, (size_t)chunk, f) != chunk)
                 SETERRQ(PETSC_COMM_SELF, PETSC_ERR_FILE_READ, "val read fail");
-            for (long long i = 0; i < chunk; i++) swap8(&val[offset + i]);
+            for (long long i = 0; i < chunk; i++) swap8(&vd[offset + i]);
             offset += chunk; remaining -= chunk;
         }
     }
@@ -227,10 +253,14 @@ static PetscErrorCode ReadVectorParallel(const char *path, Vec *pv, MPI_Comm com
 
     PetscScalar *data;
     PetscCall(PetscMalloc1(local_n, &data));
-    fseek(f, 8 + local_start * 8, SEEK_SET);
-    if ((PetscInt)fread(data, 8, local_n, f) != local_n)
-        SETERRQ(PETSC_COMM_SELF, PETSC_ERR_FILE_READ, "Vector read fail");
-    for (PetscInt i = 0; i < local_n; i++) swap8(&data[i]);
+    fseek(f, 8 + local_start * 8 * DBLS_PER_SCALAR, SEEK_SET);
+    {
+        double *dd = (double *)data;
+        long long ndbl = (long long)local_n * DBLS_PER_SCALAR;
+        if ((long long)fread(dd, 8, (size_t)ndbl, f) != ndbl)
+            SETERRQ(PETSC_COMM_SELF, PETSC_ERR_FILE_READ, "Vector read fail");
+        for (long long i = 0; i < ndbl; i++) swap8(&dd[i]);
+    }
     fclose(f);
 
     PetscCall(VecCreate(comm, pv));
@@ -253,6 +283,7 @@ static PetscErrorCode ReadVectorParallel(const char *path, Vec *pv, MPI_Comm com
  * ------------------------------------------------------------------------- */
 typedef struct {
     CudssBlock *blk;     /* persistent cuDSS solver for this rank's plane block */
+    MPI_Comm    plane_comm;
 } CudssPCCtx;
 
 /* Extract this rank's local rows of the plane DIAGONAL block from the
@@ -264,7 +295,7 @@ static PetscErrorCode ExtractPlaneBlock(Mat A,
                                         PetscInt plane_start, PetscInt plane_end,
                                         PetscInt local_start, PetscInt local_n,
                                         int **out_rowptr, int **out_colidx,
-                                        double **out_vals, long long *out_nnz)
+                                        PetscScalar **out_vals, long long *out_nnz)
 {
     PetscFunctionBeginUser;
     int *rowptr;
@@ -283,7 +314,7 @@ static PetscErrorCode ExtractPlaneBlock(Mat A,
     }
     long long nnz = rowptr[local_n];
     int *colidx;
-    double *vout;
+    PetscScalar *vout;
     PetscCall(PetscMalloc1(nnz, &colidx));
     PetscCall(PetscMalloc1(nnz, &vout));
     long long pos = 0;
@@ -295,7 +326,7 @@ static PetscErrorCode ExtractPlaneBlock(Mat A,
         for (PetscInt j = 0; j < ncols; j++) {
             if (cols[j] >= plane_start && cols[j] < plane_end) {
                 colidx[pos] = (int)(cols[j] - plane_start);
-                vout[pos]   = (double)PetscRealPart(vals[j]);
+                vout[pos]   = vals[j];
                 pos++;
             }
         }
@@ -310,7 +341,7 @@ static PetscErrorCode ExtractPlaneBlock(Mat A,
 
 static PetscErrorCode CudssPCSetUp(PC pc)
 {
-    PetscFunctionBeginUser;            /* block built once in main(); nothing to do */
+    PetscFunctionBeginUser;   /* block built in setKspType_cudss_mg(); nothing to do */
     PetscFunctionReturn(PETSC_SUCCESS);
 }
 
@@ -323,27 +354,292 @@ static PetscErrorCode CudssPCApply(PC pc, Vec xin, Vec xout)
     PetscScalar *d_out;
     PetscCall(VecCUDAGetArrayRead(xin, &d_in));
     PetscCall(VecCUDAGetArrayWrite(xout, &d_out));
-    cudss_block_solve(ctx->blk, (const double *)d_in, (double *)d_out);
+    /* PetscScalar and cudss_scalar_t are layout-compatible (enforced by the
+     * compile-time guard above): double/double or complex double pair. */
+    cudss_block_solve(ctx->blk, (const cudss_scalar_t *)d_in, (cudss_scalar_t *)d_out);
     PetscCall(VecCUDARestoreArrayRead(xin, &d_in));
     PetscCall(VecCUDARestoreArrayWrite(xout, &d_out));
     PetscFunctionReturn(PETSC_SUCCESS);
 }
 
+/* Owns the context (allocated in setKspType_cudss_mg): destroys the cuDSS block
+ * and the plane communicator when the KSP/PC is destroyed. */
 static PetscErrorCode CudssPCDestroy(PC pc)
 {
-    PetscFunctionBeginUser;            /* block destroyed in main() */
+    PetscFunctionBeginUser;
+    CudssPCCtx *ctx;
+    PetscCall(PCShellGetContext(pc, &ctx));
+    if (ctx) {
+        cudss_block_destroy(ctx->blk);
+        MPI_Comm_free(&ctx->plane_comm);
+        PetscCall(PetscFree(ctx));
+    }
     PetscFunctionReturn(PETSC_SUCCESS);
 }
 
+/* ---------------------------------------------------------------------------
+ * setKspType_cudss_mg -- one-time KSP + cuDSS preconditioner setup, MG variant
+ * (see petsc_cudss_solve.h)
+ *
+ * Same as setKspType_cudss in petsc_cudss_solve.c, plus -mg_devices N:
+ * each plane block is factored by cuDSS across N GPUs inside a single
+ * process (single-process multi-GPU over NVLink, cudssCreateMg, no comm
+ * layer -> single-node only).  Forwarded to cudss_block via the
+ * CUDSS_MG_DEVICES env var.  The launcher must give each rank a disjoint
+ * CUDA_VISIBLE_DEVICES set of mg_devices GPUs (see mg_gpu_wrap.sh); with
+ * the default -mg_devices 1 none is needed.  MG and MGMN (>1 rank/plane)
+ * are mutually exclusive.
+ *
+ * Called from m3dc1_scorec (matrix_solve::solve_cudss_mg /
+ * solve_cudss_with_guess_mg) when _kspSet == 0; the caller stores the KSP
+ * in _ksp, reuses it across solves, and destroys it in ~matrix_solve.  The
+ * standalone main() below calls it per rep, so each rep re-runs the full
+ * setup as before.
+ * ------------------------------------------------------------------------- */
+PetscErrorCode setKspType_cudss_mg(Mat A, PetscInt nplanes, KSP *out_ksp)
+{
+    PetscFunctionBeginUser;
+    MPI_Comm comm;
+    PetscCall(PetscObjectGetComm((PetscObject)A, &comm));
+    PetscMPIInt rank, nprocs;
+    MPI_Comm_rank(comm, &rank);
+    MPI_Comm_size(comm, &nprocs);
+
+    if (nplanes <= 0 || nprocs < nplanes || (nprocs % nplanes) != 0) {
+        SETERRQ(comm, PETSC_ERR_ARG_WRONG,
+                "setKspType_cudss_mg requires plane-aligned layout: nplanes>0 and nprocs%%nplanes==0 (got nprocs=%d, nplanes=%d)",
+                (int)nprocs, (int)nplanes);
+    }
+    PetscInt n_global;
+    PetscCall(MatGetSize(A, &n_global, NULL));
+    /* nplanes must be the toroidal plane count OF THIS MATRIX, not a free knob:
+     * the block-Jacobi blocks are the plane diagonal blocks.  A divisible but
+     * wrong value cannot be detected in general -- it just preconditions with
+     * something else and still converges -- so catch at least the indivisible
+     * case rather than silently truncating rows. */
+    PetscCheck(n_global % nplanes == 0, comm, PETSC_ERR_ARG_INCOMP,
+               "nplanes %d does not divide the matrix dimension %d; nplanes must equal the "
+               "number of toroidal planes in the matrix",
+               (int)nplanes, (int)n_global);
+    PetscInt rows_per_plane  = n_global / nplanes;
+    PetscInt ranks_per_plane = nprocs / nplanes;
+    PetscInt plane           = rank / ranks_per_plane;
+    PetscInt plane_start     = plane * rows_per_plane;
+    PetscInt plane_end       = plane_start + rows_per_plane;
+
+    /* The matrix owns its row layout (PETSc- or m3dc1-decided); take it from
+     * the Mat rather than recomputing, and require plane alignment. */
+    PetscInt local_start, local_end, local_n;
+    PetscCall(MatGetOwnershipRange(A, &local_start, &local_end));
+    local_n = local_end - local_start;
+    PetscCheck(local_start >= plane_start && local_end <= plane_end,
+               PETSC_COMM_SELF, PETSC_ERR_ARG_INCOMP,
+               "rank %d owns rows [%d, %d) which are not contained in its plane %d rows [%d, %d); "
+               "the matrix row distribution must be plane-aligned",
+               (int)rank, (int)local_start, (int)local_end, (int)plane,
+               (int)plane_start, (int)plane_end);
+
+    /* MG variant: each plane block (1 rank/plane) is factored by cuDSS across
+     * -mg_devices GPUs in a single process (single-process multi-GPU, NVLink,
+     * NO comm layer -> single-node only).  Forwarded to cudss_block via the
+     * CUDSS_MG_DEVICES env var (read in its single-GPU path).  The launcher
+     * MUST give each rank a disjoint CUDA_VISIBLE_DEVICES set of mg_devices
+     * GPUs (see mg_gpu_wrap.sh) so that co-located ranks do not collide; with
+     * the default -mg_devices 1 none is needed.  MG and MGMN are mutually
+     * exclusive: refuse -mg_devices > 1 when the plane spans >1 rank. */
+    PetscInt mg_devices = 1;
+    PetscCall(PetscOptionsGetInt(NULL, NULL, "-mg_devices", &mg_devices, NULL));
+    PetscCheck(!(mg_devices > 1 && ranks_per_plane > 1), comm, PETSC_ERR_ARG_INCOMP,
+               "-mg_devices %d requires one rank per plane (got %d ranks/plane): "
+               "single-process MG and MGMN are mutually exclusive",
+               (int)mg_devices, (int)ranks_per_plane);
+    if (mg_devices > 1 && !getenv("CUDSS_MG_DEVICES")) {
+        char mgstr[16];
+        snprintf(mgstr, sizeof(mgstr), "%d", (int)mg_devices);
+        setenv("CUDSS_MG_DEVICES", mgstr, 1);
+    }
+
+    /* Path to the cuDSS comm-layer .so (used only for MGMN, i.e. when a plane
+     * spans >1 rank; one rank per plane never touches it).  The default names
+     * the NCCL layer shipped inside cuDSS, following the same
+     * ${CUDSS_DIR:-deps/cudss} convention as build.sbatch and the run scripts.
+     * On Perlmutter that layer CANNOT load: it is linked against OpenMPI
+     * (libmpi.so.40), which does not exist here, and cudssSetCommLayer then
+     * fails with CUDSS_STATUS_INVALID_VALUE.  Use CUDSS_COMM_BACKEND=mpi with
+     * -cudss_comm_lib <abs>/bin/libcudss_commlayer_craympi.so, the cray-mpich
+     * shim built from cudss_commlayer_craympi.c (see run_mgmn.sbatch). */
+    char comm_lib[1024];
+    PetscBool has_comm_lib;
+    PetscCall(PetscOptionsGetString(NULL, NULL, "-cudss_comm_lib", comm_lib, sizeof(comm_lib), &has_comm_lib));
+    if (!has_comm_lib) {
+        const char *cudss_dir = getenv("CUDSS_DIR");
+        snprintf(comm_lib, sizeof(comm_lib), "%s/lib/libcudss_commlayer_nccl.so.0",
+                 (cudss_dir && cudss_dir[0]) ? cudss_dir : "deps/cudss");
+    }
+
+    /* cuDSS dlopen()s the comm layer and reports every problem with it as an
+     * opaque CUDSS_STATUS_INVALID_VALUE from cudssSetCommLayer -- a relative
+     * path included -- so resolve and check it here where we can say why. */
+    if (ranks_per_plane > 1) {
+        char resolved[PATH_MAX];
+        PetscCheck(realpath(comm_lib, resolved), PETSC_COMM_SELF, PETSC_ERR_FILE_OPEN,
+                   "-cudss_comm_lib '%s': %s.  MGMN needs a comm layer, cuDSS wants an "
+                   "absolute path, and the NCCL layer inside cuDSS is linked against "
+                   "OpenMPI (libmpi.so.40) so it cannot load on Perlmutter -- pass "
+                   "<pkg>/bin/libcudss_commlayer_craympi.so (see run_mgmn.sbatch).",
+                   comm_lib, strerror(errno));
+        PetscCall(PetscStrncpy(comm_lib, resolved, sizeof(comm_lib)));
+    }
+
+    MPI_Comm plane_comm;
+    MPI_Comm_split(comm, (int)plane, (int)(rank % ranks_per_plane), &plane_comm);
+
+    PetscPrintf(comm,
+        "cuDSS block-Jacobi PC: %d ranks/plane -> %s\n",
+        (int)ranks_per_plane, (ranks_per_plane > 1) ? "MGMN (distributed cuDSS)"
+                              : (mg_devices > 1) ? "MG single-process multi-GPU/plane"
+                                                 : "single-GPU/plane");
+    if (ranks_per_plane > 1)
+        PetscPrintf(comm, "  comm layer: %s\n", comm_lib);
+    else if (mg_devices > 1)
+        PetscPrintf(comm, "  MG devices/plane: %d (CUDA_VISIBLE_DEVICES=%s)\n",
+                    (int)mg_devices, getenv("CUDA_VISIBLE_DEVICES") ? getenv("CUDA_VISIBLE_DEVICES") : "(unset)");
+
+    int *blk_rowptr, *blk_colidx;
+    PetscScalar *blk_vals;
+    long long blk_nnz;
+    PetscLogDouble t_ext0, t_ext1;
+    PetscCall(PetscTime(&t_ext0));
+    PetscCall(ExtractPlaneBlock(A, plane_start, plane_end, local_start, local_n,
+                                &blk_rowptr, &blk_colidx, &blk_vals, &blk_nnz));
+    PetscCall(PetscTime(&t_ext1));
+    PetscPrintf(comm, "  plane block extracted (rank0 local_n=%d, local_nnz=%lld) in %.2f s\n",
+                (int)local_n, blk_nnz, t_ext1 - t_ext0);
+
+    CudssPCCtx *pcctx;
+    PetscCall(PetscNew(&pcctx));
+    PetscLogDouble t_setup0, t_setup1;
+    PetscCall(PetscTime(&t_setup0));
+    pcctx->blk = cudss_block_create(plane_comm, (int)rows_per_plane, (int)local_n,
+                                    (int)(local_start - plane_start),
+                                    blk_rowptr, blk_colidx,
+                                    (const cudss_scalar_t *)blk_vals, blk_nnz, comm_lib);
+    pcctx->plane_comm = plane_comm;
+    PetscCall(PetscTime(&t_setup1));
+    PetscCall(PetscFree(blk_rowptr));
+    PetscCall(PetscFree(blk_colidx));
+    PetscCall(PetscFree(blk_vals));
+
+    {
+        double an, fa, so; int ns;
+        cudss_block_get_timers(pcctx->blk, &an, &fa, &so, &ns);
+        PetscPrintf(comm,
+            "  cuDSS setup: ANALYSIS %.1f ms, FACTORIZATION %.1f ms (wall %.2f s)\n",
+            an, fa, t_setup1 - t_setup0);
+    }
+
+    /* Create the KSP: same pattern as matrix_solve::setKspType(). */
+    KSP ksp;
+    PetscCall(KSPCreate(comm, &ksp));
+    PetscCall(KSPSetOperators(ksp, A, A));
+    PetscCall(KSPSetTolerances(ksp, 1.e-9, PETSC_DEFAULT, PETSC_DEFAULT, 10000));
+    PetscCall(KSPSetType(ksp, KSPGMRES));
+    PetscCall(KSPSetFromOptions(ksp));
+
+    /* Install our cuDSS block-Jacobi as a PCShell (overrides -pc_type).
+     * The shell owns pcctx (freed by CudssPCDestroy when the KSP dies). */
+    {
+        PC pc;
+        PetscCall(KSPGetPC(ksp, &pc));
+        PetscCall(PCSetType(pc, PCSHELL));
+        PetscCall(PCShellSetContext(pc, pcctx));
+        PetscCall(PCShellSetSetUp(pc, CudssPCSetUp));
+        PetscCall(PCShellSetApply(pc, CudssPCApply));
+        PetscCall(PCShellSetDestroy(pc, CudssPCDestroy));
+        PetscCall(PCShellSetName(pc, "cudss_bjacobi_mg"));
+    }
+
+    *out_ksp = ksp;
+    PetscFunctionReturn(PETSC_SUCCESS);
+}
+
+/* ---------------------------------------------------------------------------
+ * petsc_cudss_solve_mg -- solve entry point, MG variant
+ * (see petsc_cudss_solve.h)
+ *
+ * Solves A x = b with the caller-provided KSP, which must have been set up
+ * by setKspType_cudss_mg() (cuDSS PCShell installed, factorization done).
+ * The KSP and its cuDSS state are owned by the caller (persistent _ksp in
+ * m3dc1_scorec's matrix_solve::solve_cudss_mg; per-rep in main() below) and
+ * are NOT destroyed here.
+ * ------------------------------------------------------------------------- */
+PetscErrorCode petsc_cudss_solve_mg(KSP ksp, Mat A, Vec b, Vec *x,
+                                    PetscInt nplanes,
+                                    PetscBool use_initial_guess,
+                                    PetscInt *out_its)
+{
+    PetscFunctionBeginUser;
+    (void)nplanes;   /* plane setup now lives in setKspType_cudss_mg() */
+    MPI_Comm comm;
+    PetscCall(PetscObjectGetComm((PetscObject)A, &comm));
+
+    if (!use_initial_guess)
+        PetscCall(VecZeroEntries(*x));
+    PetscCall(KSPSetInitialGuessNonzero(ksp, use_initial_guess));
+
+    PetscLogDouble t0, t1;
+    PetscCall(PetscTime(&t0));
+    PetscCall(KSPSolve(ksp, b, *x));
+    PetscCall(PetscTime(&t1));
+
+    PetscInt its;
+    KSPConvergedReason reason;
+    PetscReal rnorm;
+    PetscCall(KSPGetIterationNumber(ksp, &its));
+    PetscCall(KSPGetConvergedReason(ksp, &reason));
+    PetscCall(KSPGetResidualNorm(ksp, &rnorm));
+    if (out_its) *out_its = its;
+
+    PetscPrintf(comm, "  cuDSS solve: reason %d, iterations %d, KSP ||r|| %.6e, %.3f s\n",
+                reason, (int)its, rnorm, t1 - t0);
+
+    {   /* cuDSS preconditioner-apply timing (max across ranks; cumulative
+         * over the KSP's lifetime, since the block persists in the PCShell) */
+        PC pc;
+        CudssPCCtx *pcctx;
+        PetscCall(KSPGetPC(ksp, &pc));
+        PetscCall(PCShellGetContext(pc, &pcctx));
+        double an, fa, so; int ns;
+        cudss_block_get_timers(pcctx->blk, &an, &fa, &so, &ns);
+        double an_max, fa_max, so_max;
+        int ns_max;
+        MPI_Reduce(&an, &an_max, 1, MPI_DOUBLE, MPI_MAX, 0, comm);
+        MPI_Reduce(&fa, &fa_max, 1, MPI_DOUBLE, MPI_MAX, 0, comm);
+        MPI_Reduce(&so, &so_max, 1, MPI_DOUBLE, MPI_MAX, 0, comm);
+        MPI_Reduce(&ns, &ns_max, 1, MPI_INT,    MPI_MAX, 0, comm);
+        PetscPrintf(comm, "  cuDSS timing (max/rank): ANALYSIS %.1f ms, FACTOR %.1f ms, "
+                    "SOLVE %.1f ms (%d applies, %.2f ms/apply)\n",
+                    an_max, fa_max, so_max, ns_max, ns_max ? so_max/ns_max : 0.0);
+    }
+
+    /* KSP (and the cuDSS block it owns) is caller-owned; nothing torn down. */
+    PetscFunctionReturn(PETSC_SUCCESS);
+}
+
+/* ---------------------------------------------------------------------------
+ * File-based benchmark driver.  Compiled out (-DCUDSS_NO_MAIN) when this file
+ * is built into the m3dc1_scorec library.
+ * ------------------------------------------------------------------------- */
+#ifndef CUDSS_NO_MAIN
 int main(int argc, char **argv) {
     PetscCall(PetscInitialize(&argc, &argv, NULL,
-        "PETSc standalone solver for M3D-C1 extracted matrix\n"
-        "Usage: mpirun -np N petsc_standalone_solve -A mat.bin -b rhs.bin [options]\n"));
+        "PETSc + cuDSS block-Jacobi solver for the M3D-C1 extracted matrix (MG variant)\n"
+        "Usage: srun -n N petsc_cudss_solve_mg -A mat.bin -b rhs.bin -nplanes P -mg_devices G [options]\n"));
 
-    /* NOTE: thresholding is controlled via the -log_threshold 0.0 CLI option
-     * (parsed inside PetscInitialize, gated on `if (any_nested)`).  Calling
-     * PetscLogSetThreshold here unconditionally would SEGV on PETSc 3.20+
-     * for plain -log_view runs (no nested handler installed). */
+    /* No PetscLogSetThreshold call here on purpose: it would SEGV on PETSc
+     * 3.20+ for plain -log_view runs, where no nested handler is installed.
+     * Thresholding is only reachable via -log_threshold, which PETSc parses
+     * inside PetscInitialize and honors solely for nested log handlers. */
 
     char mat_path[512], rhs_path[512], x0_path[512], xref_path[512];
     PetscBool has_mat, has_rhs, has_x0, has_xref;
@@ -355,39 +651,6 @@ int main(int argc, char **argv) {
     PetscInt nreps = 1;
     PetscCall(PetscOptionsGetInt(NULL, NULL, "-nplanes", &nplanes, NULL));
     PetscCall(PetscOptionsGetInt(NULL, NULL, "-nreps", &nreps, NULL));
-
-    /* MG variant: each plane block (1 rank/plane) is factored by cuDSS across
-     * -mg_devices GPUs in a single process (single-process multi-GPU, NVLink,
-     * NO comm layer -> single-node only).  We forward this to cudss_block via
-     * the CUDSS_MG_DEVICES env var (read in its single-GPU path).  The launcher
-     * MUST give each rank a disjoint CUDA_VISIBLE_DEVICES set of mg_devices
-     * GPUs, via an srun wrapper script keyed on SLURM_LOCALID, so that
-     * co-located ranks do not collide.  No such wrapper ships in this package;
-     * with the default -mg_devices 1 none is needed. */
-    PetscInt mg_devices = 1;
-    PetscCall(PetscOptionsGetInt(NULL, NULL, "-mg_devices", &mg_devices, NULL));
-    if (mg_devices > 1 && !getenv("CUDSS_MG_DEVICES")) {
-        char mgstr[16];
-        snprintf(mgstr, sizeof(mgstr), "%d", (int)mg_devices);
-        setenv("CUDSS_MG_DEVICES", mgstr, 1);
-    }
-
-    /* Path to the cuDSS comm-layer .so (used only for MGMN, i.e. when a plane
-     * spans >1 rank; unused in MG or single-GPU mode).  Defaults to the NCCL
-     * layer that ships with the vendored cuDSS, following the same
-     * ${CUDSS_DIR:-deps/cudss} convention as build.sbatch and the run scripts;
-     * the relative fallback assumes the package root is the cwd, as it is for
-     * the -A data/A.bin paths.  Use CUDSS_COMM_BACKEND=mpi plus
-     * -cudss_comm_lib bin/libcudss_commlayer_craympi.so for the cray-mpich
-     * shim built from cudss_commlayer_craympi.c. */
-    char comm_lib[1024];
-    PetscBool has_comm_lib;
-    PetscCall(PetscOptionsGetString(NULL, NULL, "-cudss_comm_lib", comm_lib, sizeof(comm_lib), &has_comm_lib));
-    if (!has_comm_lib) {
-        const char *cudss_dir = getenv("CUDSS_DIR");
-        snprintf(comm_lib, sizeof(comm_lib), "%s/lib/libcudss_commlayer_nccl.so.0",
-                 (cudss_dir && cudss_dir[0]) ? cudss_dir : "deps/cudss");
-    }
 
     /* Fail with a nonzero exit status, so a wrapper script cannot mistake a
      * missing argument for a successful run. */
@@ -418,13 +681,6 @@ int main(int argc, char **argv) {
 
     Vec x;
     PetscCall(VecDuplicate(b, &x));
-    if (has_x0) {
-        PetscPrintf(PETSC_COMM_WORLD, "Loading x0: %s\n", x0_path);
-        Vec x0;
-        PetscCall(ReadVectorParallel(x0_path, &x0, PETSC_COMM_WORLD, nplanes));
-        PetscCall(VecCopy(x0, x));
-        PetscCall(VecDestroy(&x0));
-    }
 
     PetscCall(PetscTime(&t_load));
     PetscPrintf(PETSC_COMM_WORLD, "  Data loaded in %.1f s\n", t_load - t_start);
@@ -437,90 +693,6 @@ int main(int argc, char **argv) {
         PetscInt n_global;
         PetscCall(MatGetSize(A, &n_global, NULL));
         PetscPrintf(PETSC_COMM_WORLD, "Plane size: %d rows/plane\n\n", (int)(n_global / nplanes));
-    }
-
-    /* ---- cuDSS block-Jacobi preconditioner setup (once) ---- */
-    if (nplanes <= 0 || nprocs < nplanes || (nprocs % nplanes) != 0) {
-        SETERRQ(PETSC_COMM_WORLD, PETSC_ERR_ARG_WRONG,
-                "petsc_cudss_solve requires plane-aligned layout: nplanes>0 and nprocs%%nplanes==0 (got nprocs=%d, nplanes=%d)",
-                (int)nprocs, (int)nplanes);
-    }
-    PetscInt n_global;
-    PetscCall(MatGetSize(A, &n_global, NULL));
-    /* -nplanes must be the toroidal plane count OF THIS MATRIX, not a free knob:
-     * the block-Jacobi blocks are the plane diagonal blocks.  A divisible but
-     * wrong value cannot be detected in general -- it just preconditions with
-     * something else and still converges -- so catch at least the indivisible
-     * case rather than silently truncating rows. */
-    PetscCheck(n_global % nplanes == 0, PETSC_COMM_WORLD, PETSC_ERR_ARG_INCOMP,
-               "-nplanes %d does not divide the matrix dimension %d; -nplanes must equal the "
-               "number of toroidal planes in the matrix (4 for the A.bin shipped with this package)",
-               (int)nplanes, (int)n_global);
-    PetscInt rows_per_plane  = n_global / nplanes;
-    PetscInt ranks_per_plane = nprocs / nplanes;
-    PetscInt plane           = rank / ranks_per_plane;
-    PetscInt plane_start     = plane * rows_per_plane;
-    PetscInt plane_end       = plane_start + rows_per_plane;
-
-    PetscInt local_start, local_n;
-    compute_row_range(n_global, rank, nprocs, nplanes, &local_start, &local_n);
-
-    MPI_Comm plane_comm;
-    MPI_Comm_split(PETSC_COMM_WORLD, (int)plane, (int)(rank % ranks_per_plane), &plane_comm);
-
-    /* cuDSS dlopen()s the comm layer and reports every problem with it as an
-     * opaque CUDSS_STATUS_INVALID_VALUE from cudssSetCommLayer -- a relative
-     * path included -- so resolve and check it here where we can say why. */
-    if (ranks_per_plane > 1) {
-        char resolved[PATH_MAX];
-        PetscCheck(realpath(comm_lib, resolved), PETSC_COMM_SELF, PETSC_ERR_FILE_OPEN,
-                   "-cudss_comm_lib '%s': %s.  MGMN needs a comm layer, cuDSS wants an "
-                   "absolute path, and the NCCL layer inside cuDSS is linked against "
-                   "OpenMPI (libmpi.so.40) so it cannot load on Perlmutter -- pass "
-                   "<pkg>/bin/libcudss_commlayer_craympi.so (see run_mgmn.sbatch).",
-                   comm_lib, strerror(errno));
-        PetscCall(PetscStrncpy(comm_lib, resolved, sizeof(comm_lib)));
-    }
-
-    PetscPrintf(PETSC_COMM_WORLD,
-        "cuDSS block-Jacobi PC: %d ranks/plane -> %s\n",
-        (int)ranks_per_plane, (ranks_per_plane > 1) ? "MGMN (distributed cuDSS)"
-                              : (mg_devices > 1) ? "MG single-process multi-GPU/plane"
-                                                 : "single-GPU/plane");
-    if (ranks_per_plane > 1)
-        PetscPrintf(PETSC_COMM_WORLD, "  comm layer: %s\n", comm_lib);
-    else if (mg_devices > 1)
-        PetscPrintf(PETSC_COMM_WORLD, "  MG devices/plane: %d (CUDA_VISIBLE_DEVICES=%s)\n",
-                    (int)mg_devices, getenv("CUDA_VISIBLE_DEVICES") ? getenv("CUDA_VISIBLE_DEVICES") : "(unset)");
-
-    int *blk_rowptr, *blk_colidx;
-    double *blk_vals;
-    long long blk_nnz;
-    PetscLogDouble t_ext0, t_ext1;
-    PetscCall(PetscTime(&t_ext0));
-    PetscCall(ExtractPlaneBlock(A, plane_start, plane_end, local_start, local_n,
-                                &blk_rowptr, &blk_colidx, &blk_vals, &blk_nnz));
-    PetscCall(PetscTime(&t_ext1));
-    PetscPrintf(PETSC_COMM_WORLD, "  plane block extracted (rank0 local_n=%d, local_nnz=%lld) in %.2f s\n",
-                (int)local_n, blk_nnz, t_ext1 - t_ext0);
-
-    CudssPCCtx pcctx;
-    PetscLogDouble t_setup0, t_setup1;
-    PetscCall(PetscTime(&t_setup0));
-    pcctx.blk = cudss_block_create(plane_comm, (int)rows_per_plane, (int)local_n,
-                                   (int)(local_start - plane_start),
-                                   blk_rowptr, blk_colidx, blk_vals, blk_nnz, comm_lib);
-    PetscCall(PetscTime(&t_setup1));
-    PetscCall(PetscFree(blk_rowptr));
-    PetscCall(PetscFree(blk_colidx));
-    PetscCall(PetscFree(blk_vals));
-
-    {
-        double an, fa, so; int ns;
-        cudss_block_get_timers(pcctx.blk, &an, &fa, &so, &ns);
-        PetscPrintf(PETSC_COMM_WORLD,
-            "  cuDSS setup: ANALYSIS %.1f ms, FACTORIZATION %.1f ms (wall %.2f s)\n\n",
-            an, fa, t_setup1 - t_setup0);
     }
 
     PetscLogStage stage_warmup, stage_bench;
@@ -544,42 +716,18 @@ int main(int argc, char **argv) {
             PetscCall(ReadVectorParallel(x0_path, &x0, PETSC_COMM_WORLD, nplanes));
             PetscCall(VecCopy(x0, x));
             PetscCall(VecDestroy(&x0));
-        } else {
-            PetscCall(VecZeroEntries(x));
         }
 
-        cudss_block_reset_solve_timer(pcctx.blk);
-
-        KSP ksp;
-        PetscCall(KSPCreate(PETSC_COMM_WORLD, &ksp));
-        PetscCall(KSPSetOperators(ksp, A, A));
-        PetscCall(KSPSetFromOptions(ksp));
-        if (has_x0)
-            PetscCall(KSPSetInitialGuessNonzero(ksp, PETSC_TRUE));
-
-        /* Install our cuDSS block-Jacobi as a PCShell (overrides -pc_type). */
-        {
-            PC pc;
-            PetscCall(KSPGetPC(ksp, &pc));
-            PetscCall(PCSetType(pc, PCSHELL));
-            PetscCall(PCShellSetContext(pc, &pcctx));
-            PetscCall(PCShellSetSetUp(pc, CudssPCSetUp));
-            PetscCall(PCShellSetApply(pc, CudssPCApply));
-            PetscCall(PCShellSetDestroy(pc, CudssPCDestroy));
-            PetscCall(PCShellSetName(pc, "cudss_bjacobi"));
-        }
-
+        /* Per-rep KSP + cuDSS setup; KSPDestroy tears the cuDSS block down,
+         * so each rep re-runs extract + ANALYSIS + FACTORIZATION as before. */
+        PetscInt its = 0;
         PetscLogDouble t0, t1;
         PetscCall(PetscTime(&t0));
-        PetscCall(KSPSolve(ksp, b, x));
+        KSP ksp;
+        PetscCall(setKspType_cudss_mg(A, nplanes, &ksp));
+        PetscCall(petsc_cudss_solve_mg(ksp, A, b, &x, nplanes, has_x0, &its));
         PetscCall(PetscTime(&t1));
-
-        PetscInt its;
-        KSPConvergedReason reason;
-        PetscReal rnorm;
-        PetscCall(KSPGetIterationNumber(ksp, &its));
-        PetscCall(KSPGetConvergedReason(ksp, &reason));
-        PetscCall(KSPGetResidualNorm(ksp, &rnorm));
+        PetscCall(KSPDestroy(&ksp));
 
         Vec r;
         PetscCall(VecDuplicate(b, &r));
@@ -592,30 +740,13 @@ int main(int argc, char **argv) {
         PetscPrintf(PETSC_COMM_WORLD, "\n========================================\n");
         PetscPrintf(PETSC_COMM_WORLD, "    RESULTS  (rep %d/%d)\n", (int)rep+1, (int)nreps);
         PetscPrintf(PETSC_COMM_WORLD, "========================================\n");
-        PetscPrintf(PETSC_COMM_WORLD, "Reason:       %d\n", reason);
-        PetscPrintf(PETSC_COMM_WORLD, "Iterations:   %d\n", its);
+        PetscPrintf(PETSC_COMM_WORLD, "Iterations:   %d\n", (int)its);
         PetscPrintf(PETSC_COMM_WORLD, "Load time:    %.3f s\n", t_load - t_start);
-        PetscPrintf(PETSC_COMM_WORLD, "Solve time:   %.3f s\n", t1 - t0);
+        PetscPrintf(PETSC_COMM_WORLD, "Setup+solve:  %.3f s\n", t1 - t0);
         PetscPrintf(PETSC_COMM_WORLD, "||b||         = %.6e\n", bnorm);
-        PetscPrintf(PETSC_COMM_WORLD, "KSP ||r||     = %.6e\n", rnorm);
         PetscPrintf(PETSC_COMM_WORLD, "True ||r||    = %.6e\n", true_rnorm);
         PetscPrintf(PETSC_COMM_WORLD, "||r||/||b||   = %.6e\n", true_rnorm / bnorm);
         PetscPrintf(PETSC_COMM_WORLD, "========================================\n");
-
-        {   /* cuDSS preconditioner-apply timing (max across ranks) */
-            double an, fa, so; int ns;
-            cudss_block_get_timers(pcctx.blk, &an, &fa, &so, &ns);
-            double an_max, fa_max, so_max;
-            int ns_max;
-            MPI_Reduce(&an, &an_max, 1, MPI_DOUBLE, MPI_MAX, 0, PETSC_COMM_WORLD);
-            MPI_Reduce(&fa, &fa_max, 1, MPI_DOUBLE, MPI_MAX, 0, PETSC_COMM_WORLD);
-            MPI_Reduce(&so, &so_max, 1, MPI_DOUBLE, MPI_MAX, 0, PETSC_COMM_WORLD);
-            MPI_Reduce(&ns, &ns_max, 1, MPI_INT,    MPI_MAX, 0, PETSC_COMM_WORLD);
-            PetscPrintf(PETSC_COMM_WORLD, "cuDSS timing (max/rank): ANALYSIS %.1f ms, FACTOR %.1f ms, "
-                        "SOLVE %.1f ms (%d applies, %.2f ms/apply)\n",
-                        an_max, fa_max, so_max, ns_max, ns_max ? so_max/ns_max : 0.0);
-            PetscPrintf(PETSC_COMM_WORLD, "========================================\n");
-        }
 
         if (has_xref && rep == nreps - 1) {
             Vec xref;
@@ -631,16 +762,13 @@ int main(int argc, char **argv) {
             PetscCall(VecDestroy(&xref));
         }
 
-        PetscCall(KSPDestroy(&ksp));
-
         if (nreps > 1)
             PetscCall(PetscLogStagePop());
     }
 
-    cudss_block_destroy(pcctx.blk);
-    MPI_Comm_free(&plane_comm);
     PetscCall(VecDestroy(&x));
     PetscCall(VecDestroy(&b));
     PetscCall(MatDestroy(&A));
     return PetscFinalize();
 }
+#endif /* CUDSS_NO_MAIN */

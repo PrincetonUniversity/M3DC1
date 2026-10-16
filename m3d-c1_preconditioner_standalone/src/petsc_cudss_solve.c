@@ -71,6 +71,8 @@
 #if !defined(PETSC_USE_COMPLEX) && defined(CUDSS_BLOCK_COMPLEX)
 #error "-DCUDSS_BLOCK_COMPLEX requires a complex PETSc build (PETSC_USE_COMPLEX)"
 #endif
+_Static_assert(sizeof(PetscScalar) == sizeof(cudss_scalar_t),
+               "PETSc scalar type and CUDSS_BLOCK_COMPLEX mismatch");
 
 static void swap4(void *p) { char *c=(char*)p, t=c[0]; c[0]=c[3]; c[3]=t; t=c[1]; c[1]=c[2]; c[2]=t; }
 static void swap8(void *p) { char *c=(char*)p; for(int i=0;i<4;i++){char t=c[i];c[i]=c[7-i];c[7-i]=t;} }

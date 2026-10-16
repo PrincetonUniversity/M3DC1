@@ -27,14 +27,24 @@ F77OPTS = $(F77FLAGS) $(FOPTS)
 PETSC_DIR=/projects/M3DC1/PETSC/petsc.20220201
 ifeq ($(COM), 1)
   PETSC_ARCH=cplx-stellarai-gcc14-cuda100-gO2
+ifeq ($(CUDSS_MG), 1)
+  M3DC1_SCOREC_LIB=-lm3dc1_scorec_mg_complex
+  M3DC1_CUDSS_LIB=-lm3dc1_cudss_mg_complex
+else
   M3DC1_SCOREC_LIB=-lm3dc1_scorec_complex
   M3DC1_CUDSS_LIB=-lm3dc1_cudss_complex
+endif
   PETSC_WITH_EXTERNAL_LIB = -Wl,-rpath,/projects/M3DC1/PETSC/petsc.20220201/cplx-stellarai-gcc14-cuda100-gO2/lib -L/projects/M3DC1/PETSC/petsc.20220201/cplx-stellarai-gcc14-cuda100-gO2/lib -Wl,-rpath,/opt/AMD/aocl/aocl-linux-gcc-5.3.0/gcc/ST/lib -L/opt/AMD/aocl/aocl-linux-gcc-5.3.0/gcc/ST/lib -Wl,-rpath,/usr/local/cuda-13.2/lib64 -L/usr/local/cuda-13.2/lib64 -L/usr/local/cuda-13.2/lib64/stubs -Wl,-rpath,/opt/hpcx-v2.51-gcc-doca_ofed-redhat10-cuda13-x86_64/ompi5/lib -L/opt/hpcx-v2.51-gcc-doca_ofed-redhat10-cuda13-x86_64/ompi5/lib -Wl,-rpath,/usr/lib/gcc/x86_64-redhat-linux/14 -L/usr/lib/gcc/x86_64-redhat-linux/14 -Wl,-rpath,/opt/AMD/aocl/aocl-linux-gcc-5.3.0/gcc/ST/lib_LP64 -L/opt/AMD/aocl/aocl-linux-gcc-5.3.0/gcc/ST/lib_LP64 -Wl,-rpath,/opt/hpcx-v2.51-gcc-doca_ofed-redhat10-cuda13-x86_64/nccl_spectrum-x_plugin/lib -L/opt/hpcx-v2.51-gcc-doca_ofed-redhat10-cuda13-x86_64/nccl_spectrum-x_plugin/lib -Wl,-rpath,/opt/hpcx-v2.51-gcc-doca_ofed-redhat10-cuda13-x86_64/nccl_rdma_sharp_plugin/lib -L/opt/hpcx-v2.51-gcc-doca_ofed-redhat10-cuda13-x86_64/nccl_rdma_sharp_plugin/lib -Wl,-rpath,/opt/hpcx-v2.51-gcc-doca_ofed-redhat10-cuda13-x86_64/sharp/lib -L/opt/hpcx-v2.51-gcc-doca_ofed-redhat10-cuda13-x86_64/sharp/lib -Wl,-rpath,/opt/hpcx-v2.51-gcc-doca_ofed-redhat10-cuda13-x86_64/hcoll/lib -L/opt/hpcx-v2.51-gcc-doca_ofed-redhat10-cuda13-x86_64/hcoll/lib -Wl,-rpath,/opt/hpcx-v2.51-gcc-doca_ofed-redhat10-cuda13-x86_64/ucc/lib -L/opt/hpcx-v2.51-gcc-doca_ofed-redhat10-cuda13-x86_64/ucc/lib -lpetsc -lfftw3_mpi -lfftw3 -lsmumps -ldmumps -lcmumps -lzmumps -lmumps_common -lpord -lpthread -lscalapack -lsuperlu_dist -lkokkoskernels -lsuperlu -lflame -lblis -lkokkoscontainers -lkokkoscore -lkokkossimd -lzoltan -lparmetis -lmetis -lgsl -lgslcblas -lm -lz -lcudart -lnvtx3interop -lcufft -lcublas -lcusparse -lcusolver -lcurand -lcuda -lmpi_usempif08 -lmpi_usempi_ignore_tkr -lmpi_mpifh -lmpi -lgfortran -lm -lgfortran -lm -lgcc_s -lquadmath -lstdc++ -lquadmath
 
 else
   PETSC_ARCH=real-stellarai-gcc14-cuda100-gO2
+ifeq ($(CUDSS_MG), 1)
+  M3DC1_SCOREC_LIB=-lm3dc1_scorec_mg
+  M3DC1_CUDSS_LIB=-lm3dc1_cudss_mg
+else
   M3DC1_SCOREC_LIB=-lm3dc1_scorec
   M3DC1_CUDSS_LIB=-lm3dc1_cudss
+endif
   PETSC_WITH_EXTERNAL_LIB = -Wl,-rpath,/projects/M3DC1/PETSC/petsc.20220201/real-stellarai-gcc14-cuda100-gO2/lib -L/projects/M3DC1/PETSC/petsc.20220201/real-stellarai-gcc14-cuda100-gO2/lib -Wl,-rpath,/opt/AMD/aocl/aocl-linux-gcc-5.3.0/gcc/ST/lib -L/opt/AMD/aocl/aocl-linux-gcc-5.3.0/gcc/ST/lib -Wl,-rpath,/usr/local/cuda-13.2/lib64 -L/usr/local/cuda-13.2/lib64 -L/usr/local/cuda-13.2/lib64/stubs -Wl,-rpath,/usr/local/openmpi/cuda-13.2/5.0.10/gcc/lib64 -L/usr/local/openmpi/cuda-13.2/5.0.10/gcc/lib64 -Wl,-rpath,/usr/lib/gcc/x86_64-redhat-linux/14 -L/usr/lib/gcc/x86_64-redhat-linux/14 -Wl,-rpath,/usr/lib/gcc -L/usr/lib/gcc -Wl,-rpath,/opt/AMD/aocl/aocl-linux-gcc-5.3.0/gcc/ST/lib_LP64 -L/opt/AMD/aocl/aocl-linux-gcc-5.3.0/gcc/ST/lib_LP64 -Wl,-rpath,/opt/hpcx-v2.51-gcc-doca_ofed-redhat10-cuda13-x86_64/nccl_spectrum-x_plugin/lib -L/opt/hpcx-v2.51-gcc-doca_ofed-redhat10-cuda13-x86_64/nccl_spectrum-x_plugin/lib -Wl,-rpath,/opt/hpcx-v2.51-gcc-doca_ofed-redhat10-cuda13-x86_64/nccl_rdma_sharp_plugin/lib -L/opt/hpcx-v2.51-gcc-doca_ofed-redhat10-cuda13-x86_64/nccl_rdma_sharp_plugin/lib -Wl,-rpath,/opt/hpcx-v2.51-gcc-doca_ofed-redhat10-cuda13-x86_64/sharp/lib -L/opt/hpcx-v2.51-gcc-doca_ofed-redhat10-cuda13-x86_64/sharp/lib -Wl,-rpath,/opt/hpcx-v2.51-gcc-doca_ofed-redhat10-cuda13-x86_64/hcoll/lib -L/opt/hpcx-v2.51-gcc-doca_ofed-redhat10-cuda13-x86_64/hcoll/lib -Wl,-rpath,/opt/hpcx-v2.51-gcc-doca_ofed-redhat10-cuda13-x86_64/ucc/lib -L/opt/hpcx-v2.51-gcc-doca_ofed-redhat10-cuda13-x86_64/ucc/lib -lpetsc -lfftw3_mpi -lfftw3 -lsmumps -ldmumps -lcmumps -lzmumps -lmumps_common -lpord -lpthread -lscalapack -lsuperlu_dist -lkokkoskernels -lsuperlu -lflame -lblis -lkokkoscontainers -lkokkoscore -lkokkossimd -lzoltan -lparmetis -lmetis -lgsl -lgslcblas -lm -lz -lcudart -lnvtx3interop -lcufft -lcublas -lcusparse -lcusolver -lcurand -lcuda -lmpi_usempif08 -lmpi_usempi_ignore_tkr -lmpi_mpifh -lmpi -lgfortran -lm -lgfortran -lm -lgcc_s -lquadmath -lstdc++ -lquadmath
 endif
 

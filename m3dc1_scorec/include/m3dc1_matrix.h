@@ -104,6 +104,13 @@ public:
   int solve_cudss_with_guess(FieldID field_id, FieldID xVec_guess);
 #endif
 
+#ifdef PETSC_USE_CUDSS_MG
+  // MG variant (petsc_cudss_solve_mg.c): -mg_devices N GPUs per plane block,
+  // single-process multi-GPU; selected at runtime via -cudsssolve_mg
+  int solve_cudss_mg(FieldID field_id);
+  int solve_cudss_mg_with_guess(FieldID field_id, FieldID xVec_guess);
+#endif
+
   int set_bc(int row);
   int set_row(int row, int numVals, int *colums, double *vals);
   int add_blockvalues(int rbsize, PetscInt *rows, int cbsize, PetscInt *columns,

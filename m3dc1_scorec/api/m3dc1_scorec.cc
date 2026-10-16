@@ -3883,8 +3883,21 @@ int m3dc1_matrix_solve(int* matrix_id, FieldID* rhs_sol) //solveSysEqu_
     (dynamic_cast<matrix_solve*>(mat))->solve_cudss(*rhs_sol);
   } else {
 #endif
+#ifdef PETSC_USE_CUDSS_MG
+  // -cudsssolve_mg <id>: MG variant (-mg_devices N GPUs per plane block)
+  PetscInt cudss_mg_id = -1;
+  PetscOptionsGetInt(NULL, NULL, "-cudsssolve_mg", &cudss_mg_id, NULL);
+  //if (*matrix_id == cudss_mg_id)
+  if (cudss_mg_id > 0)
+  {
+    (dynamic_cast<matrix_solve*>(mat))->solve_cudss_mg(*rhs_sol);
+  } else {
+#endif
   (dynamic_cast<matrix_solve*>(mat))->solve(*rhs_sol);
 #ifdef PETSC_USE_CUDSS
+  }
+#endif
+#ifdef PETSC_USE_CUDSS_MG
   }
 #endif
 
@@ -3925,8 +3938,21 @@ void m3dc1_matrix_solve_with_guess(int* matrix_id, FieldID* rhs_sol, FieldID* xV
     (dynamic_cast<matrix_solve*>(mat))->solve_cudss_with_guess(*rhs_sol, *xVec_guess);
   } else {
 #endif
+#ifdef PETSC_USE_CUDSS_MG
+  // -cudsssolve_mg <id>: MG variant (-mg_devices N GPUs per plane block)
+  PetscInt cudss_mg_id = -1;
+  PetscOptionsGetInt(NULL, NULL, "-cudsssolve_mg", &cudss_mg_id, NULL);
+  //if (*matrix_id == cudss_mg_id)
+  if (cudss_mg_id > 0)
+  {
+    (dynamic_cast<matrix_solve*>(mat))->solve_cudss_mg_with_guess(*rhs_sol, *xVec_guess);
+  } else {
+#endif
   (dynamic_cast<matrix_solve*>(mat))->solve_with_guess(*rhs_sol, *xVec_guess);
 #ifdef PETSC_USE_CUDSS
+  }
+#endif
+#ifdef PETSC_USE_CUDSS_MG
   }
 #endif
 

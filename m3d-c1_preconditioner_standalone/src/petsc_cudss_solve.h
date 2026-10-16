@@ -49,6 +49,17 @@ PetscErrorCode petsc_cudss_solve(KSP ksp, Mat A, Vec b, Vec *x,
                                  PetscBool use_initial_guess,
                                  PetscInt *out_its);
 
+/* MG variant (petsc_cudss_solve_mg.c): same contract, plus -mg_devices N to
+ * factor each plane block across N GPUs in a single process (cuDSS
+ * single-process multi-GPU over NVLink; single-node only, one rank per
+ * plane).  Selected at runtime in m3dc1_scorec via -cudsssolve_mg. */
+PetscErrorCode setKspType_cudss_mg(Mat A, PetscInt nplanes, KSP *out_ksp);
+
+PetscErrorCode petsc_cudss_solve_mg(KSP ksp, Mat A, Vec b, Vec *x,
+                                    PetscInt nplanes,
+                                    PetscBool use_initial_guess,
+                                    PetscInt *out_its);
+
 #ifdef __cplusplus
 }
 #endif

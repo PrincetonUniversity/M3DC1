@@ -1,6 +1,11 @@
-# Builds libm3dc1_cudss: the reusable cuDSS block-Jacobi solver
-# (petsc_cudss_solve() + cudss_block) consumed by m3dc1_scorec via
-# matrix_solve::solve_cudss.
+# Builds the reusable cuDSS block-Jacobi solver libraries consumed by
+# m3dc1_scorec:
+#   libm3dc1_cudss.a    petsc_cudss_solve() + cudss_block
+#                       (matrix_solve::solve_cudss, -cudsssolve)
+#   libm3dc1_cudss_mg.a petsc_cudss_solve_mg() + cudss_block: single-process
+#                       multi-GPU via -mg_devices (matrix_solve::solve_cudss_mg,
+#                       -cudsssolve_mg); self-contained, independent of
+#                       libm3dc1_cudss.a
 #
 # Normally entered via add_subdirectory() from the repo root (ENABLE_CUDSS=ON)
 # or from m3dc1_scorec; can also be configured standalone.  Only the library
@@ -47,37 +52,73 @@ if (NOT NCCL_INCLUDE_DIR OR NOT NCCL_LIBRARY)
   message(FATAL_ERROR "NCCL not found (cudss_block.cu includes nccl.h); set NCCL_DIR")
 endif()
 
-add_library(m3dc1_cudss STATIC
-  src/petsc_cudss_solve.c
-  src/cudss_block.cu)
-
-# Complex scalars (PETSc complex build): switch the cuDSS path to
-# cuDoubleComplex / CUDSS_C_64F.  Inherits ENABLE_COMPLEX when entered via
-# add_subdirectory() from m3dc1_scorec; settable standalone too.
-# PUBLIC so consumers including cudss_block.h see the same cudss_scalar_t.
-option(ENABLE_COMPLEX "Use complex scalars (must match PETSc) [ON|OFF]" OFF)
-if (ENABLE_COMPLEX)
-  target_compile_definitions(m3dc1_cudss PUBLIC CUDSS_BLOCK_COMPLEX)
-  # libm3dc1_cudss_complex.a, following the libm3dc1_scorec_complex.a pattern
-  # (the CMake target name stays m3dc1_cudss; only the archive is renamed)
-  set_target_properties(m3dc1_cudss PROPERTIES OUTPUT_NAME m3dc1_cudss_complex)
+# Which archives to build.  When entered via add_subdirectory() from
+# m3dc1_scorec, keyed off its ENABLE_CUDSS / ENABLE_CUDSS_MG switches so only
+# the requested archive is built; configured standalone (neither variable
+# defined), both are built.
+if (DEFINED ENABLE_CUDSS OR DEFINED ENABLE_CUDSS_MG)
+  set(CUDSS_BUILD_BASE ${ENABLE_CUDSS})
+  set(CUDSS_BUILD_MG   ${ENABLE_CUDSS_MG})
+else()
+  set(CUDSS_BUILD_BASE ON)
+  set(CUDSS_BUILD_MG   ON)
 endif()
 
-# library build: compile out the file-based benchmark main()
-set_source_files_properties(src/petsc_cudss_solve.c
+option(ENABLE_COMPLEX "Use complex scalars (must match PETSc) [ON|OFF]" OFF)
+
+# library build: compile out the file-based benchmark main()s
+set_source_files_properties(src/petsc_cudss_solve.c src/petsc_cudss_solve_mg.c
   PROPERTIES COMPILE_DEFINITIONS "CUDSS_NO_MAIN")
 
-target_include_directories(m3dc1_cudss
-  PUBLIC  ${CMAKE_CURRENT_SOURCE_DIR}/src
-  PRIVATE ${CUDSS_DIR}/include ${NCCL_INCLUDE_DIR} ${PETSC_INCLUDE_DIR})
+set(CUDSS_INSTALL_TARGETS "")
 
-# consumers (m3dc1_scorec) compile their cuDSS call sites behind this define
-target_compile_definitions(m3dc1_cudss INTERFACE M3DC1_CUDSS)
+if (CUDSS_BUILD_BASE)
+  # libm3dc1_cudss.a: setKspType_cudss/petsc_cudss_solve + cudss_block
+  add_library(m3dc1_cudss STATIC
+    src/petsc_cudss_solve.c
+    src/cudss_block.cu)
+  if (ENABLE_COMPLEX)
+    # Complex scalars (PETSc complex build): cuDoubleComplex / CUDSS_C_64F.
+    # PUBLIC so consumers including cudss_block.h see the same cudss_scalar_t.
+    target_compile_definitions(m3dc1_cudss PUBLIC CUDSS_BLOCK_COMPLEX)
+    # libm3dc1_cudss_complex.a, following the libm3dc1_scorec_complex.a pattern
+    set_target_properties(m3dc1_cudss PROPERTIES OUTPUT_NAME m3dc1_cudss_complex)
+  endif()
+  target_include_directories(m3dc1_cudss
+    PUBLIC  ${CMAKE_CURRENT_SOURCE_DIR}/src
+    PRIVATE ${CUDSS_DIR}/include ${NCCL_INCLUDE_DIR} ${PETSC_INCLUDE_DIR})
+  # consumers (m3dc1_scorec) compile their cuDSS call sites behind this define
+  target_compile_definitions(m3dc1_cudss INTERFACE M3DC1_CUDSS)
+  target_link_libraries(m3dc1_cudss
+    PUBLIC  ${CUDSS_LIBRARY} ${NCCL_LIBRARY}
+            CUDA::cudart CUDA::cusparse CUDA::cublas
+    PRIVATE MPI::MPI_C)
+  list(APPEND CUDSS_INSTALL_TARGETS m3dc1_cudss)
+endif()
 
-target_link_libraries(m3dc1_cudss
-  PUBLIC  ${CUDSS_LIBRARY} ${NCCL_LIBRARY}
-          CUDA::cudart CUDA::cusparse CUDA::cublas
-  PRIVATE MPI::MPI_C)
+if (CUDSS_BUILD_MG)
+  # libm3dc1_cudss_mg.a: setKspType_cudss_mg/petsc_cudss_solve_mg
+  # (-mg_devices N, single-process multi-GPU).  Self-contained: carries its
+  # own copy of cudss_block, independent of libm3dc1_cudss.a.  Linking both
+  # archives into one binary is fine -- the linker resolves cudss_block from
+  # whichever archive it meets first; the duplicate member is never pulled.
+  add_library(m3dc1_cudss_mg STATIC
+    src/petsc_cudss_solve_mg.c
+    src/cudss_block.cu)
+  if (ENABLE_COMPLEX)
+    target_compile_definitions(m3dc1_cudss_mg PUBLIC CUDSS_BLOCK_COMPLEX)
+    set_target_properties(m3dc1_cudss_mg PROPERTIES OUTPUT_NAME m3dc1_cudss_mg_complex)
+  endif()
+  target_include_directories(m3dc1_cudss_mg
+    PUBLIC  ${CMAKE_CURRENT_SOURCE_DIR}/src
+    PRIVATE ${CUDSS_DIR}/include ${NCCL_INCLUDE_DIR} ${PETSC_INCLUDE_DIR})
+  target_compile_definitions(m3dc1_cudss_mg INTERFACE M3DC1_CUDSS)
+  target_link_libraries(m3dc1_cudss_mg
+    PUBLIC  ${CUDSS_LIBRARY} ${NCCL_LIBRARY}
+            CUDA::cudart CUDA::cusparse CUDA::cublas
+    PRIVATE MPI::MPI_C)
+  list(APPEND CUDSS_INSTALL_TARGETS m3dc1_cudss_mg)
+endif()
 
-install(TARGETS m3dc1_cudss ARCHIVE DESTINATION lib)
+install(TARGETS ${CUDSS_INSTALL_TARGETS} ARCHIVE DESTINATION lib)
 install(FILES src/petsc_cudss_solve.h src/cudss_block.h DESTINATION include)

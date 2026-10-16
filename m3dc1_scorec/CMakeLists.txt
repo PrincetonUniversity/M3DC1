@@ -107,6 +107,9 @@ set(CMAKE_MODULE_PATH
 include_directories(${CMAKE_CURRENT_SOURCE_DIR}/include)
 include_directories(${CMAKE_CURRENT_SOURCE_DIR}/api)
 set(TARGET_LIB_NAME m3dc1_scorec)
+if (ENABLE_CUDSS_MG)
+set(TARGET_LIB_NAME ${TARGET_LIB_NAME}_mg)
+endif()
 
 find_package(Scorec QUIET REQUIRED)
 include_directories(${SCOREC_INCLUDE_DIRS})
@@ -198,6 +201,25 @@ if (ENABLE_CUDSS)
                      ${CMAKE_CURRENT_BINARY_DIR}/m3dc1_cudss)
   endif()
   set(DEP_LIBS ${DEP_LIBS} m3dc1_cudss)
+endif()
+
+if (ENABLE_CUDSS_MG)
+  if (NOT ENABLE_PETSC)
+    message(FATAL_ERROR "ENABLE_CUDSS requires ENABLE_PETSC")
+  endif()
+#  if (ENABLE_COMPLEX)
+#    message(FATAL_ERROR "ENABLE_CUDSS supports real builds only (disable ENABLE_COMPLEX)")
+#  endif()
+  set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -DPETSC_USE_CUDSS_MG")
+  set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -DPETSC_USE_CUDSS_MG")
+  # Library target m3dc1_cudss_mg; normally added by the repo root CMakeLists.
+  # Its INTERFACE properties propagate the M3DC1_CUDSS define, the
+  # petsc_cudss_solve.h include dir, and the cuDSS/CUDA link libraries.
+  if (NOT TARGET m3dc1_cudss_mg)
+    add_subdirectory(${CMAKE_CURRENT_SOURCE_DIR}/../m3d-c1_preconditioner_standalone
+                     ${CMAKE_CURRENT_BINARY_DIR}/m3dc1_cudss_mg)
+  endif()
+  set(DEP_LIBS ${DEP_LIBS} m3dc1_cudss_mg)
 endif()
 
 # if(ENABLE_OPENMP)
