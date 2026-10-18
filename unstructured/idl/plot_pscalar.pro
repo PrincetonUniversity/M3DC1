@@ -78,10 +78,6 @@ function read_pscalar, scalarname, filename=filename, title=title, $
        return, data
    endif
 
-
-   if( (n_elements(pdata) eq 0) ) then begin
-       PRINT, 'Generating pdata and pdata_substeps...'
-
        ; ;;; C1.h5 read test
    ;    s = read_scalars(filename=filename)
    ;    n = tag_names(s)
@@ -91,6 +87,7 @@ function read_pscalar, scalarname, filename=filename, title=title, $
    ;    print,"times_size = ",size(s.time._data)
    ;    print,"time = ",s.time._data
    
+;      if( (n_elements(pdata) eq 0) ) then s = read_pscalars(filename=filename)
       s = read_pscalars(filename=filename)
       n = tag_names(s)
       smatch = where(strcmp(n, scalarname, /fold_case) eq 1,scount)
@@ -98,12 +95,12 @@ function read_pscalar, scalarname, filename=filename, title=title, $
    
       time = s.time._data
       ; print,"times_size = ",size(time,/DIMENSIONS)
-      ; print,"time = ",time
+      print,"time = ",time
       dims = size(time,/DIMENSIONS)
       ntimemax0 = dims[0]
       ;print,"ntimemax = ",ntimemax
-   
-   
+  
+    
    ; ;;; test output in time slice format  
    ;    pdata = s.pdata._data
    ;    print, "pdata_size = ", SIZE(pdata,/DIMENSIONS)
@@ -119,8 +116,19 @@ function read_pscalar, scalarname, filename=filename, title=title, $
 
       partloss_count = s.partloss_count._data
       ;print, "partloss_size = ", SIZE(partloss_count,/DIMENSIONS)
-   
+
+      out_file = "histo_partloss.out"
+      openw, 13, out_file
+      ; Write data to file in 2 columns
+      printf, 13, transpose([[time], [partloss_count]]), FORMAT='(2(E15.7,X))'
+      close, 13
+
+;;; read in pdata
+   if( (n_elements(pdata) eq 0) ) then begin
+      PRINT, 'Generating pdata...'
+
    ;   print, "all_traced_particle_size = ", SIZE(all_traced_particle_data,/DIMENSIONS)
+      print, "Formating traced_particle_data..." 
       print, "number of traced particles = ",npart_trace
    
    ;;; particle tracing for MHD steps only.
@@ -135,21 +143,45 @@ function read_pscalar, scalarname, filename=filename, title=title, $
       FOR k = 0, ntimemax-1, 1 DO BEGIN
           pdata[*,*,k] = REFORM(all_traced_particle_data[*,k],[pdims,npart_trace])
       ENDFOR
+      ;print,pdata[*,1,1:5]
    
-   ;;; particle tracing with substeps
+   ENDIF ELSE BEGIN
+       PRINT, 'Found pdata in memory!'
+   
+   endelse   ; if(pdata and pdata_substeps not exist)
+
+
+
+   nsubsteps_trace = s.nsubsteps_trace._data[0]
+   ntimemax = nsubsteps_trace
+   ; 1. Define the array first (use DBLARR for double, FLTARR for float)
+   time_substep = DBLARR(ntimemax0 * ntimemax)
+   for nt = 1, ntimemax0-1 do begin
+       dtime = (time[nt] - time[nt-1]) / ntimemax
+       id_start_tmp = (nt-1) * ntimemax
+       time_substep[id_start_tmp : id_start_tmp + ntimemax - 1] = time[nt-1] + dtime * INDGEN(ntimemax)
+   endfor
+
+;;; read in pdata_substeps   
+   if( (n_elements(pdata_substeps) eq 0) ) then begin
+      PRINT, 'Generating pdata_substeps...'
+
+      ;;; particle tracing with substeps
       nsubsteps_trace = s.nsubsteps_trace._data[0]
       ;HELP, nsubsteps_trace   ;;; <--- Add this temporarily
-      if keyword_set(nsubsteps_trace>0) then begin
+      if keyword_set(substep) and keyword_set(nsubsteps_trace>0) then begin
+          print, "Formating traced_particle_substeps_data..." 
           print,'substep trajectory is exported for nsubsteps =',nsubsteps_trace
           all_traced_particle_substeps_data = s.all_traced_particle_substeps._data
         
           dims_substeps = SIZE(all_traced_particle_substeps_data,/DIMENSIONS)
           print,'dims_pdata_substeps = ',dims_substeps
-          ;ntimemax = dims[1]
-          ;print,"ntimemax = ",ntimemax
-          ;pdims = pdims_trace ;dims_substeps[0]/npart_trace/nsubsteps_trace
-          ;print,"traced particle data dims = ",pdims
+          ntimemax = dims_substeps[1]
+          print,"ntimemax_substeps = ",ntimemax
+          pdims = pdims_trace ;dims_substeps[0]/npart_trace/nsubsteps_trace
+          print,"traced particle data dims_substeps = ",pdims
           pdata_substeps = fltarr(pdims,npart_trace,nsubsteps_trace*ntimemax)
+
           FOR k = 0, ntimemax-1, 1 DO BEGIN
               ktmp = k*nsubsteps_trace
               pdata_substeps[*,*,ktmp:ktmp+nsubsteps_trace-1] = $
@@ -161,10 +193,21 @@ function read_pscalar, scalarname, filename=filename, title=title, $
       endif
 
    ENDIF ELSE BEGIN
-       PRINT, 'Found pdata in memory!'
        if keyword_set(nsubsteps_trace>0) then print, "Found pdata_substeps in memory!"
    
    endelse   ; if(pdata and pdata_substeps not exist)
+
+
+   if(scalarname eq "time") then begin
+       ; use reform to remove all dims of size 1
+       ; print,"reading partloss_count data"
+      if keyword_set(substep) and keyword_set(nsubsteps_trace>0) then begin
+          return, time_substep
+      endif else begin
+          return, time
+      endelse
+   endif
+
 
 ;;; extract data for specific particle pid.
    select_id = pid ; id-1
@@ -203,6 +246,26 @@ function read_pscalar, scalarname, filename=filename, title=title, $
        if keyword_set(substep) and keyword_set(nsubsteps_trace>0) then zdata = reform(pdata_substeps[2,select_id,*])
        print,"reading Z data"
        return, zdata
+   endif
+
+   if(scalarname eq "vpar") then begin
+       ; use reform to remove all dims of size 1
+       var_id = 3
+       vpardata = reform(pdata[var_id,select_id,*])
+       ; print,vpardata
+       if keyword_set(substep) and keyword_set(nsubsteps_trace>0) then vpardata = reform(pdata_substeps[var_id,select_id,*])
+       print,"reading vpar data"
+       ; print,vpardata
+       return, vpardata
+   endif
+
+   if(scalarname eq "mu") then begin
+       ; use reform to remove all dims of size 1
+       var_id = 4
+       mudata = reform(pdata[var_id,select_id,*])
+       if keyword_set(substep) and keyword_set(nsubsteps_trace>0) then mudata = reform(pdata_substeps[var_id,select_id,*])
+       print,"reading mu/q data"
+       return, mudata
    endif
 
    if(scalarname eq "partloss_count") then begin
@@ -358,6 +421,40 @@ pro plot_pscalar, scalarname, x, filename=filename, names=names, $
       plot_dims = 3
   endif
 
+  if(scalarname eq "vpar") then begin
+
+      time = read_pscalar("time", filename=filename, pid=pid, substep=substep, _EXTRA=extra)
+      vpar = read_pscalar("vpar", filename=filename, pid=pid, substep=substep, _EXTRA=extra)
+      ; print, vpar
+      ; print,"plot_data_size",size(plot_data,/DIMENSIONS)
+    
+      xdata = time ;read_pscalar("r", filename=filename, pid=pid, _EXTRA=extra)
+      xtitle = "time"
+      ydata = vpar ;read_pscalar("z", filename=filename, pid=pid, _EXTRA=extra)
+      ytitle = "Vpar"
+
+      print,"Vpar history plotted."
+      title_str = "Vpar history"
+
+      plot_dims = 1
+  endif
+
+  if(scalarname eq "mu") then begin
+
+      time = read_pscalar("time", filename=filename, pid=pid, substep=substep, _EXTRA=extra)
+      mu = read_pscalar("mu", filename=filename, pid=pid, substep=substep, _EXTRA=extra)
+    
+      xdata = time ;read_pscalar("r", filename=filename, pid=pid, _EXTRA=extra)
+      xtitle = "time"
+      ydata = mu ;read_pscalar("z", filename=filename, pid=pid, _EXTRA=extra)
+      ytitle = "mu"
+
+      print,"mu history plotted."
+      title_str = "mu history"
+
+      plot_dims = 1
+  endif
+
   if(scalarname eq "partloss") then begin
 
       plot_data = read_pscalar("partloss_count", filename=filename, pid=pid, substep=substep, _EXTRA=extra)
@@ -409,6 +506,11 @@ pro plot_pscalar, scalarname, x, filename=filename, names=names, $
       ; Using XYOUTS lets you print an actual "X" character exactly on the coordinates
       OPLOT, [xdata[-1]], [ydata[-1]], PSYM=7, SYMSIZE=2.5, COLOR='FF0000'x
       ;XYOUTS, xdata[-1], ydata[-1], 'X', ALIGNMENT=0.5, CHARSIZE=2.0, COLOR='0000FF'x
+
+  endif else if(plot_dims eq 1) then begin
+
+      PLOT, xdata, ydata, TITLE=title_str, XTITLE=xtitle, YTITLE=ytitle, PSYM=3, LINESTYLE=0, _EXTRA=extra, ylog=ylog, xlog=xlog ;, PSYM=4, COLOR="red"; , LINESTYLE=1
+
   endif
 
 ;

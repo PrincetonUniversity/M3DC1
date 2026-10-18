@@ -4817,9 +4817,10 @@ subroutine hdf5_write_particles_scalar(ierr)
       ! Copy data to buffer. 
       ! Since pdata is shared through all MPI, no need to do MPI_ALLREDUCE for values.
       do i = 1, npart_trace
-         ! do iptmp = 1, nparticles
-         !    pindex = nparticles - iptmp + 1
-         do pindex = ipart_end,ipart_begin,-1
+         do iptmp = 1, nparticles
+            pindex = nparticles - iptmp + 1
+         ! !!! Warning: ipart_start to ipart_begin will only assign partial values to values_loc.
+         ! do pindex = ipart_end,ipart_begin,-1
             if (pdata(pindex)%gid == pdata_trace_id(i)) then
                values_loc(1, i) = pdata(pindex)%gid
                values_loc(2, i) = pdata(pindex)%x(1)
@@ -4872,9 +4873,9 @@ subroutine hdf5_write_particles_scalar(ierr)
       if(myrank==0)then
           pindex = 5  !113
           if(ntime==0) write(416,*)"values after MPI_allreduce, myrank = ",myrank,"pindex = ",pindex
-          if(ntime==0) write(416,*)"ntime      dt      gid      x1      x2      x3"
+          if(ntime==0) write(416,*)"ntime      dt      gid      x1      x2      x3      v1      v2"
           ! write(416,"(3ES20.8)")values(2:4,pindex)
-          write(416,"(I7,ES14.6,I12,3ES17.8)")ntime,dt,int(values(1,pindex)),values(2:4,pindex)
+          write(416,"(I7,ES14.6,I12,3ES17.8,2ES17.8)")ntime,dt,int(values(1,pindex)),values(2:4,pindex),values(7:8,pindex)
           ! call flush(416)
 !          !!! output deleted flag for diag particle
 !          do i = 1, nparticles
