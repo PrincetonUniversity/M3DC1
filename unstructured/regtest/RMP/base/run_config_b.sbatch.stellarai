@@ -1,4 +1,5 @@
 #!/bin/bash
+#SBATCH -A m3dc1
 #SBATCH --nodes=1
 #SBATCH --ntasks-per-node=1
 #SBATCH --gpus-per-node=1
@@ -28,7 +29,8 @@ BINARY="./m3dc1_2d_complex"
 # the binary (unused in Config B but required at load time).
 CUDSS_LIB="/scratch/gpfs/CSD/jinchen/m3dc1/lib"
 HDF5_LIB="/scratch/gpfs/CSD/jinchen/m3dc1/1.14.6/lib64"
-export LD_LIBRARY_PATH="$HDF5_LIB:$CUDSS_LIB:${LD_LIBRARY_PATH:-}"
+AOCL_LIB="/scratch/gpfs/CSD/jinchen/m3dc1/aocl/lib"
+export LD_LIBRARY_PATH="$AOCL_LIB:$HDF5_LIB:$CUDSS_LIB:${LD_LIBRARY_PATH:-}"
 
 export OMP_NUM_THREADS=1
 export SLURM_CPU_BIND="cores"
@@ -63,10 +65,12 @@ srun -n $SLURM_NTASKS -c $SLURM_CPUS_PER_TASK --cpu-bind=cores --gpu-bind=none -
 	--mpi=pmix \
 	"$BINARY" \
 	-cudsssolve 1 \
+ 	-mat_type aijcusparse -vec_type cuda \
 	-ksp_monitor_true_residual \
 	-log_view "$LOG_VIEW" -log_view_gpu_time \
 	-ksp_view \
 	-ksp_type preonly \
+ 	-options_left
 
 mv C1ke "C1ke.${SLURM_JOB_ID}"
 

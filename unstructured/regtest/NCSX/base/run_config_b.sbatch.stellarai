@@ -1,4 +1,5 @@
 #!/bin/bash
+#SBATCH -A m3dc1
 #SBATCH --nodes=1
 #SBATCH --ntasks-per-node=8
 #SBATCH --gpus-per-node=8
@@ -27,7 +28,9 @@ BINARY="./m3dc1_3d_st"
 # cuDSS runtime lib (0.8.0.10); NCCL for the comm-layer symbols linked into
 # the binary (unused in Config B but required at load time).
 CUDSS_LIB="/scratch/gpfs/CSD/jinchen/m3dc1/lib"
-export LD_LIBRARY_PATH="$CUDSS_LIB:${LD_LIBRARY_PATH:-}"
+HDF5_LIB="/scratch/gpfs/CSD/jinchen/m3dc1/1.14.6/lib64"
+AOCL_LIB="/scratch/gpfs/CSD/jinchen/m3dc1/aocl/lib"
+export LD_LIBRARY_PATH="$AOCL_LIB:$HDF5_LIB:$CUDSS_LIB:${LD_LIBRARY_PATH:-}"
 
 export OMP_NUM_THREADS=1
 export SLURM_CPU_BIND="cores"
@@ -62,8 +65,11 @@ srun -n $SLURM_NTASKS -c $SLURM_CPUS_PER_TASK --cpu-bind=cores --gpu-bind=none -
 	--mpi=pmix \
 	"$BINARY" \
 	-cudsssolve 1 \
+	-mat_type aijcusparse -vec_type cuda \
 	-ksp_monitor_true_residual \
 	-log_view "$LOG_VIEW" -log_view_gpu_time \
 	-ksp_view \
+	-options_left
 
+mv C1ke "C1ke.${SLURM_JOB_ID}"
 

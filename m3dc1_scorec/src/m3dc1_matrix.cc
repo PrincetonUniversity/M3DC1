@@ -24,10 +24,7 @@
 using std::complex;
 #endif
 
-#ifdef PETSC_USE_CUDSS
-#include "petsc_cudss_solve.h"
-#endif
-#ifdef PETSC_USE_CUDSS_MG
+#if defined(PETSC_USE_CUDSS) || defined(PETSC_USE_CUDSS_MG)
 #include "petsc_cudss_solve.h"
 #endif
 
@@ -688,21 +685,14 @@ int m3dc1_matrix::setupParaMat() {
   CHKERRQ(ierr);
   ierr = MatSetBlockSize(_A, dofPerEnt);
 
-#ifdef PETSC_USE_CUDSS
+#if defined(PETSC_USE_CUDSS) || defined(PETSC_USE_CUDSS_MG)
   // -cudsssolve <id>: use the cuDSS block-Jacobi PCShell solver for this matrix
-  PetscInt cudss_id = -1;
-  PetscOptionsGetInt(NULL, NULL, "-cudsssolve", &cudss_id, NULL);
-  if (cudss_id > 0 )
-  {
-	  ierr = MatSetType(_A, MATMPIAIJCUSPARSE);
-	  CHKERRQ(ierr);
-  } else {
-#endif
-#ifdef PETSC_USE_CUDSS_MG
   // -cudsssolve_mg <id>: use the cuDSS block-Jacobi PCShell solver for this matrix
+  PetscInt cudss_id = -1;
   PetscInt cudss_mg_id = -1;
+  PetscOptionsGetInt(NULL, NULL, "-cudsssolve", &cudss_id, NULL);
   PetscOptionsGetInt(NULL, NULL, "-cudsssolve_mg", &cudss_mg_id, NULL);
-  if (cudss_mg_id > 0)
+  if (cudss_id > 0 || cudss_mg_id > 0)
   {
 	  ierr = MatSetType(_A, MATMPIAIJCUSPARSE);
 	  CHKERRQ(ierr);
@@ -715,10 +705,7 @@ int m3dc1_matrix::setupParaMat() {
           if (!PCU_Comm_Self())
                   std::cout<<"[M3DC1 INFO] "<<__func__<<": Lable Mat A="<<mymatrix_id<<" to be hard\n";
   }
-#ifdef PETSC_USE_CUDSS
-  }
-#endif
-#ifdef PETSC_USE_CUDSS_MG
+#if defined(PETSC_USE_CUDSS) || defined(PETSC_USE_CUDSS_MG)
   }
 #endif
   ierr = MatSetFromOptions(_A);
@@ -879,6 +866,10 @@ int matrix_mult::multiply(FieldID in_field, FieldID out_field) {
     ierr = VecCreateSeqWithArray(PETSC_COMM_SELF, bs, num_dof,
                                  (PetscScalar *)array[1], &c);
     CHKERRQ(ierr);
+
+    ierr = VecSetFromOptions(b);CHKERRQ(ierr);
+    ierr = VecSetFromOptions(c);CHKERRQ(ierr);
+
     ierr = VecAssemblyBegin(b);
     CHKERRQ(ierr);
     ierr = VecAssemblyEnd(b);
@@ -888,6 +879,36 @@ int matrix_mult::multiply(FieldID in_field, FieldID out_field) {
     ierr = VecAssemblyEnd(c);
     CHKERRQ(ierr);
     MatMult(_A, b, c);
+
+    const PetscScalar *tmp;
+    VecGetArrayRead(c, &tmp);      // triggers device->host sync
+    VecRestoreArrayRead(c, &tmp);
+
+#ifdef DEBUG
+  { // 20260906
+    MatType mtype;                       // add
+    MatGetType(_A, &mtype);              // add
+    PetscReal anorm;
+    ierr = MatNorm(_A, NORM_FROBENIUS, &anorm); CHKERRQ(ierr);
+    PetscReal bnorm;
+    ierr = VecNorm(b, NORM_2, &bnorm); CHKERRQ(ierr);
+    PetscReal cnorm;
+    ierr = VecNorm(c, NORM_2, &cnorm); CHKERRQ(ierr);
+    VecType vtype;                       // add
+    VecGetType(c, &vtype);              // add
+
+    if (!PCU_Comm_Self()) 
+	std::cout<<"[M3DC1 INFO] "<<__func__
+		<< ": imatrix "<< mymatrix_id
+		<< " ||matvecmult A||_F "<< anorm
+		<< " ||b|| =" << bnorm
+		<< " ||c|| " << cnorm
+		<< " mtype "<< mtype
+		<< " vtype "<< vtype
+		<< " \n";
+  }
+#endif
+
     ierr = VecDestroy(&b);
     CHKERRQ(ierr);
     ierr = VecDestroy(&c);

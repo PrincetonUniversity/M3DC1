@@ -3894,10 +3894,7 @@ int m3dc1_matrix_solve(int* matrix_id, FieldID* rhs_sol) //solveSysEqu_
   } else {
 #endif
   (dynamic_cast<matrix_solve*>(mat))->solve(*rhs_sol);
-#ifdef PETSC_USE_CUDSS
-  }
-#endif
-#ifdef PETSC_USE_CUDSS_MG
+#if defined(PETSC_USE_CUDSS) || defined(PETSC_USE_CUDSS_MG)
   }
 #endif
 

@@ -416,6 +416,30 @@ PetscErrorCode setKspType_cudss(Mat A, PetscInt nplanes, KSP *out_ksp)
     MPI_Comm_rank(comm, &rank);
     MPI_Comm_size(comm, &nprocs);
 
+    /* Same -mat_cusparse_spmv_alg forwarding as in ReadMatrixParallel(), but
+     * for the m3dc1_scorec path, where A is assembled in m3dc1_matrix.cc and
+     * ReadMatrixParallel() never runs: PETSc reads the option only in
+     * MatSetFromOptions_SeqAIJCUSPARSE, so on >1 rank the MPIAIJCUSPARSE
+     * sub-blocks that run the SpMV never see it and the reproducible
+     * CSRMV_ALG2 is unreachable.  A is fully assembled here and this runs
+     * before the first MatMult sizes the cuSPARSE buffers. */
+    {
+        char      alg[64];
+        PetscBool flg;
+        PetscCall(PetscOptionsGetString(NULL, NULL, "-mat_cusparse_spmv_alg", alg, sizeof(alg), &flg));
+        if (flg && nprocs > 1) {
+            Mat sub[2];
+            PetscCall(MatMPIAIJGetSeqAIJ(A, &sub[0], &sub[1], NULL));
+            PetscCall(PetscOptionsSetValue(NULL, "-m3dc1_sub_mat_cusparse_spmv_alg", alg));
+            for (int s = 0; s < 2; s++) {
+                if (!sub[s]) continue;
+                PetscCall(MatSetOptionsPrefix(sub[s], "m3dc1_sub_"));
+                PetscCall(MatSetFromOptions(sub[s]));
+                PetscCall(MatSetOptionsPrefix(sub[s], NULL));
+            }
+        }
+    }
+
     if (nplanes <= 0 || nprocs < nplanes || (nprocs % nplanes) != 0) {
         SETERRQ(comm, PETSC_ERR_ARG_WRONG,
                 "setKspType_cudss requires plane-aligned layout: nplanes>0 and nprocs%%nplanes==0 (got nprocs=%d, nplanes=%d)",
