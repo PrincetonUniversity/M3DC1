@@ -416,6 +416,7 @@ subroutine init_particles(lrestart, ierr)
    vectype, dimension(dofs_per_element, dofs_per_element) :: tempxx
    integer :: blocky, starty, endy
    TYPE(C_PTR) :: baseptr
+   INTEGER(KIND=MPI_ADDRESS_KIND) :: baseaddr
    INTEGER(KIND=MPI_ADDRESS_KIND) :: arraysize
    TYPE(elfield) :: elfieldtest
    integer :: disp_unit
@@ -486,9 +487,10 @@ subroutine init_particles(lrestart, ierr)
    arraysize = 0
    if (hostrank == 0) arraysize = nelms_global*nodes_per_element*3*sizeof(1.d0)
    CALL MPI_Win_allocate_shared(arraysize, disp_unit, MPI_INFO_NULL, &
-                                hostcomm, baseptr, win_mesh_coord, ierr)
-   if (hostrank /= 0) CALL MPI_Win_shared_query(win_mesh_coord, 0, arraysize, disp_unit, baseptr, ierr)
+                                hostcomm, baseaddr, win_mesh_coord, ierr)
+   if (hostrank /= 0) CALL MPI_Win_shared_query(win_mesh_coord, 0, arraysize, disp_unit, baseaddr, ierr)
    !CALL C_F_POINTER(baseptr, mesh_coord_shared, [2,3,nelms])
+   baseptr = TRANSFER(baseaddr, baseptr)
    CALL C_F_POINTER(baseptr, mesh_coord, [3, nodes_per_element, nelms_global])
    !allocate(mesh_coord(2,3,nelms))
 
@@ -496,8 +498,9 @@ subroutine init_particles(lrestart, ierr)
    arraysize = 0
    if (hostrank == 0) arraysize = nelms_global*nodes_per_element*sizeof(1)
    CALL MPI_Win_allocate_shared(arraysize, disp_unit, MPI_INFO_NULL, &
-                                hostcomm, baseptr, win_mesh_nodes, ierr)
-   if (hostrank /= 0) CALL MPI_Win_shared_query(win_mesh_nodes, 0, arraysize, disp_unit, baseptr, ierr)
+                                hostcomm, baseaddr, win_mesh_nodes, ierr)
+   if (hostrank /= 0) CALL MPI_Win_shared_query(win_mesh_nodes, 0, arraysize, disp_unit, baseaddr, ierr)
+   baseptr = TRANSFER(baseaddr, baseptr)
    CALL C_F_POINTER(baseptr, mesh_nodes, [nodes_per_element, nelms_global])
    !allocate(mesh_nodes(3,nelms))
 
@@ -564,8 +567,9 @@ subroutine init_particles(lrestart, ierr)
    arraysize = 0
    if (hostrank == 0) arraysize = nelms_global*sizeof(elfieldtest)
    CALL MPI_Win_allocate_shared(arraysize, disp_unit, MPI_INFO_NULL, &
-                                hostcomm, baseptr, win_elfieldcoefs, ierr)
-   if (hostrank /= 0) CALL MPI_Win_shared_query(win_elfieldcoefs, 0, arraysize, disp_unit, baseptr, ierr)
+                                hostcomm, baseaddr, win_elfieldcoefs, ierr)
+   if (hostrank /= 0) CALL MPI_Win_shared_query(win_elfieldcoefs, 0, arraysize, disp_unit, baseaddr, ierr)
+   baseptr = TRANSFER(baseaddr, baseptr)
    CALL C_F_POINTER(baseptr, elfieldcoefs, [nelms_global])
    !allocate(elfieldcoefs(nelms))
    call get_field_coefs(1)
@@ -583,8 +587,9 @@ subroutine init_particles(lrestart, ierr)
       arraysize = arraysize*sizeof(dpar)
    end if
    CALL MPI_Win_allocate_shared(arraysize, disp_unit, MPI_INFO_NULL, &
-                                hostcomm, baseptr, win_pdata, ierr)
-   if (hostrank /= 0) CALL MPI_Win_shared_query(win_pdata, 0, arraysize, disp_unit, baseptr, ierr)
+                                hostcomm, baseaddr, win_pdata, ierr)
+   if (hostrank /= 0) CALL MPI_Win_shared_query(win_pdata, 0, arraysize, disp_unit, baseaddr, ierr)
+   baseptr = TRANSFER(baseaddr, baseptr)
    CALL C_F_POINTER(baseptr, pdata, [num_par_max])
 
    !Normalize integrals
