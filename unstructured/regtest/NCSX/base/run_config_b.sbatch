@@ -33,7 +33,7 @@ module load nccl/2.24.3
 # from CUDA >=12.6; prepend NVHPC 24.5 / cuda 12.4 lib dir (still has it).
 export LD_LIBRARY_PATH="/opt/nvidia/hpc_sdk/Linux_x86_64/24.5/cuda/12.4/lib64:${LD_LIBRARY_PATH:-}"
 # cuDSS runtime lib (0.8.0.10) + its NCCL comm layer.
-CUDSS_LIB="${CUDSS_DIR:-$/global/cfs/cdirs/mp288/jinchen/M3DC1/gitrepo/M3DC1/m3d-c1_preconditioner_standalone/deps/cudss}/lib"
+CUDSS_LIB="${CUDSS_DIR:-/global/cfs/cdirs/mp288/jinchen/LIB/deps/cudss}/lib"
 export LD_LIBRARY_PATH="$CUDSS_LIB:${NCCL_DIR}/lib:${LD_LIBRARY_PATH}"
 # Cray's GPU transport layer is reached through an UNVERSIONED symlink,
 # /opt/cray/pe/lib64/libmpi_gtl_cuda.so.0, which follows the newest CPE rather
@@ -55,9 +55,30 @@ echo "Dir:    $(pwd)"
 echo "Nodes:  $SLURM_JOB_NUM_NODES  Tasks: $SLURM_NTASKS  GPUs/node: 4"
 echo ""
 
+#  - cuDSS defaults to non-deterministic scheduling (faster). 
+#    It only becomes bitwise-reproducible when CUDSS_DETERMINISTIC=1 is set — 
+#    the env var is read at cudss_block_create time and passed to CUDSS_CONFIG_DETERMINISTIC_MODE (cudss_block.cu:235-238).
+#  - If the var is unset (or =0), you get the default non-deterministic mode, 
+#    where the recomputed true residual ||Ax-b|| differs in its last digits 
+#    between otherwise-identical solves (per the comment at lines 231-234).
+#  - It costs performance, so it's opt-in by design.
+#  - Confirm it took effect by looking for this line on stderr: [cudss_block] deterministic_mode: 1.
+#  One caveat: this sets the cuDSS config flag, but full run-to-run bitwise reproducibility for the whole solve 
+#  also depends on the comm backend. NCCL reductions (the MGMN default) are not guaranteed deterministic across runs. 
+#  For a single-GPU plane (Config B, plane_size==1, no NCCL) CUDSS_DETERMINISTIC=1 alone should give you reproducible factor/solve.
+#export CUDSS_DETERMINISTIC=1
+#-mat_cusparse_spmv_alg CSRMV_ALG2
+#  a 15% slowdown
+
+
 srun -n $SLURM_NTASKS -c 16 --cpu-bind=cores --gpu-bind=none --export=ALL \
 	"$BINARY" \
 	-cudsssolve 1 \
+	-mat_type aijcusparse -vec_type cuda \
 	-ksp_monitor_true_residual \
 	-log_view "$LOG_VIEW" -log_view_gpu_time \
-	-ksp_view 
+	-ksp_view \
+	-options_left
+
+mv C1ke "C1ke.${SLURM_JOB_ID}"
+

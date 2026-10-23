@@ -52,9 +52,21 @@ else
 endif
 
 ifeq ($(COM), 1)
-  M3DC1_SCOREC_LIB=-lm3dc1_scorec_complex
+  ifeq ($(CUDSS_MG), 1)
+    M3DC1_SCOREC_LIB=-lm3dc1_scorec_mg_complex
+    M3DC1_CUDSS_LIB=-lm3dc1_cudss_mg_complex
+  else
+    M3DC1_SCOREC_LIB=-lm3dc1_scorec_complex
+    M3DC1_CUDSS_LIB=-lm3dc1_cudss_complex
+  endif
 else
-  M3DC1_SCOREC_LIB=-lm3dc1_scorec
+  ifeq ($(CUDSS_MG), 1)
+    M3DC1_SCOREC_LIB=-lm3dc1_scorec_mg
+    M3DC1_CUDSS_LIB=-lm3dc1_cudss_mg
+  else
+    M3DC1_SCOREC_LIB=-lm3dc1_scorec
+    M3DC1_CUDSS_LIB=-lm3dc1_cudss
+  endif
 endif
 
 SCOREC_LIB = -L$(SCOREC_DIR)/lib $(M3DC1_SCOREC_LIB) \
@@ -62,20 +74,21 @@ SCOREC_LIB = -L$(SCOREC_DIR)/lib $(M3DC1_SCOREC_LIB) \
            $(PUMI_LIB) -Wl,--end-group
 
 # cuDSS block-Jacobi solver (matrix_solve::solve_cudss, runtime option
-# -cudsssolve <matrix_id>).  Requires m3dc1_scorec built with ENABLE_CUDSS=ON
-# and libm3dc1_cudss.a from m3d-c1_preconditioner_standalone (cmake + make
-# install there, or installed alongside m3dc1_scorec).  Vendored cuDSS ships
-# only libcudss.so.0, so link it by full path; NCCL_DIR comes from
-# `module load nccl`.  cudart/cusparse/cublas are already linked via PETSc.
-ifeq ($(CUDSS), 1)
+# -cudsssolve <matrix_id>; CUDSS_MG=1 for the -cudsssolve_mg variant).
+# Requires m3dc1_scorec built with ENABLE_CUDSS=ON (or ENABLE_CUDSS_MG=ON) and
+# the matching libm3dc1_cudss*.a from m3d-c1_preconditioner_standalone,
+# installed alongside m3dc1_scorec.  Vendored cuDSS ships only libcudss.so.0,
+# so link it by full path; NCCL_DIR comes from `module load nccl`.
+# cudart/cusparse/cublas are already linked via PETSc.
+#ifeq ($(CUDSS), 1)
   CUDSS_PKG_DIR ?= $(M3DC1_DIR)/m3d-c1_preconditioner_standalone
   CUDSS_DIR ?= $(CUDSS_PKG_DIR)/deps/cudss
-  CUDSS_LIB = -L$(CUDSS_PKG_DIR)/build -lm3dc1_cudss \
+  CUDSS_LIB = -L$(SCOREC_DIR)/lib $(M3DC1_CUDSS_LIB) \
               -Wl,-rpath,$(CUDSS_DIR)/lib $(CUDSS_DIR)/lib/libcudss.so.0 \
               -Wl,-rpath,$(NCCL_DIR)/lib -L$(NCCL_DIR)/lib -lnccl
-else
-  CUDSS_LIB =
-endif
+#else
+#  CUDSS_LIB =
+#endif
 
 LIBS = 	\
 	-L$(HDF5_DIR)/lib -lhdf5_parallel -lhdf5_hl_parallel -lhdf5hl_fortran_parallel -lhdf5_fortran_parallel \
