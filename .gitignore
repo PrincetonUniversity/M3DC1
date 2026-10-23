@@ -54,3 +54,4 @@ doc/*
 !readme
 !figures/*
 
+.DS_Store

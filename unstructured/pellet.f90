@@ -306,12 +306,12 @@ contains
   ! Keep track if a pellet has left the plasma domain and should no longer
   ! deposit material
   subroutine pellet_domain
+    use mpi
 
     use basic
 
     implicit none
 
-    include 'mpif.h'
 
     integer :: j
     integer :: itri, iz, izone, ier

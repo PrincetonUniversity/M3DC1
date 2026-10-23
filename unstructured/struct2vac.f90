@@ -1,10 +1,10 @@
 program struct2vac
+  use mpi
 
   use mesh_mod
 
   implicit none
 
-  include 'mpif.h'
 
   integer :: inode, ier, num_global_nodes, num_local_nodes
   integer :: i, j, ilast, ifirst, numnodes
