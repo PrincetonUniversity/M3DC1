@@ -235,7 +235,7 @@ subroutine runaway_advection_initialize
    if (ierr .ne. 0) return
    if (myrank .eq. 0) then
       call second(tend)
-      write (0, '(I12,A,f9.2,A)') nparticles, ' particles initialized in', &
+      write (*, '(I12,A,f9.2,A)') nparticles, ' particles initialized in', &
          tend - tstart, ' seconds.'
    end if
    !call particle_step(dt*t0_norm)
@@ -514,7 +514,7 @@ subroutine init_particles(lrestart, ierr)
          call define_fields(ielm, FIELD_PSI+FIELD_I, 1, 0)
          call eval_ops(ielm, psi_field(0), ps079)
          call eval_ops(ielm, bz_field(0), bz079)
-         bzsign_temp=sign(1.0, real(sum(ps079(:,OP_GS))*sum(bz079(:,OP_1))))
+         bzsign_temp=sign(1.0, -real(sum(ps079(:,OP_GS))*sum(bz079(:,OP_1))))
       endif
       call mpi_allreduce(bzsign_temp, bzsign, 1, MPI_DOUBLE_PRECISION, MPI_SUM, MPI_COMM_WORLD, ierr)
       bzsign=sign(1.0, bzsign)
@@ -598,7 +598,7 @@ subroutine init_particles(lrestart, ierr)
                call get_geom_terms(dpar%x, itri, geomterms, .false., ierr)
                call getBcyl(dpar%x, elfieldcoefs(itri), geomterms, Bcyl, deltaB)
                B0 = sqrt(dot_product(Bcyl, Bcyl))
-               dpar%v(1) = 2.99792458e8*bzsign*sqrt(xi2_re)
+               dpar%v(1) = -2.99792458e8*bzsign*sqrt(xi2_re)
                if (B0.gt.0.) then
                   dpar%v(2) = 0.5*(2.99792458e8)**2*(1. - xi2_re)/(qm_re*B0)
                else
@@ -1246,7 +1246,7 @@ subroutine runaway_advection_step(pdt)
          call second(tstart)
          call advance_particles(pdt/psubsteps)
          call second(tend)
-         write (0, '(A,I7,A,f9.2,A)') 'Particle advance completed', psubsteps, ' steps in', &
+         write (*, '(A,I7,A,f9.2,A)') 'Particle advance completed', psubsteps, ' steps in', &
             tend - tstart, ' seconds.'
       end if
       call mpi_barrier(mpi_comm_world, ierr)
@@ -1279,14 +1279,14 @@ subroutine update_particle_pressure
    call MPI_Barrier(MPI_COMM_WORLD, ierr)
    if (myrank .eq. 0) then
       call second(tend)
-      write (0, '(A,f9.2,A)') 'Pressure tensor RHS vecs calculated in', tend - tstart, ' sec.'
+      write (*, '(A,f9.2,A)') 'Pressure tensor RHS vecs calculated in', tend - tstart, ' sec.'
    end if
 
    call second(tstart)
    call solve_pi_tensor
    if (myrank .eq. 0) then
       call second(tend)
-      write (0, '(A,f9.2,A)') 'Pressure tensor LHS vecs calculated in', tend - tstart, ' sec.'
+      write (*, '(A,f9.2,A)') 'Pressure tensor LHS vecs calculated in', tend - tstart, ' sec.'
    end if
 end subroutine update_particle_pressure
 !---------------------------------------------------------------------------

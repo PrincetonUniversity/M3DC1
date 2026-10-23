@@ -768,6 +768,10 @@ subroutine export_time_advance_vectors_split
 
   endif   ! on ipressplit.eq.0
 
+#ifdef USEPARTICLES
+  if(kinetic_thermal_pressure) pe_field(1) = p_field(1)
+#endif
+
   if(idens.eq.1) then
      ne_field(1) = ne_v
      den_field(1) = den_v
@@ -800,6 +804,9 @@ subroutine step_split(calc_matrices)
   use auxiliary_fields
   use m3dc1_vel_prof
   use hypervisc
+#ifdef USEPARTICLES
+  use particles, only: set_parallel_velocity
+#endif
 
   implicit none
 
@@ -918,6 +925,20 @@ call PetscLogStagePop(jer)
      call apply_hyperv(u_v, vz_v, chi_v)
   end if
   
+#ifdef USEPARTICLES
+  if(kinetic.eq.0) then
+     ! Export only velocity: a full import would also advance runaways again.
+     u_field(1) = u_v
+     if(numvar.ge.2) vz_field(1) = vz_v
+     if(numvar.ge.3) chi_field(1) = chi_v
+     call set_parallel_velocity
+     ! Import the corrected velocity before the density and pressure solves.
+     u_v = u_field(1)
+     if(numvar.ge.2) vz_v = vz_field(1)
+     if(numvar.ge.3) chi_v = chi_field(1)
+  endif
+#endif
+
   ! Advance Density
   ! ===============
   if(idens.eq.1) then

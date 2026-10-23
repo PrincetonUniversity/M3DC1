@@ -318,6 +318,9 @@
   - For `momentum=True`, draw dashed vertical and horizontal reference lines at `ppar=0` and `pperp=0`.
   - `plot_particle_distribution_com.py` plots all species and radii in `pphi` versus `muB0overE`, uniformly samples at most 10,000 marker rows by default, accepts `max_particles=None` as an explicit all-row opt-in, and reuses `plot_particle_distribution.py` KDE behavior.
   - Normalize the COM plot x-coordinate as `(P_phi-psi0)/(psi0-psi_edge)`, reading `psi0` and `psi_edge` from the requested timeslice in MKS units; keep the `read_particles.py` `pphi` column in Wb.
+  - `plot_particle_distribution_com.py` supports `jacobian=True` for fixed-energy, single-species plots. It calls Fusion-IO `trace_particle`, interpolates `jacobian_relative_keV_s_per_T` onto the KDE grid, and divides full-f or delta-f density by that Jacobian.
+  - COM Jacobian correction requires explicit `energy` and `sps=1` or `sps=2`; do not apply it to `weight=True` because the common phase-space Jacobian cancels in `delta-f/f0`.
+  - Keep trace invocation and COM Jacobian table handling in `particle_com_jacobian.py`. For `sigma=0`, sum co/counter-passing Jacobians but count paired trapped branches only once.
 - `plot_particle_distribution_com.py` accepts `energy` in keV and retains markers within `energy_width` keV of that value before applying `sigma`; default `energy_width=1.0`.
 - `plot_particle_distribution_com.py` accepts `sigma`: `1` plots `v_parallel>0`, `-1` plots `v_parallel<0`, and the default `0` combines both populations in one plot.
 - In particle-distribution plots, determine automatic `xlim` and `ylim` from all finite particles before applying `sigma`, so all three `sigma` values use identical axis limits.

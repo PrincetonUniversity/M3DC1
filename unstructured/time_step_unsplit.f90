@@ -250,6 +250,10 @@ subroutine export_time_advance_vectors_unsplit
      end if
   end if
 
+#ifdef USEPARTICLES
+  if(kinetic_thermal_pressure) pe_field(1) = p_field(1)
+#endif
+
   if((jadv.eq.0 .and. i3d.eq.1).or.(jadv.eq.1 .and. imp_hyper.ge.1)) then
      e_field(1) = e_v
   end if

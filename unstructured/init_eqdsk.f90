@@ -23,7 +23,7 @@ subroutine eqdsk_init()
   implicit none
 
   integer :: l, ll, ierr, itri, k, numelms
-  real :: dpsi, ffp2, pp2
+  real :: dpsi, ffp2, pp2, fpol_edge_sq, fpol_sq
   vectype, parameter ::  negone = -1
   vectype, dimension(dofs_per_element) :: dofs
   type(field_type) :: psi_vec, bz_vec, den_vec, p_vec
@@ -168,7 +168,24 @@ subroutine eqdsk_init()
   end if
 !
 ! Bateman scaling parameter reintroduced
-  if(igs_pp_ffp_rescale.ne.1) fpol(nw) = fpol(nw)*batemanscale
+  if(igs_pp_ffp_rescale.ne.1) then
+     if(igs.lt.0 .and. batemanscale.ne.1.) then
+        ! Preserve the input fpol profile while shifting F**2 by a constant.
+        ! This keeps FF' fixed and is continuous at batemanscale = 1.
+        fpol_edge_sq = fpol(nw)**2
+        do l=1,nw
+           fpol_sq = fpol(l)**2 + (batemanscale**2 - 1.)*fpol_edge_sq
+           if(fpol_sq.lt.0.) then
+              if(myrank.eq.0) print *, &
+                   'ERROR: Bateman scaling gives negative F**2 at index ', l
+              call safestop(1)
+           endif
+           fpol(l) = sign(sqrt(fpol_sq),fpol(l))
+        enddo
+     else
+        fpol(nw) = fpol(nw)*batemanscale
+     endif
+  endif
 !
   bzero = fpol(nw)/rzero
   if(iprint.ge.1 .and. myrank.eq.0) then 
@@ -185,7 +202,11 @@ subroutine eqdsk_init()
         do l=1,nw
            flux(l) = (l-1)*dpsi
            ll = nw - l
-           if(batemanscale.eq.1.0 .or. igs_pp_ffp_rescale.eq.1) cycle
+!           if(igs.lt.0 .or. batemanscale.eq.1.0 .or. &
+!                igs_pp_ffp_rescale.eq.1) cycle
+           if(igs.lt.0 .or. igs_pp_ffp_rescale.eq.1) cycle
+!           if((igs.lt.0 .and. batemanscale.eq.1.0) .or. &
+!                igs_pp_ffp_rescale.eq.1) cycle
 ! ...Apply Bateman scaling --- redefine fpol keeping ffprim fixed
            if(ll.gt.0) fpol(ll) = sign(1.0,fpol(nw)) &
                 *sqrt(fpol(ll+1)**2 - dpsi*(ffprim(ll)+ffprim(ll+1)))

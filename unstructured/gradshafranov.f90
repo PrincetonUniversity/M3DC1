@@ -700,13 +700,20 @@ subroutine define_profiles
      else
         ! profile_ti is tabulated directly versus normalized poloidal flux;
         ! its first column must not be converted from rho.
-        call read_ascii_column('profile_ti', xvals, nvals, icol=1)
-        call read_ascii_column('profile_ti', yvals, nvals, icol=2)
+        inquire(file='profile_ti', exist=file_exists)
+        if(file_exists) then
+           call read_ascii_column('profile_ti', xvals, nvals, icol=1)
+           call read_ascii_column('profile_ti', yvals, nvals, icol=2)
+        endif
      endif
-     if(nvals.eq.0) call safestop(5)
+     if(file_exists .and. nvals.eq.0) call safestop(5)
      if(allocated(yvals)) then
         call create_spline(tfi_spline, nvals, xvals, yvals)
         deallocate(xvals, yvals)
+     else
+        call destroy_spline(tfi_spline)
+        if(myrank.eq.0 .and. iprint.ge.1) &
+             print *, 'No thermal-ion temperature profile: using MHD ion temperature (eV)'
      end if
   endif
   
@@ -726,16 +733,21 @@ subroutine define_profiles
      else
         ! profile_ni is tabulated directly versus normalized poloidal flux;
         ! unlike profile_ni_rho, its first column must not be converted.
-        ! If it is absent, read_ascii_column leaves nvals=0 and the
-        ! check below stops the run.
-        call read_ascii_column('profile_ni', xvals, nvals, icol=1)
-        call read_ascii_column('profile_ni', yvals, nvals, icol=2)
+        inquire(file='profile_ni', exist=file_exists)
+        if(file_exists) then
+           call read_ascii_column('profile_ni', xvals, nvals, icol=1)
+           call read_ascii_column('profile_ni', yvals, nvals, icol=2)
+        endif
      endif
-     if(nvals.eq.0) call safestop(5)
-     yvals = yvals / n0_norm !rsae
+     if(file_exists .and. nvals.eq.0) call safestop(5)
      if(allocated(yvals)) then
+        yvals = yvals / n0_norm !rsae
         call create_spline(nfi_spline, nvals, xvals, yvals)
         deallocate(xvals, yvals)
+     else
+        call destroy_spline(nfi_spline)
+        if(myrank.eq.0 .and. iprint.ge.1) &
+             print *, 'No thermal-ion density profile: using MHD density'
      end if
   endif
 #endif
@@ -1640,9 +1652,11 @@ endif
      call newvar_solve(b1vecini_vec%vec,mass_mat_lhs)
      !call mult(b1vecini_vec,0.25)
      nfi_field = b1vecini_vec
+   else if(kinetic.eq.1 .and. kinetic_thermal_ion.eq.1) then
+     nfi_field = den_field(0)
    end if
   ! Define tfi field
-  if(allocated(tfi_spline%y)) then
+  if(kinetic.eq.1 .and. kinetic_thermal_ion.eq.1) then
      if(myrank.eq.0 .and. iprint.ge.2) print *, '  calculating tfi...'
      b1vecini_vec = 0.
      do itri=1,numelms
@@ -3180,8 +3194,13 @@ subroutine calc_fidensity(ps0, dens, x, z, izone)
 
   integer :: mr
 
+  if(.not.allocated(nfi_spline%y)) then
+     call calc_density(ps0, dens, x, z, izone)
+     return
+  endif
+
   if(izone.gt.2) then
-     dens = nf_spline%y(nf_spline%n)
+     dens = nfi_spline%y(nfi_spline%n)
      return
   end if
 
@@ -3209,7 +3228,7 @@ subroutine calc_fitemp(ps0, tf, x, z, izone)
   real, intent(in) :: x, z
   integer, intent(in) :: izone
 
-  vectype :: pres0, n0
+  vectype :: pres0, pe0, n0
   real :: psii          ! normalized flux
   real :: tf0, psinb
   integer :: mr
@@ -3217,7 +3236,7 @@ subroutine calc_fitemp(ps0, tf, x, z, izone)
   if(allocated(tfi_spline%y)) then
 !     if(izone.ne.1) then 
      if(izone.ne.ZONE_PLASMA) then 
-        tf0 = tfi_spline%y(tf_spline%n)
+        tf0 = tfi_spline%y(tfi_spline%n)
      else
         psii = (real(ps0(1)) - psimin)/(psibound - psimin)*psifrac
         call magnetic_region(ps0(1),ps0(2),ps0(3),x,z,mr,psinb)
@@ -3226,7 +3245,13 @@ subroutine calc_fitemp(ps0, tf, x, z, izone)
      end if
      tf = tf0
   else
-     tf = 0.
+     ! Use the MHD ion pressure, respecting pefac or an explicit Te profile.
+     ! Convert normalized p_i/n_i to eV, as required by particle loading.
+     call calc_pressure(ps0, pres0, x, z, izone)
+     call calc_electron_pressure(ps0, pe0, x, z, izone)
+     call calc_density(ps0, n0, x, z, izone)
+     tf = real((pres0 - pe0)/n0) / &
+          (1.6022e-12 / (b0_norm**2/(4.*pi*n0_norm)))
   end if
 end subroutine calc_fitemp
 #endif

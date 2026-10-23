@@ -936,6 +936,25 @@ contains
        pi179 = p179 - pe179
        pi079 = p079 - pe079
        pit79 = pt79 - pet79
+#ifdef USEPARTICLES
+       if(kinetic_thermal_pressure) then
+          if(ilin.eq.0) then
+             call eval_ops(itri, p_i_par(1), pipar79, rfac)
+             call eval_ops(itri, p_i_perp(1), piper79, rfac)
+             pi179 = (pipar79 + 2.*piper79)/3.
+          else
+             pi179 = 0.
+          endif
+          if(ieqsub.eq.1) then
+             call eval_ops(itri, p_i_par(0), pipar079)
+             call eval_ops(itri, p_i_perp(0), piper079)
+             pi079 = (pipar079 + 2.*piper079)/3.
+          else
+             pi079 = 0.
+          endif
+          pit79 = pi079 + pi179
+       endif
+#endif
 
        p_floor = iset_pe_floor*pe_floor + iset_pi_floor*pi_floor
 
@@ -1794,16 +1813,6 @@ contains
            jfpar79 = 0.
         endif
 
-        if (kinetic.eq.1 .and. &
-             ((iand(fields, FIELD_PE).eq.FIELD_PE) .or. &
-              (iand(fields, FIELD_P).eq.FIELD_P))) then
-           if (ieqsub.eq.0) then
-              pt79 = pt79 + pfpar79/3. + 2.*pfper79/3.
-           else if (ieqsub.eq.1) then
-              pt79 = pt79 + pfpar079/3. + 2.*pfper079/3.
-           endif
-        endif
-
         if (kinetic_thermal_ion.eq.1) then
            call eval_ops(itri, p_i_par(1), pipar79, rfac)
            call eval_ops(itri, p_i_perp(1), piper79, rfac)
@@ -1822,6 +1831,19 @@ contains
            deni79 = 0.
            deni079 = 0.
            vipar79 = 0.
+        endif
+        if (kinetic.eq.1 .and. &
+             ((iand(fields, FIELD_PE).eq.FIELD_PE) .or. &
+              (iand(fields, FIELD_P).eq.FIELD_P))) then
+           if (ieqsub.eq.0) then
+              pt79 = pt79 + pfpar79/3. + 2.*pfper79/3.
+              if (particle_couple.ge.0 .and. kinetic_thermal_ion.eq.1) &
+                   pt79 = pt79 + pipar79/3. + 2.*piper79/3.
+           else if (ieqsub.eq.1) then
+              pt79 = pt79 + pfpar079/3. + 2.*pfper079/3.
+              if (particle_couple.ge.0 .and. kinetic_thermal_ion.eq.1) &
+                   pt79 = pt79 + pipar079/3. + 2.*piper079/3.
+           endif
         endif
         call eval_ops(itri, rho_field, rhof79, rfac)
            !pipar79 = 0.

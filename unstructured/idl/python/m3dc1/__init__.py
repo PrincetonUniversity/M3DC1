@@ -60,9 +60,11 @@ from .plot_field_spectrum import plot_field_spectrum
 from .plot_field_vs_phi import plot_field_vs_phi
 from .plot_scalar import plot_scalar
 from .plot_hmn import plot_hmn
-from .plot_poincare import plot_poincare
+from .plot_poincare import plot_poincare, run_trace
+from .plot_trace_q import plot_trace_q
 from .plot_particle_distribution import plot_particle_distribution
 from .plot_particle_distribution_com import plot_particle_distribution_com
+from .particle_com_jacobian import particle_com_jacobian
 from .particle_loss_boundary import ParticleLossBoundary, particle_loss_boundary
 from .plot_signals import plot_signals
 from .schaffer_plot import schaffer_plot
@@ -140,8 +142,11 @@ __all__ = [
     "plot_scalar",
     "plot_hmn",
     "plot_poincare",
+    "run_trace",
+    "plot_trace_q",
     "plot_particle_distribution",
     "plot_particle_distribution_com",
+    "particle_com_jacobian",
     "ParticleLossBoundary",
     "particle_loss_boundary",
     "plot_signals",

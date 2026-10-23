@@ -140,7 +140,7 @@ subroutine onestep
     endif
 
 #ifdef USEPARTICLES
-    if ((kinetic .eq. 1) .and. (linear .eq. 1)) then
+    if (((kinetic .eq. 1).or.(irunaway_kinetic .eq. 1)) .and. (linear .eq. 1)) then
        if (myrank .eq. 0 .and. itimer .eq. 1) call second(tstart)
        call ludefvel_nolin
        if (myrank .eq. 0 .and. itimer .eq. 1) then
@@ -206,7 +206,8 @@ subroutine onestep
 #ifdef USEPARTICLES
  if(kinetic.eq.0) then
     if (nplanes.gt.1) call filter_fields
-    call set_parallel_velocity
+    ! Split steps already corrected velocity before density and pressure.
+    if(isplitstep.eq.0) call set_parallel_velocity
  endif
 #endif
 

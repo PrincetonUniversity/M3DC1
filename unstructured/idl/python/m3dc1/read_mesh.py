@@ -38,12 +38,18 @@ def read_mesh(filename: str | Path = "C1.h5", slice: int = 0) -> MeshData:
     group_name = time_name(int(slice))
     with h5py.File(str(filename), "r") as h5:
         if group_name not in h5:
-            if "equilibrium" in h5:
-                group_name = "equilibrium"
-            else:
-                raise KeyError(f"Missing group '{group_name}'.")
+            group_name = "equilibrium"
 
-        g = h5[group_name]
+        try:
+            g = h5[group_name]
+        except (KeyError, OSError):
+            # C1.h5 can contain a dangling external link for a time slice when
+            # a restart directory keeps only the restart slice. In that case,
+            # the equilibrium link still provides the mesh needed by readers.
+            if group_name == "equilibrium" or "equilibrium" not in h5:
+                raise
+            group_name = "equilibrium"
+            g = h5[group_name]
         if "mesh" not in g or not isinstance(g["mesh"], h5py.Group):
             raise KeyError(f"Missing mesh group in '{group_name}'.")
 

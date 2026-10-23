@@ -301,13 +301,11 @@ Program Reducedquintic
   ! ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
   if(ntime.eq.0 .or. (ntime.eq.ntime0 .and. eqsubtract.eq.1)) then
 
-     if(eqsubtract.eq.1) then
-        if(myrank.eq.0 .and. iprint.ge.2) print *, "  transport coefficients"
-        call find_lcfs()
-        call define_transport_coefficients
-        call derived_quantities(0)
-        if(iwrite_aux_vars.eq.1) call calculate_auxiliary_fields(0)
-     end if
+     if(myrank.eq.0 .and. iprint.ge.2) print *, "  transport coefficients"
+     call find_lcfs()
+     call define_transport_coefficients
+     call derived_quantities(0)
+     if(iwrite_aux_vars.eq.1) call calculate_auxiliary_fields(0)
 
      call hdf5_write_time_slice(1,ier)
   end if

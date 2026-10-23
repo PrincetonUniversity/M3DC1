@@ -4,7 +4,7 @@ from pathlib import Path
 
 import matplotlib.pyplot as plt
 import numpy as np
-from matplotlib import cm
+from matplotlib import colormaps
 
 
 def _choose_cmap(panel: np.ndarray) -> str:
@@ -50,7 +50,7 @@ def contour_and_legend_single(
     print("maxval, minval, fracdiff = ", maxval, minval, fracdiff)
 
     cmap_name = cmap if cmap else _choose_cmap(panel)
-    cmap_obj = cm.get_cmap(cmap_name).copy()
+    cmap_obj = colormaps.get_cmap(cmap_name).copy()
     cmap_obj.set_under("black")
     cmap_obj.set_over("white")
 

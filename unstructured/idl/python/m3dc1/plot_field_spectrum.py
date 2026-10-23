@@ -51,6 +51,7 @@ def plot_field_spectrum(
     *,
     m_val=None,
     phase: bool = False,
+    show_q_lines: bool = True,
     overplot: bool = False,
     linestyle: str = "-",
     sqrtpsin: bool = True,
@@ -94,6 +95,8 @@ def plot_field_spectrum(
 ):
     """
     Plot peak-normalized poloidal components from read_field_spectrum().
+
+    Set show_q_lines=False to omit vertical lines at q=m/n crossings.
     """
     if "m_vals" in kwargs:
         raise TypeError("plot_field_spectrum() uses 'm_val', not 'm_vals'.")
@@ -185,7 +188,7 @@ def plot_field_spectrum(
             ax.set_xlabel(xlabel)
             ax.set_ylabel(ytitle)
         ax.plot(xplot, data, color=colors[i], linestyle=linestyle)
-        if np.isfinite(q_target[i]):
+        if show_q_lines and np.isfinite(q_target[i]):
             for fv in _find_profile_crossings(np.abs(qprof), xplot, float(q_target[i])):
                 ax.axvline(fv, color=colors[i], linestyle="--", linewidth=0.8)
 

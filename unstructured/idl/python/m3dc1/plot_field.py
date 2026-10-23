@@ -317,11 +317,12 @@ def plot_field(
     mesh_obj = None if isinstance(mesh, bool) else mesh
     show_mesh = bool(mesh) if isinstance(mesh, bool) else (mesh is not None)
 
-    if boundary:
+    # Draw mesh edges first; requested boundary edges are overlaid afterward.
+    if show_mesh:
         plot_mesh(
             mesh=mesh_obj,
             oplot=True,
-            boundary=True,
+            boundary=False,
             logical=logical,
             phi=phi,
             xscale=xscale_f,
@@ -330,11 +331,12 @@ def plot_field(
             slice=primary_slice,
             **plot_kwargs,
         )
-    elif show_mesh:
+
+    if boundary:
         plot_mesh(
             mesh=mesh_obj,
             oplot=True,
-            boundary=False,
+            boundary=True,
             logical=logical,
             phi=phi,
             xscale=xscale_f,
