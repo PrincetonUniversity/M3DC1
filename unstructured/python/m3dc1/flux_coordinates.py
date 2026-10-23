@@ -14,7 +14,7 @@ import m3dc1.fpylib as fpyl
 from m3dc1.read_h5 import readParameter
 
 #ToDo: Allow psin_range to start at a value > 0
-def flux_coordinates(sim=None, filename='C1.h5', time=0, fcoords='', phit=0.0, points=200, fbins=None, tbins=None, itor=None, r0=None, psin_range=None, njac=False, makeplot=False,fignum=501,quiet=False):
+def flux_coordinates(sim=None, filename='C1.h5', time=0, fcoords='', phit=0.0, points=200, fbins=None, tbins=None, itor=None, r0=None, psin_range=None, njac=False, makeplot=False,pub=False,fignum=501,quiet=False):
     """
     Calculates flux coordinates and returns a fpy.sim_data object containing a flux
     coordinate object as property sim.fc. Possibilities are PEST, Boozer, Hamada coordinates
@@ -81,6 +81,8 @@ def flux_coordinates(sim=None, filename='C1.h5', time=0, fcoords='', phit=0.0, p
         print('Error: r0 = 0. Using r0 = 1')
         r0 = 1.
     
+    print('Calculating flux coordinates at time slice: '+str(sim.timeslice))
+    
     
     period = 2.*np.pi*r0 if itor==0 else 2.*np.pi
 
@@ -130,7 +132,9 @@ def flux_coordinates(sim=None, filename='C1.h5', time=0, fcoords='', phit=0.0, p
     else:
         tsfilename = tsfilename+'time_'+str(timeslice).zfill(3)+'.h5'
     
-    ntimestep = readParameter('ntimestep',fname=tsfilename)
+    #print(tsfilename)
+    h5file = sim._all_attrs
+    ntimestep = readParameter('ntimestep', h5file=h5file)
     R_magax = sim.get_time_trace('xmag').values[ntimestep]
     Z_magax = sim.get_time_trace('zmag').values[ntimestep]
     axis = [R_magax, Z_magax]
@@ -358,6 +362,11 @@ def flux_coordinates(sim=None, filename='C1.h5', time=0, fcoords='', phit=0.0, p
                 else:
                     theta_sfl[i,j] = theta_sfl[i-1,j] + dl[i]*dthetadl[i]/2. + dl[i-1]*dthetadl[i-1]/2.
         
+        #if j == 0:
+        #    print('DL and DTHETADL')
+        #    print(dl)
+        #    print(dthetadl)
+        
         current[j] = np.sum(br*dr + bz*dz)
         area[j] = period*np.sum(dl*rp[:,j])
         polarea[j] = fpyl.PolygonArea(rp[:,j],zpath[:,j])
@@ -408,10 +417,36 @@ def flux_coordinates(sim=None, filename='C1.h5', time=0, fcoords='', phit=0.0, p
             #    plt.plot(rpath[:,j])
             #rpath[:,j] = interpolate(rpath[*,j],newm)
             #zpath[:,j] = interpolate(zpath[*,j],newm)
+
+            # Check if theta is out of the interpolation range of theta_sfl.
+            # Small deviations due to floating point rounding are being corrected,
+            # but larger deviations raise an error as they indicate a real problem.
+            fp_tol = 1e-10 * 2. * np.pi  # tolerance for floating point rounding errors
+            theta_min = theta_sfl[0, j]
+            theta_max = theta_sfl[-1, j]
+            below = theta < theta_min
+            above = theta > theta_max
+            if np.any(below):
+                max_below = np.max(theta_min - theta[below])
+                if max_below > fp_tol:
+                    raise ValueError(f'theta is below interpolation range by {max_below}, which exceeds floating point tolerance {fp_tol}. This is likely a real error.')
+            if np.any(above):
+                max_above = np.max(theta[above] - theta_max)
+                if max_above > fp_tol:
+                    raise ValueError(f'theta is above interpolation range by {max_above}, which exceeds floating point tolerance {fp_tol}. This is likely a real error.')
+            theta_clipped = np.clip(theta, theta_min, theta_max)
+
             tempr = interp1d(theta_sfl[:,j],rpath[:,j])
-            rpath[:,j] = tempr(theta)
+            #plt.plot(rpath[:,j],zpath[:,j])
+            #print('THETA')
+            #print(np.amax(theta))
+            #print(np.amax(theta_sfl[:,j]))
+            #print(theta_sfl[:,j])
+            #print(np.max(theta - theta_sfl[:,j][-1]))
+            #print(np.any(theta > theta_sfl[:,j][-1]))
+            rpath[:,j] = tempr(theta_clipped)
             tempz = interp1d(theta_sfl[:,j],zpath[:,j])
-            zpath[:,j] = tempz(theta)
+            zpath[:,j] = tempz(theta_clipped)
             if(itor == 1):
                 rp[:,j] = rpath[:,j]
             
@@ -461,10 +496,12 @@ def flux_coordinates(sim=None, filename='C1.h5', time=0, fcoords='', phit=0.0, p
     # calculate deviation of toroidal angle from geometric toroidal angle: omega := zeta - phi
     if ((not geo) and (not fast)):
         for j in range(n):
+            jac_pest_old = None
             for i in range(m):
                 jac_pest = -dpsi_dpsin*rp[i,j]**2*q[j] / field_at_point('i0',rpath[i,j],phit,zpath[i,j])
                 if i == 0:
                     omega[i,j] = 0.
+                    jac_pest_old = jac_pest
                 else:
                     dtheta = theta[i] - theta[i-1]
                     omega[i,j] = omega[i-1,j] + dtheta*((1. - jac[i,j]/jac_pest)/2. +(1. - jac[i-1,j]/jac_pest_old)/2.)
@@ -490,14 +527,14 @@ def flux_coordinates(sim=None, filename='C1.h5', time=0, fcoords='', phit=0.0, p
         f_ax8 = fig.add_subplot(spec2[2, 3])
         
         pathshape = rpath.shape
-        fs = list(range(0,pathshape[1],10))
+        fs = list(range(0,pathshape[1],40))
         if fs[-1] != pathshape[1]-1:
             fs.append(pathshape[1]-1)
         for i in fs:
             rp_plot = np.append(rpath[:,i],rpath[0,i])
             zp_plot = np.append(zpath[:,i],zpath[0,i])
             f_ax1.plot(rp_plot,zp_plot,c='C0')
-        for i in range(0,pathshape[0],10):
+        for i in range(0,pathshape[0],40):
             f_ax1.plot(rpath[i,:],zpath[i,:],c='C1')
         
         f_ax1.set_xlim([fpyl.get_axlim(np.amin(rpath),'min',0.1),fpyl.get_axlim(np.amax(rpath),'max',0.1)])
@@ -510,7 +547,8 @@ def flux_coordinates(sim=None, filename='C1.h5', time=0, fcoords='', phit=0.0, p
         
         cont = f_ax2.contourf(theta,psin,jac.transpose(),200,cmap='jet')
         cbar = fig.colorbar(cont,ax=f_ax2,orientation="horizontal", pad=0.02)
-        cbar.ax.set_xticklabels(cbar.ax.get_xticklabels(),rotation=270)
+        for label in cbar.ax.get_xticklabels():
+            label.set_rotation(270)
         f_ax2.set_aspect(2*np.pi)
         f_ax2.set_xlabel(r'$\theta$')
         f_ax2.set_ylabel(r'$\psi_N$')
@@ -540,5 +578,39 @@ def flux_coordinates(sim=None, filename='C1.h5', time=0, fcoords='', phit=0.0, p
         f_ax8.set_xlabel(r'$\psi_N$')
         f_ax8.set_ylabel(r'$\phi$')
         f_ax8.grid()
+        
+        #Create additional plots for publications
+        if pub:
+            axlblfs = 16
+            ticklblfs = 14
+            linew = 0.8
+            bdlw = 3
+            legfs = 10
+            fig = plt.figure(num=fignum+1)
+            for i in fs:
+                rp_plot = np.append(rpath[:,i],rpath[0,i])
+                zp_plot = np.append(zpath[:,i],zpath[0,i])
+                if i == 0:
+                    plt.plot(rp_plot,zp_plot,c='C0', lw=linew, label='flux surfaces')
+                else:
+                    plt.plot(rp_plot,zp_plot,c='C0', lw=linew)
+            for i in range(0,pathshape[0],40):
+                if i == 0:
+                    plt.plot(rpath[i,:],zpath[i,:],c='C1', lw=linew, label=r'constant-$\theta$ surfaces')
+                else:
+                    plt.plot(rpath[i,:],zpath[i,:],c='C1', lw=linew)
+            
+            ax = plt.gca()
+            #ax.set_xlim(fpyl.get_axlim(np.amin(R),'min'),fpyl.get_axlim(np.amax(R),'max'))
+            ax.set_ylim(fpyl.get_axlim(np.amin(zpath),'min'),fpyl.get_axlim(np.amax(zpath),'max')+0.5)
+            ax.set_aspect('equal')
+            ax.set_xlabel(r'$R$',fontsize=axlblfs)
+            ax.set_ylabel(r'$Z$',fontsize=axlblfs)
+            ax.tick_params(labelsize=ticklblfs)
+            ax.grid(True,zorder=10,alpha=0.5) #There seems to be a bug in matplotlib that ignores the zorder of the grid
+            plt.legend(ncol=1,fontsize=legfs)
+            plt.tight_layout()
+            
+        
 
     return sim
