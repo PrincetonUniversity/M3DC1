@@ -377,6 +377,14 @@ def _read_particles_once(
     if need_bmag:
         r = raw_data[PARTICLE_COLUMNS["r"]][mask]
         z = raw_data[PARTICLE_COLUMNS["z"]][mask]
+        # In a linear simulation the evolved fields are perturbations whose
+        # amplitude can grow arbitrarily; they must not be added to the
+        # equilibrium field when converting particle invariants to physical
+        # energy, pitch, or mu*B0/E.  Nonlinear simulations continue to use
+        # the total field at the requested time slice.
+        linear_simulation = int(round(float(
+            read_parameter("linear", filename=field_filename)
+        ))) == 1
         field_values = _field_values_at_markers(
             r,
             z,
@@ -384,6 +392,7 @@ def _read_particles_once(
             timeslices=slice_idx,
             field_points=int(field_points),
             field_phi=float(field_phi),
+            equilibrium=linear_simulation,
         )
         bmag = field_values["bmag"]
         derived_data["bmag"] = bmag

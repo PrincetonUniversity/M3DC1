@@ -107,8 +107,6 @@ def plot_hmn(
     for i, n_actual in enumerate(nvals):
         c = colors[i % len(colors)] if colors else None
         ax.plot(tscaled, data[i, :], linestyle=linestyle, linewidth=lw, color=c)
-        m = min(int(ntimes * float(labelx)), ntimes - 1)
-        ax.text(tscaled[m], data[i, m], f"{int(n_actual)}", color=c if c is not None else "black")
 
     if xrange is not None:
         ax.set_xlim(xrange)
@@ -119,6 +117,25 @@ def plot_hmn(
         ax.set_ylim(float(yrange[0]), float(yrange[1]))
     if growth:
         ax.axhline(0.0, color="black", linestyle="-", linewidth=0.8)
+
+    xmin, xmax = sorted(ax.get_xlim())
+    ymin, ymax = sorted(ax.get_ylim())
+    m = min(int(ntimes * float(labelx)), ntimes - 1)
+    for i, n_actual in enumerate(nvals):
+        x_label = float(tscaled[m])
+        y_label = float(data[i, m])
+        if not (np.isfinite(x_label) and np.isfinite(y_label)):
+            continue
+        if not (xmin <= x_label <= xmax and ymin <= y_label <= ymax):
+            continue
+        c = colors[i % len(colors)] if colors else None
+        ax.text(
+            x_label,
+            y_label,
+            f"{int(n_actual)}",
+            color=c if c is not None else "black",
+            clip_on=True,
+        )
 
     if not nolegend:
         names = [f"n={int(v)}" for v in nvals]

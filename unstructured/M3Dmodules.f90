@@ -299,7 +299,7 @@ module basic
   integer :: ra_cyc      ! runaway subcycle
   real :: radiff         ! runaway diffusion
   real :: rjra           ! jra/j0
-  real :: bzsign
+  real :: bzsign       ! sign of equilibrium J_phi * B_phi
   integer :: ra_characteristics           ! use method of characteristics
   integer :: irunaway_kinetic             ! couple runaway electron parallel/perp pressure
   integer :: kinetic_current              ! use fast-particle parallel current in Ohm law
@@ -315,6 +315,7 @@ module basic
                          ! 3 = CGL form for pressure tensor (full)
 #ifdef USEPARTICLES
   integer :: kinetic_fast_ion, kinetic_thermal_ion
+  integer :: subtract_fast_ion_pressure
   integer :: igyroaverage
   integer :: particle_linear
   integer :: particle_substeps
@@ -487,6 +488,10 @@ module basic
 
   real :: beta
   real :: pefac
+#ifdef USEPARTICLES
+  ! Activated after particle loading: P then contains only fluid electrons.
+  logical :: kinetic_thermal_pressure = .false.
+#endif
 
   ! complex options
   integer :: ntor     ! toroidal mode number

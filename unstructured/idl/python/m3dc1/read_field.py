@@ -1070,11 +1070,16 @@ def read_field(
                     mask=cs.mask,
                 )
             elif n in {"ion pressure", "pi"}:
-                p = read_field("p", filename=filename, timeslices=slice_idx, points=points, xrange=xrange, yrange=yrange, linear=linear, phi=phi, cgs=cgs, mks=mks, return_meta=True)
-                pe = read_field("pe", filename=filename, timeslices=slice_idx, points=points, xrange=xrange, yrange=yrange, linear=linear, phi=phi, cgs=cgs, mks=mks, return_meta=True)
+                with h5py.File(str(filename), "r") as h5:
+                    fields = h5[time_name(slice_idx)]["fields"]
+                    kinetic_ions = _find_field_name_case_insensitive(fields, "p_i_par") is not None
+                pressure_names = ("p_i_par", "p_i_perp") if kinetic_ions else ("p", "pe")
+                weights = (1.0 / 3.0, 2.0 / 3.0) if kinetic_ions else (1.0, -1.0)
+                p = read_field(pressure_names[0], filename=filename, timeslices=slice_idx, points=points, xrange=xrange, yrange=yrange, linear=linear, phi=phi, cgs=cgs, mks=mks, return_meta=True)
+                pe = read_field(pressure_names[1], filename=filename, timeslices=slice_idx, points=points, xrange=xrange, yrange=yrange, linear=linear, phi=phi, cgs=cgs, mks=mks, return_meta=True)
                 d = dimensions(p0=1)
                 out = FieldResult(
-                    data=np.asarray(p.data) - np.asarray(pe.data),
+                    data=weights[0] * np.asarray(p.data) + weights[1] * np.asarray(pe.data),
                     symbol="$p_i$",
                     units=parse_units(d, cgs=cgs, mks=mks),
                     dimensions=d,

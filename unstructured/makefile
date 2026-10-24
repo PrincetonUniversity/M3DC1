@@ -203,8 +203,8 @@ OBJS := fftw_fortran.o read_namelist.o gsl_wrapper.o \
 	init_intkink.o init_lz.o init_kstar.o init_basicq.o init_cyl.o \
 	transport.o \
 	auxiliary_fields.o runaway_advection.o \
-	time_step_split.o time_step_unsplit.o \
         hdf5_output.o particle.o   \
+	time_step_split.o time_step_unsplit.o \
 	time_step.o output.o restart_hdf5.o \
 	error_estimate.o scorec_adapt.o adapt.o newpar.o input.o ludef_t.o \
 	init_conds.o \
@@ -221,6 +221,14 @@ A2CC_OBJS = readaeqdsk.o a2cc.o
 
 $(BIN): $(OBJS)
 	$(LOADER) $(LDOPTS) $(OBJS) $(LIBS) -o $@
+
+# Parallel-velocity correction in the split solver imports the particles module.
+# Rebuild module users after particle interfaces change.
+ifeq ($(PAR), 1)
+particle.o: hdf5_output.o
+time_step_split.o: particle.o
+time_step.o: particle.o time_step_split.o
+endif
 
 m3dc1 : $(BIN)
 	ln -s $< $@

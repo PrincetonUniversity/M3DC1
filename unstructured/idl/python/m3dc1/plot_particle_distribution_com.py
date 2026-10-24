@@ -1,10 +1,12 @@
 from __future__ import annotations
 
+from collections.abc import Sequence
 from pathlib import Path
 
 import numpy as np
 
 from .particle_loss_boundary import particle_loss_boundary
+from .particle_com_jacobian import particle_com_jacobian
 from .plot_particle_distribution import plot_particle_distribution
 
 
@@ -16,6 +18,17 @@ def plot_particle_distribution_com(
     sps: int | None = None,
     deltaf: bool = False,
     absolute_value: bool = True,
+    weight: bool = False,
+    f0_min_fraction: float = 1.0e-3,
+    jacobian: bool = False,
+    jacobian_points: int | Sequence[int] = 15,
+    jacobian_file: str | Path | None = None,
+    trace_particle_executable: str | Path | None = None,
+    trace_processes: int = 1,
+    trace_mpi_executable: str | Path = "mpirun",
+    trace_dt: float = 2.0e-9,
+    trace_steps: int = 50_000,
+    trace_extra_args: Sequence[str | int | float] | None = None,
     sigma: int = 0,
     energy: float | None = None,
     energy_width: float = 1.0,
@@ -35,7 +48,7 @@ def plot_particle_distribution_com(
     yrange=None,
     xscale: float = 1.0,
     yscale: float = 1.0,
-    bandwidth=None,
+    bandwidth=0.1,
     cmap=None,
     xlabel: str | None = None,
     ylabel: str | None = None,
@@ -61,7 +74,64 @@ def plot_particle_distribution_com(
     Use ``sps=1`` for thermal ions, ``sps=2`` for fast ions, or ``sps=None``
     for all particles. Unless explicitly set, ``boundary_sps`` follows ``sps``;
     when plotting all particles, the boundary defaults to fast-ion parameters.
+    Set ``weight=True`` to plot the KDE ratio ``delta-f/f0``; the
+    default ``absolute_value=True`` plots ``abs(delta-f)/f0``.
+    Ratio values are set to zero where the full-f KDE is below
+    ``f0_min_fraction`` times its peak (default: ``1e-3``). Increase this
+    threshold to suppress more sparse-region noise, or set it to zero to
+    disable the relative threshold.
+    The default Gaussian KDE bandwidth factor is ``0.1``; pass
+    ``bandwidth=None`` to restore SciPy's automatic bandwidth selection.
+    Set ``jacobian=True`` to divide a fixed-energy full-f or delta-f KDE by
+    the relative COM Jacobian calculated by ``trace_particle``. This requires
+    explicit ``energy`` and ``sps=1`` or ``sps=2``. The trace grid is
+    controlled by ``jacobian_points``; pass one value for a square grid or
+    ``(pphi_points, lambda_points)``. A supplied ``jacobian_file`` is
+    reused when it exists and generated otherwise.
     """
+    density_divisor = None
+    if jacobian:
+        if weight:
+            raise ValueError(
+                "jacobian=True must not be combined with weight=True because "
+                "the COM Jacobian cancels in delta-f/f0."
+            )
+        if energy is None:
+            raise ValueError("jacobian=True requires a fixed energy.")
+        if sps not in (1, 2):
+            raise ValueError("jacobian=True requires sps=1 or sps=2.")
+        if colorbar_label is None:
+            colorbar_label = (
+                r"Jacobian-corrected $|\delta f|$ (a.u.)"
+                if deltaf and absolute_value
+                else (
+                    r"Jacobian-corrected $\delta f$ (a.u.)"
+                    if deltaf
+                    else r"Jacobian-corrected $f$ (a.u.)"
+                )
+            )
+
+        def density_divisor(xgrid, lambda_grid):
+            return particle_com_jacobian(
+                xgrid,
+                lambda_grid,
+                energy=energy,
+                timeslices=timeslices,
+                field_filename=field_filename,
+                sps=int(sps),
+                sigma=sigma,
+                xscale=xscale,
+                yscale=yscale,
+                jacobian_points=jacobian_points,
+                trace_particle_executable=trace_particle_executable,
+                trace_processes=trace_processes,
+                trace_mpi_executable=trace_mpi_executable,
+                trace_dt=trace_dt,
+                trace_steps=trace_steps,
+                jacobian_file=jacobian_file,
+                trace_extra_args=trace_extra_args,
+            )
+
     figure, axis = plot_particle_distribution(
         timeslices,
         filename=filename,
@@ -69,6 +139,8 @@ def plot_particle_distribution_com(
         sps=sps,
         deltaf=deltaf,
         absolute_value=absolute_value,
+        weight=weight,
+        f0_min_fraction=f0_min_fraction,
         coordinates="com",
         sigma=sigma,
         energy=energy,
@@ -91,6 +163,7 @@ def plot_particle_distribution_com(
         colorbar_label=colorbar_label,
         overplot=overplot,
         outfile=outfile,
+        density_divisor=density_divisor,
     )
     loss_energy = energy if boundary_energy is None else boundary_energy
     if loss_boundary and loss_energy is not None:

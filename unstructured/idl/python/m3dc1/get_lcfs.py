@@ -66,9 +66,15 @@ def get_lcfs(psi=None, x=None, z=None, *, psival=None, axis=None, filename="C1.h
         corner_mask=False,
     )
     try:
-        if not cs.collections or not cs.collections[0].get_paths():
+        # allsegs preserves separate contour components on both old and new
+        # Matplotlib; newer get_paths() may combine them into one compound path.
+        paths = [
+            MatplotlibPath(np.asarray(segment, dtype=float))
+            for segment in cs.allsegs[0]
+            if np.asarray(segment).ndim == 2 and len(segment) >= 3
+        ]
+        if not paths:
             return np.zeros((2, 0), dtype=float)
-        paths = cs.collections[0].get_paths()
 
         def _path_area(path: MatplotlibPath) -> float:
             vertices = np.asarray(path.vertices, dtype=float)

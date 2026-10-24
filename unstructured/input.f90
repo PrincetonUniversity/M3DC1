@@ -435,7 +435,8 @@ subroutine set_defaults
   call add_var_double("rjra", rjra, 1., "", model_grp)
   call add_var_int("ra_characteristics", ra_characteristics, 0, &
        "1: Use the method of characteristics to advance the RE advection equation", model_grp)
-  call add_var_double("bzsign", bzsign, 0., "", model_grp)
+  call add_var_double("bzsign", bzsign, 0., &
+       "Sign of equilibrium J_phi * B_phi", model_grp)
   call add_var_int("imp_bf", imp_bf, 0, &
        "1: Include implicit equation for f", model_grp)
   call add_var_int("imp_temp", imp_temp, 0, &
@@ -1269,6 +1270,8 @@ subroutine set_defaults
 #ifdef USEPARTICLES
   call add_var_int("kinetic_fast_ion", kinetic_fast_ion, 1, &
        "1: Enable fast ion PIC", particle_grp)
+  call add_var_int("subtract_fast_ion_pressure", subtract_fast_ion_pressure, 1, &
+       "1: Subtract fast-ion pressure from the fluid pressure at initialization", particle_grp)
   call add_var_int("kinetic_thermal_ion", kinetic_thermal_ion, 0, &
        "1: Enable thermal ion PIC and density coupling between MHD and PIC", particle_grp)
   call add_var_int("igyroaverage", igyroaverage, 0, &

@@ -286,6 +286,10 @@ endif
 
      ! Total pressure is ion pressure plus electron pressure
      temp79a = temp79a + temp79b
+#ifdef USEPARTICLES
+     ! In the hybrid model kinetic moments carry the ion pressure separately.
+     if(kinetic_thermal_pressure) temp79a = temp79b
+#endif
 
 
      ! If eqsubtract = 1, subtract the equilibrium pressure
@@ -397,12 +401,32 @@ endif
         end where
      end if
 
-     ! Ion temperature
-     ! Ti = (p - pe) / [n_i + sum(n_z)]
+     ! Ion pressure comes from kinetic moments in the hybrid model.
+     pi179 = p179 - pe179
+     pi079 = 0.
+     if(ieqsub.eq.1 .and. ilin.eq.1) pi079 = p079 - pe079
+     pit79 = pt79 - pet79
+#ifdef USEPARTICLES
+     if(kinetic_thermal_pressure) then
+        call eval_ops(itri, p_i_par(ilin), pi179, rfac)
+        call eval_ops(itri, p_i_perp(ilin), tm79, rfac)
+        pi179 = (pi179 + 2.*tm79)/3.
+        if(ieqsub.eq.1 .and. ilin.eq.1) then
+           call eval_ops(itri, p_i_par(0), pi079)
+           call eval_ops(itri, p_i_perp(0), tm79)
+           pi079 = (pi079 + 2.*tm79)/3.
+           pit79 = pi079 + pi179
+        else
+           pit79 = pi179
+        endif
+     endif
+#endif
+
+     ! Ion temperature: Ti = pi / [n_i + sum(n_z)]
      if(linear.eq.1 .and. ilin.eq.1) then
         where(real(n079(:,OP_1)).gt.0.)
-           temp79b = (p179(:,OP_1) - pe179(:,OP_1))/n079(:,OP_1) &
-                - n179(:,OP_1)*(p079(:,OP_1) - pe079(:,OP_1))/n079(:,OP_1)**2
+           temp79b = pi179(:,OP_1)/n079(:,OP_1) &
+                - n179(:,OP_1)*pi079(:,OP_1)/n079(:,OP_1)**2
         elsewhere
            temp79b = 0.
         end where
@@ -421,7 +445,7 @@ endif
         ! calculate the full temperature even when eqsubtract=1,
         ! since we don't store the equilibrium impurity density
         where(real(temp79c) .gt. 0.)
-           temp79b = (pt79(:,OP_1) - pet79(:,OP_1))/temp79c
+           temp79b = pit79(:,OP_1)/temp79c
         elsewhere
            temp79b = 0.
         end where
@@ -432,7 +456,11 @@ endif
         call eval_ops(itri, te_field(0), te079, rfac)
         temp79a = temp79a - te079(:,OP_1)
 
+#ifdef USEPARTICLES
+        if(kinetic_thermal_pressure .or. (ipressplit.eq.1 .and. ipres.eq.1)) then
+#else
         if(ipressplit.eq.1 .and. ipres.eq.1) then
+#endif
            call eval_ops(itri, ti_field(0), ti079, rfac)
            temp79b = temp79b - ti079(:,OP_1)
         end if
@@ -752,7 +780,7 @@ subroutine calculate_auxiliary_fields(ilin)
   ! EM Torque density
   do itri=1,numelms
      call define_element_quadrature(itri, int_pts_aux, 5)
-     call define_fields(itri, def_fields, 1, 0)
+     call define_fields(itri, def_fields, 1, 0, 1)
 
      call get_zone(itri, izone)
 

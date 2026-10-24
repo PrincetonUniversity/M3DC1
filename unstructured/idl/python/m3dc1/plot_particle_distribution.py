@@ -115,6 +115,8 @@ def plot_particle_distribution(
     minor_radius_width: float = 0.05,
     deltaf: bool = False,
     absolute_value: bool = True,
+    weight: bool = False,
+    f0_min_fraction: float = 1.0e-3,
     momentum: bool = False,
     coordinates: str | None = None,
     sigma: int = 0,
@@ -138,6 +140,7 @@ def plot_particle_distribution(
     colorbar_label: str | None = None,
     overplot: bool = False,
     outfile: str | Path | None = None,
+    density_divisor=None,
 ):
     """Plot a full-f or delta-f 2D KDE from M3D-C1 marker information.
 
@@ -152,6 +155,13 @@ def plot_particle_distribution(
     plots the unweighted full marker distribution.
     For delta-f plots, ``absolute_value=True`` uses the absolute particle
     weights; set it to ``False`` to retain their signs.
+    Set ``weight=True`` to plot the ratio of the weighted delta-f KDE to
+    the unweighted full-f KDE. This gives ``abs(delta-f)/f0`` when
+    ``absolute_value=True`` and signed ``delta-f/f0`` otherwise.
+    For this ratio, points with full-f KDE below ``f0_min_fraction`` times
+    its peak are set to zero to avoid noisy divisions in sparsely populated
+    regions. Set ``f0_min_fraction=0`` to retain the former positive-f0-only
+    behavior.
     Set ``momentum=True`` to plot ``ppar`` against ``pperp`` instead of energy
     against xi. Momentum values are in ion_mass m/s before applying axis scales.
     ``coordinates`` may be ``"energy_xi"``, ``"momentum"``, or ``"com"``;
@@ -159,6 +169,8 @@ def plot_particle_distribution(
     ``sigma=1`` selects positive parallel velocity, ``sigma=-1`` selects
     negative parallel velocity, and the default ``sigma=0`` combines both.
     ``energy`` selects markers within ``energy_width`` keV of that energy.
+    ``density_divisor`` is an internal plotting hook that evaluates a
+    positive divisor on the final ``(xgrid, ygrid)``.
     """
     sigma_value = int(sigma)
     if sigma_value not in (-1, 0, 1) or sigma_value != sigma:
@@ -212,7 +224,8 @@ def plot_particle_distribution(
         xvalues = _normalize_pphi(xvalues, field_filename, timeslices)
     xdata = xvalues * float(xscale)
     ydata = yvalues * float(yscale)
-    weights = raw_weight if deltaf else np.ones_like(raw_weight)
+    weighted_distribution = bool(deltaf) or bool(weight)
+    weights = raw_weight if weighted_distribution else np.ones_like(raw_weight)
     finite = np.isfinite(xdata) & np.isfinite(ydata) & np.isfinite(weights)
     if vparallel is not None:
         finite &= np.isfinite(vparallel)
@@ -261,14 +274,68 @@ def plot_particle_distribution(
 
     xlabel, ylabel = _coordinate_labels(coordinate_mode, xlabel, ylabel)
     try:
+        kde_values = np.vstack([xdata, ydata])
         density = _particle_kde(
-            np.vstack([xdata, ydata]),
+            kde_values,
             positions,
             weights=weights,
-            deltaf=deltaf,
+            deltaf=weighted_distribution,
             absolute_value=absolute_value,
             bandwidth=bandwidth,
         )
+        if weight:
+            f0_min_fraction_value = float(f0_min_fraction)
+            if (
+                not np.isfinite(f0_min_fraction_value)
+                or f0_min_fraction_value < 0.0
+            ):
+                raise ValueError(
+                    "f0_min_fraction must be a finite nonnegative number, "
+                    f"got {f0_min_fraction!r}."
+                )
+            # gaussian_kde normalizes weighted input by sum(abs(weights)).
+            # Restore the per-marker delta-f amplitude before dividing by f0.
+            density *= np.sum(np.abs(weights)) / weights.size
+            full_density = _particle_kde(
+                kde_values,
+                positions,
+                weights=np.ones_like(weights),
+                deltaf=False,
+                absolute_value=True,
+                bandwidth=bandwidth,
+            )
+            f0_floor = f0_min_fraction_value * np.max(full_density)
+            valid_f0 = full_density > max(f0_floor, 0.0)
+            with np.errstate(divide="ignore", invalid="ignore"):
+                density = np.divide(
+                    density,
+                    full_density,
+                    out=np.zeros_like(density),
+                    where=valid_f0,
+                )
+        if density_divisor is not None:
+            if weight:
+                raise ValueError(
+                    "A density divisor must not be applied to delta-f/f0; "
+                    "the common phase-space Jacobian already cancels."
+                )
+            divisor = np.asarray(density_divisor(xgrid, ygrid), dtype=float)
+            if divisor.shape != xgrid.shape:
+                raise ValueError(
+                    "density_divisor returned shape "
+                    f"{divisor.shape}, expected {xgrid.shape}."
+                )
+            valid_divisor = np.isfinite(divisor) & (divisor > 0.0)
+            if not np.any(valid_divisor):
+                raise ValueError(
+                    "density_divisor did not return any finite positive values."
+                )
+            density = np.divide(
+                density.reshape(xgrid.shape),
+                divisor,
+                out=np.full(xgrid.shape, np.nan),
+                where=valid_divisor,
+            ).ravel()
     except (ValueError, np.linalg.LinAlgError) as exc:
         raise ValueError(f"Could not construct the particle KDE: {exc}") from exc
     density = density.reshape(xgrid.shape)
@@ -279,8 +346,11 @@ def plot_particle_distribution(
     else:
         figure, axis = plt.subplots(figsize=(6, 4.5))
     contour = axis.contourf(xgrid, ygrid, density, levels=levels, cmap=cmap)
-    for collection in contour.collections:
-        collection.set_edgecolor("face")
+    if hasattr(contour, "set_edgecolor"):
+        contour.set_edgecolor("face")
+    else:
+        for collection in contour.collections:
+            collection.set_edgecolor("face")
 
     axis.set_xlabel(xlabel)
     axis.set_ylabel(ylabel)
@@ -292,6 +362,10 @@ def plot_particle_distribution(
     if title is not None:
         axis.set_title(str(title))
     if colorbar:
+        if colorbar_label is None and weight:
+            colorbar_label = (
+                r"$|\delta f|/f_0$" if absolute_value else r"$\delta f/f_0$"
+            )
         figure.colorbar(contour, ax=axis, label=colorbar_label)
     if not overplot:
         figure.tight_layout()

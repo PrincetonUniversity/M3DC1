@@ -700,7 +700,7 @@ subroutine nre_eq
 
      if ((xmag<maxval(x_79)).and.(xmag>minval(x_79)).and.(zmag>minval(z_79)).and.(zmag<maxval(z_79))) then
         write(0,*) real(sum(ps079(:,OP_GS))*sum(bz079(:,OP_1)))
-        bzsign_temp=sign(1.0, real(sum(ps079(:,OP_GS))*sum(bz079(:,OP_1))))
+        bzsign_temp=sign(1.0, -real(sum(ps079(:,OP_GS))*sum(bz079(:,OP_1))))
      endif
   end do
   call mpi_allreduce(bzsign_temp, bzsign, 1, MPI_DOUBLE_PRECISION, MPI_SUM, MPI_COMM_WORLD, ierr)
