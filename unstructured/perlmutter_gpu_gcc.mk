@@ -90,7 +90,7 @@ SCOREC_LIB = -L$(SCOREC_DIR)/lib $(M3DC1_SCOREC_LIB) \
 # cudart/cusparse/cublas are already linked via PETSc.
 #ifeq ($(CUDSS), 1)
   CUDSS_PKG_DIR ?= $(M3DC1_DIR)/m3d-c1_preconditioner_standalone
-  CUDSS_DIR ?= $(CUDSS_PKG_DIR)/deps/cudss.13.2
+  CUDSS_DIR ?= $(CUDSS_PKG_DIR)/deps/cudss
   CUDSS_LIB = -L$(SCOREC_DIR)/lib $(M3DC1_CUDSS_LIB) \
               -Wl,-rpath,$(CUDSS_DIR)/lib $(CUDSS_DIR)/lib/libcudss.so.0 \
               -Wl,-rpath,$(NCCL_DIR)/lib -L$(NCCL_DIR)/lib -lnccl
