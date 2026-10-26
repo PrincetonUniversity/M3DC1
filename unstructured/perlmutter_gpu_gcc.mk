@@ -30,17 +30,25 @@ FOPTS := $(FOPTS)
 F90OPTS = $(F90FLAGS) $(FOPTS) 
 F77OPTS = $(F77FLAGS) $(FOPTS)
 
-  PETSC_DIR=/global/cfs/cdirs/mp288/jinchen/PETSC/production/petsc.20230606
+#  PETSC_DIR=/global/cfs/cdirs/mp288/jinchen/PETSC/production/petsc.20230606
+  PETSC_DIR=/global/cfs/cdirs/mp288/jinchen/PETSC/petsc.20220609
 ifeq ($(COM), 1)
-  PETSC_ARCH=perlmuttergpu-gnu-cplx
-  PETSC_WITH_EXTERNAL_LIB = -Wl,-rpath,/global/cfs/cdirs/mp288/jinchen/PETSC/production/petsc.20230606/perlmuttergpu-gnu-cplx/lib -L/global/cfs/cdirs/mp288/jinchen/PETSC/production/petsc.20230606/perlmuttergpu-gnu-cplx/lib -Wl,-rpath,/opt/nvidia/hpc_sdk/Linux_x86_64/24.5/cuda/12.4/lib64 -L/opt/nvidia/hpc_sdk/Linux_x86_64/24.5/cuda/12.4/lib64 -Wl,-rpath,/opt/nvidia/hpc_sdk/Linux_x86_64/24.5/math_libs/12.4/lib64 -L/opt/nvidia/hpc_sdk/Linux_x86_64/24.5/math_libs/12.4/lib64 -L/opt/nvidia/hpc_sdk/Linux_x86_64/24.5/cuda/12.4/lib64/stubs -lpetsc -lzmumps -lmumps_common -lpord -lpthread -lscalapack -lsuperlu_dist -lsuperlu -lkokkoskernels -lkokkoscontainers -lkokkoscore -lkokkossimd -lzoltan -lparmetis -lmetis -lgsl -lgslcblas -lcudart -lnvToolsExt -lcufft -lcublas -lcusparse -lcusolver -lcurand -lcuda -lquadmath -lmpifort_gnu_123 -lgfortran -lstdc++
+#  PETSC_ARCH=perlmuttergpu-gnu-cplx
+#  PETSC_WITH_EXTERNAL_LIB = -Wl,-rpath,/global/cfs/cdirs/mp288/jinchen/PETSC/production/petsc.20230606/perlmuttergpu-gnu-cplx/lib -L/global/cfs/cdirs/mp288/jinchen/PETSC/production/petsc.20230606/perlmuttergpu-gnu-cplx/lib -Wl,-rpath,/opt/nvidia/hpc_sdk/Linux_x86_64/24.5/cuda/12.4/lib64 -L/opt/nvidia/hpc_sdk/Linux_x86_64/24.5/cuda/12.4/lib64 -Wl,-rpath,/opt/nvidia/hpc_sdk/Linux_x86_64/24.5/math_libs/12.4/lib64 -L/opt/nvidia/hpc_sdk/Linux_x86_64/24.5/math_libs/12.4/lib64 -L/opt/nvidia/hpc_sdk/Linux_x86_64/24.5/cuda/12.4/lib64/stubs -lpetsc -lzmumps -lmumps_common -lpord -lpthread -lscalapack -lsuperlu_dist -lsuperlu -lkokkoskernels -lkokkoscontainers -lkokkoscore -lkokkossimd -lzoltan -lparmetis -lmetis -lgsl -lgslcblas -lcudart -lnvToolsExt -lcufft -lcublas -lcusparse -lcusolver -lcurand -lcuda -lquadmath -lmpifort_gnu_123 -lgfortran -lstdc++
+  PETSC_ARCH=perlmuttergpu-gnu-870-cplx
+  PETSC_WITH_EXTERNAL_LIB = -Wl,-rpath,/global/cfs/cdirs/mp288/jinchen/PETSC/petsc.20220609/perlmuttergpu-gnu-870-cplx/lib -L/global/cfs/cdirs/mp288/jinchen/PETSC/petsc.20220609/perlmuttergpu-gnu-870-cplx/lib -Wl,-rpath,/opt/nvidia/hpc_sdk/Linux_x86_64/26.5/cuda/13.2/lib64 -L/opt/nvidia/hpc_sdk/Linux_x86_64/26.5/cuda/13.2/lib64 -Wl,-rpath,/opt/nvidia/hpc_sdk/Linux_x86_64/26.5/math_libs/13.2/lib64 -L/opt/nvidia/hpc_sdk/Linux_x86_64/26.5/math_libs/13.2/lib64 -L/opt/nvidia/hpc_sdk/Linux_x86_64/26.5/cuda/13.2/lib64/stubs -Wl,-rpath,/opt/cray/pe/mpich/9.1.0/ofi/gnu/12.3/lib -L/opt/cray/pe/mpich/9.1.0/ofi/gnu/12.3/lib -Wl,-rpath,/usr/lib64/gcc/x86_64-suse-linux/14 -L/usr/lib64/gcc/x86_64-suse-linux/14 -Wl,-rpath,/usr/x86_64-suse-linux/lib -L/usr/x86_64-suse-linux/lib -lpetsc -lsmumps -ldmumps -lcmumps -lzmumps -lmumps_common -lpord -lpthread -lscalapack -lsuperlu_dist -lkokkoskernels -lsuperlu -lflapack -lfblas -lkokkoscontainers -lkokkoscore -lkokkossimd -lzoltan -lparmetis -lmetis -lgsl -lgslcblas -lm -lcudart -lnvtx3interop -lcufft -lcublas -lcusparse -lcusolver -lcurand -lcuda -lmpifort_gnu -lmpi_gnu -lxpmem -lgfortran -lm -lhugetlbfs -lgfortran -lm -lgcc_s -lquadmath -lstdc++ -lquadmath
+
 else
-  PETSC_ARCH=perlmuttergpu-gnu
-  PETSC_WITH_EXTERNAL_LIB = -Wl,-rpath,/global/cfs/cdirs/mp288/jinchen/PETSC/production/petsc.20230606/perlmuttergpu-gnu/lib -L/global/cfs/cdirs/mp288/jinchen/PETSC/production/petsc.20230606/perlmuttergpu-gnu/lib -Wl,-rpath,/opt/nvidia/hpc_sdk/Linux_x86_64/24.5/cuda/12.4/lib64 -L/opt/nvidia/hpc_sdk/Linux_x86_64/24.5/cuda/12.4/lib64 -Wl,-rpath,/opt/nvidia/hpc_sdk/Linux_x86_64/24.5/math_libs/12.4/lib64 -L/opt/nvidia/hpc_sdk/Linux_x86_64/24.5/math_libs/12.4/lib64 -L/opt/nvidia/hpc_sdk/Linux_x86_64/24.5/cuda/12.4/lib64/stubs -lpetsc -lHYPRE -ldmumps -lmumps_common -lpord -lpthread -lscalapack -lsuperlu_dist -lsuperlu -lkokkoskernels -lkokkoscontainers -lkokkoscore -lkokkossimd -lzoltan -lparmetis -lmetis -lgsl -lgslcblas -lcudart -lnvToolsExt -lcufft -lcublas -lcusparse -lcusolver -lcurand -lcuda -lquadmath -lmpifort_gnu_123 -lgfortran -lstdc++
+#  PETSC_ARCH=perlmuttergpu-gnu
+#  PETSC_WITH_EXTERNAL_LIB = -Wl,-rpath,/global/cfs/cdirs/mp288/jinchen/PETSC/production/petsc.20230606/perlmuttergpu-gnu/lib -L/global/cfs/cdirs/mp288/jinchen/PETSC/production/petsc.20230606/perlmuttergpu-gnu/lib -Wl,-rpath,/opt/nvidia/hpc_sdk/Linux_x86_64/24.5/cuda/12.4/lib64 -L/opt/nvidia/hpc_sdk/Linux_x86_64/24.5/cuda/12.4/lib64 -Wl,-rpath,/opt/nvidia/hpc_sdk/Linux_x86_64/24.5/math_libs/12.4/lib64 -L/opt/nvidia/hpc_sdk/Linux_x86_64/24.5/math_libs/12.4/lib64 -L/opt/nvidia/hpc_sdk/Linux_x86_64/24.5/cuda/12.4/lib64/stubs -lpetsc -lHYPRE -ldmumps -lmumps_common -lpord -lpthread -lscalapack -lsuperlu_dist -lsuperlu -lkokkoskernels -lkokkoscontainers -lkokkoscore -lkokkossimd -lzoltan -lparmetis -lmetis -lgsl -lgslcblas -lcudart -lnvToolsExt -lcufft -lcublas -lcusparse -lcusolver -lcurand -lcuda -lquadmath -lmpifort_gnu_123 -lgfortran -lstdc++
+  PETSC_ARCH=perlmuttergpu-gnu-870
+  PETSC_WITH_EXTERNAL_LIB = -Wl,-rpath,/global/cfs/cdirs/mp288/jinchen/PETSC/petsc.20220609/perlmuttergpu-gnu-870/lib -L/global/cfs/cdirs/mp288/jinchen/PETSC/petsc.20220609/perlmuttergpu-gnu-870/lib -Wl,-rpath,/opt/nvidia/hpc_sdk/Linux_x86_64/26.5/cuda/13.2/lib64 -L/opt/nvidia/hpc_sdk/Linux_x86_64/26.5/cuda/13.2/lib64 -Wl,-rpath,/opt/nvidia/hpc_sdk/Linux_x86_64/26.5/math_libs/13.2/lib64 -L/opt/nvidia/hpc_sdk/Linux_x86_64/26.5/math_libs/13.2/lib64 -L/opt/nvidia/hpc_sdk/Linux_x86_64/26.5/cuda/13.2/lib64/stubs -Wl,-rpath,/opt/cray/pe/mpich/9.1.0/ofi/gnu/12.3/lib -L/opt/cray/pe/mpich/9.1.0/ofi/gnu/12.3/lib -Wl,-rpath,/usr/lib64/gcc/x86_64-suse-linux/14 -L/usr/lib64/gcc/x86_64-suse-linux/14 -Wl,-rpath,/usr/x86_64-suse-linux/lib -L/usr/x86_64-suse-linux/lib -lpetsc -lsmumps -ldmumps -lcmumps -lzmumps -lmumps_common -lpord -lpthread -lscalapack -lsuperlu_dist -lkokkoskernels -lsuperlu -lflapack -lfblas -lkokkoscontainers -lkokkoscore -lkokkossimd -lzoltan -lparmetis -lmetis -lgsl -lgslcblas -lm -lcudart -lnvtx3interop -lcufft -lcublas -lcusparse -lcusolver -lcurand -lcuda -lmpifort_gnu -lmpi_gnu -lxpmem -lgfortran -lm -lhugetlbfs -lgfortran -lm -lgcc_s -lquadmath -lstdc++ -lquadmath
+
 #  /opt/nvidia/hpc_sdk/Linux_x86_64/24.5/cuda/12.4/lib64/libcudart.so.12 
 endif
 
-SCOREC_BASE_DIR=/global/cfs/cdirs/mp288/jinchen/PETSC/production/core-240527/upgrade-gnu850-pgpu
+#SCOREC_BASE_DIR=/global/cfs/cdirs/mp288/jinchen/PETSC/production/core-240527/upgrade-gnu850-pgpu
+SCOREC_BASE_DIR=/global/cfs/cdirs/mp288/jinchen/PETSC/core-240527/upgrade-gnu870-pgpu
 SCOREC_UTIL_DIR=$(SCOREC_BASE_DIR)/bin
 PUMI_DIR=$(SCOREC_BASE_DIR)
 PUMI_LIB = -lpumi -lapf -lapf_zoltan -lcrv -lsam -lspr -lmth -lgmi -lma -lmds -lparma -lpcu -lph -llion
@@ -82,7 +90,7 @@ SCOREC_LIB = -L$(SCOREC_DIR)/lib $(M3DC1_SCOREC_LIB) \
 # cudart/cusparse/cublas are already linked via PETSc.
 #ifeq ($(CUDSS), 1)
   CUDSS_PKG_DIR ?= $(M3DC1_DIR)/m3d-c1_preconditioner_standalone
-  CUDSS_DIR ?= $(CUDSS_PKG_DIR)/deps/cudss
+  CUDSS_DIR ?= $(CUDSS_PKG_DIR)/deps/cudss.13.2
   CUDSS_LIB = -L$(SCOREC_DIR)/lib $(M3DC1_CUDSS_LIB) \
               -Wl,-rpath,$(CUDSS_DIR)/lib $(CUDSS_DIR)/lib/libcudss.so.0 \
               -Wl,-rpath,$(NCCL_DIR)/lib -L$(NCCL_DIR)/lib -lnccl
@@ -95,7 +103,9 @@ LIBS = 	\
 	$(SCOREC_LIB) \
 	$(CUDSS_LIB) \
         $(PETSC_WITH_EXTERNAL_LIB) \
-	/opt/cray/pe/mpich/8.1.30/gtl/lib/libmpi_gtl_cuda.so.0
+
+#	/opt/cray/pe/mpich/9.1.0/gtl/lib/libmpi_gtl_cuda.so.0
+#	/opt/cray/pe/mpich/8.1.30/gtl/lib/libmpi_gtl_cuda.so.0
 #	/opt/cray/pe/lib64/libmpi_gtl_cuda.so.0
 
 INCLUDE = -I$(PETSC_DIR)/include \

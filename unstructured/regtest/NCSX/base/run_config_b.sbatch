@@ -23,15 +23,15 @@ cd "${SLURM_SUBMIT_DIR}"
 BINARY="/global/cfs/cdirs/mp288/jinchen/M3DC1/gitrepo/M3DC1/unstructured/_perlmutter_gpu_gcc-3d-st-opt-125/m3dc1_3d_st"
 [[ -x "$BINARY" ]] || { echo "ERROR: $BINARY not found in $(pwd)"; exit 2; }
 
-module load craype-x86-milan PrgEnv-gnu/8.5.0
-module load cray-hdf5-parallel/1.14.3.7 cray-fftw/3.3.10.11
-module load cudatoolkit/12.4
-module swap cray-mpich cray-mpich/8.1.30
-module load nccl/2.24.3
+#module load craype-x86-milan PrgEnv-gnu/8.5.0
+#module load cray-hdf5-parallel/1.14.3.7 cray-fftw/3.3.10.11
+#module load cudatoolkit/12.4
+#module swap cray-mpich cray-mpich/8.1.30
+#module load nccl/2.24.3
 
 # PETSc 3.23 GPU shared lib was linked against libnvToolsExt.so.1, removed
 # from CUDA >=12.6; prepend NVHPC 24.5 / cuda 12.4 lib dir (still has it).
-export LD_LIBRARY_PATH="/opt/nvidia/hpc_sdk/Linux_x86_64/24.5/cuda/12.4/lib64:${LD_LIBRARY_PATH:-}"
+#export LD_LIBRARY_PATH="/opt/nvidia/hpc_sdk/Linux_x86_64/24.5/cuda/12.4/lib64:${LD_LIBRARY_PATH:-}"
 # cuDSS runtime lib (0.8.0.10) + its NCCL comm layer.
 CUDSS_LIB="${CUDSS_DIR:-/global/cfs/cdirs/mp288/jinchen/LIB/deps/cudss}/lib"
 export LD_LIBRARY_PATH="$CUDSS_LIB:${NCCL_DIR}/lib:${LD_LIBRARY_PATH}"
@@ -41,7 +41,7 @@ export LD_LIBRARY_PATH="$CUDSS_LIB:${NCCL_DIR}/lib:${LD_LIBRARY_PATH}"
 # against libcudart.so.13, which does not exist under CUDA 12.4 (the binary then
 # dies with "libcudart.so.13: cannot open shared object file").  Put the GTL that
 # matches cray-mpich/8.1.30 (libcudart.so.12) first.
-export LD_LIBRARY_PATH="/opt/cray/pe/mpich/8.1.30/gtl/lib:${LD_LIBRARY_PATH}"
+#export LD_LIBRARY_PATH="/opt/cray/pe/mpich/8.1.30/gtl/lib:${LD_LIBRARY_PATH}"
 
 export MPICH_GPU_SUPPORT_ENABLED=1
 export OMP_NUM_THREADS=1
