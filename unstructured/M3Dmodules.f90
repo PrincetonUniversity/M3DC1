@@ -830,5 +830,5 @@ module m3dc1_vel_prof
 #include <petsc/finclude/petscsysdef.h>
 #endif
       implicit none
-      PetscLogStage  stageA,stageS
+      PetscLogStage  stageI,stageA,stageS
 end module m3dc1_vel_prof

@@ -46,7 +46,7 @@ Program Reducedquintic
 #endif
 
   integer :: ier, i, adapt_flag
-  real :: tstart, tend, dtsave, t_solve, t_compute
+  real :: tstart, tend, dtsave, t_solve, t_compute, t0, t1, t_init
   character*10 :: datec, timec
   character*256 :: arg, solveroption_filename
   integer :: ip
@@ -155,8 +155,12 @@ Program Reducedquintic
 #endif
 
 !profiling velocity solve
+  call PetscLogStageRegister("M3DC1 Init",stageI,ier)
   call PetscLogStageRegister("Mat A",stageA,ier)
   call PetscLogStageRegister("KSP S",stageS,ier)
+
+  call PetscLogStagePush(stageI,ier)
+  if(myrank.eq.0) call second(t0)
 
   ! read input file
   if(myrank.eq.0) print *, ' Reading input'
@@ -366,6 +370,12 @@ Program Reducedquintic
   ! output initial conditions
   call output
 
+  if(myrank.eq.0) then
+          call second(t1)
+          t_init=t1-t0
+  endif
+  call PetscLogStagePop(ier)
+
   ! if there are no timesteps to calculate, then skip time loop
   if(ntimemax.le.ntime) call safestop(0)
 
@@ -397,8 +407,8 @@ Program Reducedquintic
         t_onestep = t_onestep + tend - tstart
       t_solve = t_solve_v + t_solve_n + t_solve_p + t_solve_b
       t_compute = t_onestep - t_solve
-      write(*,1002) ntime, t_onestep, t_compute, t_solve
- 1002 format(" LOOP TIME",i5, "   Tot",1pe12.4, "   compute",1pe12.4,"   solve",1pe12.4)
+      write(*,1002) ntime, t_init, t_onestep, t_compute, t_solve
+ 1002 format(" LOOP TIME",i5,"   init",1pe12.4,"   onestep",1pe12.4,"   compute",1pe12.4,"   solve",1pe12.4)
      endif
 
      if(linear.eq.0 .and. eqsubtract.eq.0) then

@@ -700,10 +700,15 @@ int m3dc1_matrix::setupParaMat() {
 #endif
   ierr = MatSetType(_A, MATMPIAIJ);
   CHKERRQ(ierr);
-  if(mymatrix_id==5) {
-          ierr= MatSetOptionsPrefix(_A,"mhard_");
-          if (!PCU_Comm_Self())
-                  std::cout<<"[M3DC1 INFO] "<<__func__<<": Lable Mat A="<<mymatrix_id<<" to be hard\n";
+
+  // -mg: block geometric MG
+  // solver option: refer to unstructured/regtest/pellet/base/options_bjacobi.type_mg*
+  PetscInt mg = -1;
+  ierr = PetscOptionsGetInt(NULL, NULL, "-mg", &mg, NULL); CHKERRQ(ierr);
+  if (mymatrix_id==mg) {
+	  ierr= MatSetOptionsPrefix(_A,"mhard_"); CHKERRQ(ierr);
+	  if (!PCU_Comm_Self())
+		  std::cout<<"[M3DC1 INFO] "<<__func__<<": Label Mat A="<<mymatrix_id<<" to be hard\n";
   }
 #if defined(PETSC_USE_CUDSS) || defined(PETSC_USE_CUDSS_MG)
   }
@@ -1750,12 +1755,20 @@ int matrix_solve::setKspType() {
                   << " is going to use LineSolve preconditioner\n";
       if (!_LineSet)
         setLSType();
-                std::cout<<"[M3DC1 INFO] "<<__func__<<": _LineSet="<<_LineSet<<"\n";
     }
 
-    if (mymatrix_id == 5) {
-      ierr = KSPSetOptionsPrefix(_ksp, "hard_");
-      ierr = MatViewFromOptions(_A, NULL, "-A_view");
+    // -mg: block geometric MG
+    // solver option: refer to unstructured/regtest/pellet/base/options_bjacobi.type_mg*
+    PetscInt mg = -1;
+    ierr = PetscOptionsGetInt(NULL, NULL, "-mg", &mg, NULL); CHKERRQ(ierr);
+    if (mymatrix_id == mgsolve[0] || mymatrix_id == mgsolve[1] || 
+		    mymatrix_id == mgfs ||
+		    mymatrix_id == fssolve || 
+		    mymatrix_id == fsmg || 
+		    mymatrix_id == lsolve) mg=mymatrix_id;
+    if (mymatrix_id==mg) {
+      ierr = KSPSetOptionsPrefix(_ksp, "hard_"); CHKERRQ(ierr);
+      ierr = MatViewFromOptions(_A, NULL, "-A_view"); CHKERRQ(ierr);
     }
   }
 
