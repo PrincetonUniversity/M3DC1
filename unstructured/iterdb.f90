@@ -28,10 +28,10 @@ module iterdb
 contains
 
   subroutine load_iterdb(filename, ierr)
+    use mpi
 
     implicit none
 
-    include 'mpif.h'
 
     character(len=*), intent(in) :: filename
     integer, intent(out) :: ierr

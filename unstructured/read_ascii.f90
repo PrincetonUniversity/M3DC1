@@ -53,9 +53,9 @@ contains
   ! xrow = column to read (default = 1)
   !======================================================================
   subroutine read_ascii_column_real(filename, x, n, skip, icol, read_until)
+    use mpi
     implicit none
 
-    include 'mpif.h'
 
     character(len=*), intent(in) :: filename
     real, allocatable :: x(:)

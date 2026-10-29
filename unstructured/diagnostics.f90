@@ -7,6 +7,8 @@
 
 module diagnostics
 
+  use mpi
+
   implicit none
 
   real :: tflux0
@@ -129,7 +131,6 @@ contains
 
     implicit none
 
-    include 'mpif.h'
     integer :: ier
     integer, parameter :: num_scalars = 14
     real, dimension(num_scalars) :: vin, vout
@@ -295,8 +296,6 @@ contains
     use pellet
 
     implicit none
-
-    include 'mpif.h'
 
     integer, parameter :: num_scalars = 82
     integer :: ier
@@ -508,8 +507,6 @@ subroutine evaluate(x,phi,z,ans,fin,itri,ierr)
   use field
 
   implicit none
-
-  include 'mpif.h'
 
   integer, intent(inout) :: itri
   real, intent(in) :: x, phi, z
@@ -725,8 +722,6 @@ subroutine calculate_scalars()
 
   implicit none
  
-  include 'mpif.h'
-
   integer :: itri, numelms, def_fields, ier
   integer :: is_edge(3)  ! is inode on boundary
   real :: n(2,3),tpifac,tpirzero, t0
@@ -1205,8 +1200,6 @@ subroutine calculate_Lor_vol()
 
   implicit none
  
-  include 'mpif.h'
-
   integer :: itri, numelms, ier
   integer :: is_edge(3)  ! is inode on boundary
   real :: tpifac,tpirzero
@@ -1364,8 +1357,6 @@ subroutine magaxis(xguess,zguess,psi,psim,imethod,ier)
   use field
 
   implicit none
-
-  include 'mpif.h'
 
   real, intent(inout) :: xguess, zguess
   type(field_type), intent(in) :: psi
@@ -1576,8 +1567,6 @@ subroutine te_max(xguess,zguess,te,tem,imethod,ier)
 
   implicit none
 
-  include 'mpif.h'
-
   real, intent(inout) :: xguess, zguess
   type(field_type), intent(in) :: te
   integer, intent(in) :: imethod
@@ -1777,8 +1766,6 @@ subroutine te_max2(xguess,zguess,te,tem,imethod,ier)
 
   implicit none
 
-  include 'mpif.h'
-
   real, intent(inout) :: xguess, zguess
   type(field_type), intent(in) :: te
   integer, intent(in) :: imethod
@@ -1835,8 +1822,6 @@ subroutine te_max3(xguess,zguess,te,tem,imethod,ier)
   use field
 
   implicit none
-
-  include 'mpif.h'
 
   real, intent(inout) :: xguess, zguess
   type(field_type), intent(in) :: te
@@ -1971,8 +1956,6 @@ subroutine te_max4(te,tem,ilin,ier)
 
   implicit none
 
-  include 'mpif.h'
-
   type(field_type), intent(in) :: te
   integer, intent(in) :: ilin
   real, intent(out) :: tem
@@ -2037,8 +2020,6 @@ subroutine lcfs(psi, test_wall, findx)
   use boundary_conditions
 
   implicit none
-
-  include 'mpif.h'
 
   type(field_type), intent(in) :: psi
   logical, intent(in), optional :: test_wall
@@ -2383,7 +2364,6 @@ subroutine calculate_ke()
   use math
 
   implicit none
-  include 'mpif.h'
   integer :: itri, numelms, def_fields
   real :: ketotal, fac
   integer :: ier, k, l, numnodes, N, icounter_t
@@ -2700,7 +2680,6 @@ subroutine calculate_bh()
   use boundary_conditions
   use math
   implicit none
-  include 'mpif.h'
   integer :: itri, numelms, def_fields
   real:: bhtotal, fac
   integer :: ier, k, l, numnodes, N, icounter_t
@@ -3133,8 +3112,6 @@ subroutine te_max_dev(xguess,zguess,te,tem,imethod,ier)
 
   implicit none
 
-  include 'mpif.h'
-
   real, intent(inout) :: xguess, zguess
   type(field_type), intent(in) :: te
   real, intent(out) :: tem
@@ -3406,8 +3383,6 @@ subroutine phi_int(x,z,ans,fin,itri,ierr)
   use field
 
   implicit none
-
-  include 'mpif.h'
 
   integer, intent(inout) :: itri
   real, intent(in) :: x, z
