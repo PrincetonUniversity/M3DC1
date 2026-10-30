@@ -105,9 +105,9 @@ contains
 ! Note: any changes to the "particle" user-defined datatype must be reflected
 !       in the definitions of pnvars, pblklen, ptyps, and pdspls below.
 subroutine define_mpi_particle(ierr)
+  use mpi
    implicit none
 
-   include 'mpif.h'
 
    integer, intent(out) :: ierr
    integer, parameter :: pnvars = 10
@@ -151,9 +151,9 @@ subroutine define_mpi_particle(ierr)
 end subroutine define_mpi_particle
 
 subroutine define_mpi_elfield(ierr)
+  use mpi
    implicit none
 
-   include 'mpif.h'
 
    integer, intent(out) :: ierr
    integer, parameter :: pnvars = 12
@@ -201,11 +201,11 @@ subroutine define_mpi_elfield(ierr)
 end subroutine define_mpi_elfield
 !---------------------------------------------------------------------------
 subroutine runaway_advection_initialize
+  use mpi
    use basic
    use diagnostics
    use auxiliary_fields
    implicit none
-   include 'mpif.h'
 
    integer, parameter :: trunit = 120
    real :: tstart, tend
@@ -256,13 +256,13 @@ real function tri_area(x1, z1, x2, z2, x3, z3)
 end function tri_area
 !---------------------------------------------------------------------------
 subroutine init_particles(lrestart, ierr)
+  use mpi
    use basic
    use arrays
    use m3dc1_nint
    use gradshafranov
    use read_ascii
    implicit none
-   include 'mpif.h'
 
    logical, intent(in) :: lrestart
    integer, intent(out) :: ierr
@@ -292,6 +292,7 @@ subroutine init_particles(lrestart, ierr)
    vectype, dimension(dofs_per_element, dofs_per_element) :: tempxx
    integer :: blocky, starty, endy
    TYPE(C_PTR) :: baseptr
+   INTEGER(KIND=MPI_ADDRESS_KIND) :: baseaddr
    INTEGER(KIND=MPI_ADDRESS_KIND) :: arraysize
    TYPE(elfield) :: elfieldtest
    integer :: disp_unit
@@ -347,9 +348,10 @@ subroutine init_particles(lrestart, ierr)
    arraysize = 0
    if (hostrank == 0) arraysize = nelms_global*nodes_per_element*3*sizeof(1.d0)
    CALL MPI_Win_allocate_shared(arraysize, disp_unit, MPI_INFO_NULL, &
-                                hostcomm, baseptr, win_mesh_coord, ierr)
-   if (hostrank /= 0) CALL MPI_Win_shared_query(win_mesh_coord, 0, arraysize, disp_unit, baseptr, ierr)
+                                hostcomm, baseaddr, win_mesh_coord, ierr)
+   if (hostrank /= 0) CALL MPI_Win_shared_query(win_mesh_coord, 0, arraysize, disp_unit, baseaddr, ierr)
    !CALL C_F_POINTER(baseptr, mesh_coord_shared, [2,3,nelms])
+   baseptr = TRANSFER(baseaddr, baseptr)
    CALL C_F_POINTER(baseptr, mesh_coord, [3, nodes_per_element, nelms_global])
    !allocate(mesh_coord(2,3,nelms))
 
@@ -357,8 +359,9 @@ subroutine init_particles(lrestart, ierr)
    arraysize = 0
    if (hostrank == 0) arraysize = nelms_global*nodes_per_element*sizeof(1)
    CALL MPI_Win_allocate_shared(arraysize, disp_unit, MPI_INFO_NULL, &
-                                hostcomm, baseptr, win_mesh_nodes, ierr)
-   if (hostrank /= 0) CALL MPI_Win_shared_query(win_mesh_nodes, 0, arraysize, disp_unit, baseptr, ierr)
+                                hostcomm, baseaddr, win_mesh_nodes, ierr)
+   if (hostrank /= 0) CALL MPI_Win_shared_query(win_mesh_nodes, 0, arraysize, disp_unit, baseaddr, ierr)
+   baseptr = TRANSFER(baseaddr, baseptr)
    CALL C_F_POINTER(baseptr, mesh_nodes, [nodes_per_element, nelms_global])
    !allocate(mesh_nodes(3,nelms))
 
@@ -366,9 +369,10 @@ subroutine init_particles(lrestart, ierr)
    arraysize = 0
    if (hostrank == 0) arraysize = nelms_global*sizeof(1)
    CALL MPI_Win_allocate_shared(arraysize, disp_unit, MPI_INFO_NULL, &
-                                hostcomm, baseptr, win_mesh_zone, ierr)
-   if (hostrank /= 0) CALL MPI_Win_shared_query(win_mesh_zone, 0, arraysize, disp_unit, baseptr, ierr)
+                                hostcomm, baseaddr, win_mesh_zone, ierr)
+   if (hostrank /= 0) CALL MPI_Win_shared_query(win_mesh_zone, 0, arraysize, disp_unit, baseaddr, ierr)
    !CALL C_F_POINTER(baseptr, mesh_coord_shared, [2,3,nelms])
+   baseptr = TRANSFER(baseaddr, baseptr)
    CALL C_F_POINTER(baseptr, mesh_zone, [nelms_global])
    !allocate(mesh_coord(2,3,nelms))
 
@@ -376,9 +380,10 @@ subroutine init_particles(lrestart, ierr)
    arraysize = 0
    if (hostrank == 0) arraysize = nelms_global*npoints*sizeof(1)
    CALL MPI_Win_allocate_shared(arraysize, disp_unit, MPI_INFO_NULL, &
-                                hostcomm, baseptr, win_particle_map, ierr)
-   if (hostrank /= 0) CALL MPI_Win_shared_query(win_particle_map, 0, arraysize, disp_unit, baseptr, ierr)
+                                hostcomm, baseaddr, win_particle_map, ierr)
+   if (hostrank /= 0) CALL MPI_Win_shared_query(win_particle_map, 0, arraysize, disp_unit, baseaddr, ierr)
    !CALL C_F_POINTER(baseptr, mesh_coord_shared, [2,3,nelms])
+   baseptr = TRANSFER(baseaddr, baseptr)
    CALL C_F_POINTER(baseptr, particle_map, [npoints, nelms_global])
    !allocate(mesh_coord(2,3,nelms))
 
@@ -457,8 +462,9 @@ subroutine init_particles(lrestart, ierr)
    arraysize = 0
    if (hostrank == 0) arraysize = nelms_global*sizeof(elfieldtest)
    CALL MPI_Win_allocate_shared(arraysize, disp_unit, MPI_INFO_NULL, &
-                                hostcomm, baseptr, win_elfieldcoefs, ierr)
-   if (hostrank /= 0) CALL MPI_Win_shared_query(win_elfieldcoefs, 0, arraysize, disp_unit, baseptr, ierr)
+                                hostcomm, baseaddr, win_elfieldcoefs, ierr)
+   if (hostrank /= 0) CALL MPI_Win_shared_query(win_elfieldcoefs, 0, arraysize, disp_unit, baseaddr, ierr)
+   baseptr = TRANSFER(baseaddr, baseptr)
    CALL C_F_POINTER(baseptr, elfieldcoefs, [nelms_global])
    !allocate(elfieldcoefs(nelms))
    call get_field_coefs(1)
@@ -474,8 +480,9 @@ subroutine init_particles(lrestart, ierr)
       arraysize = arraysize*sizeof(dpar)
    end if
    CALL MPI_Win_allocate_shared(arraysize, disp_unit, MPI_INFO_NULL, &
-                                hostcomm, baseptr, win_pdata, ierr)
-   if (hostrank /= 0) CALL MPI_Win_shared_query(win_pdata, 0, arraysize, disp_unit, baseptr, ierr)
+                                hostcomm, baseaddr, win_pdata, ierr)
+   if (hostrank /= 0) CALL MPI_Win_shared_query(win_pdata, 0, arraysize, disp_unit, baseaddr, ierr)
+   baseptr = TRANSFER(baseaddr, baseptr)
    CALL C_F_POINTER(baseptr, pdata, [npar])
 
    !Set up 'neighborlist' table of element neighbors for ensemble tracking
@@ -700,10 +707,10 @@ subroutine init_particles(lrestart, ierr)
 end subroutine init_particles
 
 subroutine advance_particles(tinc)
+  use mpi
    use basic  !For MPI variables
    use omp_lib
    implicit none
-   include 'mpif.h'
 
    real, intent(in) :: tinc  !Time increment for particle advance
    type(elfield), dimension(nneighbors + 1) :: elcoefs
@@ -1221,11 +1228,11 @@ subroutine fdot(x, v, w, dxdt, dvdt, dwdt, dEpdt, itri, ierr)
 end subroutine fdot
 !---------------------------------------------------------------------------
 subroutine runaway_advection_step(pdt)
+  use mpi
    use basic
    use diagnostics
    use auxiliary_fields
    implicit none
-   include 'mpif.h'
 
    real, intent(in) :: pdt
 
@@ -1257,11 +1264,11 @@ subroutine runaway_advection_step(pdt)
 end subroutine runaway_advection_step
 !---------------------------------------------------------------------------
 subroutine update_particle_pressure
+  use mpi
    use basic
    use arrays
    use diagnostics
    implicit none
-   include 'mpif.h'
 
    real    :: tstart, tend
    integer :: ierr
@@ -1670,11 +1677,11 @@ subroutine get_geom_terms(x, ielm, gh, ic2, ierr)
 end subroutine get_geom_terms
 !---------------------------------------------------------------------------
 subroutine get_field_coefs(eq)
+  use mpi
    use arrays
    use basic
    use auxiliary_fields
    implicit none
-   include 'mpif.h'
 
    !type(elfield), intent(out) :: fh  !Field handle
    integer, intent(in) :: eq

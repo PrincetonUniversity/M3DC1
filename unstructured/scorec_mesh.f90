@@ -68,12 +68,12 @@ module scorec_mesh_mod
 contains
 
   subroutine load_mesh
+    use mpi
     use math
     use read_ascii
     implicit none
 
     integer :: myrank, maxrank, ier
-    include 'mpif.h'
 #ifdef USE3D
     real :: angle, beta
     integer :: i,procs_per_plane, full_group, plane_group
@@ -307,8 +307,8 @@ contains
   end subroutine load_mesh
 
   subroutine update_nodes_owned
+    use mpi
     integer :: numnodes, inode2, inode, ier, myrank, own_process
-    include 'mpif.h'
     call MPI_Comm_rank(MPI_COMM_WORLD,myrank,ier)
     if(allocated(nodes_owned)) deallocate(nodes_owned)
     allocate(nodes_owned(owned_nodes()))
@@ -349,10 +349,10 @@ contains
   end subroutine print_node_data
 
   subroutine get_global_dims
+    use mpi
 
     implicit none
 
-    include 'mpif.h'
 
     integer :: nelms, error
 

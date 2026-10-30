@@ -408,6 +408,7 @@ end subroutine rmp_field
 
 
 subroutine calculate_external_fields(ilin)
+  use mpi
   use basic
   use math
   use mesh_mod
@@ -421,7 +422,6 @@ subroutine calculate_external_fields(ilin)
 
   implicit none
 
-  include 'mpif.h'
 
   type(matrix_type) :: br_mat, bf_mat
   type(vector_type) :: psi_vec, bz_vec, p_vec, bf_vec
@@ -848,6 +848,7 @@ subroutine boundary_rmp(rhs, mat)
 end subroutine boundary_rmp
 
   subroutine calculate_field_from_j(ilin)
+    use mpi
     use basic
     use math
     use mesh_mod
@@ -861,7 +862,6 @@ end subroutine boundary_rmp
 
     implicit none
 
-    include 'mpif.h'
 
     type(matrix_type) :: jx_mat
     type(vector_type) :: psi_vec

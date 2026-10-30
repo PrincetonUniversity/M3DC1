@@ -34,16 +34,8 @@ Program Reducedquintic
   use openacc
 #endif
 
-#if PETSC_VERSION >= 38
   use petsc
   implicit none
-#elif PETSC_VERSION >= 36
-  implicit none
-#include "petsc/finclude/petsc.h"
-#else
-  implicit none
-#include "finclude/petsc.h"
-#endif
 
   integer :: ier, i, adapt_flag
   real :: tstart, tend, dtsave, t_solve, t_compute
@@ -587,16 +579,8 @@ subroutine safestop(iarg)
   use particles
   use resistive_wall
 
-#if PETSC_VERSION >= 38
   use petsc
   implicit none
-#elif PETSC_VERSION >= 36
-  implicit none
-#include "petsc/finclude/petsc.h"
-#else
-  implicit none
-#include "finclude/petsc.h"
-#endif
       
   integer, intent(in) :: iarg
   integer :: ier
@@ -1035,13 +1019,13 @@ end subroutine rotation
   ! populates the *tri arrays
   !============================================================
   subroutine tridef
+    use mpi
     use basic
     use math
     use mesh_mod
 
     implicit none
 
-    include 'mpif.h'
   
     type(element_data) :: d
     integer :: itri, i, j, k, ii, jj, numelms, numnodes, ndofs, ierr
@@ -1607,12 +1591,12 @@ subroutine calculate_qdfac(itri, z)
 end subroutine calculate_qdfac
 
 subroutine print_normal_curv()
+  use mpi
 !  use mpi
   use basic
   use mesh_mod
   implicit none
 
-    include 'mpif.h'
 
   integer :: ierr, i, icounter_t, numnodes
   integer :: izone, izonedim

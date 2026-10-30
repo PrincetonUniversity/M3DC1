@@ -274,10 +274,9 @@ contains
     use boundary_conditions
     use metricterms_new
     use sparse
+    use mpi
 
     implicit none
-
-    include 'mpif.h'
 
     real, intent(in) :: dti
     type(matrix_type) :: nmat_lhs, nmat_rhs
@@ -730,10 +729,9 @@ contains
     use pellet
     use newvar_mod
     use math
+    use mpi
 
     implicit none
-
-    include 'mpif.h'
 
     integer :: mpierr
     integer, intent(out) :: ierr
@@ -873,10 +871,9 @@ subroutine deltafuns(n,x,phi,z,m,val,jout, ier)
   use field
   use m3dc1_nint
   use math
+  use mpi
 
   implicit none
-
-  include 'mpif.h'
 
   integer, intent(in) :: n, m
   real, intent(in), dimension(n) :: x, phi, z
