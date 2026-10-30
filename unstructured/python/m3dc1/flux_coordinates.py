@@ -134,7 +134,9 @@ def flux_coordinates(sim=None, filename='C1.h5', time=0, fcoords='', phit=0.0, p
     
     #print(tsfilename)
     h5file = sim._all_attrs
-    ntimestep = readParameter('ntimestep', h5file=h5file)
+
+    ntimestep = timeslice
+
     R_magax = sim.get_time_trace('xmag').values[ntimestep]
     Z_magax = sim.get_time_trace('zmag').values[ntimestep]
     axis = [R_magax, Z_magax]

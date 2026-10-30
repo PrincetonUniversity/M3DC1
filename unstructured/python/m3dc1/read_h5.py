@@ -31,6 +31,9 @@ def openH5File(fname):
 def readParameter(pname,fname='C1.h5',h5file=None,sim=None,listc=False):
     """
     Read single parameter from M3DC1 C1.h5 output file.
+    IMPORTANT: It is discouraged to pass fname as this is incompatible
+    with retrieving data from remote hosts using the ADIOS2 campaign
+    engine. Pass either h5file or sim instead.
     
     Arguments:
 
