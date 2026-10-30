@@ -3112,8 +3112,9 @@ subroutine calc_fdensity(ps0, dens, x, z, izone)
 
   integer :: mr
 
-  if(izone.gt.2) then
-     dens = nf_spline%y(nf_spline%n)
+  ! for multiple zone simulation, avoid particle sampling other than plasma region.
+  if(izone.ne.ZONE_PLASMA) then
+     dens = 0.0 ! nf_spline%y(nf_spline%n)
      return
   end if
 

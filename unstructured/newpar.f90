@@ -413,9 +413,9 @@ Program Reducedquintic
              print *, " After current feedback", &
              vloop, totcur, i_control%p, &
              i_control%target_val, i_control%err_p_old, i_control%err_i
-       else
-          vloop = vloop0*cos(2.*pi*vloop_freq*time)
-       endif
+        else
+           vloop = vloop0*cos(2.*pi*vloop_freq*time)
+        endif
      endif
 
      if(linear.eq.0 .and. eqsubtract.eq.0 .and. n_control%icontrol_type .ge. 0) then

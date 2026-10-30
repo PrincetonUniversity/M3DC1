@@ -95,6 +95,9 @@ module particles
    integer :: win_mesh_coord
    integer, dimension(:, :), pointer :: mesh_nodes !Neighbor tracking arrays
    integer :: win_mesh_nodes
+   integer, dimension(:), pointer :: mesh_zone !Neighbor tracking arrays
+!$acc declare link(mesh_zone)
+   integer :: win_mesh_zone
    integer, dimension(:, :), allocatable :: neighborlist !Neighbor tracking arrays
 !$acc declare link(neighborlist)
    integer, dimension(:), allocatable :: localmeshid
@@ -496,6 +499,7 @@ subroutine init_particles(lrestart, ierr)
   type(vector_type) :: vel_vec
 
    integer, dimension(:, :), allocatable :: mesh_nodes_temp
+   integer, dimension(:), allocatable :: mesh_zone_temp
    integer :: nelm_row_temp
    integer :: ielm_min_temp, ielm_max_temp
    integer :: sps, izone
@@ -549,6 +553,16 @@ subroutine init_particles(lrestart, ierr)
    CALL C_F_POINTER(baseptr, mesh_nodes, [nodes_per_element, nelms_global])
    !allocate(mesh_nodes(3,nelms))
 
+   disp_unit = 1
+   arraysize = 0
+   if (hostrank == 0) arraysize = nelms_global*sizeof(1)
+   CALL MPI_Win_allocate_shared(arraysize, disp_unit, MPI_INFO_NULL, &
+                                hostcomm, baseptr, win_mesh_zone, ierr)
+   if (hostrank /= 0) CALL MPI_Win_shared_query(win_mesh_zone, 0, arraysize, disp_unit, baseptr, ierr)
+   !CALL C_F_POINTER(baseptr, mesh_coord_shared, [2,3,nelms])
+   CALL C_F_POINTER(baseptr, mesh_zone, [nelms_global])
+   !allocate(mesh_coord(2,3,nelms))
+
    allocate (localmeshid(nelms_global))
    localmeshid = 0
    nelms = local_elements()
@@ -574,6 +588,12 @@ subroutine init_particles(lrestart, ierr)
             if (mesh_coord(2, inode, ielm_global)==0) mesh_coord(2, inode, ielm_global) = toroidal_period
          endif
       end do
+
+      mesh_zone(ielm_global) = ZONE_PLASMA  ! default initialization
+      if (imulti_region.eq.1) then
+          call get_zone(ielm, izone)
+          mesh_zone(ielm_global) = izone
+      endif
    end do
    call mpi_barrier(mpi_comm_world, ierr)
    ielm_min_temp=ielm_min
@@ -588,7 +608,7 @@ subroutine init_particles(lrestart, ierr)
    do irow = 2, nrows
       displs_elm(irow) = displs_elm(irow - 1) + nelm_row(irow - 1)
    end do
-    if (hostrank == 1) then
+   if (hostrank == 1) then
       allocate (recvcounts(nrows))
       allocate (displs(nrows))
       sendcount = nodes_per_element*nelm_row(rowrank + 1)
@@ -607,6 +627,14 @@ subroutine init_particles(lrestart, ierr)
       call MPI_ALLGATHERV(mesh_coord_temp,sendcount,MPI_DOUBLE_PRECISION, mesh_coord,recvcounts,&
          displs,MPI_DOUBLE_PRECISION, rowcomm,ierr) 
       deallocate (mesh_coord_temp)
+      sendcount = nelm_row(rowrank + 1)
+      recvcounts = nelm_row
+      displs = displs_elm
+      allocate (mesh_zone_temp(nelm_row(rowrank+1)))
+      mesh_zone_temp=mesh_zone(ielm_min:ielm_max)
+      call MPI_ALLGATHERV(mesh_zone_temp,sendcount,MPI_INTEGER, &
+              mesh_zone,recvcounts,displs,MPI_INTEGER, rowcomm,ierr)
+      deallocate (mesh_zone_temp)
       deallocate (recvcounts)
       deallocate (displs)
    end if
@@ -711,7 +739,13 @@ subroutine init_particles(lrestart, ierr)
          call get_zone(ielm, izone)
          call define_element_quadrature(ielm, int_pts_main, int_pts_tor)
          call define_fields(ielm, FIELD_PSI+FIELD_I, 1, 0)
+        
          call eval_ops(ielm, psi_field(0), ps079)
+         if (icsubtract.eq.1) then
+             call eval_ops(itri, psi_coil_field, psc79)
+             ps079 = ps079 + psc79
+         endif
+        
          call eval_ops(ielm, bz_field(0), bz079)
          bzsign_temp=sign(1.0, real(sum(ps079(:,OP_GS))*sum(bz079(:,OP_1))))
       endif
@@ -738,7 +772,14 @@ subroutine init_particles(lrestart, ierr)
       deni_field(0)%vec = 0.
       denf_field(0)%vec = 0.
       j_f_par%vec = 0.
-      allocate (pdata_local(num_par_max/maxrank*10))
+      
+      ! for multiple region, particles may only occupy a few MPI with plasma region, so a larger local array is needed.
+      if(imulti_region .eq. 1)then
+         allocate (pdata_local(num_par_max/maxrank*100))
+      else
+         allocate (pdata_local(num_par_max/maxrank*10))
+      endif
+      
       !First pass: assign particles to processors, elements
       locparts = 0
       !allocate(ran(npar*5))
@@ -1091,9 +1132,9 @@ subroutine init_particles(lrestart, ierr)
 #ifdef _OPENACC
    if (hostrank < num_devices) then
       write (0, *) 'num_device', num_devices
-!$acc enter data create(mesh_coord,neighborlist)
+!$acc enter data create(mesh_coord,neighborlist,mesh_zone)
 !!$acc enter data create(pdata(starty:endy)) async(blocky)
-!$acc update device(mesh_coord,neighborlist)
+!$acc update device(mesh_coord,neighborlist,mesh_zone)
 !!$acc update device(pdata(starty:endy)) async(blocky)
 !$acc update device(m_ion,q_ion,qm_ion)
 !$acc update device(dt_particle,t0_norm_particle,v0_norm_particle,b0_norm_particle,rfac_particle)
@@ -1368,6 +1409,9 @@ subroutine rk4(part, dt, last_step, ierr)
    xtemp = part%x
    vtemp = part%v
    call get_geom_terms(xtemp, itri, geomterms, .false., ierr)
+   if (ierr .eq. 0) then
+       if (mesh_zone(itri).ne.ZONE_PLASMA) ierr = 1
+   endif
    if (ierr .eq. 1) return
 #ifdef USEST
    call update_geom_terms_st(geomterms, elfieldcoefs(itri), .false.)
@@ -1509,15 +1553,17 @@ subroutine fdot(x, v, w, dxdt, dvdt, dwdt, dEpdt, itri, kel, f00, ierr, sps, B00
    integer :: tridex
    integer :: ipoint
    real :: Pphi, ran_temp, hh
+   integer :: izone
 
    !x=x_in
    !ierr = 0
 
    !Need terms to compute fields to calculate acceleration
    call get_geom_terms(x, itri, geomterms, vspdims .eq. 2, ierr)
-   ! if (ierr .eq. 0) then
-   !    if (mesh_zone(itri).ne.ZONE_PLASMA) ierr=1
-   ! endif
+   if (ierr .eq. 0) then
+      if (mesh_zone(itri) .ne. ZONE_PLASMA) ierr=1
+   endif
+   
    if (ierr .ne. 0) then
       !write(0,*) 'outoutout'
       return
@@ -2776,6 +2822,7 @@ subroutine get_field_coefs(eq, full_update)
    integer :: ierr
    real :: factor
    type(elfield), dimension(:), allocatable :: elfieldcoefs_temp
+   vectype, dimension(coeffs_per_element) :: psi_coil_coeffs
 
    do ielm = 1, nelms
 
@@ -2792,7 +2839,15 @@ subroutine get_field_coefs(eq, full_update)
          cycle
       endif
       if (eq == 1) then
-         call calcavector(ielm, psi_field(0), elfieldcoefs(ielm_global)%psiv0)
+         ! With coil subtraction, the pusher needs plasma + coil flux.
+         if (icsubtract == 1) then
+             call calcavector(ielm, psi_field(0), elfieldcoefs(ielm_global)%psiv0)
+             call calcavector(ielm, psi_coil_field, psi_coil_coeffs) 
+             elfieldcoefs(ielm_global)%psiv0 = &
+                 elfieldcoefs(ielm_global)%psiv0 + psi_coil_coeffs
+         else
+             call calcavector(ielm, psi_field(0), elfieldcoefs(ielm_global)%psiv0)
+         endif
          call calcavector(ielm, bz_field(0), elfieldcoefs(ielm_global)%Bzv0)
          call calcavector(ielm, bfp_field(0), elfieldcoefs(ielm_global)%Bfpv0)
          call calcavector(ielm, rho_field, elfieldcoefs(ielm_global)%rho)
