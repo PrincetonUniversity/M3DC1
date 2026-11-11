@@ -424,6 +424,7 @@ subroutine set_defaults
   call add_var_int("itwofluid", itwofluid, 0, &
        "1: -electron 2F,  2: ion 2F", model_grp)
   call add_var_int("ibootstrap", ibootstrap, 0, "", model_grp)
+  call add_var_int("ibootstrap_pr", ibootstrap_pr, 0, "", model_grp)
   call add_var_int("irunaway", irunaway, 0, "", model_grp)
   call add_var_int("irunaway_kinetic", irunaway_kinetic, 0, &
        "1: Couple runaway electron parallel/perpendicular pressure to MHD", model_grp)

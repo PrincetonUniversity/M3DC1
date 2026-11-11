@@ -4041,8 +4041,8 @@ subroutine pressure_lin(trialx, lin, ssterm, ddterm, q_ni, r_bf, q_bf,&
 
  ! if((ibootstrap_model.eq.1) .or. (ibootstrap_model.eq.2)) then
  !    call bootstrap_pressure(trialx, lin, ssterm, ddterm, pp_g, thimp)
- ! elseif((ibootstrap_model.eq.3) .or. (ibootstrap_model.eq.4) .or. (ibootstrap_model.eq.5) ) then
- !    call bootstrap_pressure(trialx, lin, ssterm, ddterm, pp_g, thimp)
+ !if((ibootstrap_model.eq.3) .or. (ibootstrap_model.eq.4) .or. (ibootstrap_model.eq.5) ) then
+ !    call bootstrap_pressure_simplified(trialx, lin, ssterm, ddterm, pp_g, thimp)
  ! end if
 end subroutine pressure_lin
 
@@ -4611,6 +4611,7 @@ subroutine pressure_nolin(trialx, r4term, total_pressure)
   use basic
   use m3dc1_nint
   use metricterms_new
+  use bootstrap
 
   implicit none
 
@@ -4776,6 +4777,14 @@ subroutine pressure_nolin(trialx, r4term, total_pressure)
         end if
      endif
   end if
+
+  ! ======================================================================
+  !  Bootstrap reduction term
+  ! ======================================================================
+  if((ibootstrap_pr.eq.1) .and. ((ibootstrap_model.eq.3) .or. (ibootstrap_model.eq.4) .or. (ibootstrap_model.eq.5))) then
+     call bootstrap_pressure_explicit(trialx, r4term)
+  end if
+  ! ======================================================================
 
 end subroutine pressure_nolin
 
