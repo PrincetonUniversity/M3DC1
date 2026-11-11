@@ -1,0 +1,157 @@
+name: CI
+
+on:
+  push:
+    branches: [master]
+  pull_request:
+  workflow_dispatch:
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+
+permissions:
+  contents: read
+
+env:
+  # Must match the refs scorec-spack-packages builds with, so the
+  # dependencies concretize to the hashes in its build cache.
+  SPACK_REF: releases/v1.2
+  SPACK_PACKAGES_REF: releases/v2026.10
+  SCOREC_SPACK_PACKAGES_REF: main
+  SPACK_ENV_DIR: .spack/scorec-spack-packages/environments/m3dc1
+
+jobs:
+  build:
+    name: ${{ matrix.name }}
+    runs-on: ubuntu-24.04
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+        - name: 2d
+          spec: m3dc1~3d~complex~st
+          exe: m3dc1_2d
+          cmake: -DM3DC1_ENABLE_3D=OFF -DM3DC1_ENABLE_COMPLEX=OFF -DM3DC1_ENABLE_ST=OFF
+        - name: 2d-complex
+          spec: m3dc1~3d+complex~st
+          exe: m3dc1_2d_complex
+          cmake: -DM3DC1_ENABLE_3D=OFF -DM3DC1_ENABLE_COMPLEX=ON -DM3DC1_ENABLE_ST=OFF
+        - name: 3d
+          spec: m3dc1+3d~complex~st
+          exe: m3dc1_3d
+          cmake: -DM3DC1_ENABLE_3D=ON -DM3DC1_ENABLE_COMPLEX=OFF -DM3DC1_ENABLE_ST=OFF
+        - name: 3d-st
+          spec: m3dc1+3d~complex+st
+          exe: m3dc1_3d_st
+          cmake: -DM3DC1_ENABLE_3D=ON -DM3DC1_ENABLE_COMPLEX=OFF -DM3DC1_ENABLE_ST=ON
+
+    steps:
+    - name: Install Fortran
+      run: |
+        if ! command -v gfortran >/dev/null; then
+          sudo apt-get update
+          sudo DEBIAN_FRONTEND=noninteractive apt-get install -y --no-install-recommends gfortran
+        fi
+
+    - uses: actions/checkout@v5
+
+    - name: Checkout Spack
+      uses: actions/checkout@v5
+      with:
+        repository: spack/spack
+        ref: ${{ env.SPACK_REF }}
+        path: .spack/spack
+
+    - name: Checkout Spack packages
+      uses: actions/checkout@v5
+      with:
+        repository: spack/spack-packages
+        ref: ${{ env.SPACK_PACKAGES_REF }}
+        path: .spack/spack-packages
+
+    # Provides the m3dc1 recipe and the environment whose dependencies are
+    # in the SCOREC build cache.
+    - name: Checkout SCOREC Spack packages
+      uses: actions/checkout@v5
+      with:
+        repository: SCOREC/scorec-spack-packages
+        ref: ${{ env.SCOREC_SPACK_PACKAGES_REF }}
+        path: .spack/scorec-spack-packages
+
+    - name: Set up Spack
+      run: |
+        echo "$GITHUB_WORKSPACE/.spack/spack/bin" >> "$GITHUB_PATH"
+        echo "SPACK_COLOR=always" >> "$GITHUB_ENV"
+        echo "SPACK_DISABLE_LOCAL_CONFIG=1" >> "$GITHUB_ENV"
+        export PATH="$GITHUB_WORKSPACE/.spack/spack/bin:$PATH"
+        export SPACK_DISABLE_LOCAL_CONFIG=1
+        spack repo set --destination "$GITHUB_WORKSPACE/.spack/spack-packages" builtin
+        spack mirror add --unsigned github-actions-buildcache oci://ghcr.io/spack/github-actions-buildcache
+        spack mirror add --unsigned scorec-buildcache oci://ghcr.io/scorec/scorec-spack-buildcache
+        # Same target setting as the scorec-spack-packages workflow.
+        spack -e "$SPACK_ENV_DIR" config add "packages:all:require:'target=x86_64_v3'"
+
+    - name: Concretize
+      run: |
+        spack -e "$SPACK_ENV_DIR" concretize --fresh
+        spack -e "$SPACK_ENV_DIR" find -c -l
+
+    - name: Install dependencies
+      run: |
+        spack -e "$SPACK_ENV_DIR" install --fail-fast -j "$(nproc)" \
+          --only dependencies "${{ matrix.spec }}"
+
+    # The environment Spack itself would build the root in: PATH,
+    # CMAKE_PREFIX_PATH and PKG_CONFIG_PATH cover every dependency.
+    - name: Dump build environment
+      run: spack -e "$SPACK_ENV_DIR" build-env --dump build-env.sh "${{ matrix.spec }}"
+
+    - name: Configure
+      run: |
+        source build-env.sh
+        cmake -S . -B build \
+          -DCMAKE_BUILD_TYPE=Release \
+          -DCMAKE_C_COMPILER=mpicc \
+          -DCMAKE_CXX_COMPILER=mpicxx \
+          -DCMAKE_Fortran_COMPILER=mpifort \
+          ${{ matrix.cmake }}
+
+    - name: Build
+      run: |
+        source build-env.sh
+        cmake --build build -j "$(nproc)"
+
+    - name: Check executables
+      run: |
+        for exe in unstructured/${{ matrix.exe }} \
+                   m3dc1_scorec/create_smb m3dc1_scorec/split_smb \
+                   m3dc1_scorec/check_smb m3dc1_scorec/show_meshcount; do
+          test -x "build/$exe" || { echo "missing build/$exe"; exit 1; }
+        done
+        source build-env.sh
+        ldd "build/unstructured/${{ matrix.exe }}" | grep -i "not found" && exit 1
+        echo "built build/unstructured/${{ matrix.exe }}"
+
+    - name: Collect logs
+      if: failure()
+      run: |
+        mkdir -p logs
+        cp build/CMakeFiles/CMakeConfigureLog.yaml logs/ 2>/dev/null || true
+        # Dependencies that had to be built from source instead of pulled
+        # from the build cache. configure.log is written by PETSc into its
+        # source dir (spack-src/).
+        stage="$(spack location -S)"
+        find "$stage" -maxdepth 3 \( -name 'spack-build-out.txt' -o -name 'spack-build-env.txt' -o -name 'configure.log' \) \
+          -exec sh -c 'pkg=${1#"$2"/}; pkg=${pkg%%/*}; cp "$1" "logs/${pkg}-$(basename "$1")"' _ {} "$stage" \;
+        # spack-build-env.txt exports the entire environment, and the other
+        # logs may echo it: drop anything that looks like a credential.
+        find logs -type f -exec sed -i -E '/(TOKEN|SECRET|PASSWORD)[A-Z_]*=/d' {} +
+
+    - name: Upload logs
+      if: failure()
+      uses: actions/upload-artifact@v4
+      with:
+        name: ${{ matrix.name }}-logs
+        path: logs/
+        if-no-files-found: ignore
