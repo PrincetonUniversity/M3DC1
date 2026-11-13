@@ -309,6 +309,13 @@ Program Reducedquintic
   ! unless eqsubtract = 1
   if(eqsubtract.eq.0) then
      call add(field_vec, field0_vec)
+
+     ! fp is not stored in field_vec, need to restore if nonaxisymmetric?
+#ifdef USEST
+      call add(bfp_field(1), bfp_field(0))
+      bfp_field(0) = 0.
+#endif
+     
      field0_vec = 0.
   endif
 
