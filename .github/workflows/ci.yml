@@ -100,7 +100,7 @@ jobs:
     - name: Install dependencies
       run: |
         spack -e "$SPACK_ENV_DIR" install --fail-fast -j "$(nproc)" \
-          --only dependencies "${{ matrix.spec }}"
+          --only dependencies --include-build-deps "${{ matrix.spec }}"
 
     # The environment Spack itself would build the root in: PATH,
     # CMAKE_PREFIX_PATH and PKG_CONFIG_PATH cover every dependency.
