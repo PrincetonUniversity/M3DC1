@@ -1658,8 +1658,6 @@ int matrix_solve::setKspType() {
   ierr = KSPSetOperators(
       _ksp, _A, _A /*, SAME_PRECONDITIONER DIFFERENT_NONZERO_PATTERN*/);
   CHKERRQ(ierr);
-  ierr = KSPSetTolerances(_ksp, 1.e-9, PETSC_DEFAULT, PETSC_DEFAULT, 10000);
-  CHKERRQ(ierr);
 
   PetscBool flg = PETSC_FALSE;
   ierr=PetscOptionsGetBool(NULL, NULL, "-ksp_monitor_5", &flg, NULL);
@@ -1687,8 +1685,43 @@ int matrix_solve::setKspType() {
     // 3D: optional preconditioner selection via command-line options
     // (at most one of these should be active for a given matrix_id)
 
-    // default: block jaconi preconditioner
-    // solver option: refer to unstructured/regtest/pellet/base/options_bjacobi.type_superludist
+    // default: FGMRES + block Jacobi (one block per plane),
+    // sub-block direct LU with SuperLU_dist
+    // (matches unstructured/regtest/NCSX/base/options_bjacobi1)
+    int nplane;
+    m3dc1_plane_getnum(&nplane);
+    ierr = KSPSetType(_ksp, KSPFGMRES);
+    CHKERRQ(ierr);
+    ierr = KSPSetTolerances(_ksp, 1.e-9, 1.e-20, PETSC_DEFAULT, 10000);
+    CHKERRQ(ierr);
+    PC pc;
+    ierr = KSPGetPC(_ksp, &pc);
+    CHKERRQ(ierr);
+    ierr = PCSetType(pc, PCBJACOBI);
+    CHKERRQ(ierr);
+    ierr = PCBJacobiSetTotalBlocks(pc, nplane, NULL);
+    CHKERRQ(ierr);
+    // sub-block KSPs are created at PCSetUp; provide their defaults via the
+    // options database unless the user already set them (e.g. options file)
+    PetscBool has = PETSC_FALSE;
+    ierr = PetscOptionsHasName(NULL, NULL, "-sub_ksp_type", &has);
+    CHKERRQ(ierr);
+    if (!has) {
+      ierr = PetscOptionsSetValue(NULL, "-sub_ksp_type", "preonly");
+      CHKERRQ(ierr);
+    }
+    ierr = PetscOptionsHasName(NULL, NULL, "-sub_pc_type", &has);
+    CHKERRQ(ierr);
+    if (!has) {
+      ierr = PetscOptionsSetValue(NULL, "-sub_pc_type", "lu");
+      CHKERRQ(ierr);
+    }
+    ierr = PetscOptionsHasName(NULL, NULL, "-sub_pc_factor_mat_solver_type", &has);
+    CHKERRQ(ierr);
+    if (!has) {
+      ierr = PetscOptionsSetValue(NULL, "-sub_pc_factor_mat_solver_type", "superlu_dist");
+      CHKERRQ(ierr);
+    }
 
     // -mgsolve: block geometric MG, smoother = BJacobi
     // solver option: refer to unstructured/regtest/pellet/base/options_bjacobi.type_mg
