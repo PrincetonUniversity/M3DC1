@@ -100,7 +100,7 @@ jobs:
     - name: Install dependencies
       run: |
         spack -e "$SPACK_ENV_DIR" install --fail-fast -j "$(nproc)" \
-          --only dependencies "${{ matrix.spec }}"
+          --only dependencies --include-build-deps "${{ matrix.spec }}"
 
     # The environment Spack itself would build the root in: PATH,
     # CMAKE_PREFIX_PATH and PKG_CONFIG_PATH cover every dependency.
@@ -115,6 +115,7 @@ jobs:
           -DCMAKE_C_COMPILER=mpicc \
           -DCMAKE_CXX_COMPILER=mpicxx \
           -DCMAKE_Fortran_COMPILER=mpifort \
+          -DM3DC1_REGTEST_NPROCS=4 \
           ${{ matrix.cmake }}
 
     - name: Build
@@ -133,11 +134,27 @@ jobs:
         ldd "build/unstructured/${{ matrix.exe }}" | grep -i "not found" && exit 1
         echo "built build/unstructured/${{ matrix.exe }}"
 
+    # The 3D regression tests ("long") need more memory than a runner has.
+    - name: Test
+      env:
+        # MPI tests may launch more ranks than the runner has cores.
+        OMPI_MCA_rmaps_base_oversubscribe: "1"
+        PRTE_MCA_rmaps_default_mapping_policy: ":oversubscribe"
+      run: |
+        source build-env.sh
+        ctest --test-dir build --output-on-failure -LE long -j "$(nproc)"
+
     - name: Collect logs
       if: failure()
       run: |
         mkdir -p logs
         cp build/CMakeFiles/CMakeConfigureLog.yaml logs/ 2>/dev/null || true
+        cp build/Testing/Temporary/LastTest.log logs/ 2>/dev/null || true
+        for c1ke in build/unstructured/regtest/mpi_test_runs/*/C1ke; do
+          [ -f "$c1ke" ] || continue
+          dest="logs/regtest/$(basename "$(dirname "$c1ke")")"
+          mkdir -p "$dest" && cp "$c1ke" "$dest/"
+        done
         # Dependencies that had to be built from source instead of pulled
         # from the build cache. configure.log is written by PETSc into its
         # source dir (spack-src/).

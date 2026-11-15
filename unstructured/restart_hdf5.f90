@@ -265,6 +265,10 @@ contains
     call read_scalar(scalar_group_id, "n_control%err_i",     n_control%err_i,     ntime, error)
     call read_scalar(scalar_group_id, "n_control%err_p_old", n_control%err_p_old, ntime, error)
 
+    if(ikprad.ne.0 .and. ikprad_in.ne.0 .and. version_in.ge.44) then
+       call read_scalar(scalar_group_id, "kprad_dt", kprad_dt, ntime, error)
+    end if
+
     call h5gclose_f(scalar_group_id, error)
 
     ! Read Fields

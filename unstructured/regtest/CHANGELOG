@@ -4,6 +4,13 @@ output (e.g. due to a bugfix); a change to the input (e.g. due to
 renaming or obsoleting an input variable); or a change to both
 (e.g. due to a substantive change to the mesh or other input files).
 
+11/14/2026
+Changed: KPRAD_restart
+Reason: The restart did not reproduce the continuous KPRAD_2D run, and
+	its result depended on the number of MPI ranks.
+	This is resolved by setting output to double precision (idouble_out=1)
+	and restoring the kprad_dt variable on restart.
+
 8/24/2026
 Changed: NCSX
 Reason: Changed re-solve of bpf after initialization to avoid
