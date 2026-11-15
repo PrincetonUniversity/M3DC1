@@ -177,7 +177,7 @@ ifeq ($(USEADAS), 1)
   ADAS_OBJ = adas_m3dc1.o
 endif
 
-OBJS := fftw_fortran.o read_namelist.o gsl_wrapper.o \
+OBJS := fftw_fortran.o read_namelist.o math_wrapper.o \
 	random.o spline.o region.o signal_handler.o \
 	math.o read_ascii.o interpolate.o control.o \
 	iterdb.o read_gyro.o read_neo.o radiation.o \

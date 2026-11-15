@@ -132,16 +132,16 @@ end subroutine cubic_roots
 !======================================================================
 ! bessel functions
 ! ~~~~~~~~~~~~~~~~
-! Courtesy of Gnu Scientific Library
+! Self-contained implementation in math_wrapper.c
 !======================================================================
 real function bessel_I(n, x)
   implicit none
   integer, intent(in) :: n
   real, intent(in) :: x
   real :: tmp
-  external :: gsl_bessel_i
+  external :: m3d_bessel_i
 
-  call gsl_bessel_i(n,x,tmp)
+  call m3d_bessel_i(n,x,tmp)
   bessel_I = tmp
 end function bessel_I
 
@@ -150,9 +150,9 @@ real function bessel_J(n, x)
   integer, intent(in) :: n
   real, intent(in) :: x
   real :: tmp
-  external :: gsl_bessel_j
+  external :: m3d_bessel_j
 
-  call gsl_bessel_j(n,x,tmp)
+  call m3d_bessel_j(n,x,tmp)
   bessel_J = tmp
 end function bessel_J
 
@@ -161,9 +161,9 @@ real function bessel_Y(n, x)
   integer, intent(in) :: n
   real, intent(in) :: x
   real :: tmp
-  external :: gsl_bessel_y
+  external :: m3d_bessel_y
 
-  call gsl_bessel_y(n,x,tmp)
+  call m3d_bessel_y(n,x,tmp)
   bessel_Y = tmp
 end function bessel_Y
 
@@ -171,9 +171,9 @@ real function elliptic_e(x)
   implicit none
   real, intent(in) :: x
   real :: tmp
-  external :: gsl_elliptic_e
+  external :: m3d_elliptic_e
 
-  call gsl_elliptic_e(x,tmp)
+  call m3d_elliptic_e(x,tmp)
   elliptic_e = tmp
 end function elliptic_e
 
@@ -181,9 +181,9 @@ real function elliptic_k(x)
   implicit none
   real, intent(in) :: x
   real :: tmp
-  external :: gsl_elliptic_k
+  external :: m3d_elliptic_k
 
-  call gsl_elliptic_k(x,tmp)
+  call m3d_elliptic_k(x,tmp)
   elliptic_k = tmp
 end function elliptic_k
 
@@ -191,9 +191,9 @@ real function erf(x)
   implicit none
   real, intent(in) :: x
   real :: tmp
-  external :: gsl_erf
-  
-  call gsl_erf(x,tmp)
+  external :: m3d_erf
+
+  call m3d_erf(x,tmp)
   erf = tmp
 end function erf
 
