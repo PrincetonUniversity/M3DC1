@@ -105,6 +105,10 @@ install(FILES ${HEADERS} DESTINATION include)
 set(M3DC1_UTILITY_NAMES check_smb create_smb split_smb vtk_order show_meshcount)
 install(TARGETS ${M3DC1_UTILITY_NAMES} DESTINATION bin)
 
+if(BUILD_TESTING)
+  add_subdirectory(test)
+endif()
+
 # CPack configuration for binary distribution
 set(CPACK_GENERATOR "TGZ")
 set(CPACK_PACKAGE_VERSION "1.0.1")

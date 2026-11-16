@@ -148,11 +148,15 @@ contains
     call PetscMemorySetGetMaximumUsage(ierr);
   end subroutine printMemStatTotalStart
   subroutine printMemStatTotal
-#include "petsc/finclude/petsc.h"
     !call cc_printMemStatTotal
     use petsc
     implicit none
-    PetscLogDouble :: mem, mem_max
+    ! PetscMemoryGetCurrentUsage and PetscMemoryGetMaximumUsage return these as
+    ! PetscLogDouble. They are declared double precision rather than with that
+    ! macro because including petsc/finclude/petsc.h makes CMake's Makefile
+    ! Fortran dependency scanner hang. The petsc module's interfaces reject any
+    ! other kind, so a mismatch fails to compile.
+    double precision :: mem, mem_max
     integer :: myrank, ierr
 
     call MPI_Comm_rank(MPI_COMM_WORLD, myrank, ierr)
