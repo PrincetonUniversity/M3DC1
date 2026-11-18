@@ -17,8 +17,12 @@ function read_gamma, filename=filename, sample_fraction=sf, _EXTRA=extra
        if(m lt pt) then begin
            gamma[i] = 0
        endif else begin
-           g = deriv(t, alog(ke)) / 2.
-           gamma[i] = median(g[m-pt:m-1])
+           if(n_elements(t) lt 3) then begin
+              gamma[i] = 0.
+           endif else begin
+              g = deriv(t, alog(ke)) / 2.
+              gamma[i] = median(g[m-pt:m-1])
+           endelse
        end
    end
 
