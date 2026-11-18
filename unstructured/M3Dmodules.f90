@@ -294,6 +294,7 @@ module basic
                          ! 3 = parallel electron pressure gradient only
   integer :: no_vdg_T    ! 1 = do not include the V dot Grad(T) terms in temperature equation (for debug) 
   integer :: ibootstrap  ! bootstrap current model
+  integer :: ibootstrap_pr  ! bootstrap current pressure term flag
   integer :: irunaway    ! runaway electron model
   real    :: cre         ! runaway speed
   integer :: ra_cyc      ! runaway subcycle

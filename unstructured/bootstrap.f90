@@ -1599,7 +1599,7 @@ function bs_b1psifbb(e,f,g,h,i)
       temp(i) = 1.0 + &
                 0.25 * (1.0 - 0.7 * jbs_ftrap79(i,OP_1)) * sqrt(nu_e_star(i)) * &
                 (1.0 + 0.45 * sqrt(Zcharge_eff - 1.0)) + &
-                0.61 * (1.0 - 0.41 * jbs_ftrap79(i,OP_1)) * nu_e_star(i) / Zcharge_eff * 0.5
+                0.61 * (1.0 - 0.41 * jbs_ftrap79(i,OP_1)) * nu_e_star(i) / Zcharge_eff**0.5
       f_t33(i) = jbs_ftrap79(i,OP_1) / temp(i)
 
       ! Calculate jbsalpha79 
@@ -1831,6 +1831,48 @@ subroutine calculate_CommonTerm_Lambda_fordtenormdpsit(temp1,temp2,tempAA, tempB
     
     
   end subroutine calculate_CommonTerm_Lambda_fordtenormdpsit
+
+! Bootstrap Current Term in pressure
+  ! ===============
+  subroutine bootstrap_pressure_explicit(e, r4term)
+    use basic
+    use arrays
+    use m3dc1_nint
+
+    implicit none
+
+    vectype, intent(in), dimension(dofs_per_element, MAX_PTS, OP_NUM) :: e
+    vectype, intent(inout), dimension(dofs_per_element) :: r4term
+    vectype, dimension(dofs_per_element) :: temp
+
+    ! Evaluate common term lambda based on ibootstrap selection
+    if (ibootstrap .eq. 1) then
+       call calculate_CommonTerm_Lambda(temp79a, temp79b, temp79c, temp79d, temp79e)
+    else if (ibootstrap .eq. 2) then
+       call calculate_CommonTerm_Lambda_fordtedpsit(temp79a, temp79b, temp79c, temp79d, temp79e)
+    else if (ibootstrap .eq. 3) then
+       call calculate_CommonTerm_Lambda_fordtenormdpsit(temp79a, temp79b, temp79c, temp79d, temp79e)
+    endif
+
+    ! Parallel J . B product
+    temp79b = -ri2_79*bzt79(:,OP_1)*pst79(:,OP_GS) &
+         + ri2_79*(bzt79(:,OP_DZ)*pst79(:,OP_DZ) + bzt79(:,OP_DR)*pst79(:,OP_DR))
+#if defined(USE3D) || defined(USECOMPLEX)
+    temp79b = temp79b &
+         + ri2_79*(bfpt79(:,OP_DZP)*pst79(:,OP_DZ)  + bfpt79(:,OP_DRP)*pst79(:,OP_DR)) &
+         + ri_79 *(bzt79(:,OP_DZ)*  bfpt79(:,OP_DR) - bzt79(:,OP_DR)*  bfpt79(:,OP_DZ)) &
+         + ri_79 *(bfpt79(:,OP_DZP)*bfpt79(:,OP_DR) - bfpt79(:,OP_DRP)*bfpt79(:,OP_DZ)) &
+         - ri3_79*(pst79(:,OP_DZ)*  pst79(:,OP_DRP) - pst79(:,OP_DR)*  pst79(:,OP_DZP)) &
+         - ri2_79*(bfpt79(:,OP_DZ)* pst79(:,OP_DZP) + bfpt79(:,OP_DR)* pst79(:,OP_DRP))
+#endif
+
+    !integration: Integral( v_i * eta * lambda * (J.B)  )
+    temp = intx4(e(:, :, OP_1), eta79(:, OP_1), temp79a, temp79b)
+
+    r4term = r4term - dt * (gam - 1.) * temp
+
+  end subroutine bootstrap_pressure_explicit
+
 
 end module bootstrap
 
