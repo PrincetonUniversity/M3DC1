@@ -8,6 +8,9 @@
 #SBATCH -p sched_mit_psfc_r8
 #SBATCH -o C1stdout
 
+echo "[SLURM] Nodes: $SLURM_JOB_NODELIST"
+echo "[SLURM] tasks: $SLURM_NTASKS"
+
 export SLURM_CPU_BIND="cores"
 echo $SLURM_CPUS_ON_NODE
 

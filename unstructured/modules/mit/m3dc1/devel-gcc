@@ -31,9 +31,18 @@ module-whatis                   "$description"
 
 ## Software-specific settings exported to user environment
 
-if { ! [ is-loaded openmpi/5.0.8 ] } {
-  module load openmpi/5.0.8
-}
+#if { ! [ is-loaded openmpi/5.0.8 ] } {
+#  module load openmpi/5.0.8
+#}
+
+# Use the Open MPI that PETSc/PUMI (mit_gcc.mk) are linked against.
+set             ompi_root       /orcd/software/core/001/pkg/openmpi/5.0.8
+prepend-path    PATH            $ompi_root/bin
+prepend-path    LD_LIBRARY_PATH $ompi_root/lib
+setenv          MPI_HOME        $ompi_root
+
+setenv          OMPI_MCA_coll_hcoll_enable 0
+setenv          OMPI_MCA_io     romio341
 
 if { ! [ is-loaded cmake ] } {
   module load cmake/3.27.9
