@@ -3878,7 +3878,7 @@ int m3dc1_matrix_solve(int* matrix_id, FieldID* rhs_sol) //solveSysEqu_
   PetscInt cudss_id = -1;
   PetscOptionsGetInt(NULL, NULL, "-cudsssolve", &cudss_id, NULL);
   //if (*matrix_id == cudss_id)
-  if (cudss_id > 0)
+  if (*matrix_id == cudss_id)
   {
     (dynamic_cast<matrix_solve*>(mat))->solve_cudss(*rhs_sol);
   } else {
@@ -3888,13 +3888,16 @@ int m3dc1_matrix_solve(int* matrix_id, FieldID* rhs_sol) //solveSysEqu_
   PetscInt cudss_mg_id = -1;
   PetscOptionsGetInt(NULL, NULL, "-cudsssolve_mg", &cudss_mg_id, NULL);
   //if (*matrix_id == cudss_mg_id)
-  if (cudss_mg_id > 0)
+  if (*matrix_id == cudss_mg_id)
   {
     (dynamic_cast<matrix_solve*>(mat))->solve_cudss_mg(*rhs_sol);
   } else {
 #endif
   (dynamic_cast<matrix_solve*>(mat))->solve(*rhs_sol);
-#if defined(PETSC_USE_CUDSS) || defined(PETSC_USE_CUDSS_MG)
+#ifdef PETSC_USE_CUDSS_MG
+  }
+#endif
+#ifdef PETSC_USE_CUDSS
   }
 #endif
 
@@ -3930,7 +3933,7 @@ void m3dc1_matrix_solve_with_guess(int* matrix_id, FieldID* rhs_sol, FieldID* xV
   PetscInt cudss_id = -1;
   PetscOptionsGetInt(NULL, NULL, "-cudsssolve", &cudss_id, NULL);
   //if (*matrix_id == cudss_id)
-  if (cudss_id > 0)
+  if (*matrix_id == cudss_id)
   {
     (dynamic_cast<matrix_solve*>(mat))->solve_cudss_with_guess(*rhs_sol, *xVec_guess);
   } else {
@@ -3940,7 +3943,7 @@ void m3dc1_matrix_solve_with_guess(int* matrix_id, FieldID* rhs_sol, FieldID* xV
   PetscInt cudss_mg_id = -1;
   PetscOptionsGetInt(NULL, NULL, "-cudsssolve_mg", &cudss_mg_id, NULL);
   //if (*matrix_id == cudss_mg_id)
-  if (cudss_mg_id > 0)
+  if (*matrix_id == cudss_mg_id)
   {
     (dynamic_cast<matrix_solve*>(mat))->solve_cudss_mg_with_guess(*rhs_sol, *xVec_guess);
   } else {
