@@ -13,7 +13,7 @@
  * the MPIAIJCUSPARSE sub-blocks.  Use petsc_cudss_solve for the cadence and
  * determinism measurements; use this one only to explore >1 GPU per plane.
  *
- * The Krylov outer solve (LGMRES, aijcusparse/cuda) is that of the
+ * The Krylov outer solve (FGMRES, aijcusparse/cuda) is that of the
  * SuperLU_DIST baseline driver petsc_standalone_solve.c, which is not part of
  * this package; the preconditioner is replaced by a custom PCShell whose Apply
  * runs a cuDSS LU solve on this rank's piece of its plane diagonal block.
@@ -542,8 +542,9 @@ PetscErrorCode setKspType_cudss_mg(Mat A, PetscInt nplanes, KSP *out_ksp)
     KSP ksp;
     PetscCall(KSPCreate(comm, &ksp));
     PetscCall(KSPSetOperators(ksp, A, A));
-    PetscCall(KSPSetTolerances(ksp, 1.e-9, PETSC_DEFAULT, PETSC_DEFAULT, 10000));
-    PetscCall(KSPSetType(ksp, KSPGMRES));
+    PetscCall(KSPSetType(ksp, KSPFGMRES));
+    PetscCall(KSPSetTolerances(ksp, 1.e-9, 1.e-20, PETSC_DEFAULT, 10000));
+    PetscCall(KSPGMRESSetRestart(ksp, 220));
     PetscCall(KSPSetFromOptions(ksp));
 
     /* Install our cuDSS block-Jacobi as a PCShell (overrides -pc_type).
