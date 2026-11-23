@@ -20,9 +20,9 @@ export LD_LIBRARY_PATH="$HDF5_LIB:${LD_LIBRARY_PATH:-}"
 echo "LD_LIBRARY_PATH = $LD_LIBRARY_PATH"
 
 # partition mesh
-#PARTS=$SLURM_NTASKS
-#$M3DC1_MPIRUN -n $PARTS split_smb circle-0.02-0.0-0.0-2K.smb part.smb $PARTS
-#echo $? > mesh_partitioned
+PARTS=1
+$M3DC1_MPIRUN -n $PARTS split_smb circle-0.02-0.0-0.0-2K.smb part.smb $PARTS
+echo $? > mesh_partitioned
 
 echo "=== RUN M3D-C1 ==="
 echo "Allocated nodes: $SLURM_JOB_NODELIST"
@@ -34,13 +34,13 @@ echo ""
 
 # Run M3D-C1
 $M3DC1_MPIRUN -n $SLURM_NTASKS -c $SLURM_CPUS_PER_TASK --cpu-bind=cores --gpu-bind=none --export=ALL \
-./m3dc1_2d \
+m3dc1_2d \
 -cudsssolve_mg 1 \
 -log_view -log_view_gpu_time  \
 -ksp_view
 
 $M3DC1_MPIRUN -n $SLURM_NTASKS \
-./collapse \
+collapse \
 circle-0.02-0.0-0.0.dmg ts0-adapted.smb mesh.smb $SLURM_NTASKS
 
 if ! [ -f mesh0.smb ]; then

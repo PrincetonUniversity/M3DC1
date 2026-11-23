@@ -18,9 +18,9 @@ HDF5_LIB="/scratch/gpfs/CSD/jinchen/m3dc1/1.14.6/lib64"
 export LD_LIBRARY_PATH="$HDF5_LIB:${LD_LIBRARY_PATH:-}"
 
 # partition mesh
-#PARTS=1
-#$M3DC1_MPIRUN -n $PARTS split_smb analytic-2K.smb part.smb $PARTS
-#echo $? > mesh_partitioned
+PARTS=1
+$M3DC1_MPIRUN -n $PARTS split_smb analytic-2K.smb part.smb $PARTS
+echo $? > mesh_partitioned
 
 # Run M3D-C1
 echo "=== RUN M3D-C1 ==="
@@ -35,7 +35,7 @@ echo ""
 export CUDSS_DETERMINISTIC=1
 
 $M3DC1_MPIRUN -n $SLURM_NTASKS -c $SLURM_CPUS_PER_TASK --cpu-bind=cores --gpu-bind=none --export=ALL \
-./m3dc1_3d \
+m3dc1_3d \
 -cudsssolve 1 \
 -mat_cusparse_spmv_alg CSRMV_ALG2 \
 -log_view -log_view_gpu_time  \

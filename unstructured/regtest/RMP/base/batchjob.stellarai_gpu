@@ -19,11 +19,9 @@ HDF5_LIB="/scratch/gpfs/CSD/jinchen/m3dc1/1.14.6/lib64"
 export LD_LIBRARY_PATH="$HDF5_LIB:${LD_LIBRARY_PATH:-}"
 echo "LD_LIBRARY_PATH = $LD_LIBRARY_PATH"
 
-#create_mesh.sh
-#echo $? > mesh_created
-#PARTS=$SLURM_NTASKS
-#$M3DC1_MPIRUN -n $PARTS split_smb diiid-0.02-2.5-4.0-4K.smb part.smb $PARTS
-#echo $? > mesh_partitioned
+PARTS=1
+$M3DC1_MPIRUN -n $PARTS split_smb diiid-0.02-2.5-4.0-4K.smb part.smb $PARTS
+echo $? > mesh_partitioned
 
 echo "=== RUN M3D-C1 ==="
 echo "Allocated nodes: $SLURM_JOB_NODELIST"
@@ -34,7 +32,7 @@ echo "Nodes:  $SLURM_JOB_NUM_NODES  Tasks: $SLURM_NTASKS  GPUs/node: ${SLURM_GPU
 echo ""
 
 $M3DC1_MPIRUN -n $SLURM_NTASKS -c $SLURM_CPUS_PER_TASK --cpu-bind=cores --gpu-bind=none --export=ALL \
-./m3dc1_2d_complex \
+m3dc1_2d_complex \
 -cudsssolve_mg 1 \
 -log_view -log_view_gpu_time  \
 -ksp_view
