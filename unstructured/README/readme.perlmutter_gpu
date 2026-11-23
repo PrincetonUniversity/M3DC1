@@ -42,6 +42,8 @@
 
 6. options_bjacobi for 3D
 
+   (to use cudss on gpu nodes, see section 9)
+
         -pc_type bjacobi
         -pc_bjacobi_blocks 4
         -sub_pc_type lu
@@ -76,7 +78,7 @@
 7. run job
 
 7.1 interactive mode
-  salloc -A mp288 -C gpu -n 48 -t 00:30:00
+  salloc -A mp288_g -C gpu -n 48 -t 00:30:00
   export SLURM_CPU_BIND="cores"
   srun ... (see 7.2)
 
@@ -84,7 +86,7 @@
    sample slurm script "batchjob.perlmutter_gpu_gcc"
 
    #!/bin/bash
-   #SBATCH -A mp288
+   #SBATCH -A mp288_g
    #SBATCH -p debug
    #SBATCH -C gpu
    #SBATCH -n 48
@@ -103,7 +105,7 @@
    doc: https://docs.nersc.gov/systems/perlmutter/running-jobs/
 
    #!/bin/bash
-   #SBATCH -A mp288
+   #SBATCH -A mp288_g
    #SBATCH -p debug
    #SBATCH -C gpu
    #SBATCH -n 48
@@ -128,7 +130,7 @@
    doc: https://docs.nersc.gov/systems/perlmutter/running-jobs/
 
    #!/bin/bash
-   #SBATCH -A mp288
+   #SBATCH -A mp288_g
    #SBATCH -p debug
    #SBATCH -C gpu
    #SBATCH -n 256
@@ -155,31 +157,36 @@
    ./run $M3DC1_ARCH
    ./check $M3DC1_ARCH
 
-9. run with petsc+cudss
+9. run with m3dc1+cudss
    Follow the instruction in m3d-c1_preconditioner_standalone/README.md to install the library.
    Then compile M3DC1 as used to be.
+
    sample batch job scripts:
 
-   standalone test:
-	   regtest/NCSX/base/run_config_b.sbatch_standalone
-	   regtest/NCSX/base/run_mgmn.sbatch_standalone
+   run m3dc1 with one plane distributed on 
 
-   run m3dc1 with one plane distributed on single mpi rank
-	   regtest/NCSX/base/run_config_b.sbatch
+   single mpi rank single gpu mode (3D=1) ; single mpi rank multi gpu mode (2D=1)
+	   regtest/*/base/batchjob.perlmutter_gpu_gcc
 
-   run m3dc1 with one plane distributed on multi mpi rank
-	   regtest/NCSX/base/run_mgmn.sbatch
+   pay attention to the following commandline options:
 
-9. petsc + cudss
+   code built with 2D=1, add
+   -cudsssolve_mg 1
+
+   code built with 3D=1 ,add
+   -cudsssolve 1 \
+
+   their present are important to connect to cudss.
+
+10. petsc + cudss
    Installation and Build
-   9.1. Install the Preconditioner Library
+   10.1. Install the standalone cudss interface
 
       Follow the installation instructions provided in:
 
       m3d-c1_preconditioner_standalone/README.md
 
       Complete the installation and verify that the preconditioner library has been built successfully.
-
 
       Then build the preconditioner as a static library to be linked with M3DC1:
 
@@ -191,39 +198,24 @@
       After a successful build, the library will be generated at:
       $M3DC1_CODE_DIR/m3d-c1_preconditioner_standalone/build/libm3dc1_cudss.a
 
-   9.2. Compile M3DC1
+   10.2 Install the cudss interface with m3dc1_scorec library
 
-      After installing the preconditioner library, compile M3DC1 using the standard M3DC1 build procedure.
+      be sure to add 
+
+      -DENABLE_CUDSS=ON
+
+      for code linked to 3D=1
+
+      and 
+
+      -DENABLE_CUDSS_MG=ON
+
+     for code linked to 2D=1
+
+   10.3. Compile M3DC1
+
+      After installing the cudss interface library, compile M3DC1 using the standard M3DC1 build procedure.
 
       No special compilation procedure is required beyond the normal M3DC1 build process.
-
-   9.3. Sample Batch Job Scripts
-
-      The following batch job scripts are provided as examples for testing the preconditioner in different execution configurations.
-
-      9.3.1. Standalone Preconditioner Tests
-
-         These tests execute the preconditioner independently of the M3DC1 production workflow.
-
-         regtest/NCSX/base/run_config_b.sbatch_standalone
-         regtest/NCSX/base/run_mgmn.sbatch_standalone
-
-         These scripts can be used to verify the standalone preconditioner functionality and convergence behavior before running the full M3DC1 application.
-
-      9.3.2. M3DC1: One Plane per MPI Rank
-
-         This configuration runs M3DC1 with each plane distributed over a single MPI rank.
-
-         regtest/NCSX/base/run_config_b.sbatch
-
-         This configuration is useful for testing the preconditioner when the complete plane can be accommodated within the memory available to a single MPI rank.
-
-      9.3.3. M3DC1: One Plane Distributed over Multiple MPI Ranks
-
-         This configuration runs M3DC1 with a single plane distributed across multiple MPI ranks.
-
-         regtest/NCSX/base/run_mgmn.sbatch
-
-         This configuration is intended for cases where a single MPI rank does not have sufficient memory to hold an entire plane.
 
 

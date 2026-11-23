@@ -15,8 +15,9 @@ it, and the off-plane coupling is handled by the outer Krylov iteration.
 ├── build.sbatch                  # split build on a GPU node
 ├── run_config_b.sbatch           # one GPU per plane, the reference invocation
 ├── run_mg.sbatch                 # several GPUs per plane, one process
+├── run_mg_sharedcsr.sbatch       # run_mg.sbatch, cuDSS sharing PETSc's CSR
 ├── run_mgmn.sbatch               # several ranks per plane
-├── mg_gpu_wrap.sh                # disjoint-GPU srun launcher used by run_mg.sbatch
+├── mg_gpu_wrap.sh                # disjoint-GPU srun launcher used by run_mg*.sbatch
 ├── src/
 │   ├── petsc_cudss_solve.c       # main driver
 │   ├── petsc_cudss_solve_mg.c    # -mg_devices variant
@@ -109,11 +110,12 @@ section, where `libcudss.so.0` must resolve to `deps/cudss/lib` (or `$CUDSS_DIR`
 
 ## 3. Run
 
-| script                | mode                                 | geometry                          |
-|-----------------------|--------------------------------------|-----------------------------------|
-| `run_config_b.sbatch` | one GPU per plane                    | 4 ranks, 1 node, 4 GPUs           |
-| `run_mg.sbatch`       | multiple GPUs per plane, one process | 4 ranks, 2 nodes, 2 GPUs per rank |
-| `run_mgmn.sbatch`     | multiple ranks per plane             | 8 ranks, 2 nodes, 1 GPU per rank  |
+| script                    | mode                                 | geometry                          |
+|---------------------------|--------------------------------------|-----------------------------------|
+| `run_config_b.sbatch`     | one GPU per plane                    | 4 ranks, 1 node, 4 GPUs           |
+| `run_mg.sbatch`           | multiple GPUs per plane, one process | 4 ranks, 2 nodes, 2 GPUs per rank |
+| `run_mg_sharedcsr.sbatch` | as run_mg, with `-cudss_share_csr`   | 4 ranks, 2 nodes, 2 GPUs per rank |
+| `run_mgmn.sbatch`         | multiple ranks per plane             | 8 ranks, 2 nodes, 1 GPU per rank  |
 
 All scripts run in less than 5 minutes on Perlmutter.
 
@@ -148,6 +150,15 @@ GPUs, which is what `mg_gpu_wrap.sh` does - it derives `CUDA_VISIBLE_DEVICES` fr
 four planes at `MG_DEVICES=2` need 8 GPUs, so the ranks spread 2 per node across 2 nodes;
 `MG_DEVICES=4` would need `--nodes=4 --ntasks-per-node=1`. Change `MG_DEVICES` in
 `run_mg.sbatch` and the Slurm geometry together.
+
+```bash
+sbatch run_mg_sharedcsr.sbatch
+```
+
+is the same run with `-cudss_share_csr -cudss_share_csr_check` (§5.2): cuDSS factors
+PETSc's own device copy of the plane block instead of a second copy, which lowers the
+peak on each rank's first GPU by 12.6% (10.3 → 9.0 GiB). Iterations and results are
+unchanged.
 
 ## 3.3. Config: 2 nodes, 8 ranks, 8 GPUs, 1 GPU per rank, 2 ranks per plane
 ```bash
@@ -231,10 +242,10 @@ while `True ||r||` is the recomputed `||Ax - b||`. On a correctly converged run 
 printed `||r||/||b||` is therefore orders of magnitude larger than `rtol`. Judge accuracy
 by `Relative diff` against the supplied reference solution, and by `True ||r||`.
 
-Console output goes to `slurm-<jobid>.out`, `slurm-mg-<jobid>.out` or`slurm-mgmn-<jobid>.out`
+Console output goes to `slurm-<jobid>.out`, `slurm-mg-<jobid>.out`, `slurm-mg-sharedcsr-<jobid>.out` or `slurm-mgmn-<jobid>.out`
 
 `-log_view` additionally writes a `.txt`, a `.fg` (flamegraph) and a `.xml` profile into
-the submit directory: `profile.*`, `profile_mg.*` or `profile_mgmn.*`.
+the submit directory: `profile.*`, `profile_mg.*`, `profile_mg_sharedcsr.*` or `profile_mgmn.*`.
 The names are **fixed per script**, so rerunning the same script overwrites
 its own profiles. With `-nreps > 1` the last rep is timed separately in the `Benchmark`
 stage of the `.txt` profile.
@@ -306,6 +317,19 @@ in a different preconditioner for comparison means editing `src/petsc_cudss_solv
     - That driver also ignores `-refactor_each_rep` and does not forward
       `-mat_cusparse_spmv_alg` to the sub-blocks, so use `petsc_cudss_solve` for
       refactor-cadence and determinism work.
+- `-cudss_share_csr` - default off
+    - `petsc_cudss_solve_mg` only: hand cuDSS the diagonal part of PETSc's own device
+      matrix instead of extracting and uploading a second copy of the plane block. Saves
+      that copy's GPU memory (about 1.3 GiB per plane for the shipped matrix; in MG mode
+      on the rank's first GPU) and the host-side extraction.
+    - Needs one rank per plane and `-mat_type aijcusparse`.
+- `-cudss_share_csr_check` - default off
+    - with `-cudss_share_csr`: check that no plane block has an empty row. An empty row
+      makes the block singular and may make PETSc store it compressed-row, which cuDSS
+      cannot read. Cheap.
+- `-cudss_share_csr_verify` - default off
+    - with `-cudss_share_csr`: also extract the block on the host and check that the
+      shared arrays are byte-identical to it. Adds about 1.6 s of setup.
 
 ### 5.3 Environment variables
 

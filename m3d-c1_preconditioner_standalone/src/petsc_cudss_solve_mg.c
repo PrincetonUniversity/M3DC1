@@ -57,6 +57,15 @@
  *                       setKspType_cudss_mg, so it also applies when this file
  *                       is used as a library from m3dc1_scorec
  *                       (-cudsssolve_mg).
+ *   -cudss_share_csr    give cuDSS the diagonal part of PETSc's own device
+ *                       matrix instead of an extracted copy of the plane block
+ *                       (one rank per plane, -mat_type aijcusparse only).
+ *   -cudss_share_csr_check  with -cudss_share_csr: check that the plane block
+ *                       has no empty rows (an empty row makes it singular and
+ *                       may make PETSc store it compressed-row).  Cheap.
+ *   -cudss_share_csr_verify  with -cudss_share_csr: also extract the block on
+ *                       the host (as without -cudss_share_csr) and check that
+ *                       the shared arrays are identical.
  *   -cudss_comm_lib <f> cuDSS comm-layer .so; MGMN only (>1 rank/plane).
  *                       Defaults to the vendored NCCL layer at
  *                       ${CUDSS_DIR:-deps/cudss}/lib/libcudss_commlayer_nccl.so.0.
@@ -339,6 +348,76 @@ static PetscErrorCode ExtractPlaneBlock(Mat A,
     PetscFunctionReturn(PETSC_SUCCESS);
 }
 
+/* -cudss_share_csr_check: PETSc stores a SeqAIJ matrix compressed-row (device
+ * row offsets for the nonempty rows only) when >= 60% of its rows are empty,
+ * but cuDSS needs local_n+1 offsets.  PETSc's host row offsets are always full
+ * length. */
+static PetscErrorCode CheckNoEmptyRows(Mat A, PetscInt local_n)
+{
+    PetscFunctionBeginUser;
+    MPI_Comm comm;
+    PetscCall(PetscObjectGetComm((PetscObject)A, &comm));
+    Mat Ad;
+    PetscInt n;
+    const PetscInt *ia;
+    PetscBool done;
+    PetscCall(MatGetDiagonalBlock(A, &Ad));
+    PetscCall(MatGetRowIJ(Ad, 0, PETSC_FALSE, PETSC_FALSE, &n, &ia, NULL, &done));
+    PetscCheck(done && n == local_n, PETSC_COMM_SELF, PETSC_ERR_PLIB,
+               "MatGetRowIJ on the plane block failed (n=%d, local_n=%d)", (int)n, (int)local_n);
+    long long empty = 0, g_empty;
+    for (PetscInt r = 0; r < n; r++)
+        if (ia[r + 1] == ia[r]) empty++;
+    PetscCall(MatRestoreRowIJ(Ad, 0, PETSC_FALSE, PETSC_FALSE, &n, &ia, NULL, &done));
+    PetscCallMPI(MPI_Allreduce(&empty, &g_empty, 1, MPI_LONG_LONG, MPI_SUM, comm));
+    PetscCheck(!g_empty, comm, PETSC_ERR_ARG_WRONG,
+               "-cudss_share_csr_check: %lld empty rows in the plane blocks; such a block is "
+               "singular, and PETSc may store it in compressed-row form", g_empty);
+    PetscPrintf(comm, "  share_csr check: no empty rows in the plane blocks (standard CSR)\n");
+    PetscFunctionReturn(PETSC_SUCCESS);
+}
+
+/* -cudss_share_csr_verify: compare the shared device CSR byte for byte with the
+ * block ExtractPlaneBlock builds, and error out on any difference. */
+static PetscErrorCode VerifySharedCSR(Mat A,
+                                      PetscInt plane_start, PetscInt plane_end,
+                                      PetscInt local_start, PetscInt local_n,
+                                      const int *d_rowptr, const int *d_colidx,
+                                      const PetscScalar *d_vals, long long nnz)
+{
+    PetscFunctionBeginUser;
+    MPI_Comm comm;
+    PetscCall(PetscObjectGetComm((PetscObject)A, &comm));
+    int *rowptr, *colidx;
+    PetscScalar *vals;
+    long long ref_nnz;
+    PetscCall(ExtractPlaneBlock(A, plane_start, plane_end, local_start, local_n,
+                                &rowptr, &colidx, &vals, &ref_nnz));
+    int bad = ref_nnz != nnz;
+    if (!bad) {
+        int *h_rowptr, *h_colidx;
+        PetscScalar *h_vals;
+        PetscCall(PetscMalloc3(local_n + 1, &h_rowptr, nnz, &h_colidx, nnz, &h_vals));
+        cudss_block_copy_to_host(h_rowptr, d_rowptr, (size_t)(local_n + 1) * sizeof(int));
+        cudss_block_copy_to_host(h_colidx, d_colidx, (size_t)nnz * sizeof(int));
+        cudss_block_copy_to_host(h_vals,   d_vals,   (size_t)nnz * sizeof(PetscScalar));
+        bad = memcmp(h_rowptr, rowptr, (size_t)(local_n + 1) * sizeof(int)) ||
+              memcmp(h_colidx, colidx, (size_t)nnz * sizeof(int)) ||
+              memcmp(h_vals,   vals,   (size_t)nnz * sizeof(PetscScalar));
+        PetscCall(PetscFree3(h_rowptr, h_colidx, h_vals));
+    }
+    PetscCall(PetscFree(rowptr));
+    PetscCall(PetscFree(colidx));
+    PetscCall(PetscFree(vals));
+
+    int any_bad;
+    PetscCallMPI(MPI_Allreduce(&bad, &any_bad, 1, MPI_INT, MPI_MAX, comm));
+    PetscCheck(!any_bad, comm, PETSC_ERR_PLIB,
+               "-cudss_share_csr_verify: shared device CSR differs from the extracted plane block");
+    PetscPrintf(comm, "  share_csr verify: device CSR identical to the extracted block on all ranks\n");
+    PetscFunctionReturn(PETSC_SUCCESS);
+}
+
 static PetscErrorCode CudssPCSetUp(PC pc)
 {
     PetscFunctionBeginUser;   /* block built in setKspType_cudss_mg(); nothing to do */
@@ -459,6 +538,27 @@ PetscErrorCode setKspType_cudss_mg(Mat A, PetscInt nplanes, KSP *out_ksp)
         setenv("CUDSS_MG_DEVICES", mgstr, 1);
     }
 
+    /* With one rank per plane the rank owns exactly the plane's columns, so the
+     * diagonal part of PETSc's MPIAIJ matrix IS the plane block, with 0-based
+     * plane-local columns.  -cudss_share_csr hands cuDSS PETSc's device copy of
+     * those arrays (uploading it if PETSc has not yet) instead of extracting and
+     * uploading a second copy of the block. */
+    PetscBool share_csr = PETSC_FALSE, share_check = PETSC_FALSE, share_verify = PETSC_FALSE;
+    PetscCall(PetscOptionsGetBool(NULL, NULL, "-cudss_share_csr", &share_csr, NULL));
+    PetscCall(PetscOptionsGetBool(NULL, NULL, "-cudss_share_csr_check", &share_check, NULL));
+    PetscCall(PetscOptionsGetBool(NULL, NULL, "-cudss_share_csr_verify", &share_verify, NULL));
+    PetscCheck(share_csr || !(share_check || share_verify), comm, PETSC_ERR_ARG_INCOMP,
+               "-cudss_share_csr_check and -cudss_share_csr_verify need -cudss_share_csr");
+    if (share_csr) {
+        PetscCheck(ranks_per_plane == 1, comm, PETSC_ERR_ARG_INCOMP,
+                   "-cudss_share_csr needs one rank per plane (got %d ranks for %d planes)",
+                   (int)nprocs, (int)nplanes);
+        /* cuDSS reads the shared arrays as int32 indices; the scalar layout is
+         * already enforced by the PetscScalar/cudss_scalar_t static assert. */
+        PetscCheck(sizeof(PetscInt) == sizeof(int), comm, PETSC_ERR_SUP,
+                   "-cudss_share_csr needs 32-bit PetscInt");
+    }
+
     /* Path to the cuDSS comm-layer .so (used only for MGMN, i.e. when a plane
      * spans >1 rank; one rank per plane never touches it).  The default names
      * the NCCL layer shipped inside cuDSS, following the same
@@ -510,11 +610,33 @@ PetscErrorCode setKspType_cudss_mg(Mat A, PetscInt nplanes, KSP *out_ksp)
     long long blk_nnz;
     PetscLogDouble t_ext0, t_ext1;
     PetscCall(PetscTime(&t_ext0));
-    PetscCall(ExtractPlaneBlock(A, plane_start, plane_end, local_start, local_n,
-                                &blk_rowptr, &blk_colidx, &blk_vals, &blk_nnz));
+    if (share_csr) {
+        Mat Ad;
+        PetscCall(MatGetDiagonalBlock(A, &Ad));
+        const PetscInt *di, *dj;
+        PetscScalar *da;
+        PetscMemType mtype;
+        PetscCall(MatSeqAIJGetCSRAndMemType(Ad, &di, &dj, &da, &mtype));
+        PetscCheck(PetscMemTypeDevice(mtype), PETSC_COMM_SELF, PETSC_ERR_SUP,
+                   "-cudss_share_csr needs the matrix on the GPU (-mat_type aijcusparse)");
+        MatInfo info;
+        PetscCall(MatGetInfo(Ad, MAT_LOCAL, &info));
+        blk_rowptr = (int *)di;
+        blk_colidx = (int *)dj;
+        blk_vals   = da;
+        blk_nnz    = (long long)info.nz_used;
+    } else {
+        PetscCall(ExtractPlaneBlock(A, plane_start, plane_end, local_start, local_n,
+                                    &blk_rowptr, &blk_colidx, &blk_vals, &blk_nnz));
+    }
     PetscCall(PetscTime(&t_ext1));
-    PetscPrintf(comm, "  plane block extracted (rank0 local_n=%d, local_nnz=%lld) in %.2f s\n",
+    PetscPrintf(comm, "  plane block %s (rank0 local_n=%d, local_nnz=%lld) in %.2f s\n",
+                share_csr ? "shared from PETSc's device CSR (incl. PETSc's upload)" : "extracted",
                 (int)local_n, blk_nnz, t_ext1 - t_ext0);
+    if (share_check) PetscCall(CheckNoEmptyRows(A, local_n));
+    if (share_verify)
+        PetscCall(VerifySharedCSR(A, plane_start, plane_end, local_start, local_n,
+                                  blk_rowptr, blk_colidx, blk_vals, blk_nnz));
 
     CudssPCCtx *pcctx;
     PetscCall(PetscNew(&pcctx));
@@ -526,9 +648,11 @@ PetscErrorCode setKspType_cudss_mg(Mat A, PetscInt nplanes, KSP *out_ksp)
                                     (const cudss_scalar_t *)blk_vals, blk_nnz, comm_lib);
     pcctx->plane_comm = plane_comm;
     PetscCall(PetscTime(&t_setup1));
-    PetscCall(PetscFree(blk_rowptr));
-    PetscCall(PetscFree(blk_colidx));
-    PetscCall(PetscFree(blk_vals));
+    if (!share_csr) {
+        PetscCall(PetscFree(blk_rowptr));
+        PetscCall(PetscFree(blk_colidx));
+        PetscCall(PetscFree(blk_vals));
+    }
 
     {
         double an, fa, so; int ns;

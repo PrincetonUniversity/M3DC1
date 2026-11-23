@@ -14,12 +14,19 @@ ifeq ($(PAR), 1)
   FOPTS := $(FOPTS) -DUSEPARTICLES
 endif
 
+ifeq ($(OMP), 1)
+  LDOPTS := $(LDOPTS) -fopenmp -finit-local-zero
+  FOPTS  := $(FOPTS)  -fopenmp -finit-local-zero
+  CCOPTS := $(CCOPTS) -fopenmp -finit-local-zero
+endif
+
 CC = mpicc
 CPP = mpicxx
 F90 = mpif90
 F77 = mpif90
 LOADER = mpif90
 LDOPTS := $(LDOPTS)
+
 F90OPTS = $(F90FLAGS) $(FOPTS)
 F77OPTS = $(F77FLAGS) $(FOPTS)
 
@@ -27,25 +34,11 @@ F77OPTS = $(F77FLAGS) $(FOPTS)
 PETSC_DIR=/projects/M3DC1/PETSC/petsc.20220201
 ifeq ($(COM), 1)
   PETSC_ARCH=cplx-stellarai-gcc14-cuda100-gO2
-ifeq ($(CUDSS_MG), 1)
-  M3DC1_SCOREC_LIB=-lm3dc1_scorec_mg_complex
-  M3DC1_CUDSS_LIB=-lm3dc1_cudss_mg_complex
-else
-  M3DC1_SCOREC_LIB=-lm3dc1_scorec_complex
-  M3DC1_CUDSS_LIB=-lm3dc1_cudss_complex
-endif
-  PETSC_WITH_EXTERNAL_LIB = -Wl,-rpath,/projects/M3DC1/PETSC/petsc.20220201/cplx-stellarai-gcc14-cuda100-gO2/lib -L/projects/M3DC1/PETSC/petsc.20220201/cplx-stellarai-gcc14-cuda100-gO2/lib -Wl,-rpath,/opt/AMD/aocl/aocl-linux-gcc-5.3.0/gcc/ST/lib -L/opt/AMD/aocl/aocl-linux-gcc-5.3.0/gcc/ST/lib -Wl,-rpath,/usr/local/cuda-13.2/lib64 -L/usr/local/cuda-13.2/lib64 -L/usr/local/cuda-13.2/lib64/stubs -Wl,-rpath,/opt/hpcx-v2.51-gcc-doca_ofed-redhat10-cuda13-x86_64/ompi5/lib -L/opt/hpcx-v2.51-gcc-doca_ofed-redhat10-cuda13-x86_64/ompi5/lib -Wl,-rpath,/usr/lib/gcc/x86_64-redhat-linux/14 -L/usr/lib/gcc/x86_64-redhat-linux/14 -Wl,-rpath,/opt/AMD/aocl/aocl-linux-gcc-5.3.0/gcc/ST/lib_LP64 -L/opt/AMD/aocl/aocl-linux-gcc-5.3.0/gcc/ST/lib_LP64 -Wl,-rpath,/opt/hpcx-v2.51-gcc-doca_ofed-redhat10-cuda13-x86_64/nccl_spectrum-x_plugin/lib -L/opt/hpcx-v2.51-gcc-doca_ofed-redhat10-cuda13-x86_64/nccl_spectrum-x_plugin/lib -Wl,-rpath,/opt/hpcx-v2.51-gcc-doca_ofed-redhat10-cuda13-x86_64/nccl_rdma_sharp_plugin/lib -L/opt/hpcx-v2.51-gcc-doca_ofed-redhat10-cuda13-x86_64/nccl_rdma_sharp_plugin/lib -Wl,-rpath,/opt/hpcx-v2.51-gcc-doca_ofed-redhat10-cuda13-x86_64/sharp/lib -L/opt/hpcx-v2.51-gcc-doca_ofed-redhat10-cuda13-x86_64/sharp/lib -Wl,-rpath,/opt/hpcx-v2.51-gcc-doca_ofed-redhat10-cuda13-x86_64/hcoll/lib -L/opt/hpcx-v2.51-gcc-doca_ofed-redhat10-cuda13-x86_64/hcoll/lib -Wl,-rpath,/opt/hpcx-v2.51-gcc-doca_ofed-redhat10-cuda13-x86_64/ucc/lib -L/opt/hpcx-v2.51-gcc-doca_ofed-redhat10-cuda13-x86_64/ucc/lib -lpetsc -lfftw3_mpi -lfftw3 -lsmumps -ldmumps -lcmumps -lzmumps -lmumps_common -lpord -lpthread -lscalapack -lsuperlu_dist -lkokkoskernels -lsuperlu -lflame -lblis -lkokkoscontainers -lkokkoscore -lkokkossimd -lzoltan -lparmetis -lmetis -lgsl -lgslcblas -lm -lz -lcudart -lnvtx3interop -lcufft -lcublas -lcusparse -lcusolver -lcurand -lcuda -lmpi_usempif08 -lmpi_usempi_ignore_tkr -lmpi_mpifh -lmpi -lgfortran -lm -lgfortran -lm -lgcc_s -lquadmath -lstdc++ -lquadmath
+  PETSC_WITH_EXTERNAL_LIB = -Wl,-rpath,/projects/M3DC1/PETSC/petsc.20220201/cplx-stellarai-gcc14-cuda100-gO2/lib -L/projects/M3DC1/PETSC/petsc.20220201/cplx-stellarai-gcc14-cuda100-gO2/lib -Wl,-rpath,/opt/AMD/aocl/aocl-linux-gcc-5.3.0/gcc/ST/lib -L/opt/AMD/aocl/aocl-linux-gcc-5.3.0/gcc/ST/lib -Wl,-rpath,/usr/local/cuda-13.2/lib64 -L/usr/local/cuda-13.2/lib64 -L/usr/local/cuda-13.2/lib64/stubs -Wl,-rpath,/opt/hpcx-v2.51-gcc-doca_ofed-redhat10-cuda13-x86_64/ompi5/lib -L/opt/hpcx-v2.51-gcc-doca_ofed-redhat10-cuda13-x86_64/ompi5/lib -Wl,-rpath,/usr/lib/gcc/x86_64-redhat-linux/14 -L/usr/lib/gcc/x86_64-redhat-linux/14 -Wl,-rpath,/opt/AMD/aocl/aocl-linux-gcc-5.3.0/gcc/ST/lib_LP64 -L/opt/AMD/aocl/aocl-linux-gcc-5.3.0/gcc/ST/lib_LP64 -Wl,-rpath,/opt/hpcx-v2.51-gcc-doca_ofed-redhat10-cuda13-x86_64/nccl_spectrum-x_plugin/lib -L/opt/hpcx-v2.51-gcc-doca_ofed-redhat10-cuda13-x86_64/nccl_spectrum-x_plugin/lib -Wl,-rpath,/opt/hpcx-v2.51-gcc-doca_ofed-redhat10-cuda13-x86_64/nccl_rdma_sharp_plugin/lib -L/opt/hpcx-v2.51-gcc-doca_ofed-redhat10-cuda13-x86_64/nccl_rdma_sharp_plugin/lib -Wl,-rpath,/opt/hpcx-v2.51-gcc-doca_ofed-redhat10-cuda13-x86_64/sharp/lib -L/opt/hpcx-v2.51-gcc-doca_ofed-redhat10-cuda13-x86_64/sharp/lib -Wl,-rpath,/opt/hpcx-v2.51-gcc-doca_ofed-redhat10-cuda13-x86_64/hcoll/lib -L/opt/hpcx-v2.51-gcc-doca_ofed-redhat10-cuda13-x86_64/hcoll/lib -Wl,-rpath,/opt/hpcx-v2.51-gcc-doca_ofed-redhat10-cuda13-x86_64/ucc/lib -L/opt/hpcx-v2.51-gcc-doca_ofed-redhat10-cuda13-x86_64/ucc/lib -lpetsc -lfftw3_mpi -lfftw3 -lsmumps -ldmumps -lcmumps -lzmumps -lmumps_common -lpord -lpthread -lscalapack -lsuperlu_dist -lkokkoskernels -lsuperlu -lflame -lblis -lkokkoscontainers -lkokkoscore -lkokkossimd -lzoltan -lparmetis -lmetis -lm -lz -lcudart -lnvtx3interop -lcufft -lcublas -lcusparse -lcusolver -lcurand -lcuda -lmpi_usempif08 -lmpi_usempi_ignore_tkr -lmpi_mpifh -lmpi -lgfortran -lm -lgfortran -lm -lgcc_s -lquadmath -lstdc++ -lquadmath
 
 else
   PETSC_ARCH=real-stellarai-gcc14-cuda100-gO2
-ifeq ($(CUDSS_MG), 1)
-  M3DC1_SCOREC_LIB=-lm3dc1_scorec_mg
-  M3DC1_CUDSS_LIB=-lm3dc1_cudss_mg
-else
-  M3DC1_SCOREC_LIB=-lm3dc1_scorec
-  M3DC1_CUDSS_LIB=-lm3dc1_cudss
-endif
-  PETSC_WITH_EXTERNAL_LIB = -Wl,-rpath,/projects/M3DC1/PETSC/petsc.20220201/real-stellarai-gcc14-cuda100-gO2/lib -L/projects/M3DC1/PETSC/petsc.20220201/real-stellarai-gcc14-cuda100-gO2/lib -Wl,-rpath,/opt/AMD/aocl/aocl-linux-gcc-5.3.0/gcc/ST/lib -L/opt/AMD/aocl/aocl-linux-gcc-5.3.0/gcc/ST/lib -Wl,-rpath,/usr/local/cuda-13.2/lib64 -L/usr/local/cuda-13.2/lib64 -L/usr/local/cuda-13.2/lib64/stubs -Wl,-rpath,/usr/local/openmpi/cuda-13.2/5.0.10/gcc/lib64 -L/usr/local/openmpi/cuda-13.2/5.0.10/gcc/lib64 -Wl,-rpath,/usr/lib/gcc/x86_64-redhat-linux/14 -L/usr/lib/gcc/x86_64-redhat-linux/14 -Wl,-rpath,/usr/lib/gcc -L/usr/lib/gcc -Wl,-rpath,/opt/AMD/aocl/aocl-linux-gcc-5.3.0/gcc/ST/lib_LP64 -L/opt/AMD/aocl/aocl-linux-gcc-5.3.0/gcc/ST/lib_LP64 -Wl,-rpath,/opt/hpcx-v2.51-gcc-doca_ofed-redhat10-cuda13-x86_64/nccl_spectrum-x_plugin/lib -L/opt/hpcx-v2.51-gcc-doca_ofed-redhat10-cuda13-x86_64/nccl_spectrum-x_plugin/lib -Wl,-rpath,/opt/hpcx-v2.51-gcc-doca_ofed-redhat10-cuda13-x86_64/nccl_rdma_sharp_plugin/lib -L/opt/hpcx-v2.51-gcc-doca_ofed-redhat10-cuda13-x86_64/nccl_rdma_sharp_plugin/lib -Wl,-rpath,/opt/hpcx-v2.51-gcc-doca_ofed-redhat10-cuda13-x86_64/sharp/lib -L/opt/hpcx-v2.51-gcc-doca_ofed-redhat10-cuda13-x86_64/sharp/lib -Wl,-rpath,/opt/hpcx-v2.51-gcc-doca_ofed-redhat10-cuda13-x86_64/hcoll/lib -L/opt/hpcx-v2.51-gcc-doca_ofed-redhat10-cuda13-x86_64/hcoll/lib -Wl,-rpath,/opt/hpcx-v2.51-gcc-doca_ofed-redhat10-cuda13-x86_64/ucc/lib -L/opt/hpcx-v2.51-gcc-doca_ofed-redhat10-cuda13-x86_64/ucc/lib -lpetsc -lfftw3_mpi -lfftw3 -lsmumps -ldmumps -lcmumps -lzmumps -lmumps_common -lpord -lpthread -lscalapack -lsuperlu_dist -lkokkoskernels -lsuperlu -lflame -lblis -lkokkoscontainers -lkokkoscore -lkokkossimd -lzoltan -lparmetis -lmetis -lgsl -lgslcblas -lm -lz -lcudart -lnvtx3interop -lcufft -lcublas -lcusparse -lcusolver -lcurand -lcuda -lmpi_usempif08 -lmpi_usempi_ignore_tkr -lmpi_mpifh -lmpi -lgfortran -lm -lgfortran -lm -lgcc_s -lquadmath -lstdc++ -lquadmath
+  PETSC_WITH_EXTERNAL_LIB = -Wl,-rpath,/projects/M3DC1/PETSC/petsc.20220201/real-stellarai-gcc14-cuda100-gO2/lib -L/projects/M3DC1/PETSC/petsc.20220201/real-stellarai-gcc14-cuda100-gO2/lib -Wl,-rpath,/opt/AMD/aocl/aocl-linux-gcc-5.3.0/gcc/ST/lib -L/opt/AMD/aocl/aocl-linux-gcc-5.3.0/gcc/ST/lib -Wl,-rpath,/usr/local/cuda-13.2/lib64 -L/usr/local/cuda-13.2/lib64 -L/usr/local/cuda-13.2/lib64/stubs -Wl,-rpath,/usr/local/openmpi/cuda-13.2/5.0.10/gcc/lib64 -L/usr/local/openmpi/cuda-13.2/5.0.10/gcc/lib64 -Wl,-rpath,/usr/lib/gcc/x86_64-redhat-linux/14 -L/usr/lib/gcc/x86_64-redhat-linux/14 -Wl,-rpath,/usr/lib/gcc -L/usr/lib/gcc -Wl,-rpath,/opt/AMD/aocl/aocl-linux-gcc-5.3.0/gcc/ST/lib_LP64 -L/opt/AMD/aocl/aocl-linux-gcc-5.3.0/gcc/ST/lib_LP64 -Wl,-rpath,/opt/hpcx-v2.51-gcc-doca_ofed-redhat10-cuda13-x86_64/nccl_spectrum-x_plugin/lib -L/opt/hpcx-v2.51-gcc-doca_ofed-redhat10-cuda13-x86_64/nccl_spectrum-x_plugin/lib -Wl,-rpath,/opt/hpcx-v2.51-gcc-doca_ofed-redhat10-cuda13-x86_64/nccl_rdma_sharp_plugin/lib -L/opt/hpcx-v2.51-gcc-doca_ofed-redhat10-cuda13-x86_64/nccl_rdma_sharp_plugin/lib -Wl,-rpath,/opt/hpcx-v2.51-gcc-doca_ofed-redhat10-cuda13-x86_64/sharp/lib -L/opt/hpcx-v2.51-gcc-doca_ofed-redhat10-cuda13-x86_64/sharp/lib -Wl,-rpath,/opt/hpcx-v2.51-gcc-doca_ofed-redhat10-cuda13-x86_64/hcoll/lib -L/opt/hpcx-v2.51-gcc-doca_ofed-redhat10-cuda13-x86_64/hcoll/lib -Wl,-rpath,/opt/hpcx-v2.51-gcc-doca_ofed-redhat10-cuda13-x86_64/ucc/lib -L/opt/hpcx-v2.51-gcc-doca_ofed-redhat10-cuda13-x86_64/ucc/lib -lpetsc -lfftw3_mpi -lfftw3 -lsmumps -ldmumps -lcmumps -lzmumps -lmumps_common -lpord -lpthread -lscalapack -lsuperlu_dist -lkokkoskernels -lsuperlu -lflame -lblis -lkokkoscontainers -lkokkoscore -lkokkossimd -lzoltan -lparmetis -lmetis -lm -lz -lcudart -lnvtx3interop -lcufft -lcublas -lcusparse -lcusolver -lcurand -lcuda -lmpi_usempif08 -lmpi_usempi_ignore_tkr -lmpi_mpifh -lmpi -lgfortran -lm -lgfortran -lm -lgcc_s -lquadmath -lstdc++ -lquadmath
 endif
 
 SCOREC_BASE_DIR=/projects/M3DC1/scorec/stellarai-amd-gcc14-cuda100
@@ -58,6 +51,42 @@ ifdef SCORECVER
 else
   SCOREC_DIR=$(SCOREC_BASE_DIR)
 endif
+
+ifeq ($(RELEASE), 1)
+ifeq ($(COM), 1)
+  ifeq ($(CUDSS_MG), 1)
+    M3DC1_SCOREC_LIB=-lm3dc1_scorec_mg_complex
+    M3DC1_CUDSS_LIB=-lm3dc1_cudss_mg_complex
+  else
+    M3DC1_SCOREC_LIB=-lm3dc1_scorec_complex
+    M3DC1_CUDSS_LIB=-lm3dc1_cudss_complex
+  endif
+else
+  ifeq ($(CUDSS_MG), 1)
+    M3DC1_SCOREC_LIB=-lm3dc1_scorec_mg
+    M3DC1_CUDSS_LIB=-lm3dc1_cudss_mg
+  else
+    M3DC1_SCOREC_LIB=-lm3dc1_scorec
+    M3DC1_CUDSS_LIB=-lm3dc1_cudss
+  endif
+endif
+
+else
+
+ifeq ($(3D), 1)
+  M3DC1_SCOREC_LIB=-lm3dc1_scorec
+  M3DC1_CUDSS_LIB=-lm3dc1_cudss
+else
+  ifeq ($(COM), 1)
+    M3DC1_SCOREC_LIB=-lm3dc1_scorec_mg_complex
+    M3DC1_CUDSS_LIB=-lm3dc1_cudss_mg_complex
+  else
+    M3DC1_SCOREC_LIB=-lm3dc1_scorec_mg
+    M3DC1_CUDSS_LIB=-lm3dc1_cudss_mg
+  endif
+endif
+
+endif #RELEASE
 
 SCOREC_LIBS= -L$(SCOREC_DIR)/lib $(M3DC1_SCOREC_LIB) \
              -Wl,--start-group,-rpath,$(SCOREC_BASE_DIR)/lib -L$(SCOREC_BASE_DIR)/lib \
@@ -80,7 +109,7 @@ SCOREC_LIBS= -L$(SCOREC_DIR)/lib $(M3DC1_SCOREC_LIB) \
 #  CUDSS_LIB =
 #endif
 
-HDF5DIR=$(PETSC_DIR)/$(PETSC_ARCH)
+#HDF5DIR=$(PETSC_DIR)/$(PETSC_ARCH)
 LIBS = 	$(SCOREC_LIBS) \
 	$(CUDSS_LIB) \
         $(PETSC_WITH_EXTERNAL_LIB) \
@@ -92,9 +121,16 @@ INCLUDE = -I$(PETSC_DIR)/include \
 	-I$(HDF5DIR)/include \
 
 ifeq ($(ST), 1)
-  NETCDFDIR=$(PETSC_DIR)/$(PETSC_ARCH)
-  LIBS += -L$(NETCDFDIR)/lib -Wl,-Bstatic -lnetcdf -Wl,-Bdynamic -lzip
+  #NETCDFDIR=$(PETSC_DIR)/$(PETSC_ARCH)
+  LIBS += -L$(NETCDFDIR)/lib64 -lnetcdf -lnetcdff -lzip
   INCLUDE += -I$(NETCDFDIR)/include 
+endif
+
+#ACC?=1
+ifeq ($(ACC), 1)
+  LDOPTS := $(LDOPTS) #-acc -gpu=cuda11.7 -Minfo=accel
+  FOPTS  := $(FOPTS)  #-acc -gpu=cuda11.7 -Minfo=accel
+  CCOPTS  := $(CCOPTS) #-acc -gpu=cuda11.7 -Minfo=accel
 endif
 
 %.o : %.c

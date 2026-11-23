@@ -48,6 +48,7 @@ struct CudssBlock {
     int    *d_rowptr;
     int    *d_colidx;
     cudss_scalar_t *d_vals;
+    int     borrowed_csr; /* 1: the CSR above is the caller's, never freed here */
     /* device dense rhs/sol (local segment) */
     cudss_scalar_t *d_rhs;
     cudss_scalar_t *d_sol;
@@ -114,15 +115,29 @@ CudssBlock *cudss_block_create(MPI_Comm plane_comm,
     CUDA_CHECK(cudaEventCreate(&blk->ev0));
     CUDA_CHECK(cudaEventCreate(&blk->ev1));
 
-    /* ---- upload local CSR + allocate rhs/sol ---- */
-    CUDA_CHECK(cudaMalloc(&blk->d_rowptr, (size_t)(local_n + 1) * sizeof(int)));
-    CUDA_CHECK(cudaMalloc(&blk->d_colidx, (size_t)local_nnz * sizeof(int)));
-    CUDA_CHECK(cudaMalloc(&blk->d_vals,   (size_t)local_nnz * sizeof(cudss_scalar_t)));
+    /* ---- local CSR (upload, or borrow if already on the device) + rhs/sol ---- */
+    cudaPointerAttributes pa;
+    if (cudaPointerGetAttributes(&pa, h_vals) == cudaSuccess && pa.type == cudaMemoryTypeDevice) {
+        if (pa.device != dev) {
+            fprintf(stderr, "[cudss_block] device CSR lives on GPU %d, but the current device is %d\n",
+                    pa.device, dev);
+            exit(1);
+        }
+        blk->borrowed_csr = 1;
+        blk->d_rowptr = (int *)h_rowptr;
+        blk->d_colidx = (int *)h_colidx;
+        blk->d_vals   = (cudss_scalar_t *)h_vals;
+    } else {
+        (void)cudaGetLastError(); /* clear any error cudaPointerGetAttributes left */
+        CUDA_CHECK(cudaMalloc(&blk->d_rowptr, (size_t)(local_n + 1) * sizeof(int)));
+        CUDA_CHECK(cudaMalloc(&blk->d_colidx, (size_t)local_nnz * sizeof(int)));
+        CUDA_CHECK(cudaMalloc(&blk->d_vals,   (size_t)local_nnz * sizeof(cudss_scalar_t)));
+        CUDA_CHECK(cudaMemcpy(blk->d_rowptr, h_rowptr, (size_t)(local_n + 1) * sizeof(int), cudaMemcpyHostToDevice));
+        CUDA_CHECK(cudaMemcpy(blk->d_colidx, h_colidx, (size_t)local_nnz * sizeof(int), cudaMemcpyHostToDevice));
+        CUDA_CHECK(cudaMemcpy(blk->d_vals,   h_vals,   (size_t)local_nnz * sizeof(cudss_scalar_t), cudaMemcpyHostToDevice));
+    }
     CUDA_CHECK(cudaMalloc(&blk->d_rhs,    (size_t)local_n * sizeof(cudss_scalar_t)));
     CUDA_CHECK(cudaMalloc(&blk->d_sol,    (size_t)local_n * sizeof(cudss_scalar_t)));
-    CUDA_CHECK(cudaMemcpy(blk->d_rowptr, h_rowptr, (size_t)(local_n + 1) * sizeof(int), cudaMemcpyHostToDevice));
-    CUDA_CHECK(cudaMemcpy(blk->d_colidx, h_colidx, (size_t)local_nnz * sizeof(int), cudaMemcpyHostToDevice));
-    CUDA_CHECK(cudaMemcpy(blk->d_vals,   h_vals,   (size_t)local_nnz * sizeof(cudss_scalar_t), cudaMemcpyHostToDevice));
 
     /* ---- NCCL comm for MGMN (skipped for the cray-mpich shim) ---- */
     if (blk->mgmn && !blk->use_mpi_comm) {
@@ -435,6 +450,12 @@ void cudss_block_reset_solve_timer(CudssBlock *blk)
 }
 
 extern "C"
+void cudss_block_copy_to_host(void *h_dst, const void *d_src, size_t bytes)
+{
+    CUDA_CHECK(cudaMemcpy(h_dst, d_src, bytes, cudaMemcpyDeviceToHost));
+}
+
+extern "C"
 void cudss_block_destroy(CudssBlock *blk)
 {
     if (!blk) return;
@@ -445,9 +466,11 @@ void cudss_block_destroy(CudssBlock *blk)
     cudssConfigDestroy(blk->config);
     cudssDestroy(blk->handle);
     if (blk->nccl_comm) { ncclCommDestroy(*blk->nccl_comm); free(blk->nccl_comm); }
-    cudaFree(blk->d_rowptr);
-    cudaFree(blk->d_colidx);
-    cudaFree(blk->d_vals);
+    if (!blk->borrowed_csr) {
+        cudaFree(blk->d_rowptr);
+        cudaFree(blk->d_colidx);
+        cudaFree(blk->d_vals);
+    }
     cudaFree(blk->d_rhs);
     cudaFree(blk->d_sol);
     cudaEventDestroy(blk->ev0);

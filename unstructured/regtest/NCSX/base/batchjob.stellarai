@@ -1,5 +1,5 @@
 #!/bin/bash
-##SBATCH -A pppl
+#SBATCH -A m3dc1
 #SBATCH --nodes=1
 #SBATCH --ntasks-per-node=64
 #SBATCH -J NCSX

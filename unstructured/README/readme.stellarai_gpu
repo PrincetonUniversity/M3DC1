@@ -14,7 +14,8 @@ cd unstructured
 make all ARCH=stellarai_gpu
 
 4. job scripts
-one-plane-to-one-MPI-rank and one-GPU configuration:
-regtest/NCSX/base/run_config_b.sbatch.stellarai
+one-rank-one-plane (3D=1) or one-rank-multi-GPU (2D=1) modes:
+
+regtest/*/base/run_config_b.sbatch.stellarai_gpu
 
 
