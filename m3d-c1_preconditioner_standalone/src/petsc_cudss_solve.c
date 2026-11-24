@@ -5,7 +5,7 @@
  * using cuDSS as the per-plane block-Jacobi sub-solver via a PCShell.
  *
  * Derived from petsc_standalone_solve.c, the SuperLU_DIST baseline driver,
- * which is not part of this package.  The Krylov outer solve (FGMRES,
+ * which is not part of this package.  The Krylov outer solve (LGMRES,
  * aijcusparse/cuda) is identical; the preconditioner is replaced by a custom
  * PCShell whose Apply runs a cuDSS LU solve on this rank's piece of its plane
  * diagonal block.  When a plane is owned by a single rank (Config B) the cuDSS
@@ -552,9 +552,8 @@ PetscErrorCode setKspType_cudss(Mat A, PetscInt nplanes, KSP *out_ksp)
     KSP ksp;
     PetscCall(KSPCreate(comm, &ksp));
     PetscCall(KSPSetOperators(ksp, A, A));
-    PetscCall(KSPSetType(ksp, KSPFGMRES));
-    PetscCall(KSPSetTolerances(ksp, 1.e-9, 1.e-20, PETSC_DEFAULT, 10000));
-    PetscCall(KSPGMRESSetRestart(ksp, 220));
+    PetscCall(KSPSetTolerances(ksp, 1.e-9, PETSC_DEFAULT, PETSC_DEFAULT, 10000));
+    PetscCall(KSPSetType(ksp, KSPGMRES));
     PetscCall(KSPSetFromOptions(ksp));
 
     /* Install our cuDSS block-Jacobi as a PCShell (overrides -pc_type).

@@ -37,7 +37,6 @@ set(SOURCES
     fftw_fortran.c
     read_namelist.cpp
     gsl_wrapper.c
-    math_wrapper.c
     # random.c
     spline.f90
     kprad.f90
@@ -231,9 +230,6 @@ message(STATUS "PETSc link options: ${PETSC_LINK_OPTIONS}")
 # list(TRANSFORM PETSC_LINK_LIBRARIES REPLACE "libpthread\.a" "libpthread.so")
 # list(FILTER PETSC_LINK_LIBRARIES EXCLUDE REGEX "libpthread")
 list(FILTER PETSC_LINK_LIBRARIES EXCLUDE REGEX "libcuda\.so")
-if(CMAKE_Fortran_COMPILER_ID STREQUAL "NVHPC")
-  list(FILTER PETSC_LINK_LIBRARIES EXCLUDE REGEX "/usr/lib/.*/libmpi(_.*)?\\.so")
-endif()
 # list(FILTER PETSC_LINK_LIBRARIES EXCLUDE REGEX "libsci_cray\.a")
 list(REMOVE_DUPLICATES PETSC_LINK_LIBRARIES)
 list(REMOVE_DUPLICATES PETSC_LINK_OPTIONS)
@@ -260,11 +256,7 @@ message(STATUS "Found gsl ${GSL_LINK_LIBRARIES}")
 #   set(POSTFIX "${POSTFIX}-trilinos")
 # endif()
 
-if(ENABLE_ZOLTAN)
-  find_package(Zoltan REQUIRED)
-else()
-  set(ZOLTAN_LIBRARIES "")
-endif()
+find_package(Zoltan REQUIRED)
 find_package(Scorec REQUIRED)
 # if(SCOREC_FOUND AND USESCOREC)
 #   if(TRILINOS_FOUND AND USETRILINOS)
@@ -372,9 +364,6 @@ set_property(TARGET MPI::MPI_Fortran PROPERTY
   INTERFACE_LINK_LIBRARIES "${MPI_LINK_LIBRARIES}")
 
 set(M3DC1_SCOREC_LIB_NAME m3dc1_scorec)
-if(ENABLE_CUDSS_MG)
-  set(M3DC1_SCOREC_LIB_NAME m3dc1_scorec_mg)
-endif()
 if(ENABLE_3D)
   set(BIN_NAME "${BIN_NAME}_3d")
   list(APPEND DEFS -DUSE3D -Dvectype=real -DMAX_PTS=125)
@@ -443,7 +432,6 @@ list(APPEND DEFS -DUSESCOREC -Dmesh_mod=scorec_mesh_mod -Dvector_mod=scorec_vect
 #   set(BIN_NAME "${BIN_NAME}_complex")
 # endif()
 
-if(NOT CMAKE_GENERATOR MATCHES "Ninja")
 set_source_files_properties(
   scorec_vector.f90
   PROPERTIES
@@ -473,7 +461,6 @@ set_source_files_properties(
   PROPERTIES
   OBJECT_DEPENDS ${CMAKE_CURRENT_BINARY_DIR}/CMakeFiles/${BIN_NAME}.dir/scorec_mesh.f90.o
   )
-endif()
 
 if (CMAKE_Fortran_COMPILER_ID STREQUAL "Cray")
   set(CMAKE_Fortran_FLAGS_RELEASE "-O2")

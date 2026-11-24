@@ -743,8 +743,7 @@ subroutine advance_particles(tinc)
       if (hostrank == ncols-1) endy = ipart_end
 #endif
 #ifndef _OPENACC
-!$omp parallel do default(none) shared(pdata,tinc,nparticles,starty,endy,psubsteps,istep, &
-!$omp& ipart_begin,ipart_end,hostrank,ncols) PRIVATE(ierr)
+!$omp parallel do default(none) shared(pdata,tinc,nparticles,starty,endy,psubsteps,istep) PRIVATE(ierr)
 #endif
 !$acc parallel loop present(pdata(starty:endy))
       !do ipart = starty, endy
