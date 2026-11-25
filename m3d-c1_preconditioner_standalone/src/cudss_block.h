@@ -24,7 +24,6 @@
 #define CUDSS_BLOCK_H
 
 #include <mpi.h>
-#include <stddef.h>
 
 /* Scalar type: real (double) by default; complex (cuDoubleComplex) when built
  * with -DCUDSS_BLOCK_COMPLEX (set by CMake ENABLE_COMPLEX).  cuDoubleComplex
@@ -53,10 +52,6 @@ typedef struct CudssBlock CudssBlock;
  *   h_rowptr          int32[local_n+1], LOCAL CSR offsets (start at 0).
  *   h_colidx          int32[local_nnz], PLANE-LOCAL (global-within-plane) cols.
  *   h_vals            cudss_scalar_t[local_nnz], matching values.
- *                     Host arrays are copied.  If h_vals is a DEVICE pointer,
- *                     all three are device arrays on the current device and
- *                     are used in place: keep them alive, with the same
- *                     pattern, until cudss_block_destroy.
  *   local_nnz         number of local nonzeros.
  *   comm_lib_path     path to libcudss_commlayer_nccl.so.0 (used only when the
  *                     plane spans >1 rank; may be NULL otherwise).
@@ -101,10 +96,6 @@ void cudss_block_get_timers(CudssBlock *blk,
 
 /* Reset only the per-solve accumulators (keep analysis/factor). */
 void cudss_block_reset_solve_timer(CudssBlock *blk);
-
-/* Plain device-to-host copy, so the C driver can inspect device arrays
- * without including the CUDA runtime headers. */
-void cudss_block_copy_to_host(void *h_dst, const void *d_src, size_t bytes);
 
 void cudss_block_destroy(CudssBlock *blk);
 
