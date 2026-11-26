@@ -62,8 +62,9 @@ INCLUDE = -I$(PETSC_DIR)/include \
 	-I$(HDF5DIR)/include \
 
 ifeq ($(ST), 1)
-  NETCDFDIR=$(PETSC_DIR)/$(PETSC_ARCH)
-  LIBS += -L$(NETCDFDIR)/lib -Wl,-Bstatic -lnetcdf -Wl,-Bdynamic -lzip
+  #NETCDFDIR=$(PETSC_DIR)/$(PETSC_ARCH)
+  #LIBS += -L$(NETCDFDIR)/lib64 -Wl,-Bstatic -lnetcdf -Wl,-Bdynamic -lzip
+  LIBS += -L$(NETCDFDIR)/lib64 -lnetcdf -lnetcdff -lzip
   INCLUDE += -I$(NETCDFDIR)/include 
 endif
 
