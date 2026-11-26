@@ -973,7 +973,6 @@ int m3dc1_modelinfo_load(char* /* in */ modelInfo_file)
     ifs >> edgeId;
     m3dc1_model::instance()->outerLoop.push_back(edgeId);
   } 
-  return M3DC1_SUCCESS;
 }
 
 // ****************************************************

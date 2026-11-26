@@ -1,5 +1,5 @@
 #!/bin/bash
-#SBATCH -A m3dc1
+##SBATCH -A pppl
 #SBATCH -N 1
 #SBATCH --ntasks-per-node=48
 #SBATCH --cpus-per-task=1

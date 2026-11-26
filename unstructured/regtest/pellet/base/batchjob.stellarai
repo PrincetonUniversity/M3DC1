@@ -1,5 +1,5 @@
 #!/bin/bash
-#SBATCH -A m3dc1
+##SBATCH -A pppl
 #SBATCH --nodes=1
 #SBATCH --ntasks-per-node=64
 #SBATCH -J pellet

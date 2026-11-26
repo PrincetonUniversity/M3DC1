@@ -48,9 +48,17 @@ if { ! [ is-loaded hdf5/gcc/openmpi-5.0.10/1.14.6 ] } {
    module load hdf5/gcc/openmpi-5.0.10/1.14.6
 }
 
-if { ! [ is-loaded netcdf/gcc/hdf5-1.14.4/openmpi-5.0.10/4.10.1 ] } {
-   module load netcdf/gcc/hdf5-1.14.6/openmpi-5.0.10/4.10.1
-}
+#if { ! [ is-loaded netcdf/gcc/hdf5-1.14.4/openmpi-4.1.6/4.9.2 ] } {
+#   module load netcdf/gcc/hdf5-1.14.4/openmpi-4.1.6/4.9.2 
+#}
+
+#if { ! [ is-loaded fftw/gcc/openmpi-4.1.6/3.3.10 ] } {
+#   module load fftw/gcc/openmpi-4.1.6/3.3.10 
+#}
+
+#if { ! [ is-loaded gsl/2.6 ] } {
+#   module load gsl/2.6
+#}
 
 setenv          M3DC1_VERSION   $version
 setenv          M3DC1_DIR       $root
