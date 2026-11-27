@@ -19,6 +19,7 @@ HDF5_LIB="/scratch/gpfs/CSD/jinchen/m3dc1/1.14.6/lib64"
 export LD_LIBRARY_PATH="$HDF5_LIB:${LD_LIBRARY_PATH:-}"
 echo "LD_LIBRARY_PATH = $LD_LIBRARY_PATH"
 
+# Partiton mesh
 PARTS=1
 $M3DC1_MPIRUN -n $PARTS split_smb diiid-0.02-2.5-4.0-4K.smb part.smb $PARTS
 echo $? > mesh_partitioned
@@ -27,6 +28,9 @@ echo "=== RUN M3D-C1 ==="
 echo "Allocated nodes: $SLURM_JOB_NODELIST"
 echo "=== m3dc1_cudss_mg Config B: $SLURM_NTASKS ranks / 1 node, one-rank-multi-GPU cuDSS ==="
 echo "CPUs per task: $SLURM_CPUS_PER_TASK"
+
+DEVICE=$((SLURM_GPUS_PER_NODE * SLURM_JOB_NUM_NODES))
+echo "GPUs total: $DEVICE"
 echo "Dir:    $(pwd)"
 echo "Nodes:  $SLURM_JOB_NUM_NODES  Tasks: $SLURM_NTASKS  GPUs/node: ${SLURM_GPUS_PER_NODE#*:}"
 echo ""
@@ -34,7 +38,10 @@ echo ""
 $M3DC1_MPIRUN -n $SLURM_NTASKS -c $SLURM_CPUS_PER_TASK --cpu-bind=cores --gpu-bind=none --export=ALL \
 m3dc1_2d_complex \
 -cudsssolve_mg 1 \
+-ksp_type preonly \
+-mg_devices $DEVICE \
 -log_view -log_view_gpu_time  \
--ksp_view
+-ksp_view \
+-options_left
 
 touch finished
