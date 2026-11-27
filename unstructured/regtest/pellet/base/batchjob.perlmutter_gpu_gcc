@@ -1,33 +1,42 @@
 #!/bin/bash
 #SBATCH -A mp288_g
-#SBATCH -q debug
+#SBATCH -q regular
 #SBATCH -C gpu
-#SBATCH --nodes=2
-#SBATCH --ntasks-per-node=64
+#SBATCH --nodes=1
+#SBATCH --ntasks-per-node=4
 #SBATCH --gpus-per-node=4
-#SBATCH -c 2
-#SBATCH -J M3DC1_regtest_pellet
-#SBATCH -t 0:30:00
+#SBATCH -c 16
+#SBATCH -J regtest_pellet
+#SBATCH -t 01:30:00
 #SBATCH -o C1stdout
 
+export MPICH_GPU_SUPPORT_ENABLED=1
+export OMP_NUM_THREADS=1
 export SLURM_CPU_BIND="cores"
+
+CUDSS_LIB="${CUDSS_DIR:-/global/cfs/cdirs/mp288/jinchen/LIB/deps/cudss}/lib"
+export LD_LIBRARY_PATH="$CUDSS_LIB:${NCCL_DIR}/lib:${LD_LIBRARY_PATH}"
+
 echo $SLURM_CPUS_ON_NODE
 
 touch started
 
+echo "=== m3dc1_cudss Config B: $SLURM_NTASKS ranks / $SLURM_JOB_NUM_NODES node, single-GPU cuDSS per plane"
+
 # partition mesh
-#part_mesh.sh analytic-2K.smb 32
-#echo $? > mesh_partitioned
-PARTS=32
+PARTS=1
 $M3DC1_MPIRUN -n $PARTS split_smb analytic-2K.smb part.smb $PARTS
 echo $? > mesh_partitioned
 
-
 # Run M3D-C1
-${M3DC1_MPIRUN} -n $SLURM_NTASKS m3dc1_3d -ipetsc -options_file options_bjacobi.type_mumps
+$M3DC1_MPIRUN -n $SLURM_NTASKS -c $SLURM_CPUS_PER_TASK --cpu-bind=cores --gpu-bind=none --export=ALL \
+	m3dc1_3d \
+	-cudsssolve 1 \
+	-log_view -log_view_gpu_time \
+	-ksp_view \
+	-options_left
 
-#${M3DC1_MPIRUN} -n $SLURM_NTASKS m3dc1_3d -ipetsc -options_file options_bjacobi.type_superludist \
-#	-mhard_mat_type aijkokkos
+cp -p C1ke "C1ke.${SLURM_JOB_ID}"
 
 touch finished
 

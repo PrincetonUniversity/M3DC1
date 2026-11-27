@@ -58,6 +58,7 @@ else
   SCOREC_DIR=$(SCOREC_BASE_DIR)
 endif
 
+ifeq ($(RELEASE), 1)
 ifeq ($(COM), 1)
   ifeq ($(CUDSS_MG), 1)
     M3DC1_SCOREC_LIB=-lm3dc1_scorec_mg_complex
@@ -75,6 +76,23 @@ else
     M3DC1_CUDSS_LIB=-lm3dc1_cudss
   endif
 endif
+
+else
+
+ifeq ($(3D), 1)
+  M3DC1_SCOREC_LIB=-lm3dc1_scorec
+  M3DC1_CUDSS_LIB=-lm3dc1_cudss
+else
+  ifeq ($(COM), 1)
+    M3DC1_SCOREC_LIB=-lm3dc1_scorec_mg_complex
+    M3DC1_CUDSS_LIB=-lm3dc1_cudss_mg_complex
+  else
+    M3DC1_SCOREC_LIB=-lm3dc1_scorec_mg
+    M3DC1_CUDSS_LIB=-lm3dc1_cudss_mg
+  endif
+endif
+
+endif #RELEASE
 
 SCOREC_LIB = -L$(SCOREC_DIR)/lib $(M3DC1_SCOREC_LIB) \
             -Wl,--start-group,-rpath,$(PUMI_DIR)/lib -L$(PUMI_DIR)/lib \

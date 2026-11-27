@@ -2,30 +2,39 @@
 #SBATCH -A mp288_g
 #SBATCH -q debug
 #SBATCH -C gpu
-#SBATCH -n 64
+#SBATCH --nodes=1
+#SBATCH --ntasks-per-node=8
 #SBATCH --gpus-per-node=4
+#SBATCH -c 16
 #SBATCH -J regtest_NCSX
-#SBATCH -t 0:30:00
+#SBATCH -t 00:30:00
 #SBATCH -o C1stdout
 
+export MPICH_GPU_SUPPORT_ENABLED=1
+export OMP_NUM_THREADS=1
 export SLURM_CPU_BIND="cores"
+
+CUDSS_LIB="${CUDSS_DIR:-/global/cfs/cdirs/mp288/jinchen/LIB/deps/cudss}/lib"
+export LD_LIBRARY_PATH="$CUDSS_LIB:${NCCL_DIR}/lib:${LD_LIBRARY_PATH}"
 
 touch started
 
+echo "=== m3dc1_cudss Config B: $SLURM_NTASKS ranks / $SLURM_JOB_NUM_NODES node, single-GPU cuDSS per plane"
+
 # partition mesh
-#part_mesh.sh circle-858.smb 8
-#echo $? > mesh_partitioned
-PARTS=8
+PARTS=1
 $M3DC1_MPIRUN -n $PARTS split_smb circle-858.smb part.smb $PARTS
 echo $? > mesh_partitioned
 
-#${M3DC1_MPIRUN} -n $SLURM_NTASKS m3dc1_3d_st -options_file options_bjacobi.type_mumps
-${M3DC1_MPIRUN} -n $SLURM_NTASKS m3dc1_3d_st -options_file options_bjacobi1 \
--mhard_mat_type aijkokkos
-
 # Run M3D-C1
-echo $command
-eval $command
+$M3DC1_MPIRUN -n $SLURM_NTASKS -c $SLURM_CPUS_PER_TASK --cpu-bind=cores --gpu-bind=none --export=ALL \
+	m3dc1_3d_st \
+	-cudsssolve 1 \
+	-log_view -log_view_gpu_time \
+	-ksp_view \
+	-options_left
+
+cp -p C1ke "C1ke.${SLURM_JOB_ID}"
 
 touch finished
 
