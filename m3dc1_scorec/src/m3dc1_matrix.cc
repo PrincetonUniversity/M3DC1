@@ -66,6 +66,8 @@ void printMemStat() {
 
 int copyField2PetscVec_5(FieldID field_id, Vec petscVec, int scalar_type)
 {
+  const bool trace = getenv("M3DC1_VECTOR_COPY_TRACE") != NULL;
+  if (trace) std::cerr << "VECTOR_COPY rank=" << PCU_Comm_Self() << " stage=begin field=" << field_id << std::endl;
   int num_own_ent= m3dc1_mesh::instance()->num_own_ent[0];
   int num_own_dof=0, vertex_type=0;
   m3dc1_field_getnumowndof(&field_id, &num_own_dof);
@@ -83,7 +85,7 @@ int copyField2PetscVec_5(FieldID field_id, Vec petscVec, int scalar_type)
   ierr = VecSetSizes(petscVec, num_own_dof, PETSC_DECIDE); CHKERRQ(ierr);
  * */
   int ierr = VecSetFromOptions(petscVec);CHKERRQ(ierr);
-  VecAssemblyBegin(petscVec);
+  if (trace) std::cerr << "VECTOR_COPY rank=" << PCU_Comm_Self() << " stage=options field=" << field_id << std::endl;
 
   int num_vtx=m3dc1_mesh::instance()->num_local_ent[0];
 
@@ -105,6 +107,7 @@ int copyField2PetscVec_5(FieldID field_id, Vec petscVec, int scalar_type)
     assert(num_dof*(1+scalar_type)<=sizeof(dof_data)/sizeof(double));
     int start_global_dof_id, end_global_dof_id_plus_one;
     m3dc1_ent_getglobaldofid (&vertex_type, &inode, &field_id, &start_global_dof_id, &end_global_dof_id_plus_one);
+    if (trace && nodeCounter == 1) std::cerr << "VECTOR_COPY rank=" << PCU_Comm_Self() << " stage=first_node global=" << start_global_dof_id << " dofs=" << dofPerEnt << std::endl;
     int startIdx=0;
     for (int i=0; i<dofPerEnt; ++i)
     { 
@@ -126,10 +129,15 @@ int copyField2PetscVec_5(FieldID field_id, Vec petscVec, int scalar_type)
     }
   }
   mesh->end(ent_it);
+  if (trace) std::cerr << "VECTOR_COPY rank=" << PCU_Comm_Self() << " stage=insert_done field=" << field_id << std::endl;
 
   assert(nodeCounter==num_own_ent);
+  ierr=VecAssemblyBegin(petscVec);
+  CHKERRQ(ierr);
+  if (trace) std::cerr << "VECTOR_COPY rank=" << PCU_Comm_Self() << " stage=assembly_begin_done field=" << field_id << std::endl;
   ierr=VecAssemblyEnd(petscVec);
   CHKERRQ(ierr);
+  if (trace) std::cerr << "VECTOR_COPY rank=" << PCU_Comm_Self() << " stage=assembly_end_done field=" << field_id << std::endl;
   PetscFunctionReturn(0);  // PETSC_SUCCESS (0) to indicate success
 //  return 0;
 }
@@ -1391,12 +1399,16 @@ int matrix_solve::solve(FieldID field_id) {
   Vec x, b;
   int ierr;
   ierr=MatCreateVecs(_A, &x, &b);
-  copyField2PetscVec_5(field_id, b, get_scalar_type());
+  CHKERRQ(ierr);
+  ierr=copyField2PetscVec_5(field_id, b, get_scalar_type());CHKERRQ(ierr);
   //int ierr;= VecDuplicate(b, &x);
   //CHKERRQ(ierr);
 
-  if (!_kspSet)
-    setKspType();
+  if (getenv("M3DC1_VECTOR_COPY_TRACE")) std::cerr << "CPU_SOLVE rank=" << PCU_Comm_Self() << " stage=configure matrix=" << mymatrix_id << std::endl;
+  if (!_kspSet) {
+    ierr = setKspType(); CHKERRQ(ierr);
+  }
+  if (getenv("M3DC1_VECTOR_COPY_TRACE")) std::cerr << "CPU_SOLVE rank=" << PCU_Comm_Self() << " stage=configured matrix=" << mymatrix_id << std::endl;
   if (_kspSet == 2) {
     ierr = KSPSetOperators(_ksp, _A, _A);
     CHKERRQ(ierr);
@@ -1407,6 +1419,7 @@ int matrix_solve::solve(FieldID field_id) {
   // KSPSetUp(_ksp);
   // KSPSetUpOnBlocks(_ksp); CHKERRQ(ierr);
 
+  if (getenv("M3DC1_VECTOR_COPY_TRACE")) std::cerr << "CPU_SOLVE rank=" << PCU_Comm_Self() << " stage=solve matrix=" << mymatrix_id << std::endl;
   ierr = KSPSolve(_ksp, b, x);
   CHKERRQ(ierr);
   //  PetscInt its;
@@ -1649,6 +1662,14 @@ int matrix_solve::setKspType() {
   ierr = KSPCreate(MPI_COMM_WORLD, &_ksp);
   CHKERRQ(ierr);
 
+  PetscBool matrix5_prefix = PETSC_FALSE;
+  ierr = PetscOptionsGetBool(NULL, NULL, "-matrix5_solver_prefix", &matrix5_prefix, NULL);
+  CHKERRQ(ierr);
+  if (matrix5_prefix && mymatrix_id == 5) {
+    ierr = KSPSetOptionsPrefix(_ksp, "matrix5_");
+    CHKERRQ(ierr);
+  }
+
   ierr = KSPSetOperators(
       _ksp, _A, _A /*, SAME_PRECONDITIONER DIFFERENT_NONZERO_PATTERN*/);
   CHKERRQ(ierr);
@@ -1850,10 +1871,10 @@ int matrix_solve::setBgmgType() {
   if (num_own_ent)
     dofPerEnt = num_own_dof / num_own_ent;
   PetscInt mat_dim = num_own_dof, global_dim, plane_dim;
-  MPI_Allreduce(&mat_dim, &global_dim, 1, MPI_INTEGER, MPI_SUM, MPI_COMM_WORLD);
+  MPI_Allreduce(&mat_dim, &global_dim, 1, MPIU_INT, MPI_SUM, MPI_COMM_WORLD);
   plane_dim = global_dim / nplane;
 
-  PetscInt myrank, maxrank, npart, planeid, partitionid;
+  int myrank, maxrank, npart, planeid, partitionid;
   MPI_Comm_rank(MPI_COMM_WORLD, &myrank);
   MPI_Comm_size(MPI_COMM_WORLD, &maxrank);
   npart = maxrank / nplane;
@@ -1915,7 +1936,7 @@ int matrix_solve::setBgmgType() {
                             PETSC_DEFAULT, 3);
     ierr = PCSetType(mg_level_pc[level], PCBJACOBI);
 
-    int *blks;
+    PetscInt *blks;
     ierr = PetscMalloc1(mg_nplanes[level], &blks);
     for (int i = 0; i < mg_nplanes[level]; i++)
       blks[i] = plane_dim;
@@ -2002,7 +2023,8 @@ int matrix_solve::mapping(int maxrank, int myrank, int factor, int num_own_ent,
 //  Returns 1 on success, 0 if cannot coarsen.
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 int matrix_solve::computeMGLevelData(int *&mg_nplanes) {
-  int nplane, nlevels;
+  int nplane;
+  PetscInt nlevels;
   m3dc1_plane_getnum(&nplane);
   if (nplane % 2) {
     if (!PCU_Comm_Self())
@@ -2202,10 +2224,10 @@ int matrix_solve::setBgmgFSType() {
   PetscInt mat_dim = num_own_dof, global_dim, plane_dim;
   int startDof, endDofPlusOne;
   m3dc1_field_getowndofid(&fieldOrdering, &startDof, &endDofPlusOne);
-  MPI_Allreduce(&mat_dim, &global_dim, 1, MPI_INTEGER, MPI_SUM, MPI_COMM_WORLD);
+  MPI_Allreduce(&mat_dim, &global_dim, 1, MPIU_INT, MPI_SUM, MPI_COMM_WORLD);
   plane_dim = global_dim / nplane;
 
-  PetscInt myrank, maxrank, npart, planeid, partitionid;
+  int myrank, maxrank, npart, planeid, partitionid;
   MPI_Comm_rank(MPI_COMM_WORLD, &myrank);
   MPI_Comm_size(MPI_COMM_WORLD, &maxrank);
   npart = maxrank / nplane;
@@ -2252,7 +2274,7 @@ int matrix_solve::setBgmgFSType() {
     PC pc_u, pc_o, pc_c;
     PetscInt nsplit = 3;
     PetscBool is_pcfs;
-    int *blks;
+    PetscInt *blks;
     ierr = PetscMalloc1(mg_nplanes[level], &blks);
     for (int i = 0; i < mg_nplanes[level]; i++) blks[i] = plane_dim;
 
@@ -2348,7 +2370,7 @@ int matrix_solve::setBgmgFSType() {
     PC pc_u, pc_o, pc_c;
     PetscInt nsplit = 3;
     PetscBool is_pcfs;
-    int *blks;
+    PetscInt *blks;
     ierr = PetscMalloc1(mg_nplanes[level], &blks);
     for (int i = 0; i < mg_nplanes[level]; i++) blks[i] = plane_dim;
 
@@ -2446,10 +2468,10 @@ int matrix_solve::setFSBgmgType() {
   int dofPerEnt = 0;
   if (num_own_ent) dofPerEnt = num_own_dof / num_own_ent / nsplit;
   PetscInt mat_dim = num_own_dof / nsplit, global_dim, plane_dim;
-  MPI_Allreduce(&mat_dim, &global_dim, 1, MPI_INTEGER, MPI_SUM, MPI_COMM_WORLD);
+  MPI_Allreduce(&mat_dim, &global_dim, 1, MPIU_INT, MPI_SUM, MPI_COMM_WORLD);
   plane_dim = global_dim / nplane;
 
-  PetscInt myrank, maxrank, npart, planeid, partitionid;
+  int myrank, maxrank, npart, planeid, partitionid;
   MPI_Comm_rank(MPI_COMM_WORLD, &myrank);
   MPI_Comm_size(MPI_COMM_WORLD, &maxrank);
   npart = maxrank / nplane;
@@ -2529,7 +2551,7 @@ int matrix_solve::setFSBgmgType() {
       ierr = KSPSetType(level_ksp, KSPFGMRES);
       ierr = PCSetType(level_pc, PCBJACOBI);
 
-      int *blks;
+      PetscInt *blks;
       ierr = PetscMalloc1(mg_nplanes[level], &blks);
       for (int i = 0; i < mg_nplanes[level]; i++) blks[i] = plane_dim;
       ierr = PCBJacobiSetTotalBlocks(level_pc, mg_nplanes[level], blks);
@@ -2583,7 +2605,7 @@ int matrix_solve:: setLSType()
         int nplane;
         m3dc1_plane_getnum(&nplane);
         
-        PetscInt myrank, maxrank, npart, planeid, partitionid;
+        int myrank, maxrank, npart, planeid, partitionid;
         MPI_Comm_rank(MPI_COMM_WORLD, &myrank);
         MPI_Comm_size(MPI_COMM_WORLD, &maxrank);
         npart = maxrank / nplane;
@@ -2619,7 +2641,7 @@ int matrix_solve:: setLSType()
                 if (i >= start_in_plane && i < start_in_plane + num_own_ent) {
                         // This rank owns entity i on its plane
                         int local_i = i - start_in_plane;
-                        int idx = start_ent + local_i;
+                        PetscInt idx = start_ent + local_i;
                         ierr=ISCreateBlock(PETSC_COMM_WORLD, dofPerEnt, 1, &idx, PETSC_COPY_VALUES, &Line[i]);
                 } else {
                         // This rank does not own entity i — empty IS
@@ -2643,7 +2665,7 @@ int matrix_solve:: setLSType()
         ierr = PCFieldSplitGetSubKSP(pc, &nsplit, &subksp);
         //if (!PCU_Comm_Self())
 
-        int *blks;
+        PetscInt *blks;
         ierr=PetscMalloc1(nplane, &blks);
         for (int j=0; j<nplane; j++) blks[j] = dofPerEnt;
 
