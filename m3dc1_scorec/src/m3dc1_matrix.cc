@@ -460,10 +460,6 @@ int matrix_mult::preAllocate() {
 }
 
 int m3dc1_matrix::preAllocateParaMat() {
-  int bs = 1;
-  MatType type;
-  MatGetType(_A, &type);
-
   int num_own_ent = m3dc1_mesh::instance()->num_own_ent[0], num_own_dof = 0,
       vertex_type = 0;
   m3dc1_field_getnumowndof(&fieldOrdering, &num_own_dof);
@@ -471,10 +467,9 @@ int m3dc1_matrix::preAllocateParaMat() {
   if (num_own_ent)
     dofPerEnt = num_own_dof / num_own_ent;
 
-  if (strcmp(type, MATSEQAIJ) == 0 || strcmp(type, MATMPIAIJ) == 0)
-    bs = 1;
-  else
-    bs = dofPerEnt;
+  // block = one vertex's dofs; MatXAIJSetPreallocation expands block counts
+  // to scalar counts for AIJ-based types (aij, aijcusparse, ...)
+  int bs = dofPerEnt ? dofPerEnt : 1;
   int numBlocks = num_own_dof / bs;
   int numBlockNode = dofPerEnt / bs;
   // cj    if (PCU_Comm_Self()==1) std::cout<<"[M3DC1 INFO] "<<__func__<<":
@@ -534,10 +529,7 @@ int m3dc1_matrix::preAllocateParaMat() {
   }
   mesh->end(ent_it);
 
-  if (bs == 1)
-    MatMPIAIJSetPreallocation(_A, 0, &dnnz[0], 0, &onnz[0]);
-  else
-    MatMPIBAIJSetPreallocation(_A, bs, 0, &dnnz[0], 0, &onnz[0]);
+  MatXAIJSetPreallocation(_A, bs, &dnnz[0], &onnz[0], NULL, NULL);
   return M3DC1_SUCCESS;
 }
 
@@ -685,6 +677,8 @@ int m3dc1_matrix::setupParaMat() {
   CHKERRQ(ierr);
   ierr = MatSetBlockSize(_A, dofPerEnt);
 
+  // generic MATAIJ/MATAIJCUSPARSE resolve by communicator size:
+  // seq variant on 1 rank, mpi variant otherwise
 #if defined(PETSC_USE_CUDSS) || defined(PETSC_USE_CUDSS_MG)
   // -cudsssolve <id>: use the cuDSS block-Jacobi PCShell solver for this matrix
   // -cudsssolve_mg <id>: use the cuDSS block-Jacobi PCShell solver for this matrix
@@ -694,11 +688,11 @@ int m3dc1_matrix::setupParaMat() {
   PetscOptionsGetInt(NULL, NULL, "-cudsssolve_mg", &cudss_mg_id, NULL);
   if (cudss_id > 0 || cudss_mg_id > 0)
   {
-	  ierr = MatSetType(_A, MATMPIAIJCUSPARSE);
+	  ierr = MatSetType(_A, MATAIJCUSPARSE);
 	  CHKERRQ(ierr);
   } else {
 #endif
-  ierr = MatSetType(_A, MATMPIAIJ);
+  ierr = MatSetType(_A, MATAIJ);
   CHKERRQ(ierr);
 
   // -mg: block geometric MG
