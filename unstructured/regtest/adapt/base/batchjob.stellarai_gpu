@@ -39,11 +39,11 @@ echo ""
 $M3DC1_MPIRUN -n $SLURM_NTASKS -c $SLURM_CPUS_PER_TASK --cpu-bind=cores --gpu-bind=none --export=ALL \
 m3dc1_2d \
 -cudsssolve_mg 1 \
--ksp_type preonly \
 -mg_devices $DEVICE \
 -log_view -log_view_gpu_time  \
 -ksp_view \
 -options_left
+#-ksp_type preonly \
 
 $M3DC1_MPIRUN -n $SLURM_NTASKS \
 collapse \
@@ -52,5 +52,7 @@ circle-0.02-0.0-0.0.dmg ts0-adapted.smb mesh.smb $SLURM_NTASKS
 if ! [ -f mesh0.smb ]; then
     echo 0 > C1ke
 fi
+
+cp -p C1ke "C1ke.${SLURM_JOB_ID}"
 
 touch finished

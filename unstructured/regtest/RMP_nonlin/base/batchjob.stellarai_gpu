@@ -40,6 +40,9 @@ m3dc1_3d \
 -cudsssolve 1 \
 -mat_cusparse_spmv_alg CSRMV_ALG2 \
 -log_view -log_view_gpu_time  \
--ksp_view
+-ksp_view \
+-options_left
+
+cp -p C1ke "C1ke.${SLURM_JOB_ID}"
 
 touch finished

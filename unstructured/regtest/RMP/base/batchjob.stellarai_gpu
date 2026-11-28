@@ -38,10 +38,12 @@ echo ""
 $M3DC1_MPIRUN -n $SLURM_NTASKS -c $SLURM_CPUS_PER_TASK --cpu-bind=cores --gpu-bind=none --export=ALL \
 m3dc1_2d_complex \
 -cudsssolve_mg 1 \
--ksp_type preonly \
 -mg_devices $DEVICE \
 -log_view -log_view_gpu_time  \
 -ksp_view \
 -options_left
+
+#-ksp_type preonly \
+cp -p C1ke "C1ke.${SLURM_JOB_ID}"
 
 touch finished
